@@ -17,9 +17,7 @@ export default function DocsPage() {
         </p>
         <div className="mt-8">
           <Button asChild>
-            <Link href={ROUTES.HOME}>
-              HOMEへ戻る
-            </Link>
+            <Link href={ROUTES.HOME}>HOMEへ戻る</Link>
           </Button>
         </div>
       </section>

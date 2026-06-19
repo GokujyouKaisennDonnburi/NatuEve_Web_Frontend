@@ -44,9 +44,7 @@ export default function HomePage() {
             </Button>
 
             <Button variant="secondary" asChild>
-              <Link href={ROUTES.USERS}>
-                モックデータを確認
-              </Link>
+              <Link href={ROUTES.USERS}>モックデータを確認</Link>
             </Button>
           </CardContent>
         </Card>
