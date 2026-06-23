@@ -21,7 +21,7 @@ type EventCardProps = {
 export function EventCard({ event }: EventCardProps) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
-  // ローディングの高さも実際のカードの低さに合わせて調整
+  // ローディングの高さも実際のカードの高さに合わせて調整
   if (!isMounted) return <div className="w-full h-[76px] bg-slate-100 rounded-lg animate-pulse" />;
 
   const start = new Date(event.startAt);
