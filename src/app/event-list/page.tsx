@@ -1,6 +1,4 @@
 import { EventCard, type EventItem } from "@/components/EventCard";
-// @ts-ignore
-import "@/styles/globals.css";
 
 // 15件の生き物観察イベントのダミーデータ（ループで自動生成）
 const DUMMY_EVENTS: EventItem[] = Array.from({ length: 15 }).map((_, index) => {
