@@ -107,6 +107,71 @@ export default function EventPostPage() {
     }));
   };
 
+  // 画像アップロードの仮バックエンド連携。
+  // 実装時は、選択された画像を Storage API に送信し、返却された image_objectkey を event_images に保存する。
+  const uploadEventImage = async (file: File | null) => {
+    if (!file) {
+      return null;
+    }
+
+    // TODO:
+    // - FormData を作成して画像を送信する
+    // - API のレスポンスから image_objectkey を受け取る
+    // - 必要であれば公開 URL も受け取る
+    // - 失敗したら例外を投げて submit を止める
+    await new Promise((resolve) => {
+      setTimeout(resolve, 300);
+    });
+
+    return `mock-image-objectkey-${file.name}`;
+  };
+
+  // PDF アップロードの仮バックエンド連携。
+  // 実装時は、選択された PDF を順番に送信し、返却された pdf_objectkey を event_pdfs に保存する。
+  const uploadEventDocuments = async (files: File[]) => {
+    if (files.length === 0) {
+      return [];
+    }
+
+    // TODO:
+    // - 各 PDF を API / Storage に送信する
+    // - API のレスポンスから pdf_objectkey を受け取る
+    // - event_id が確定した後に event_pdfs へ保存する
+    // - 1 件でも失敗したら例外を投げて submit を止める
+    await new Promise((resolve) => {
+      setTimeout(resolve, 300);
+    });
+
+    return files.map((file) => `mock-pdf-objectkey-${file.name}`);
+  };
+
+  // イベント本体を作成する仮バックエンド連携。
+  // 実装時は、ここで events テーブルを作成し、image_objectkey / pdf_objectkey を紐付ける。
+  const createEventPost = async (payload: {
+    eventName: string;
+    eventContent: string;
+    location: string;
+    eventDateTime: string;
+    feeCategoryGroups: PriceCategory[];
+    requiredItems: string;
+    capacity: string;
+    applicationUrlEnabled: boolean;
+    applicationUrl: string;
+    imageObjectKey: string | null;
+    pdfObjectKeys: string[];
+  }) => {
+    void payload;
+
+    // TODO:
+    // - events テーブルへ POST する
+    // - event_images / event_pdfs の保存結果を event_id に紐付ける
+    // - 必要なら event_items / event_costs の保存もこの段階で行う
+    // - API エラー時は例外を投げて toast を出さずに中断する
+    await new Promise((resolve) => {
+      setTimeout(resolve, 300);
+    });
+  };
+
   // イベント資料の特定のファイルを削除する関数
   const removeEventDocument = (index: number) => {
     setField(
@@ -115,13 +180,6 @@ export default function EventPostPage() {
         (_, currentIndex) => currentIndex !== index,
       ),
     );
-  };
-
-  // フォームの送信処理（ここではダミーの非同期処理を行う）
-  const submitEventPost = async () => {
-    await new Promise((resolve) => {
-      setTimeout(resolve, 600);
-    });
   };
 
   // フォームの入力値を検証する関数
@@ -205,10 +263,38 @@ export default function EventPostPage() {
       return;
     }
 
-    // 送信処理を実行（ここではダミーの非同期処理）
-    await submitEventPost();
-    toast.success("イベント情報を登録しました。");
-    router.push("/event-list");
+    try {
+      // 仮の送信フロー:
+      // 1. 画像と PDF を先にアップロードする
+      // 2. 返却された objectkey をイベント作成 API に渡す
+      // 3. events / event_images / event_pdfs を順に保存する想定
+      const imageObjectKey = await uploadEventImage(formState.eventImage);
+      const pdfObjectKeys = await uploadEventDocuments(
+        formState.eventDocuments,
+      );
+
+      await createEventPost({
+        eventName: formState.eventName,
+        eventContent: formState.eventContent,
+        location: formState.location,
+        eventDateTime: formState.eventDateTime,
+        feeCategoryGroups: formState.feeCategoryGroups,
+        requiredItems: formState.requiredItems,
+        capacity: formState.capacity,
+        applicationUrlEnabled: formState.applicationUrlEnabled,
+        applicationUrl: formState.applicationUrl,
+        imageObjectKey,
+        pdfObjectKeys,
+      });
+
+      toast.success("イベント情報を登録しました。");
+      router.push("/event-list");
+    } catch (error) {
+      console.error("イベント情報の登録に失敗しました。", error);
+      toast.error(
+        "イベント情報の登録に失敗しました。時間をおいて再度お試しください。",
+      );
+    }
   };
 
   return (
@@ -278,6 +364,14 @@ export default function EventPostPage() {
                 </FormField>
 
                 {/* イベント画像のアップロードフィールド */}
+                {/*
+                  TODO: event_images のバックエンド連携をここに追加する。
+                  入れるコードの例:
+                  - 画像ファイルを Storage API に送信する
+                  - 返却された image_objectkey を保持する
+                  - events 作成 API に image_objectkey を渡す
+                  - 失敗時は submit を止めてエラー表示する
+                */}
                 <FileField
                   id={getFieldId("eventImage")}
                   label="イベント画像"
@@ -297,6 +391,14 @@ export default function EventPostPage() {
                   icon={<FileText className="h-4 w-4" />}
                 />
 
+                {/*
+                  TODO: event_pdfs のバックエンド連携をここに追加する。
+                  入れるコードの例:
+                  - PDF ファイルを Storage API に順番に送信する
+                  - 返却された pdf_objectkey を配列で保持する
+                  - event_pdfs テーブルに event_id と pdf_objectkey を保存する
+                  - 1 件でも失敗したら submit を中断する
+                */}
                 <div className="space-y-2">
                   <Label
                     htmlFor={getFieldId("eventDocuments")}
