@@ -53,7 +53,7 @@ export function EventCard({ event }: EventCardProps) {
 
       {/* shadcn独自の隠れ余白を強制リセット（!p-0）し、自前のdiv（p-3）で12pxの均等余白を再現 */}
       <CardContent className="!p-0">
-        <div className="p-3 pl-4 flex flex-col gap-3">
+        <div className="py-0 pr-3 pl-4 flex flex-col gap-1">
           {/* 1行目：メタ情報 */}
           <div className="flex items-center justify-between text-[10px] text-slate-400 leading-none">
             <div className="flex items-center gap-3">
