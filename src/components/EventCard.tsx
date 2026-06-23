@@ -1,8 +1,8 @@
 "use client";
 
-import { Calendar, MapPin, User } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Calendar, Clock, MapPin, User } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export type EventItem = {
   id: string;
@@ -40,6 +40,11 @@ export function EventCard({ event }: EventCardProps) {
     minute: "2-digit",
     timeZone: "Asia/Tokyo",
   });
+
+  const posted = new Date(event.postedAt);
+  const formattedPostedAt = `${posted.getMonth() + 1}/${posted.getDate()} ${String(
+    posted.getHours()
+  ).padStart(2, "0")}:${String(posted.getMinutes()).padStart(2, "0")}`;
 
   return (
     <Card className="group relative w-full overflow-hidden border border-slate-200/80 bg-white shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-200">
@@ -81,6 +86,11 @@ export function EventCard({ event }: EventCardProps) {
             <div className="flex items-center gap-1 min-w-0">
               <MapPin className="h-3 w-3 text-emerald-400 shrink-0" />
               <span className="truncate text-slate-600">{event.location}</span>
+            </div>
+            {/* 投稿日 */}
+            <div className="flex items-center gap-1 text-slate-500 shrink-0 ml-2 font-mono text-right">
+              <Clock className="h-3 w-3 text-slate-400 shrink-0" />
+              <span>{formattedPostedAt}</span>
             </div>
           </div>
         </div>
