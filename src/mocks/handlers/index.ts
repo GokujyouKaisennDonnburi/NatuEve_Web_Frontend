@@ -1,7 +1,4 @@
-import { eventHandlers } from './events';
+import { eventHandlers } from "./events";
 import { userHandlers } from "./user";
 
-export const handlers = [
-    ...userHandlers, 
-    ...eventHandlers
-];
+export const handlers = [...userHandlers, ...eventHandlers];
