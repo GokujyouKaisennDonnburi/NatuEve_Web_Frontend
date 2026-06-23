@@ -29,8 +29,8 @@ export function Header() {
         <SearchBox placeholder="画面やユーザーを検索" />
         <div className="flex items-center gap-2">
           <Badge tone="subtle">MSW ready</Badge>
-          <Button variant="secondary" as="a" href={ROUTES.HOME}>
-            Home
+          <Button variant="secondary" asChild>
+            <a href={ROUTES.HOME}>Home</a>
           </Button>
         </div>
       </div>
