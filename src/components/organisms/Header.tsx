@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Badge } from "@/components/atoms/Badge";
 import { SearchBox } from "@/components/molecules/SearchBox";
 import { Button } from "@/components/ui/button";
@@ -29,8 +31,8 @@ export function Header() {
         <SearchBox placeholder="画面やユーザーを検索" />
         <div className="flex items-center gap-2">
           <Badge tone="subtle">MSW ready</Badge>
-          <Button variant="secondary" as="a" href={ROUTES.HOME}>
-            Home
+          <Button variant="secondary" asChild>
+            <Link href={ROUTES.HOME}>Home</Link>
           </Button>
         </div>
       </div>
