@@ -1,9 +1,8 @@
 "use client"; // ソート（状態管理）を行うため Client Component に変更
 
-import { EventCard, type EventItem } from "@/components/EventCard";
 import { ArrowUpDown } from "lucide-react"; // ソート用のアイコン
 import { useEffect, useMemo, useState } from "react"; // useEffect を追加
-
+import { EventCard, type EventItem } from "@/components/EventCard";
 
 // ソートの種類をここで一元管理（増えたらここに追加）
 type SortOption = "postedAt_desc" /* | "startAt_asc" | "startAt_desc" */;
@@ -16,7 +15,8 @@ export default function EventListPage() {
 
   // MSWの準備完了を待ってからフェッチする
   useEffect(() => {
-    const fetchEvents = async () => {
+    let cancelled = false;
+    const fetchEvents = async (attempt = 0): Promise<void> => {
       try {
         const res = await fetch("/api/events");
 
@@ -25,17 +25,23 @@ export default function EventListPage() {
           throw new Error(`データの取得に失敗しました (Status: ${res.status})`);
         }
 
-        const data = await res.json();
-        setEvents(data);
+        const data = (await res.json()) as EventItem[];
+        if (!cancelled) setEvents(data);
       } catch (err) {
+        // MSW の起動タイミングによっては最初のリクエストが素通りすることがあるため、数回だけリトライする
+        if (!cancelled && attempt < 5) {
+          setTimeout(() => void fetchEvents(attempt + 1), 200 * (attempt + 1));
+          return;
+        }
+
         console.error("Fetchエラー:", err);
       }
     };
 
-    // MSWの初期化（ブラウザへの登録完了）を待ってから実行する,1000msの遅延は暫定的です起動完了検知してから呼び出す方がいいかも
-    const timer = setTimeout(fetchEvents, 1000);
-
-    return () => clearTimeout(timer);
+    void fetchEvents();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // useMemoでソート結果をキャッシュ。sortByかデータが変わった時だけ再計算する
