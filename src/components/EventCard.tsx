@@ -56,7 +56,6 @@ export function EventCard({ event }: EventCardProps) {
                 {event.host}
               </span>
             </div>
-            <span className="text-[9px] font-medium tracking-wider text-emerald-600/80">TL EVENT</span>
           </div>
 
           {/* 2行目：タイトル */}
