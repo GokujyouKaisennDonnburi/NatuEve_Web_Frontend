@@ -1,7 +1,7 @@
 // src/mocks/handlers/events.ts
 import { HttpResponse, http } from "msw";
 
-const DUMMY_EVENTS = Array.from({ length: 15 }).map((_, index) => {
+const DUMMY_EVENTS = Array.from({ length: 100 }).map((_, index) => {
   const base = new Date(Date.UTC(2026, 5, 22 + index));
   const yyyy = base.getUTCFullYear();
   const mm = String(base.getUTCMonth() + 1).padStart(2, "0");
