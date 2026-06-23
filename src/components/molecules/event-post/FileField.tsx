@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import Image from "next/image";
-import type { ChangeEvent, ReactNode } from "react";
+import type { ChangeEvent } from "react";
 import { useState } from "react";
 
 import { FieldNote } from "@/components/atoms/event-post/FieldNote";
@@ -18,7 +18,6 @@ type FileFieldProps = {
   accept?: string;
   selectedFile: File | null;
   onSelectedFileChange: (file: File | null) => void;
-  icon?: ReactNode;
   className?: string;
 };
 

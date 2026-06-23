@@ -98,11 +98,14 @@ export function PriceCategoryField({
           >
             {/* カテゴリの入力欄を表示する部分。エラーがある場合はエラーメッセージも表示される。 */}
             <div className="flex-1">
-              <Label htmlFor={`category-${index}`} className="sr-only">
+              <Label
+                htmlFor={`${fieldId}-category-${index}`}
+                className="sr-only"
+              >
                 カテゴリ
               </Label>
               <Input
-                id={`category-${index}`}
+                id={`${fieldId}-category-${index}`}
                 value={item.category}
                 onChange={(e) => handleCategoryChange(index, e.target.value)}
                 placeholder="例: 高校生"
@@ -115,7 +118,7 @@ export function PriceCategoryField({
 
             {/* 金額の入力欄を表示する部分。全角数字を半角数字に変換して入力を受け付ける。 */}
             <div className="flex-1">
-              <Label htmlFor={`amount-${index}`} className="sr-only">
+              <Label htmlFor={`${fieldId}-amount-${index}`} className="sr-only">
                 金額
               </Label>
               <Input
