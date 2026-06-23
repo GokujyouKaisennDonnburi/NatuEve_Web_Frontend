@@ -80,7 +80,7 @@ export default function EventListPage() {
 
   // 現在のページから前後2ページ分の範囲のページ番号を動的に生成
   const pageNumbers = useMemo(() => {
-    const numbers = [];
+    const numbers: number[] = [];
     for (let i = currentPage - 2; i <= currentPage + 2; i++) {
       // 1ページ以上、かつ総ページ数以下の存在するページのみを追加
       if (i >= 1 && i <= totalPages) {
