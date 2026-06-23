@@ -53,8 +53,8 @@ export default function EventListPage() {
       }
     };
 
-    // MSWの初期化（ブラウザへの登録完了）を一瞬待ってから実行する
-    const timer = setTimeout(fetchEvents, 100);
+    // MSWの初期化（ブラウザへの登録完了）を待ってから実行する,1000msの遅延は暫定的です起動完了検知してから呼び出す方がいいかも
+    const timer = setTimeout(fetchEvents, 1000);
     
     return () => clearTimeout(timer);
   }, []);
