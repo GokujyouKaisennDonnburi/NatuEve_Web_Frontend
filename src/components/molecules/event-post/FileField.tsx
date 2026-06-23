@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+// ファイル選択フィールドコンポーネントのプロパティを定義
 type FileFieldProps = {
   id: string;
   label: string;
@@ -21,6 +22,7 @@ type FileFieldProps = {
   className?: string;
 };
 
+// ファイル選択フィールドコンポーネント
 export function FileField({
   id,
   label,
@@ -31,14 +33,16 @@ export function FileField({
   onSelectedFileChange,
   className,
 }: Readonly<FileFieldProps>) {
-  const [preview, setPreview] = useState<string | null>(null);
-  const [inputKey, setInputKey] = useState(0);
-  const isImage = accept?.startsWith("image/");
+  const [preview, setPreview] = useState<string | null>(null); // 選択されたファイルのプレビューURLを管理する状態
+  const [inputKey, setInputKey] = useState(0); // ファイル入力のリセットのために使用するキーを管理する状態
+  const isImage = accept?.startsWith("image/"); // 受け入れるファイルタイプが画像かどうかを判定するフラグ
 
+  // ファイルが選択されたときの処理
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     onSelectedFileChange(file);
 
+    // 選択されたファイルが画像の場合はプレビューを生成する
     if (file && isImage) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -50,6 +54,7 @@ export function FileField({
     }
   };
 
+  // ファイル選択をクリアする処理
   const handleClear = () => {
     onSelectedFileChange(null);
     setPreview(null);
@@ -64,6 +69,7 @@ export function FileField({
         </Label>
       </div>
 
+      {/* ファイル入力フィールドと選択されたファイルのプレビューを表示する部分 */}
       <div className="relative">
         <Input
           key={inputKey}
@@ -87,6 +93,7 @@ export function FileField({
         ) : null}
       </div>
 
+      {/* 選択されたファイルのプレビューを表示する部分 */}
       {preview && isImage ? (
         <div className="overflow-hidden rounded-xl border border-slate-300 bg-slate-100">
           <Image

@@ -2,14 +2,16 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
+// セクションの見出しを表示するコンポーネント
 type SectionHeadingProps = {
-  eyebrow: string;
-  title: string;
-  description: string;
-  icon?: ReactNode;
+  eyebrow: string; // セクションの小見出しを指定するプロパティ
+  title: string; // セクションの大見出しを指定するプロパティ
+  description: string; // セクションの説明文を指定するプロパティ
+  icon?: ReactNode; // セクションの小見出しの横に表示するアイコンを指定するプロパティ
   className?: string;
 };
 
+// セクションの見出しを表示するコンポーネント
 export function SectionHeading({
   eyebrow,
   title,

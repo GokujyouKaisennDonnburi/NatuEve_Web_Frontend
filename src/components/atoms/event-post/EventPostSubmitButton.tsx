@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 type EventPostSubmitButtonProps = ComponentPropsWithoutRef<typeof Button>;
 
+// イベント投稿フォームの送信ボタンコンポーネント
 export function EventPostSubmitButton({
   className,
   children,

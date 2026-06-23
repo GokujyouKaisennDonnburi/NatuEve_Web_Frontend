@@ -5,16 +5,18 @@ import { RequiredBadge } from "@/components/atoms/event-post/RequiredBadge";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+// フォームフィールドコンポーネントのプロパティを定義
 type FormFieldProps = {
   id: string;
   label: string;
   required?: boolean;
   hint?: string;
   error?: string;
-  children: ReactNode;
+  children: ReactNode; // フォームフィールドの内容を指定するプロパティ
   className?: string;
 };
 
+// フォームフィールドコンポーネント
 export function FormField({
   id,
   label,

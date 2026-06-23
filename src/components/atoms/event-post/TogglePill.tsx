@@ -1,11 +1,13 @@
 import { cn } from "@/lib/utils";
 
+// トグルピルコンポーネントのプロパティを定義
 type TogglePillProps = {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   id: string;
 };
 
+// トグルピルコンポーネント
 export function TogglePill({
   checked,
   onCheckedChange,

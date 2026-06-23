@@ -3,6 +3,7 @@ import { TogglePill } from "@/components/atoms/event-post/TogglePill";
 import { FormField } from "@/components/molecules/event-post/FormField";
 import { Input } from "@/components/ui/input";
 
+// 申し込みURLの入力欄を表示するコンポーネントのプロパティを定義
 type OptionalUrlFieldProps = {
   id: string;
   toggleId: string;
@@ -13,6 +14,7 @@ type OptionalUrlFieldProps = {
   onUrlChange: (url: string) => void;
 };
 
+// 申し込みURLの入力欄を表示するコンポーネント
 export function OptionalUrlField({
   id,
   toggleId,
@@ -38,6 +40,7 @@ export function OptionalUrlField({
         />
       </div>
 
+      {/* URL入力欄を表示する部分。enabled が true のときに表示される。 */}
       {enabled ? (
         <FormField
           id={id}
