@@ -1,8 +1,8 @@
 "use client";
 
-import { Calendar, Clock, MapPin, User } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Calendar, MapPin, User } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export type EventItem = {
   id: string;
@@ -88,9 +88,8 @@ export function EventCard({ event }: EventCardProps) {
               <span className="truncate text-slate-600">{event.location}</span>
             </div>
             {/* 投稿日 */}
-            <div className="flex items-center gap-1 text-slate-500 shrink-0 ml-2 font-mono text-right">
-              <Clock className="h-3 w-3 text-slate-400 shrink-0" />
-              <span>{formattedPostedAt}</span>
+            <div className="text-slate-500 shrink-0 ml-auto font-medium text-right leading-none">
+              <span>投稿日時：{formattedPostedAt}</span>
             </div>
           </div>
         </div>
