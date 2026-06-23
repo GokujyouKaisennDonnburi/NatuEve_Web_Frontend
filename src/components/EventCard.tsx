@@ -25,8 +25,16 @@ export function EventCard({ event }: EventCardProps) {
   if (!isMounted) return <div className="w-full h-[76px] bg-slate-100 rounded-lg animate-pulse" />;
 
   const start = new Date(event.startAt);
-  const formattedDate = start.toLocaleDateString("ja-JP", { month: "short", day: "numeric" });
-  const formattedTime = start.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+  const formattedDate = start.toLocaleDateString("ja-JP", {
+    month: "short",
+    day: "numeric",
+    timeZone: "Asia/Tokyo",
+  });
+  const formattedTime = start.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Tokyo",
+  });
 
   return (
     <Card className="group relative w-full overflow-hidden border border-slate-200/80 bg-white shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-200">
