@@ -120,7 +120,6 @@ export function RequiredItemField({
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => handleRemoveItem(index)}
-                disabled={false}
                 aria-label={`行${index + 1}を削除`}
                 className="cursor-pointer text-red-600 hover:bg-transparent hover:text-red-700"
               >

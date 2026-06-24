@@ -266,7 +266,7 @@ export default function EventPostPage() {
       nextErrors.requiredItems = requiredItemErrors;
     }
 
-    // 定員数の検証（1以上の整数であるか）
+    // 定員数の検証（0以上の整数であるか）
     if (
       formState.capacity.trim() &&
       (!/^\d+$/.test(formState.capacity.trim()) ||
