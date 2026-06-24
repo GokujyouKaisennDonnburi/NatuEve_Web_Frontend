@@ -1,10 +1,10 @@
 "use client"; // ソート（状態管理）を行うため Client Component に変更
 
+import { ArrowUpDown } from "lucide-react"; // ソート用のアイコン
+import { useEffect, useMemo, useState } from "react"; // useEffect を追加
 import { EventCard, type EventItem } from "@/components/EventCard";
 import { GlobalUserAvatar } from "@/components/molecules/UserAvatar"; // 変更した名前でインポート
 import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
-import { ArrowUpDown } from "lucide-react"; // ソート用のアイコン
-import { useEffect, useMemo, useState } from "react"; // useEffect を追加
 
 // ソートの種類をここで一元管理（増えたらここに追加）
 type SortOption = "postedAt_desc" /* | "startAt_asc" | "startAt_desc" */;
@@ -32,7 +32,6 @@ export default function EventListPage() {
   // APIからユーザー情報を取得中かどうかを管理するフラグ（最初は true）
   const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
 
-
   // /api/v1/me（ユーザープロフィール）のフェッチ処理,401で未サインイン判定
   useEffect(() => {
     let cancelled = false;
@@ -44,11 +43,13 @@ export default function EventListPage() {
 
         // 401 Unauthorized など認証エラー、またはその他の取得失敗
         if (!res.ok) {
-          throw new Error(`ユーザー情報の取得に失敗しました (Status: ${res.status})`);
+          throw new Error(
+            `ユーザー情報の取得に失敗しました (Status: ${res.status})`,
+          );
         }
 
         const data = (await res.json()) as UserProfile;
-        
+
         // クリーンアップ前（画面が切り替わっていない）であればステートに格納
         if (!cancelled) {
           setUser(data);
@@ -176,9 +177,9 @@ export default function EventListPage() {
               </Button>
             ) : (
               // 👤 サインイン済み状態：アバターアイコン
-              <GlobalUserAvatar 
-                name={user.name} 
-                iconUrl={user.iconUrl} 
+              <GlobalUserAvatar
+                name={user.name}
+                iconUrl={user.iconUrl}
                 className="cursor-pointer hover:opacity-90 transition-opacity"
               />
             )}

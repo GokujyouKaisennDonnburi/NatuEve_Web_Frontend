@@ -32,16 +32,15 @@ export const userHandlers = [
   // テストしたい状態に合わせて return を切り替えてください
   // ----------------------------------------------------
   http.get("/api/v1/me", () => {
-    
     // ▼ パターンA: サインイン済み（200 OK とユーザー情報を返す）
     return HttpResponse.json({
       id: "user-1",
       name: "ヌートリウス三世",
-      iconUrl: "https://images.unsplash.com/photo-1606567595334-d39972c85dbe?w=100&auto=format&fit=crop&q=80",
+      iconUrl:
+        "https://images.unsplash.com/photo-1606567595334-d39972c85dbe?w=100&auto=format&fit=crop&q=80",
     });
 
     // ▼ パターンB: 未サインイン状態（401 Unauthorized を返す）
     // return new HttpResponse(null, { status: 401 });
-
   }),
 ];

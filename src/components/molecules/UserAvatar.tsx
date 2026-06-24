@@ -1,7 +1,7 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface UserAvatarProps {
   name?: string;
@@ -10,17 +10,21 @@ interface UserAvatarProps {
 }
 
 // 競合を回避のため関数名は GlobalUserAvatar にしてる
-export function GlobalUserAvatar({ name, iconUrl, className = "" }: UserAvatarProps) {
+export function GlobalUserAvatar({
+  name,
+  iconUrl,
+  className = "",
+}: UserAvatarProps) {
   const fallbackText = name ? name.charAt(0) : "";
 
   return (
-    <Avatar 
+    <Avatar
       className={`h-8 w-8 border border-slate-200 bg-slate-100 select-none shadow-xs shrink-0 ${className}`}
     >
       {iconUrl && (
-        <AvatarImage 
-          src={iconUrl} 
-          alt={name ?? "ユーザーアバター"} 
+        <AvatarImage
+          src={iconUrl}
+          alt={name ?? "ユーザーアバター"}
           className="object-cover"
         />
       )}
