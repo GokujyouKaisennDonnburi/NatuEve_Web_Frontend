@@ -1,10 +1,10 @@
 "use client"; // ソート（状態管理）を行うため Client Component に変更
 
+import { ArrowUpDown } from "lucide-react"; // ソート用のアイコン
+import { useEffect, useMemo, useState } from "react"; // useEffect を追加
 import { EventCard, type EventItem } from "@/components/EventCard";
 import { TimelineHeader } from "@/components/organisms/TimelineHeader"; // headerコンポーネントをインポート
 import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
-import { ArrowUpDown } from "lucide-react"; // ソート用のアイコン
-import { useEffect, useMemo, useState } from "react"; // useEffect を追加
 
 // ソートの種類をここで一元管理（増えたらここに追加）
 type SortOption = "postedAt_desc" /* | "startAt_asc" | "startAt_desc" */;
@@ -69,7 +69,10 @@ export default function EventListPage() {
         // ▼ 追加: MSW の起動タイミングによる一時的な失敗に備えてリトライする
         if (!cancelled && attempt < 5) {
           // 徐々に待機時間を長くしながら再実行
-          setTimeout(() => void fetchUserProfile(attempt + 1), 200 * (attempt + 1));
+          setTimeout(
+            () => void fetchUserProfile(attempt + 1),
+            200 * (attempt + 1),
+          );
           return; // リトライする場合はここで抜ける
         }
 
@@ -164,10 +167,10 @@ export default function EventListPage() {
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased selection:bg-emerald-100">
       {/* 固定ヘッダー */}
-      <TimelineHeader 
-        eventCount={events.length} 
-        isUserLoading={isUserLoading} 
-        user={user} 
+      <TimelineHeader
+        eventCount={events.length}
+        isUserLoading={isUserLoading}
+        user={user}
       />
 
       {/* タイムラインメインコンテンツ */}

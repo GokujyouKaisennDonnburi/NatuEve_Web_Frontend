@@ -15,7 +15,11 @@ type TimelineHeaderProps = {
   user: UserProfile | null;
 };
 
-export function TimelineHeader({ eventCount, isUserLoading, user }: TimelineHeaderProps) {
+export function TimelineHeader({
+  eventCount,
+  isUserLoading,
+  user,
+}: TimelineHeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-4">
