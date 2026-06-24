@@ -188,7 +188,7 @@ export default function EventListPage() {
               <GlobalUserAvatar
                 name={user.name}
                 iconUrl={user.iconUrl}
-                className="cursor-pointer hover:opacity-90 transition-opacity"
+                className="transition-opacity"
               />
             )}
           </div>
