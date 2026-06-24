@@ -17,6 +17,9 @@ export default function EventListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 15; // 1ページあたりの最大表示件数
 
+  // サインイン状態を管理するステート（false: 未サインイン, true: サインイン済み）
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
   // MSWの準備完了を待ってからフェッチする
   useEffect(() => {
     let cancelled = false;
@@ -50,7 +53,7 @@ export default function EventListPage() {
 
   // useMemoでソート結果をキャッシュ。sortByかデータが変わった時だけ再計算する
   const sortedEvents = useMemo(() => {
-    // 元の DUMMY_EVENTS ではなく、フェッチした events をソート対象にする
+    // 元 DUMMY_EVENTS ではなく、フェッチした events をソート対象にする
     return [...events].sort((a, b) => {
       switch (sortBy) {
         case "postedAt_desc": // 投稿日時が新しい順（降順）
@@ -103,10 +106,23 @@ export default function EventListPage() {
           <h1 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
             <span className="text-xl">🌿</span> 生き物イベントタイムライン
           </h1>
-          {/* 件数表示 */}
-          <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-            {events.length} 件のイベント
-          </span>
+          
+          {/* 件数表示とサインイン関連UIをまとめるコンテナ */}
+          <div className="flex items-center gap-3">
+            {/* 件数表示 */}
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+              {events.length} 件のイベント
+            </span>
+
+            {/* サインイン状態に応じた表示切り替え */}
+            {!isSignedIn ? (
+              <button className="text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-md transition-colors shrink-0">
+                新規登録・サインイン
+              </button>
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 border border-slate-300" title="ユーザーアイコン（今後実装予定）" />
+            )}
+          </div>
         </div>
       </header>
 
