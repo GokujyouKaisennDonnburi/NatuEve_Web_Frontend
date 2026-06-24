@@ -94,59 +94,64 @@ export function PriceCategoryField({
         {items.map((item, index) => (
           <div
             key={rowIds[index] ?? `${fieldId}-item-${index}`}
-            className="flex items-start gap-3"
+            className="space-y-1"
           >
-            {/* カテゴリの入力欄を表示する部分。エラーがある場合はエラーメッセージも表示される。 */}
-            <div className="flex-1">
-              <Label
-                htmlFor={`${fieldId}-category-${index}`}
-                className="sr-only"
-              >
-                カテゴリ
-              </Label>
-              <Input
-                id={`${fieldId}-category-${index}`}
-                value={item.category}
-                onChange={(e) => handleCategoryChange(index, e.target.value)}
-                placeholder="例: 高校生"
-                className="text-sm"
-              />
-              {errors?.[index] && (
-                <p className="mt-1 text-xs text-red-600">{errors[index]}</p>
-              )}
+            <div className="flex items-start gap-3">
+              {/* カテゴリの入力欄を表示する部分。 */}
+              <div className="flex-1">
+                <Label
+                  htmlFor={`${fieldId}-category-${index}`}
+                  className="sr-only"
+                >
+                  カテゴリ
+                </Label>
+                <Input
+                  id={`${fieldId}-category-${index}`}
+                  value={item.category}
+                  onChange={(e) => handleCategoryChange(index, e.target.value)}
+                  placeholder="例: 高校生"
+                  className="text-sm"
+                />
+              </div>
+
+              {/* 金額の入力欄を表示する部分。全角数字を半角数字に変換して入力を受け付ける。 */}
+              <div className="flex-1">
+                <Label
+                  htmlFor={`${fieldId}-amount-${index}`}
+                  className="sr-only"
+                >
+                  金額
+                </Label>
+                <Input
+                  id={`${fieldId}-amount-${index}`}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={item.amount}
+                  onChange={(e) => handleAmountChange(index, e.target.value)}
+                  placeholder="例: 1000"
+                  className="text-sm"
+                />
+              </div>
+
+              {/* 行を削除するボタンを表示する部分。 */}
+              <div className="flex items-center self-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => handleRemoveItem(index)}
+                  aria-label={`行${index + 1}を削除`}
+                  className="cursor-pointer text-red-600 hover:bg-transparent hover:text-red-700"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
-            {/* 金額の入力欄を表示する部分。全角数字を半角数字に変換して入力を受け付ける。 */}
-            <div className="flex-1">
-              <Label htmlFor={`${fieldId}-amount-${index}`} className="sr-only">
-                金額
-              </Label>
-              <Input
-                id={`amount-${index}`}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={item.amount}
-                onChange={(e) => handleAmountChange(index, e.target.value)}
-                placeholder="例: 1000"
-                className="text-sm"
-              />
-            </div>
-
-            {/* 行を削除するボタンを表示する部分。行が1つしかない場合は削除できないようにする。 */}
-            <div className="flex items-center self-center">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                onClick={() => handleRemoveItem(index)}
-                disabled={items.length === 1}
-                aria-label={`行${index + 1}を削除`}
-                className="cursor-pointer text-red-600 hover:bg-transparent hover:text-red-700"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            {errors?.[index] ? (
+              <p className="text-xs text-red-600">{errors[index]}</p>
+            ) : null}
           </div>
         ))}
       </div>

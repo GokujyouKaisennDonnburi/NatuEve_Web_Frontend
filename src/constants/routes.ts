@@ -3,4 +3,5 @@ export const ROUTES = {
   USERS: "/users",
   DOCS: "/docs",
   EVENT_POST: "/event-post",
+  EVENT_LIST: "/event-list",
 } as const;

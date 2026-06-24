@@ -1,6 +1,6 @@
-import type { ComponentPropsWithoutRef } from "react";
 import { Badge as UiBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { ComponentPropsWithoutRef } from "react";
 
 type BadgeProps = ComponentPropsWithoutRef<typeof UiBadge> & {
   tone?: "default" | "accent" | "subtle";
@@ -19,13 +19,13 @@ export function Badge({
 }: Readonly<BadgeProps>) {
   return (
     <UiBadge
+      {...props}
+      variant="ghost"
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
         toneClasses[tone],
         className,
       )}
-      variant="ghost"
-      {...props}
     />
   );
 }

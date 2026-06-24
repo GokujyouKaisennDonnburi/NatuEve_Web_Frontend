@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ROUTES } from "@/constants/routes";
 
 // イベント投稿フォームの入力状態を管理する型定義
 type EventPostFormState = {
@@ -234,13 +235,14 @@ export default function EventPostPage() {
       };
     }
     formState.feeCategoryGroups.forEach((group, index) => {
-      // カテゴリが空の場合のエラー
-      if (!group.category.trim()) {
-        feeErrors[index] = "カテゴリを入力してください。";
-      }
+      const hasCategory = Boolean(group.category.trim());
+      const hasAmount = Boolean(group.amount.trim());
 
-      // 金額が空または数字以外の場合のエラー
-      if (!group.amount.trim()) {
+      if (!hasCategory && !hasAmount) {
+        feeErrors[index] = "カテゴリと金額を入力してください。";
+      } else if (!hasCategory) {
+        feeErrors[index] = "カテゴリを入力してください。";
+      } else if (!hasAmount) {
         feeErrors[index] = "金額を入力してください。";
       } else if (!/^\d+$/.test(group.amount.trim())) {
         feeErrors[index] = "金額は数字で入力してください。";
@@ -339,7 +341,7 @@ export default function EventPostPage() {
       });
 
       toast.success("イベント情報を登録しました。");
-      router.push("/event-list");
+      router.push(ROUTES.EVENT_LIST);
     } catch (error) {
       console.error("イベント情報の登録に失敗しました。", error);
       toast.error(
