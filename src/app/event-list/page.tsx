@@ -3,10 +3,18 @@
 import { ArrowUpDown } from "lucide-react"; // ソート用のアイコン
 import { useEffect, useMemo, useState } from "react"; // useEffect を追加
 import { EventCard, type EventItem } from "@/components/EventCard";
+import { TimelineHeader } from "@/components/organisms/TimelineHeader"; // headerコンポーネントをインポート
 import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
 
 // ソートの種類をここで一元管理（増えたらここに追加）
 type SortOption = "postedAt_desc" /* | "startAt_asc" | "startAt_desc" */;
+
+// /api/v1/me から返ってくる予定のユーザー情報の型定義
+type UserProfile = {
+  id: string;
+  name: string;
+  iconUrl?: string;
+};
 
 export default function EventListPage() {
   // データを保持するステートを定義（初期値は空配列）
@@ -18,10 +26,73 @@ export default function EventListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 15; // 1ページあたりの最大表示件数
 
-  // サインイン状態を管理するステート（false: 未サインイン, true: サインイン済み）
-  const [isSignedIn, _setIsSignedIn] = useState(false);
+  // ユーザー情報を格納するステート（初期値は未サインインの null）
+  const [user, setUser] = useState<UserProfile | null>(null);
 
-  // MSWの準備完了を待ってからフェッチする
+  // APIからユーザー情報を取得中かどうかを管理するフラグ（最初は true）
+  const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
+
+  // /api/v1/me（ユーザープロフィール）のフェッチ処理,401で未サインイン判定
+  useEffect(() => {
+    let cancelled = false;
+
+    // ▼ リトライ用の引数 attempt を追加しました
+    const fetchUserProfile = async (attempt = 0): Promise<void> => {
+      try {
+        // バックエンド（MSW）のプロフィール取得APIを叩く
+        const res = await fetch("/api/v1/me");
+
+        // 401 Unauthorized は「未サインイン」として扱う
+        if (res.status === 401) {
+          if (!cancelled) {
+            setUser(null);
+            setIsUserLoading(false); // 確定したのでローディング解除
+          }
+          return;
+        }
+
+        // その他の取得失敗（認証エラー含む）
+        if (!res.ok) {
+          throw new Error(
+            `ユーザー情報の取得に失敗しました (Status: ${res.status})`,
+          );
+        }
+
+        const data = (await res.json()) as UserProfile;
+
+        // クリーンアップ前（画面が切り替わっていない）であればステートに格納
+        if (!cancelled) {
+          setUser(data);
+          setIsUserLoading(false); // 成功したのでローディング解除
+        }
+      } catch (err) {
+        // ▼ 追加: MSW の起動タイミングによる一時的な失敗に備えてリトライする
+        if (!cancelled && attempt < 5) {
+          // 徐々に待機時間を長くしながら再実行
+          setTimeout(
+            () => void fetchUserProfile(attempt + 1),
+            200 * (attempt + 1),
+          );
+          return; // リトライする場合はここで抜ける
+        }
+
+        // リトライ上限（5回）を超えてもダメだった場合の最終エラーハンドリング
+        console.log("ユーザーが未サインイン、または取得エラー:", err);
+        if (!cancelled) {
+          setUser(null); // 安全のために未ログイン状態（null）にする
+          setIsUserLoading(false); // 確定したのでローディング解除
+        }
+      }
+    };
+
+    void fetchUserProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // MSWの準備完了を待ってからフェッチする（既存のイベント一覧取得用）
   useEffect(() => {
     let cancelled = false;
     const fetchEvents = async (attempt = 0): Promise<void> => {
@@ -62,7 +133,6 @@ export default function EventListPage() {
 
   // useMemoでソート結果をキャッシュ。sortByかデータが変わった時だけ再計算する
   const sortedEvents = useMemo(() => {
-    // 元 DUMMY_EVENTS ではなく、フェッチした events をソート対象にする
     return [...events].sort((a, b) => {
       switch (sortBy) {
         case "postedAt_desc": // 投稿日時が新しい順（降順）
@@ -80,7 +150,6 @@ export default function EventListPage() {
   const paginatedEvents = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const _endIndex = startIndex + ITEMS_PER_PAGE;
-    // 既存の slice(startIndex, endIndex) に修正
     return sortedEvents.slice(startIndex, _endIndex);
   }, [sortedEvents, currentPage]);
 
@@ -91,7 +160,6 @@ export default function EventListPage() {
   const pageNumbers = useMemo(() => {
     const numbers: number[] = [];
     for (let i = currentPage - 2; i <= currentPage + 2; i++) {
-      // 1ページ以上、かつ総ページ数以下の存在するページのみを追加
       if (i >= 1 && i <= totalPages) {
         numbers.push(i);
       }
@@ -106,37 +174,12 @@ export default function EventListPage() {
 
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased selection:bg-emerald-100">
-      {/* SNS風の固定ヘッダー */}
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-4">
-          <h1 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
-            <span className="text-xl">🌿</span> 生き物イベントタイムライン
-          </h1>
-
-          {/* 件数表示とサインイン関連UIをまとめるコンテナ */}
-          <div className="flex items-center gap-3">
-            {/* 件数表示 */}
-            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-              {events.length} 件のイベント
-            </span>
-
-            {/* サインイン状態に応じた表示切り替え */}
-            {!isSignedIn ? (
-              <Button
-                size="sm"
-                className="text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-md transition-colors shrink-0 border-none cursor-pointer shadow-none"
-              >
-                新規登録・サインイン
-              </Button>
-            ) : (
-              <div
-                className="w-8 h-8 rounded-full bg-slate-200 shrink-0 border border-slate-300"
-                title="ユーザーアイコン（今後実装予定）"
-              />
-            )}
-          </div>
-        </div>
-      </header>
+      {/* 固定ヘッダー */}
+      <TimelineHeader
+        eventCount={events.length}
+        isUserLoading={isUserLoading}
+        user={user}
+      />
 
       {/* タイムラインメインコンテンツ */}
       <main className="mx-auto max-w-xl px-4 pt-4 pb-16">
@@ -160,7 +203,6 @@ export default function EventListPage() {
 
         {/* カードを縦に並べるタイムラインコンテナ */}
         <div className="space-y-4">
-          {/* 15件に切り出した paginatedEvents を展開 */}
           {paginatedEvents.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
@@ -169,7 +211,6 @@ export default function EventListPage() {
         {/* ページネーションUI（データが15件以上ある場合のみ表示） */}
         {totalPages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-1 px-2">
-            {/* 先頭ページへジャンプ */}
             <Button
               variant="outline"
               size="xs"
@@ -180,7 +221,6 @@ export default function EventListPage() {
               先頭
             </Button>
 
-            {/* 前のページ */}
             <Button
               variant="outline"
               size="xs"
@@ -191,7 +231,6 @@ export default function EventListPage() {
               前
             </Button>
 
-            {/* 前後2ページの範囲で直接ページ指定して飛ぶボタン */}
             {pageNumbers.map((page) => (
               <Button
                 key={page}
@@ -199,15 +238,14 @@ export default function EventListPage() {
                 onClick={() => setCurrentPage(page)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer shadow-none ${
                   currentPage === page
-                    ? "bg-slate-950 text-white border-slate-950 hover:bg-slate-900" // 元の「現在ページ（黒）」
-                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50" // 通常のページ番号
+                    ? "bg-slate-950 text-white border-slate-950 hover:bg-slate-900"
+                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                 }`}
               >
                 {page}
               </Button>
             ))}
 
-            {/* 次のページ */}
             <Button
               variant="outline"
               size="xs"
@@ -218,7 +256,6 @@ export default function EventListPage() {
               次
             </Button>
 
-            {/* 末尾ページへジャンプ */}
             <Button
               variant="outline"
               size="xs"
