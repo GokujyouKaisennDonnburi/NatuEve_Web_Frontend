@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Badge } from "@/components/atoms/Badge";
 import { SearchBox } from "@/components/molecules/SearchBox";
 import { Button } from "@/components/ui/button";

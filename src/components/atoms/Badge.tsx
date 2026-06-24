@@ -1,7 +1,8 @@
-import type { HTMLAttributes } from "react";
+import type { ComponentPropsWithoutRef } from "react";
+import { Badge as UiBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
+type BadgeProps = ComponentPropsWithoutRef<typeof UiBadge> & {
   tone?: "default" | "accent" | "subtle";
 };
 
@@ -12,18 +13,19 @@ const toneClasses: Record<NonNullable<BadgeProps["tone"]>, string> = {
 };
 
 export function Badge({
-  className,
   tone = "default",
+  className,
   ...props
 }: Readonly<BadgeProps>) {
   return (
-    <span
+    <UiBadge
+      {...props}
+      variant="ghost"
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
         toneClasses[tone],
         className,
       )}
-      {...props}
     />
   );
 }

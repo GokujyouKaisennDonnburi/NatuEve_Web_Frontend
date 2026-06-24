@@ -28,8 +28,16 @@ export default function EventListPage() {
       try {
         const res = await fetch("/api/events");
 
-        // エラー画面（HTML）を掴まされた場合にJSONパースエラーでクラッシュするのを防ぐ
+        // MSW の起動前に素通りして 404 になることがあるため、数回はリトライする
         if (!res.ok) {
+          if (!cancelled && attempt < 5) {
+            setTimeout(
+              () => void fetchEvents(attempt + 1),
+              200 * (attempt + 1),
+            );
+            return;
+          }
+
           throw new Error(`データの取得に失敗しました (Status: ${res.status})`);
         }
 
