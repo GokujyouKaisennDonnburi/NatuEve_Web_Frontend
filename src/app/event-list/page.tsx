@@ -41,7 +41,15 @@ export default function EventListPage() {
         // バックエンド（MSW）のプロフィール取得APIを叩く
         const res = await fetch("/api/v1/me");
 
-        // 401 Unauthorized など認証エラー、またはその他の取得失敗
+        // 401 Unauthorized は「未サインイン」として扱う
+        if (res.status === 401) {
+          if (!cancelled) {
+            setUser(null);
+          }
+          return;
+        }
+
+        // その他の取得失敗（認証エラー含む）
         if (!res.ok) {
           throw new Error(
             `ユーザー情報の取得に失敗しました (Status: ${res.status})`,
