@@ -3,6 +3,7 @@
 import { ArrowUpDown } from "lucide-react"; // ソート用のアイコン
 import { useEffect, useMemo, useState } from "react"; // useEffect を追加
 import { EventCard, type EventItem } from "@/components/EventCard";
+import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
 
 // ソートの種類をここで一元管理（増えたらここに追加）
 type SortOption = "postedAt_desc" /* | "startAt_asc" | "startAt_desc" */;
@@ -12,6 +13,13 @@ export default function EventListPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   // 現在選択されているソート条件を管理（初期値は投稿日時の降順）
   const [sortBy, setSortBy] = useState<SortOption>("postedAt_desc");
+
+  // ページネーション用のステート（1ページ目からスタート）
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15; // 1ページあたりの最大表示件数
+
+  // サインイン状態を管理するステート（false: 未サインイン, true: サインイン済み）
+  const [isSignedIn, _setIsSignedIn] = useState(false);
 
   // MSWの準備完了を待ってからフェッチする
   useEffect(() => {
@@ -46,7 +54,7 @@ export default function EventListPage() {
 
   // useMemoでソート結果をキャッシュ。sortByかデータが変わった時だけ再計算する
   const sortedEvents = useMemo(() => {
-    // 元の DUMMY_EVENTS ではなく、フェッチした events をソート対象にする
+    // 元 DUMMY_EVENTS ではなく、フェッチした events をソート対象にする
     return [...events].sort((a, b) => {
       switch (sortBy) {
         case "postedAt_desc": // 投稿日時が新しい順（降順）
@@ -54,15 +62,39 @@ export default function EventListPage() {
             new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()
           );
 
-        // 今後ソートを追加する場合は、ここに case を足す 例：
-        // case "startAt_asc": // 開催日時が近い順（昇順）
-        //   return new Date(a.startAt).getTime() - new Date(b.startAt).getTime();
-
         default:
           return 0; // そのまま
       }
     });
-  }, [events, sortBy]); // 変更点4: 依存配列に events を追加
+  }, [events, sortBy]);
+
+  // ソート済みのデータから、現在のページに必要な件数（最大15件）だけを切り出す
+  const paginatedEvents = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const _endIndex = startIndex + ITEMS_PER_PAGE;
+    // 既存の slice(startIndex, endIndex) に修正
+    return sortedEvents.slice(startIndex, _endIndex);
+  }, [sortedEvents, currentPage]);
+
+  // 全ページ数を計算（30件なら 30÷15＝2ページ）
+  const totalPages = Math.ceil(events.length / ITEMS_PER_PAGE);
+
+  // 現在のページから前後2ページ分の範囲のページ番号を動的に生成
+  const pageNumbers = useMemo(() => {
+    const numbers: number[] = [];
+    for (let i = currentPage - 2; i <= currentPage + 2; i++) {
+      // 1ページ以上、かつ総ページ数以下の存在するページのみを追加
+      if (i >= 1 && i <= totalPages) {
+        numbers.push(i);
+      }
+    }
+    return numbers;
+  }, [currentPage, totalPages]);
+
+  // ソートが変更されたら、強制的に1ページ目に戻す（ユーザーの迷子防止）
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortBy]);
 
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased selection:bg-emerald-100">
@@ -72,10 +104,29 @@ export default function EventListPage() {
           <h1 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
             <span className="text-xl">🌿</span> 生き物イベントタイムライン
           </h1>
-          {/* 変更点5: 件数表示もフェッチしたデータ（events）の数に連動させる */}
-          <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-            {events.length} 件のイベント
-          </span>
+
+          {/* 件数表示とサインイン関連UIをまとめるコンテナ */}
+          <div className="flex items-center gap-3">
+            {/* 件数表示 */}
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+              {events.length} 件のイベント
+            </span>
+
+            {/* サインイン状態に応じた表示切り替え */}
+            {!isSignedIn ? (
+              <Button
+                size="sm"
+                className="text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-md transition-colors shrink-0 border-none cursor-pointer shadow-none"
+              >
+                新規登録・サインイン
+              </Button>
+            ) : (
+              <div
+                className="w-8 h-8 rounded-full bg-slate-200 shrink-0 border border-slate-300"
+                title="ユーザーアイコン（今後実装予定）"
+              />
+            )}
+          </div>
         </div>
       </header>
 
@@ -95,19 +146,82 @@ export default function EventListPage() {
               className="text-xs font-medium text-slate-600 bg-transparent outline-none cursor-pointer"
             >
               <option value="postedAt_desc">投稿が新しい順</option>
-              {/* 今後追加する場合はここをコメントアウト解除して増やす */}
-              {/* <option value="startAt_asc">開催が近い順</option> */}
             </select>
           </div>
         </div>
 
         {/* カードを縦に並べるタイムラインコンテナ */}
         <div className="space-y-4">
-          {/* 生の DUMMY_EVENTS ではなく、ソート済みの sortedEvents を展開する */}
-          {sortedEvents.map((event) => (
+          {/* 15件に切り出した paginatedEvents を展開 */}
+          {paginatedEvents.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
         </div>
+
+        {/* ページネーションUI（データが15件以上ある場合のみ表示） */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-1 px-2">
+            {/* 先頭ページへジャンプ */}
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
+            >
+              先頭
+            </Button>
+
+            {/* 前のページ */}
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
+            >
+              前
+            </Button>
+
+            {/* 前後2ページの範囲で直接ページ指定して飛ぶボタン */}
+            {pageNumbers.map((page) => (
+              <Button
+                key={page}
+                size="xs"
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer shadow-none ${
+                  currentPage === page
+                    ? "bg-slate-950 text-white border-slate-950 hover:bg-slate-900" // 元の「現在ページ（黒）」
+                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50" // 通常のページ番号
+                }`}
+              >
+                {page}
+              </Button>
+            ))}
+
+            {/* 次のページ */}
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
+            >
+              次
+            </Button>
+
+            {/* 末尾ページへジャンプ */}
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
+            >
+              末尾
+            </Button>
+          </div>
+        )}
       </main>
     </div>
   );

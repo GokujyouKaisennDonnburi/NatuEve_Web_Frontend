@@ -32,7 +32,7 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Badge tone="subtle">MSW ready</Badge>
           <Button variant="secondary" asChild>
-            <Link href={ROUTES.HOME}>Home</Link>
+            <a href={ROUTES.HOME}>Home</a>
           </Button>
         </div>
       </div>
