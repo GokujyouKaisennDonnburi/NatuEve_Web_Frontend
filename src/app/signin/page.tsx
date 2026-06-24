@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,12 +22,13 @@ import { signinStyles } from "./signinStyles";
 export default function SignInPage() {
   const appName = "Google";
 
+  // Googleサインインボタンのクリックハンドラ
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(); // サインイン処理を呼び出す
     } catch (error) {
       console.error("Google sign-in failed", error);
-      alert("サインインに失敗しました。もう一度お試しください。");
+      toast.error("サインインに失敗しました。もう一度お試しください。");
     }
   };
 

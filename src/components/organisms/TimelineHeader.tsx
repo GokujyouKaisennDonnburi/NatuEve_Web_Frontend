@@ -2,19 +2,13 @@ import Link from "next/link";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
-
-// UserProfileの型定義をこちらにも用意（または共通の型定義ファイルからimportでもOKです）
-export type UserProfile = {
-  id: string;
-  name: string;
-  iconUrl?: string;
-};
+import type { CurrentUser } from "@/types/user";
 
 // ヘッダーが受け取るProps（引数）を定義
 type TimelineHeaderProps = {
   eventCount: number;
   isUserLoading: boolean;
-  user: UserProfile | null;
+  user: CurrentUser | null;
 };
 
 export function TimelineHeader({
@@ -50,10 +44,10 @@ export function TimelineHeader({
               <Link href={ROUTES.SIGNIN}>新規登録・サインイン</Link>
             </Button>
           ) : (
-            // サインイン済み状態：アバターアイコン
+            // サインイン済み状態：ユーザーアイコン
             <GlobalUserAvatar
-              name={user.name}
-              iconUrl={user.iconUrl}
+              name={user.displayName}
+              iconUrl={user.avatarUrl}
               className="transition-opacity"
             />
           )}
