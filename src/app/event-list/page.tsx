@@ -26,28 +26,55 @@ export default function EventListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 15; // 1ページあたりの最大表示件数
 
-  /* ==========================================================================
-     【UI確認用】サインイン状態のシミュレートトグル
-     ========================================================================== */
-  
-  // ▼ パターンA：サインイン済み（画像アイコンあり）
-  const [user, _setUser] = useState<UserProfile | null>({
-    id: "user-1",
-    name: "ヌートリウス一世",
-    iconUrl: "https://images.unsplash.com/photo-1606567595334-d39972c85dbe?w=100&auto=format&fit=crop&q=80",
-  });
+  // ユーザー情報を格納するステート（初期値は未サインインの null）
+  const [user, setUser] = useState<UserProfile | null>(null);
 
-  // ▼ パターンB：サインイン済み（画像なし・イニシャル表示のフォールバック検証用）
-  // const [user, _setUser] = useState<UserProfile | null>({ id: "user-2", name: "アマガエル次郎" });
+  // APIからユーザー情報を取得中かどうかを管理するフラグ（最初は true）
+  const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
 
-  // ▼ パターンC：未サインイン状態（ログインボタンが表示されます）
-  // const [user, _setUser] = useState<UserProfile | null>(null);
 
-  /* ==========================================================================
-     【UI確認用】ここまで
-     ========================================================================== */
+  // /api/v1/me（ユーザープロフィール）のフェッチ処理,401で未サインイン判定
+  useEffect(() => {
+    let cancelled = false;
 
-  // MSWの準備完了を待ってからフェッチする
+    const fetchUserProfile = async () => {
+      try {
+        // バックエンド（MSW）のプロフィール取得APIを叩く
+        const res = await fetch("/api/v1/me");
+
+        // 401 Unauthorized など認証エラー、またはその他の取得失敗
+        if (!res.ok) {
+          throw new Error(`ユーザー情報の取得に失敗しました (Status: ${res.status})`);
+        }
+
+        const data = (await res.json()) as UserProfile;
+        
+        // クリーンアップ前（画面が切り替わっていない）であればステートに格納
+        if (!cancelled) {
+          setUser(data);
+        }
+      } catch (err) {
+        // エラーハンドリング（未ログインの場合はここに落ちる想定）
+        console.log("ユーザーが未サインイン、または取得エラー:", err);
+        if (!cancelled) {
+          setUser(null); // 安全のために未ログイン状態（null）にする
+        }
+      } finally {
+        // 成功しても失敗しても、ローディングは必ず終了させる
+        if (!cancelled) {
+          setIsUserLoading(false);
+        }
+      }
+    };
+
+    void fetchUserProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // MSWの準備完了を待ってからフェッチする（既存のイベント一覧取得用）
   useEffect(() => {
     let cancelled = false;
     const fetchEvents = async (attempt = 0): Promise<void> => {
@@ -136,7 +163,11 @@ export default function EventListPage() {
             </span>
 
             {/* サインイン状態（userオブジェクトの有無）に応じた表示切り替え */}
-            {!user ? (
+            {isUserLoading ? (
+              // 🔄 ユーザー情報取得中：ふわふわアニメーションするグレーの丸型プレースホルダー
+              <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse shrink-0 border border-slate-300/50" />
+            ) : !user ? (
+              // 🟩 未サインイン状態：登録・サインインボタン
               <Button
                 size="sm"
                 className="text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-md transition-colors shrink-0 border-none cursor-pointer shadow-none"
@@ -144,7 +175,7 @@ export default function EventListPage() {
                 新規登録・サインイン
               </Button>
             ) : (
-              /* 名前を衝突回避版に変更して配置 */
+              // 👤 サインイン済み状態：アバターアイコン
               <GlobalUserAvatar 
                 name={user.name} 
                 iconUrl={user.iconUrl} 
