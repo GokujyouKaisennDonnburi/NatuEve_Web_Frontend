@@ -1,8 +1,8 @@
 "use client"; // ソート（状態管理）を行うため Client Component に変更
 
+import { EventCard, type EventItem } from "@/components/EventCard";
 import { ArrowUpDown } from "lucide-react"; // ソート用のアイコン
 import { useEffect, useMemo, useState } from "react"; // useEffect を追加
-import { EventCard, type EventItem } from "@/components/EventCard";
 
 // ソートの種類をここで一元管理（増えたらここに追加）
 type SortOption = "postedAt_desc" /* | "startAt_asc" | "startAt_desc" */;
@@ -12,6 +12,10 @@ export default function EventListPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   // 現在選択されているソート条件を管理（初期値は投稿日時の降順）
   const [sortBy, setSortBy] = useState<SortOption>("postedAt_desc");
+
+  // ページネーション用のステート（1ページ目からスタート）
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15; // 1ページあたりの最大表示件数
 
   // MSWの準備完了を待ってからフェッチする
   useEffect(() => {
@@ -62,7 +66,34 @@ export default function EventListPage() {
           return 0; // そのまま
       }
     });
-  }, [events, sortBy]); // 変更点4: 依存配列に events を追加
+  }, [events, sortBy]);
+
+  // ソート済みのデータから、現在のページに必要な件数（最大15件）だけを切り出す
+  const paginatedEvents = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return sortedEvents.slice(startIndex, endIndex);
+  }, [sortedEvents, currentPage]);
+
+  // 全ページ数を計算（30件なら 30÷15＝2ページ）
+  const totalPages = Math.ceil(events.length / ITEMS_PER_PAGE);
+
+  // 現在のページから前後2ページ分の範囲のページ番号を動的に生成
+  const pageNumbers = useMemo(() => {
+    const numbers: number[] = [];
+    for (let i = currentPage - 2; i <= currentPage + 2; i++) {
+      // 1ページ以上、かつ総ページ数以下の存在するページのみを追加
+      if (i >= 1 && i <= totalPages) {
+        numbers.push(i);
+      }
+    }
+    return numbers;
+  }, [currentPage, totalPages]);
+
+  // ソートが変更されたら、強制的に1ページ目に戻す（ユーザーの迷子防止）
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortBy]);
 
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased selection:bg-emerald-100">
@@ -72,7 +103,7 @@ export default function EventListPage() {
           <h1 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
             <span className="text-xl">🌿</span> 生き物イベントタイムライン
           </h1>
-          {/* 変更点5: 件数表示もフェッチしたデータ（events）の数に連動させる */}
+          {/* 件数表示 */}
           <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
             {events.length} 件のイベント
           </span>
@@ -103,11 +134,67 @@ export default function EventListPage() {
 
         {/* カードを縦に並べるタイムラインコンテナ */}
         <div className="space-y-4">
-          {/* 生の DUMMY_EVENTS ではなく、ソート済みの sortedEvents を展開する */}
-          {sortedEvents.map((event) => (
+          {/* 15件に切り出した paginatedEvents を展開 */}
+          {paginatedEvents.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
         </div>
+
+        {/* ページネーションUI（データが15件以上ある場合のみ表示） */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-1 px-2">
+            {/* 先頭ページへジャンプ */}
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              先頭
+            </button>
+
+            {/* 前のページ */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              前
+            </button>
+
+            {/* 前後2ページの範囲で直接ページ指定して飛ぶボタン */}
+            {pageNumbers.map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${
+                  currentPage === page
+                    ? "bg-slate-950 text-white border-slate-950" // 現在のページ
+                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            {/* 次のページ */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              次
+            </button>
+
+            {/* 末尾ページへジャンプ */}
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              末尾
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );
