@@ -1,8 +1,8 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, MapPin, User } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 
 export type EventItem = {
   id: string;

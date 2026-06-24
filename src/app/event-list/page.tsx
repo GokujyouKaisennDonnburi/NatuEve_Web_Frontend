@@ -1,9 +1,9 @@
 "use client"; // ソート（状態管理）を行うため Client Component に変更
 
-import { EventCard, type EventItem } from "@/components/EventCard";
-import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
 import { ArrowUpDown } from "lucide-react"; // ソート用のアイコン
 import { useEffect, useMemo, useState } from "react"; // useEffect を追加
+import { EventCard, type EventItem } from "@/components/EventCard";
+import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
 
 // ソートの種類をここで一元管理（増えたらここに追加）
 type SortOption = "postedAt_desc" /* | "startAt_asc" | "startAt_desc" */;
@@ -19,7 +19,7 @@ export default function EventListPage() {
   const ITEMS_PER_PAGE = 15; // 1ページあたりの最大表示件数
 
   // サインイン状態を管理するステート（false: 未サインイン, true: サインイン済み）
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isSignedIn, _setIsSignedIn] = useState(false);
 
   // MSWの準備完了を待ってからフェッチする
   useEffect(() => {
@@ -71,9 +71,9 @@ export default function EventListPage() {
   // ソート済みのデータから、現在のページに必要な件数（最大15件）だけを切り出す
   const paginatedEvents = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + startIndex + ITEMS_PER_PAGE;
+    const _endIndex = startIndex + ITEMS_PER_PAGE;
     // 既存の slice(startIndex, endIndex) に修正
-    return sortedEvents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    return sortedEvents.slice(startIndex, _endIndex);
   }, [sortedEvents, currentPage]);
 
   // 全ページ数を計算（30件なら 30÷15＝2ページ）
@@ -104,7 +104,7 @@ export default function EventListPage() {
           <h1 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
             <span className="text-xl">🌿</span> 生き物イベントタイムライン
           </h1>
-          
+
           {/* 件数表示とサインイン関連UIをまとめるコンテナ */}
           <div className="flex items-center gap-3">
             {/* 件数表示 */}
@@ -114,14 +114,17 @@ export default function EventListPage() {
 
             {/* サインイン状態に応じた表示切り替え */}
             {!isSignedIn ? (
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 className="text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-md transition-colors shrink-0 border-none cursor-pointer shadow-none"
               >
                 新規登録・サインイン
               </Button>
             ) : (
-              <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 border border-slate-300" title="ユーザーアイコン（今後実装予定）" />
+              <div
+                className="w-8 h-8 rounded-full bg-slate-200 shrink-0 border border-slate-300"
+                title="ユーザーアイコン（今後実装予定）"
+              />
             )}
           </div>
         </div>
@@ -189,7 +192,7 @@ export default function EventListPage() {
                 className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer shadow-none ${
                   currentPage === page
                     ? "bg-slate-950 text-white border-slate-950 hover:bg-slate-900" // 元の「現在ページ（黒）」
-                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"   // 通常のページ番号
+                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50" // 通常のページ番号
                 }`}
               >
                 {page}
