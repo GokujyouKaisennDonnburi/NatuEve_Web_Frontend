@@ -2,18 +2,21 @@ import Link from "next/link";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
+import type { AuthSession } from "@/types/common";
 import type { CurrentUser } from "@/types/user";
 
 // ヘッダーが受け取るProps（引数）を定義
 type TimelineHeaderProps = {
   eventCount: number;
   isUserLoading: boolean;
+  session: AuthSession | null;
   user: CurrentUser | null;
 };
 
 export function TimelineHeader({
   eventCount,
   isUserLoading,
+  session,
   user,
 }: TimelineHeaderProps) {
   return (
@@ -34,7 +37,7 @@ export function TimelineHeader({
           {isUserLoading ? (
             // ユーザー情報取得中：ふわふわアニメーションするグレーの丸型プレースホルダー
             <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse shrink-0 border border-slate-300/50" />
-          ) : !user ? (
+          ) : !session ? (
             // 未サインイン状態：登録・サインインボタン
             <Button
               asChild
@@ -46,8 +49,8 @@ export function TimelineHeader({
           ) : (
             // サインイン済み状態：ユーザーアイコン
             <GlobalUserAvatar
-              name={user.displayName}
-              iconUrl={user.avatarUrl}
+              name={user?.displayName ?? session.name}
+              iconUrl={user?.avatarUrl ?? session.iconUrl}
               className="transition-opacity"
             />
           )}

@@ -17,6 +17,18 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     let handled = false;
 
+    const exchangeSession = async () => {
+      const code = new URLSearchParams(window.location.search).get("code");
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (error) {
+          throw error;
+        }
+      }
+    };
+
     // 認証成功時の処理
     const finishSuccess = () => {
       if (handled) {
@@ -50,19 +62,25 @@ export default function AuthCallbackPage() {
       }
     });
 
-    // 認証セッションを取得して、成功または失敗の処理を実行する
-    void supabase.auth.getSession().then(({ data: { session }, error }) => {
-      // 認証セッションが取得できなかった場合はエラー処理を実行
-      if (error) {
-        finishError();
-        return;
-      }
+    // PKCE の code をセッションへ交換し、その後に成功/失敗を判定する
+    void exchangeSession()
+      .then(() => supabase.auth.getSession())
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          finishError();
+          return;
+        }
 
-      // 認証セッションが存在する場合は成功処理を実行
-      if (session) {
-        finishSuccess();
-      }
-    });
+        if (session) {
+          finishSuccess();
+          return;
+        }
+
+        finishError();
+      })
+      .catch(() => {
+        finishError();
+      });
 
     // クリーンアップ関数を返すことで、コンポーネントがアンマウントされたときにタイムアウトとサブスクリプションを解除する
     return () => {

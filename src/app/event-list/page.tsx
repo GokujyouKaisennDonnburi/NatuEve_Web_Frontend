@@ -166,6 +166,7 @@ export default function EventListPage() {
       <TimelineHeader
         eventCount={events.length}
         isUserLoading={isAuthLoading || isUserLoading}
+        session={session}
         user={currentUser}
       />
 
