@@ -1,8 +1,20 @@
 import { supabase } from "@/lib/supabase";
 
+// API のベース URL。未設定なら相対パス（開発時は MSW がモックする）。
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+
 // APIリクエスト用のカスタムfetch関数を定義
 type ApiFetchOptions = RequestInit & {
   auth?: boolean;
+};
+
+// 相対パス（"/api/..." 等）の場合のみベース URL を前置する。
+// 署名付き URL への直 PUT など絶対 URL はそのまま使う。
+const resolveUrl = (input: RequestInfo | URL): RequestInfo | URL => {
+  if (typeof input === "string" && input.startsWith("/")) {
+    return `${API_BASE_URL}${input}`;
+  }
+  return input;
 };
 
 // ヘッダーをマージする関数を定義
@@ -32,7 +44,7 @@ export async function apiFetch(
     }
   }
 
-  return fetch(input, {
+  return fetch(resolveUrl(input), {
     ...rest,
     headers: mergedHeaders,
   });

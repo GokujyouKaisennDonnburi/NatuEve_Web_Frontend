@@ -31,6 +31,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { apiFetch } from "@/services/apiClient";
+import { uploadFile, uploadFiles } from "@/services/upload";
+import { findUploadValidationError } from "@/utils/upload";
 
 // イベント投稿フォームの入力状態を管理する型定義
 type EventPostFormState = {
@@ -131,42 +133,22 @@ export default function EventPostPage() {
     }));
   };
 
-  // 画像アップロードの仮バックエンド連携。
-  // 実装時は、選択された画像を Storage API に送信し、返却された image_objectkey を event_images に保存する。
+  // 画像を presign → R2 直 PUT し、イベント作成に渡す objectKey を返す。
+  // presign の有効期限は 5 分のため、送信直前（submit 内）に呼ぶ。
   const uploadEventImage = async (file: File | null) => {
     if (!file) {
       return null;
     }
-
-    // TODO:
-    // - FormData を作成して画像を送信する
-    // - API のレスポンスから image_objectkey を受け取る
-    // - 必要であれば公開 URL も受け取る
-    // - 失敗したら例外を投げて submit を止める
-    await new Promise((resolve) => {
-      setTimeout(resolve, 300);
-    });
-
-    return `mock-image-objectkey-${file.name}`;
+    return uploadFile(file, "image");
   };
 
-  // PDF アップロードの仮バックエンド連携。
-  // 実装時は、選択された PDF を順番に送信し、返却された pdf_objectkey を event_pdfs に保存する。
+  // PDF を順番に presign → R2 直 PUT し、objectKey の配列を返す。
+  // 1 件でも失敗したら例外が伝播し submit が中断される。
   const uploadEventDocuments = async (files: File[]) => {
     if (files.length === 0) {
       return [];
     }
-
-    // TODO:
-    // - 各 PDF を API / Storage に送信する
-    // - API のレスポンスから pdf_objectkey を受け取る
-    // - event_id が確定した後に event_pdfs へ保存する
-    // - 1 件でも失敗したら例外を投げて submit を止める
-    await new Promise((resolve) => {
-      setTimeout(resolve, 300);
-    });
-
-    return files.map((file) => `mock-pdf-objectkey-${file.name}`);
+    return uploadFiles(files, "pdf");
   };
 
   // イベント本体を作成する仮バックエンド連携。
@@ -331,11 +313,26 @@ export default function EventPostPage() {
       return;
     }
 
+    // ファイルの事前バリデーション（拡張子・サイズ・WebP不可）。UX 補助のため
+    // presign を呼ぶ前に弾き、最初のエラーを toast 表示して中断する。
+    const fileError = findUploadValidationError([
+      ...(formState.eventImage
+        ? [{ file: formState.eventImage, kind: "image" as const }]
+        : []),
+      ...formState.eventDocuments.map((file) => ({
+        file,
+        kind: "pdf" as const,
+      })),
+    ]);
+    if (fileError) {
+      toast.error(fileError);
+      return;
+    }
+
     try {
-      // 仮の送信フロー:
-      // 1. 画像と PDF を先にアップロードする
-      // 2. 返却された objectkey をイベント作成 API に渡す
-      // 3. events / event_images / event_pdfs を順に保存する想定
+      // 送信フロー:
+      // 1. 画像と PDF を presign → R2 へ直接 PUT する
+      // 2. 返却された objectKey をイベント作成 API に渡す
       const imageObjectKey = await uploadEventImage(formState.eventImage);
       const pdfObjectKeys = await uploadEventDocuments(
         formState.eventDocuments,
@@ -424,8 +421,8 @@ export default function EventPostPage() {
                 <FileField
                   id={getFieldId("eventImage")}
                   label="イベント画像"
-                  accept="image/*"
-                  hint="サムネイルや告知バナーとして使う画像です。"
+                  accept="image/jpeg,image/png"
+                  hint="JPEG / PNG（最大10MB）。サムネイルや告知バナーに使います。"
                   selectedFile={formState.eventImage}
                   onSelectedFileChange={(file) => setField("eventImage", file)}
                 />
