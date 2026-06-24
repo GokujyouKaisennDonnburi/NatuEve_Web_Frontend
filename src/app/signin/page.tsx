@@ -19,9 +19,6 @@ import { signinStyles } from "./signinStyles";
  */
 
 export default function SignInPage() {
-  const handleGoogleSignIn = () => {
-    // TODO: Google OAuth の処理をここに追加
-  };
   const appName = "Google";
   return (
     <div className={signinStyles.page}>
@@ -36,9 +33,9 @@ export default function SignInPage() {
         <CardContent className={signinStyles.content}>
           <Button
             type="button"
-            onClick={handleGoogleSignIn}
             variant="outline"
             className={signinStyles.button}
+            disabled
           >
             <GoogleLogo />
             Googleでサインイン
@@ -46,13 +43,13 @@ export default function SignInPage() {
 
           <p className={signinStyles.legalText}>
             続行することで、
-            <a href="/terms" className={signinStyles.legalLink}>
+            <span className={signinStyles.legalLink} aria-disabled="true">
               利用規約
-            </a>
+            </span>
             と
-            <a href="/privacy" className={signinStyles.legalLink}>
+            <span className={signinStyles.legalLink} aria-disabled="true">
               プライバシーポリシー
-            </a>
+            </span>
             に同意したことになります。
           </p>
         </CardContent>
