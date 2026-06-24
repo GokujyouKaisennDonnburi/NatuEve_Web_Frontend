@@ -31,7 +31,14 @@ export default function EventListPage() {
   const { user: currentUser, isLoading: isUserLoading } =
     useCurrentUser(session);
 
+  // イベント作成ボタンのクリックハンドラ
   const handleCreateEvent = () => {
+    // 認証状態のロード中は何もしない
+    if (isAuthLoading) {
+      return;
+    }
+
+    // 認証されていない場合はログインを促すトーストを表示
     if (!session) {
       toast.error("イベントを投稿するにはログインしてください。");
       return;
