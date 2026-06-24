@@ -1,46 +1,59 @@
 import { HttpResponse, http } from "msw";
 
+// ダミーユーザーデータを生成
 const sampleUsers = [
   {
     id: "user-1",
     name: "Aoi Tanaka",
     email: "aoi@example.com",
-    role: "admin",
   },
   {
     id: "user-2",
     name: "Ren Sato",
     email: "ren@example.com",
-    role: "member",
   },
   {
     id: "user-3",
     name: "Mina Suzuki",
     email: "mina@example.com",
-    role: "viewer",
   },
 ];
 
+// ダミーの現在のユーザー情報
+const sampleCurrentUser = {
+  id: "user-1",
+  email: "aoi@example.com",
+  display_name: "Aoi Tanaka",
+  avatar_url: "https://example.com/avatar.jpg",
+  created_at: "2026-06-24T10:00:00Z",
+  updated_at: "2026-06-24T10:00:00Z",
+};
+
+// 認証トークンが有効かどうかをチェックする関数
+const hasBearerToken = (authorizationHeader: string | null) =>
+  Boolean(authorizationHeader?.startsWith("Bearer "));
+
+// MSWのハンドラーを定義
 export const userHandlers = [
   // 既存のユーザー一覧取得モック
   http.get("/api/users", () => {
     return HttpResponse.json({ users: sampleUsers });
   }),
+  // 現在のユーザー情報取得モック
+  http.get("/api/v1/me", ({ request }) => {
+    // 認証トークンが無効な場合は401エラーを返す
+    if (!hasBearerToken(request.headers.get("authorization"))) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証トークンが無効です",
+          },
+        },
+        { status: 401 },
+      );
+    }
 
-  // ----------------------------------------------------
-  // 自分自身のプロフィール取得モック (/api/v1/me)
-  // テストしたい状態に合わせて return を切り替えてください
-  // ----------------------------------------------------
-  http.get("/api/v1/me", () => {
-    // ▼ パターンA: サインイン済み（200 OK とユーザー情報を返す）
-    return HttpResponse.json({
-      id: "user-1",
-      name: "ヌートリウス三世",
-      iconUrl:
-        "https://images.unsplash.com/photo-1606567595334-d39972c85dbe?w=100&auto=format&fit=crop&q=80",
-    });
-
-    // ▼ パターンB: 未サインイン状態（401 Unauthorized を返す）
-    // return new HttpResponse(null, { status: 401 });
+    return HttpResponse.json(sampleCurrentUser);
   }),
 ];

@@ -49,9 +49,6 @@ export function UserList() {
               >
                 <p className="font-semibold text-slate-950">{user.name}</p>
                 <p className="text-sm text-slate-500">{user.email}</p>
-                <p className="mt-2 text-xs uppercase tracking-wide text-teal-700">
-                  {user.role}
-                </p>
               </li>
             ))}
           </ul>

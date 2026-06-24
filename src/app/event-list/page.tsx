@@ -5,16 +5,11 @@ import { useEffect, useMemo, useState } from "react"; // useEffect を追加
 import { EventCard, type EventItem } from "@/components/EventCard";
 import { TimelineHeader } from "@/components/organisms/TimelineHeader"; // headerコンポーネントをインポート
 import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
+import { useAuth } from "@/hooks/useAuth";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // ソートの種類をここで一元管理（増えたらここに追加）
 type SortOption = "postedAt_desc" /* | "startAt_asc" | "startAt_desc" */;
-
-// /api/v1/me から返ってくる予定のユーザー情報の型定義
-type UserProfile = {
-  id: string;
-  name: string;
-  iconUrl?: string;
-};
 
 export default function EventListPage() {
   // データを保持するステートを定義（初期値は空配列）
@@ -26,32 +21,25 @@ export default function EventListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 15; // 1ページあたりの最大表示件数
 
-  // ユーザー情報を格納するステート（初期値は未サインインの null）
-  const [user, setUser] = useState<UserProfile | null>(null);
+  // 認証状態を取得するカスタムフックを使用
+  const { session, isLoading: isAuthLoading } = useAuth();
+  const { user: currentUser, isLoading: isUserLoading } =
+    useCurrentUser(session);
 
-  // APIからユーザー情報を取得中かどうかを管理するフラグ（最初は true）
-  const [isUserLoading, setIsUserLoading] = useState<boolean>(true);
-
-  // /api/v1/me（ユーザープロフィール）のフェッチ処理,401で未サインイン判定
+  /*
+  // MSW のログイン状態取得は残しています。
+  // 実運用では Supabase の認証状態を使うため、現在はコメントアウトしています。
   useEffect(() => {
     let cancelled = false;
 
-    // ▼ リトライ用の引数 attempt を追加しました
     const fetchUserProfile = async (attempt = 0): Promise<void> => {
       try {
-        // バックエンド（MSW）のプロフィール取得APIを叩く
         const res = await fetch("/api/v1/me");
 
-        // 401 Unauthorized は「未サインイン」として扱う
         if (res.status === 401) {
-          if (!cancelled) {
-            setUser(null);
-            setIsUserLoading(false); // 確定したのでローディング解除
-          }
           return;
         }
 
-        // その他の取得失敗（認証エラー含む）
         if (!res.ok) {
           throw new Error(
             `ユーザー情報の取得に失敗しました (Status: ${res.status})`,
@@ -60,27 +48,23 @@ export default function EventListPage() {
 
         const data = (await res.json()) as UserProfile;
 
-        // クリーンアップ前（画面が切り替わっていない）であればステートに格納
         if (!cancelled) {
           setUser(data);
-          setIsUserLoading(false); // 成功したのでローディング解除
+          setIsUserLoading(false);
         }
       } catch (err) {
-        // ▼ 追加: MSW の起動タイミングによる一時的な失敗に備えてリトライする
         if (!cancelled && attempt < 5) {
-          // 徐々に待機時間を長くしながら再実行
           setTimeout(
             () => void fetchUserProfile(attempt + 1),
             200 * (attempt + 1),
           );
-          return; // リトライする場合はここで抜ける
+          return;
         }
 
-        // リトライ上限（5回）を超えてもダメだった場合の最終エラーハンドリング
         console.log("ユーザーが未サインイン、または取得エラー:", err);
         if (!cancelled) {
-          setUser(null); // 安全のために未ログイン状態（null）にする
-          setIsUserLoading(false); // 確定したのでローディング解除
+          setUser(null);
+          setIsUserLoading(false);
         }
       }
     };
@@ -91,13 +75,15 @@ export default function EventListPage() {
       cancelled = true;
     };
   }, []);
+  */
 
   // MSWの準備完了を待ってからフェッチする（既存のイベント一覧取得用）
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false; // コンポーネントがアンマウントされたかどうかを追跡するフラグ
+    // データ取得関数を定義（リトライ機能付き）
     const fetchEvents = async (attempt = 0): Promise<void> => {
       try {
-        const res = await fetch("/api/events");
+        const res = await fetch("/api/events"); // MSWのモックAPIを叩く
 
         // MSW の起動前に素通りして 404 になることがあるため、数回はリトライする
         if (!res.ok) {
@@ -109,10 +95,11 @@ export default function EventListPage() {
             return;
           }
 
+          // それでも失敗した場合はエラーを投げる
           throw new Error(`データの取得に失敗しました (Status: ${res.status})`);
         }
 
-        const data = (await res.json()) as EventItem[];
+        const data = (await res.json()) as EventItem[]; // 取得したデータを型アサーションして EventItem[] として扱う
         if (!cancelled) setEvents(data);
       } catch (err) {
         // MSW の起動タイミングによっては最初のリクエストが素通りすることがあるため、数回だけリトライする
@@ -121,10 +108,11 @@ export default function EventListPage() {
           return;
         }
 
-        console.error("Fetchエラー:", err);
+        console.error("Fetchエラー:", err); // コンソールにエラーを出力
       }
     };
 
+    // データ取得関数を呼び出す
     void fetchEvents();
     return () => {
       cancelled = true;
@@ -167,18 +155,19 @@ export default function EventListPage() {
     return numbers;
   }, [currentPage, totalPages]);
 
-  // ソートが変更されたら、強制的に1ページ目に戻す（ユーザーの迷子防止）
-  useEffect(() => {
+  const handleSortChange = (value: SortOption) => {
+    setSortBy(value);
     setCurrentPage(1);
-  }, [sortBy]);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased selection:bg-emerald-100">
       {/* 固定ヘッダー */}
       <TimelineHeader
         eventCount={events.length}
-        isUserLoading={isUserLoading}
-        user={user}
+        isUserLoading={isAuthLoading || isUserLoading}
+        session={session}
+        user={currentUser}
       />
 
       {/* タイムラインメインコンテンツ */}
@@ -193,7 +182,7 @@ export default function EventListPage() {
             <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              onChange={(e) => handleSortChange(e.target.value as SortOption)}
               className="text-xs font-medium text-slate-600 bg-transparent outline-none cursor-pointer"
             >
               <option value="postedAt_desc">投稿が新しい順</option>

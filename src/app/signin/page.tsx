@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,18 +9,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { signInWithGoogle } from "@/services/auth";
 import { signinStyles } from "./signinStyles";
 
 /**
  * Googleサインインのみのシンプルなサインイン画面。
  *
- * - 見た目のみのモックアップで、クリックハンドラは未実装です。
- * - 実際にGoogle OAuthを動かす場合は `handleGoogleSignIn` に
- *   @react-oauth/google や Firebase Auth などの処理を渡してください。
+ * - Google OAuth は Supabase を通じて実装されています。
+ * - クリックすると Google 認証画面へリダイレクトします。
  */
 
 export default function SignInPage() {
   const appName = "Google";
+
+  // Googleサインインボタンのクリックハンドラ
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle(); // サインイン処理を呼び出す
+    } catch (error) {
+      console.error("Google sign-in failed", error);
+      toast.error("サインインに失敗しました。もう一度お試しください。");
+    }
+  };
+
   return (
     <div className={signinStyles.page}>
       <Card className={signinStyles.card}>
@@ -33,9 +45,9 @@ export default function SignInPage() {
         <CardContent className={signinStyles.content}>
           <Button
             type="button"
+            onClick={handleGoogleSignIn}
             variant="outline"
             className={signinStyles.button}
-            disabled
           >
             <GoogleLogo />
             Googleでサインイン

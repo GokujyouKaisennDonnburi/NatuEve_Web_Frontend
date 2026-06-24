@@ -1,6 +1,7 @@
-// src/mocks/handlers/events.ts
+// このファイルは、MSW（Mock Service Worker）を使用して、イベント関連のAPIエンドポイントのモックハンドラーを定義するためのものです。
 import { HttpResponse, http } from "msw";
 
+// ダミーイベントデータを生成
 const DUMMY_EVENTS = Array.from({ length: 100 }).map((_, index) => {
   const base = new Date(Date.UTC(2026, 5, 22 + index));
   const yyyy = base.getUTCFullYear();
@@ -29,8 +30,38 @@ const DUMMY_EVENTS = Array.from({ length: 100 }).map((_, index) => {
   };
 });
 
+// MSWのハンドラーを定義
 export const eventHandlers = [
   http.get("/api/events", () => {
     return HttpResponse.json(DUMMY_EVENTS);
+  }),
+  // 新しいイベントを作成するモックエンドポイント
+  http.post("/api/v1/events", async ({ request }) => {
+    const authorizationHeader = request.headers.get("authorization");
+
+    // 認証トークンが無効な場合は401エラーを返す
+    if (!authorizationHeader?.startsWith("Bearer ")) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証トークンが無効です",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    // リクエストボディを取得して、新しいイベントのIDを付与して返す
+    const body = (await request.json()) as Record<string, unknown>;
+
+    // ここでは、実際のデータベース操作は行わず、リクエストボディに基づいて新しいイベントを作成したかのように応答する
+    return HttpResponse.json(
+      {
+        id: "event-created-1",
+        ...body,
+      },
+      { status: 201 },
+    );
   }),
 ];

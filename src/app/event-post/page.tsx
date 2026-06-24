@@ -2,9 +2,8 @@
 
 import { FileText, MapPinned, Megaphone, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
-
 import { EventPostSubmitButton } from "@/components/atoms/event-post/EventPostSubmitButton";
 import { SectionHeading } from "@/components/atoms/event-post/SectionHeading";
 import { FileField } from "@/components/molecules/event-post/FileField";
@@ -30,6 +29,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
+import { useAuth } from "@/hooks/useAuth";
+import { apiFetch } from "@/services/apiClient";
 
 // イベント投稿フォームの入力状態を管理する型定義
 type EventPostFormState = {
@@ -88,6 +89,14 @@ export default function EventPostPage() {
   const router = useRouter(); // Next.jsのルーターを取得
   const [formState, setFormState] = useState<EventPostFormState>(INITIAL_STATE); // フォームの状態を管理するステート
   const [errors, setErrors] = useState<EventPostFormErrors>({}); // フォームのエラー状態を管理するステート
+  const { isLoading: isAuthLoading, isAuthenticated } = useAuth(); // 認証状態を取得するカスタムフックを使用
+
+  // 認証状態がロードされ、かつ未認証の場合はサインインページにリダイレクト
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated) {
+      router.replace(ROUTES.SIGNIN);
+    }
+  }, [isAuthLoading, isAuthenticated, router]);
 
   const getFieldId = (suffix: string) => `${formId}-${suffix}`; // フィールドのIDを生成する関数
 
@@ -175,16 +184,21 @@ export default function EventPostPage() {
     pdfObjectKeys: string[];
     requiredItems: RequiredItem[];
   }) => {
-    void payload;
-
-    // TODO:
-    // - events テーブルへ POST する
-    // - event_images / event_pdfs の保存結果を event_id に紐付ける
-    // - 必要なら event_items / event_costs の保存もこの段階で行う
-    // - API エラー時は例外を投げて toast を出さずに中断する
-    await new Promise((resolve) => {
-      setTimeout(resolve, 300);
+    const response = await apiFetch("/api/v1/events", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...payload,
+      }),
     });
+
+    if (!response.ok) {
+      throw new Error(
+        `イベント作成に失敗しました (Status: ${response.status})`,
+      );
+    }
   };
 
   // イベント資料の特定のファイルを削除する関数

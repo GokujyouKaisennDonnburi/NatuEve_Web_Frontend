@@ -1,23 +1,22 @@
+import Link from "next/link";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
-
-// UserProfileの型定義をこちらにも用意（または共通の型定義ファイルからimportでもOKです）
-export type UserProfile = {
-  id: string;
-  name: string;
-  iconUrl?: string;
-};
+import { ROUTES } from "@/constants/routes";
+import type { AuthSession } from "@/types/common";
+import type { CurrentUser } from "@/types/user";
 
 // ヘッダーが受け取るProps（引数）を定義
 type TimelineHeaderProps = {
   eventCount: number;
   isUserLoading: boolean;
-  user: UserProfile | null;
+  session: AuthSession | null;
+  user: CurrentUser | null;
 };
 
 export function TimelineHeader({
   eventCount,
   isUserLoading,
+  session,
   user,
 }: TimelineHeaderProps) {
   return (
@@ -38,19 +37,20 @@ export function TimelineHeader({
           {isUserLoading ? (
             // ユーザー情報取得中：ふわふわアニメーションするグレーの丸型プレースホルダー
             <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse shrink-0 border border-slate-300/50" />
-          ) : !user ? (
+          ) : !session ? (
             // 未サインイン状態：登録・サインインボタン
             <Button
+              asChild
               size="sm"
               className="text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-md transition-colors shrink-0 border-none cursor-pointer shadow-none"
             >
-              新規登録・サインイン
+              <Link href={ROUTES.SIGNIN}>新規登録・サインイン</Link>
             </Button>
           ) : (
-            // サインイン済み状態：アバターアイコン
+            // サインイン済み状態：ユーザーアイコン
             <GlobalUserAvatar
-              name={user.name}
-              iconUrl={user.iconUrl}
+              name={user?.displayName ?? session.name}
+              iconUrl={user?.avatarUrl ?? session.iconUrl}
               className="transition-opacity"
             />
           )}
