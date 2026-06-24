@@ -1,10 +1,10 @@
 "use client"; // ソート（状態管理）を行うため Client Component に変更
 
+import { EventCard, type EventItem } from "@/components/EventCard";
+import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar"; // 変更した名前でインポート
+import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
 import { ArrowUpDown } from "lucide-react"; // ソート用のアイコン
 import { useEffect, useMemo, useState } from "react"; // useEffect を追加
-import { EventCard, type EventItem } from "@/components/EventCard";
-import { GlobalUserAvatar } from "@/components/molecules/UserAvatar"; // 変更した名前でインポート
-import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
 
 // ソートの種類をここで一元管理（増えたらここに追加）
 type SortOption = "postedAt_desc" /* | "startAt_asc" | "startAt_desc" */;
@@ -36,7 +36,8 @@ export default function EventListPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const fetchUserProfile = async () => {
+    // ▼ リトライ用の引数 attempt を追加しました
+    const fetchUserProfile = async (attempt = 0): Promise<void> => {
       try {
         // バックエンド（MSW）のプロフィール取得APIを叩く
         const res = await fetch("/api/v1/me");
@@ -45,6 +46,7 @@ export default function EventListPage() {
         if (res.status === 401) {
           if (!cancelled) {
             setUser(null);
+            setIsUserLoading(false); // 確定したのでローディング解除
           }
           return;
         }
@@ -61,17 +63,21 @@ export default function EventListPage() {
         // クリーンアップ前（画面が切り替わっていない）であればステートに格納
         if (!cancelled) {
           setUser(data);
+          setIsUserLoading(false); // 成功したのでローディング解除
         }
       } catch (err) {
-        // エラーハンドリング（未ログインの場合はここに落ちる想定）
+        // ▼ 追加: MSW の起動タイミングによる一時的な失敗に備えてリトライする
+        if (!cancelled && attempt < 5) {
+          // 徐々に待機時間を長くしながら再実行
+          setTimeout(() => void fetchUserProfile(attempt + 1), 200 * (attempt + 1));
+          return; // リトライする場合はここで抜ける
+        }
+
+        // リトライ上限（5回）を超えてもダメだった場合の最終エラーハンドリング
         console.log("ユーザーが未サインイン、または取得エラー:", err);
         if (!cancelled) {
           setUser(null); // 安全のために未ログイン状態（null）にする
-        }
-      } finally {
-        // 成功しても失敗しても、ローディングは必ず終了させる
-        if (!cancelled) {
-          setIsUserLoading(false);
+          setIsUserLoading(false); // 確定したのでローディング解除
         }
       }
     };
@@ -173,10 +179,10 @@ export default function EventListPage() {
 
             {/* サインイン状態（userオブジェクトの有無）に応じた表示切り替え */}
             {isUserLoading ? (
-              // 🔄 ユーザー情報取得中：ふわふわアニメーションするグレーの丸型プレースホルダー
+              // ユーザー情報取得中：ふわふわアニメーションするグレーの丸型プレースホルダー
               <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse shrink-0 border border-slate-300/50" />
             ) : !user ? (
-              // 🟩 未サインイン状態：登録・サインインボタン
+              // 未サインイン状態：登録・サインインボタン
               <Button
                 size="sm"
                 className="text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-md transition-colors shrink-0 border-none cursor-pointer shadow-none"
@@ -184,7 +190,7 @@ export default function EventListPage() {
                 新規登録・サインイン
               </Button>
             ) : (
-              // 👤 サインイン済み状態：アバターアイコン
+              // サインイン済み状態：アバターアイコン
               <GlobalUserAvatar
                 name={user.name}
                 iconUrl={user.iconUrl}
