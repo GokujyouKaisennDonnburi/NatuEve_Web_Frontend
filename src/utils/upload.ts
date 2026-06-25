@@ -50,7 +50,8 @@ export const validateUploadFile = (
   const contentType = resolveContentType(file);
 
   if (!contentType) {
-    return `${file.name} は形式を判別できません。JPEG / PNG / PDF を選択してください。`;
+    const hint = kind === "image" ? "JPEG / PNG" : "PDF";
+    return `${file.name} は形式を判別できません。${hint} を選択してください。`;
   }
 
   if (!ALLOWED_CONTENT_TYPES[kind].includes(contentType)) {
