@@ -1,7 +1,10 @@
 import { supabase } from "@/lib/supabase";
 
 // API のベース URL。未設定なら相対パス（開発時は MSW がモックする）。
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(
+  /\/$/,
+  "",
+);
 
 // APIリクエスト用のカスタムfetch関数を定義
 type ApiFetchOptions = RequestInit & {

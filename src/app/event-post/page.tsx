@@ -30,8 +30,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
-import { apiFetch } from "@/services/apiClient";
+import { createEvent } from "@/services/event";
 import { uploadFile, uploadFiles } from "@/services/upload";
+import type { CreateEventRequest } from "@/types/event";
 import { findUploadValidationError } from "@/utils/upload";
 
 // イベント投稿フォームの入力状態を管理する型定義
@@ -149,38 +150,6 @@ export default function EventPostPage() {
       return [];
     }
     return uploadFiles(files, "pdf");
-  };
-
-  // イベント本体を作成する仮バックエンド連携。
-  // 実装時は、ここで events テーブルを作成し、imageObjectKeys / pdfObjectKeys を紐付ける。
-  const createEventPost = async (payload: {
-    eventName: string;
-    eventContent: string;
-    eventDateTime: string;
-    location: string;
-    feeCategoryGroups: PriceCategory[];
-    capacity: string;
-    applicationUrlEnabled: boolean;
-    applicationUrl: string;
-    imageObjectKeys: string[];
-    pdfObjectKeys: string[];
-    requiredItems: RequiredItem[];
-  }) => {
-    const response = await apiFetch("/api/v1/events", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ...payload,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `イベント作成に失敗しました (Status: ${response.status})`,
-      );
-    }
   };
 
   // イベント資料の特定のファイルを削除する関数
@@ -337,19 +306,47 @@ export default function EventPostPage() {
       const pdfObjectKeys = await uploadEventDocuments(
         formState.eventDocuments,
       );
-      await createEventPost({
-        eventName: formState.eventName,
-        eventContent: formState.eventContent,
-        eventDateTime: toRfc3339(formState.eventDateTime),
-        location: formState.location,
-        feeCategoryGroups: formState.feeCategoryGroups,
-        capacity: formState.capacity,
-        applicationUrlEnabled: formState.applicationUrlEnabled,
-        applicationUrl: formState.applicationUrl,
-        imageObjectKeys: imageObjectKey ? [imageObjectKey] : [],
-        pdfObjectKeys,
-        requiredItems: formState.requiredItems,
-      });
+
+      // フォーム state を本番 API（CreateEventRequest）の契約に合わせて変換する。
+      // 任意項目（capacity / externalUrl / items / objectKeys）は値があるときだけ付与する。
+      const trimmedCapacity = formState.capacity.trim();
+      const trimmedApplicationUrl = formState.applicationUrl.trim();
+
+      const payload: CreateEventRequest = {
+        title: formState.eventName.trim(),
+        description: formState.eventContent.trim(),
+        location: formState.location.trim(),
+        eventDate: toRfc3339(formState.eventDateTime),
+        costs: formState.feeCategoryGroups.map((group) => ({
+          category: group.category.trim(),
+          cost: Number(group.amount),
+        })),
+      };
+
+      if (trimmedCapacity) {
+        payload.capacity = Number(trimmedCapacity);
+      }
+
+      if (formState.applicationUrlEnabled && trimmedApplicationUrl) {
+        payload.externalUrl = trimmedApplicationUrl;
+      }
+
+      if (formState.requiredItems.length > 0) {
+        payload.items = formState.requiredItems.map((item) => ({
+          item: item.itemName.trim(),
+          isRequired: item.isRequired,
+        }));
+      }
+
+      if (imageObjectKey) {
+        payload.imageObjectKeys = [imageObjectKey];
+      }
+
+      if (pdfObjectKeys.length > 0) {
+        payload.pdfObjectKeys = pdfObjectKeys;
+      }
+
+      await createEvent(payload);
 
       toast.success("イベント情報を登録しました。");
       router.push(ROUTES.EVENT_LIST);

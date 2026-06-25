@@ -52,14 +52,33 @@ export const eventHandlers = [
       );
     }
 
-    // リクエストボディを取得して、新しいイベントのIDを付与して返す
-    const body = (await request.json()) as Record<string, unknown>;
+    // リクエストボディを取得する。本番 CreateEventRequest と同じ契約を想定する。
+    const body = (await request.json()) as {
+      title?: unknown;
+      costs?: unknown;
+    };
 
-    // ここでは、実際のデータベース操作は行わず、リクエストボディに基づいて新しいイベントを作成したかのように応答する
+    // 本番のサーバー側バリデーションを模し、必須項目（title / costs）が欠ける
+    // 不正なボディは 400 を返す。これによりフロントの payload 変換漏れを検知できる。
+    const hasTitle = typeof body.title === "string" && body.title.length > 0;
+    const hasCosts = Array.isArray(body.costs) && body.costs.length > 0;
+    if (!hasTitle || !hasCosts) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "リクエストボディが不正です",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    // 実際の DB 操作は行わず、本番と同形の CreateEventResponse（id / createdAt）を返す。
     return HttpResponse.json(
       {
         id: "event-created-1",
-        ...body,
+        createdAt: new Date().toISOString(),
       },
       { status: 201 },
     );
