@@ -1,20 +1,18 @@
-"use client"; // ソート（状態管理）を行うため Client Component に変更
+"use client";
 
-import { EventCard, type EventItem } from "@/components/EventCard";
-import { TimelineHeader } from "@/components/organisms/TimelineHeader"; // headerコンポーネントをインポート
-import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
-import { ROUTES } from "@/constants/routes";
-import { useAuth } from "@/hooks/useAuth";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { ArrowUpDown } from "lucide-react"; // ソートアイコンをインポート
+import { ArrowUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react"; // useEffect を追加
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { EventCard, type EventItem } from "@/components/EventCard";
+import { TimelineHeader } from "@/components/organisms/TimelineHeader";
+import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/constants/routes";
 
 // API仕様に合わせて許可されているソートカラムを定義
 type SortOption = "created_at" | "event_date";
 
-// APIレスポンスの型定義
+// イベントAPIレスポンスの型定義
 type ApiResponseEvent = {
   createdAt: string;
   eventDate: string;
@@ -31,50 +29,96 @@ type EventsApiResponse = {
   totalCount: number;
 };
 
+// ▼ /api/v1/me のレスポンス型定義
+type MeApiResponse = {
+  avatarUrl: string;
+  createdAt: string;
+  displayName: string;
+  email: string;
+  id: string;
+  updatedAt: string;
+};
+
 export default function EventListPage() {
-  // データを保持するステートを定義（初期値は空配列）
   const [events, setEvents] = useState<EventItem[]>([]);
-  
-  // 全体のデータ件数を管理するステート
   const [totalCount, setTotalCount] = useState(0);
-
-  // 現在選択されているソート条件を管理（初期値は created_at）
   const [sortBy, setSortBy] = useState<SortOption>("created_at");
-
-  // ページネーション用のステート（1ページ目からスタート）
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 15; // 1ページあたりの最大表示件数
+  const ITEMS_PER_PAGE = 15;
 
-  const router = useRouter(); // ルーターオブジェクトを取得（ページ遷移用）
+  const router = useRouter();
 
-  // 認証状態を取得するカスタムフックを使用
-  const { session, isLoading: isAuthLoading } = useAuth();
-  const { user: currentUser, isLoading: isUserLoading } =
-    useCurrentUser(session);
+  // ▼ 独自ステートで認証状態を管理
+  const [currentUser, setCurrentUser] = useState<MeApiResponse | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  // イベント作成ボタンのクリックハンドラ
+  // ▼ 本人プロフィール(ログイン状態)を取得する副作用
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchMe = async () => {
+      try {
+        const res = await fetch("/api/v1/me");
+
+        if (res.status === 401) {
+          if (!cancelled) {
+            setCurrentUser(null);
+          }
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error(`プロフィール取得エラー (Status: ${res.status})`);
+        }
+
+        const data = (await res.json()) as MeApiResponse;
+        if (!cancelled) {
+          setCurrentUser(data);
+        }
+      } catch (err) {
+        console.error("Me取得エラー:", err);
+        if (!cancelled) {
+          setCurrentUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsAuthLoading(false);
+        }
+      }
+    };
+
+    void fetchMe();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleCreateEvent = () => {
-    // 認証状態のロード中は何もしない
     if (isAuthLoading) {
       return;
     }
-
-    // 認証されていない場合はログインを促すトーストを表示
-    if (!session) {
+    if (!currentUser) {
       toast.error("イベントを投稿するにはログインしてください。");
       return;
     }
-
     router.push(ROUTES.EVENT_POST);
   };
 
-  // MSWの準備完了を待ってからフェッチする（既存のイベント一覧取得用）
-  // ※ここは次のステップ2で書き換えます！今は古いAPIへの通信のままです。
   useEffect(() => {
-    let cancelled = false; // コンポーネントがアンマウントされたかどうかを追跡するフラグ
+    let cancelled = false;
+
     const fetchEvents = async (attempt = 0): Promise<void> => {
       try {
-        const res = await fetch("/api/events"); // MSWのモックAPIを叩く
+        const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+        const params = new URLSearchParams({
+          sort: sortBy,
+          order: "desc",
+          limit: ITEMS_PER_PAGE.toString(),
+          offset: offset.toString(),
+        });
+
+        // 前回修正した正常なエンドポイント
+        const res = await fetch(`/api/v1/events?${params.toString()}`);
 
         if (!res.ok) {
           if (!cancelled && attempt < 5) {
@@ -87,8 +131,31 @@ export default function EventListPage() {
           throw new Error(`データの取得に失敗しました (Status: ${res.status})`);
         }
 
-        const data = (await res.json()) as EventItem[];
-        if (!cancelled) setEvents(data);
+        const data = (await res.json()) as EventsApiResponse;
+
+        if (!cancelled) {
+          // バックエンドにプロパティ名を合わせたことで、マッピングが非常にシンプルになりました！
+          const mappedEvents: EventItem[] = data.events.map((apiEvent) => ({
+            id: apiEvent.id,
+            title: apiEvent.title,
+            location: apiEvent.location,
+            createdAt: apiEvent.createdAt, // そのまま代入
+            eventDate: apiEvent.eventDate, // そのまま代入
+            profileId: apiEvent.profileId, // そのまま代入
+
+            // フロント側（UI）だけで必要な加工データ
+            dateLabel: new Date(apiEvent.eventDate).toLocaleDateString(
+              "ja-JP",
+              {
+                month: "short",
+                day: "numeric",
+              },
+            ),
+          }));
+
+          setEvents(mappedEvents);
+          setTotalCount(data.totalCount);
+        }
       } catch (err) {
         if (!cancelled && attempt < 5) {
           setTimeout(() => void fetchEvents(attempt + 1), 200 * (attempt + 1));
@@ -102,36 +169,10 @@ export default function EventListPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentPage, sortBy]);
 
-  // useMemoでソート結果をキャッシュ。
-  // ※ここもステップ3で削除しますが、エラー回避のため case を書き換えています
-  const sortedEvents = useMemo(() => {
-    return [...events].sort((a, b) => {
-      switch (sortBy) {
-        // ▼ 変更: "postedAt_desc" から "created_at" に変更
-        case "created_at":
-          return (
-            new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()
-          );
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-        default:
-          return 0; // そのまま
-      }
-    });
-  }, [events, sortBy]);
-
-  // ソート済みのデータから、現在のページに必要な件数（最大15件）だけを切り出す
-  const paginatedEvents = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const _endIndex = startIndex + ITEMS_PER_PAGE;
-    return sortedEvents.slice(startIndex, _endIndex);
-  }, [sortedEvents, currentPage]);
-
-  // 全ページ数を計算
-  const totalPages = Math.ceil(events.length / ITEMS_PER_PAGE);
-
-  // 現在のページから前後2ページ分の範囲のページ番号を動的に生成
   const pageNumbers = useMemo(() => {
     const numbers: number[] = [];
     for (let i = currentPage - 2; i <= currentPage + 2; i++) {
@@ -147,25 +188,30 @@ export default function EventListPage() {
     setCurrentPage(1);
   };
 
+  const dummySession = currentUser ? { user: currentUser } : null;
+  const mappedUserForHeader = currentUser
+    ? {
+        name: currentUser.displayName,
+        avatarUrl: currentUser.avatarUrl,
+      }
+    : null;
+
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased selection:bg-emerald-100">
-      {/* 固定ヘッダー */}
       <TimelineHeader
-        eventCount={events.length}
-        isUserLoading={isAuthLoading || isUserLoading}
+        eventCount={totalCount}
+        isUserLoading={isAuthLoading}
         onCreateEvent={handleCreateEvent}
-        session={session}
-        user={currentUser}
+        session={dummySession as any}
+        user={mappedUserForHeader as any}
       />
 
-      {/* タイムラインメインコンテンツ */}
       <main className="mx-auto max-w-xl px-4 pt-4 pb-16">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mb-4">
           <p className="text-xs text-slate-500 px-1">
             これから開催される自然観察イベントを縦にスクロールして確認できます。
           </p>
 
-          {/* ソート切り替えUI（セレクトボックス） */}
           <div className="flex items-center gap-1.5 self-end shrink-0 bg-white border border-slate-200 rounded-md px-2 py-1 shadow-sm">
             <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
             <select
@@ -173,21 +219,23 @@ export default function EventListPage() {
               onChange={(e) => handleSortChange(e.target.value as SortOption)}
               className="text-xs font-medium text-slate-600 bg-transparent outline-none cursor-pointer"
             >
-              {/* 新しいSortOptionの型に合わせて変更 */}
               <option value="created_at">投稿が新しい順</option>
               <option value="event_date">開催日が近い順</option>
             </select>
           </div>
         </div>
 
-        {/* カードを縦に並べるタイムラインコンテナ */}
         <div className="space-y-4">
-          {paginatedEvents.map((event) => (
+          {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
+          {events.length === 0 && (
+            <p className="text-center text-sm text-slate-400 py-8">
+              表示するイベントがありません。
+            </p>
+          )}
         </div>
 
-        {/* ページネーションUI（データが15件以上ある場合のみ表示） */}
         {totalPages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-1 px-2">
             <Button
