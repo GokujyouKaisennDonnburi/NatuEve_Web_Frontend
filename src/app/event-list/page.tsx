@@ -140,7 +140,7 @@ export default function EventListPage() {
         const data = (await res.json()) as EventsApiResponse;
 
         if (!cancelled) {
-          // ▼ 変更: 新しいAPI構造からデータを適切に展開・マッピングします
+          // 新しいAPI構造からデータを適切に展開・マッピングします
           const mappedEvents: EventItem[] = data.events.map((apiEvent) => ({
             id: apiEvent.id,
             title: apiEvent.title,
@@ -148,7 +148,7 @@ export default function EventListPage() {
             createdAt: apiEvent.createdAt,
             eventDate: apiEvent.eventDate,
             profileId: apiEvent.profileId,
-            
+
             // APIから取得した主催者の情報をEventCardに引き渡せるように展開
             hostName: apiEvent.profile.displayName,
             hostAvatarUrl: apiEvent.profile.avatarUrl,

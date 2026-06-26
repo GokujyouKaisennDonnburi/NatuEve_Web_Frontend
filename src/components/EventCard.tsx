@@ -12,7 +12,7 @@ export type EventItem = {
   location: string;
   profileId: string; // host から変更
   createdAt: string; // postedAt から変更
-  hostName: string;      // ▼ 新規追加
+  hostName: string; // ▼ 新規追加
   hostAvatarUrl: string; // ▼ 新規追加
 };
 
@@ -63,7 +63,11 @@ export function EventCard({ event }: EventCardProps) {
               <span className="flex items-center gap-1 font-medium text-slate-500">
                 {/* アバター画像があれば表示し、なければデフォルトのUserアイコンを表示 */}
                 {event.hostAvatarUrl ? (
-                  <img src={event.hostAvatarUrl} alt="" className="h-3 w-3 rounded-full object-cover" />
+                  <img
+                    src={event.hostAvatarUrl}
+                    alt=""
+                    className="h-3 w-3 rounded-full object-cover"
+                  />
                 ) : (
                   <User className="h-2.5 w-2.5 text-slate-400" />
                 )}
