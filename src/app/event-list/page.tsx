@@ -160,6 +160,7 @@ export default function EventListPage() {
               {
                 month: "short",
                 day: "numeric",
+                timeZone: "Asia/Tokyo",
               },
             ),
           }));
