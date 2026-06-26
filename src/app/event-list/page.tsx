@@ -115,6 +115,7 @@ export default function EventListPage() {
     let cancelled = false;
 
     const fetchEvents = async (attempt = 0): Promise<void> => {
+      if (cancelled) return;
       try {
         const offset = (currentPage - 1) * ITEMS_PER_PAGE;
         const params = new URLSearchParams({
