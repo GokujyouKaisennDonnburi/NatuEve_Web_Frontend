@@ -1,18 +1,24 @@
 "use client";
 
-import { ArrowUpDown } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { EventCard, type EventItem } from "@/components/EventCard";
 import { TimelineHeader } from "@/components/organisms/TimelineHeader";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
+import { ArrowUpDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 // API仕様に合わせて許可されているソートカラムを定義
 type SortOption = "created_at" | "event_date";
 
-// イベントAPIレスポンスの型定義
+// ▼ 変更: 新しいAPI仕様に合わせた型定義
+type ApiResponseProfile = {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+};
+
 type ApiResponseEvent = {
   createdAt: string;
   eventDate: string;
@@ -20,6 +26,7 @@ type ApiResponseEvent = {
   location: string;
   profileId: string;
   title: string;
+  profile: ApiResponseProfile; // ネストされたプロフィールオブジェクトを追加
 };
 
 type EventsApiResponse = {
@@ -117,7 +124,6 @@ export default function EventListPage() {
           offset: offset.toString(),
         });
 
-        // 前回修正した正常なエンドポイント
         const res = await fetch(`/api/v1/events?${params.toString()}`);
 
         if (!res.ok) {
@@ -134,14 +140,18 @@ export default function EventListPage() {
         const data = (await res.json()) as EventsApiResponse;
 
         if (!cancelled) {
-          // バックエンドにプロパティ名を合わせたことで、マッピングが非常にシンプルになりました！
+          // ▼ 変更: 新しいAPI構造からデータを適切に展開・マッピングします
           const mappedEvents: EventItem[] = data.events.map((apiEvent) => ({
             id: apiEvent.id,
             title: apiEvent.title,
             location: apiEvent.location,
-            createdAt: apiEvent.createdAt, // そのまま代入
-            eventDate: apiEvent.eventDate, // そのまま代入
-            profileId: apiEvent.profileId, // そのまま代入
+            createdAt: apiEvent.createdAt,
+            eventDate: apiEvent.eventDate,
+            profileId: apiEvent.profileId,
+            
+            // APIから取得した主催者の情報をEventCardに引き渡せるように展開
+            hostName: apiEvent.profile.displayName,
+            hostAvatarUrl: apiEvent.profile.avatarUrl,
 
             // フロント側（UI）だけで必要な加工データ
             dateLabel: new Date(apiEvent.eventDate).toLocaleDateString(

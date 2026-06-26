@@ -1,8 +1,8 @@
 "use client";
 
+import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, MapPin, User } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 
 export type EventItem = {
   id: string;
@@ -12,6 +12,8 @@ export type EventItem = {
   location: string;
   profileId: string; // host から変更
   createdAt: string; // postedAt から変更
+  hostName: string;      // ▼ 新規追加
+  hostAvatarUrl: string; // ▼ 新規追加
 };
 
 type EventCardProps = {
@@ -59,10 +61,13 @@ export function EventCard({ event }: EventCardProps) {
                 {event.dateLabel}
               </span>
               <span className="flex items-center gap-1 font-medium text-slate-500">
-                <User className="h-2.5 w-2.5 text-slate-400" />
-                {/* TODO: 現時点ではダミーを置く形にします
-                 */}
-                {event.profileId}
+                {/* アバター画像があれば表示し、なければデフォルトのUserアイコンを表示 */}
+                {event.hostAvatarUrl ? (
+                  <img src={event.hostAvatarUrl} alt="" className="h-3 w-3 rounded-full object-cover" />
+                ) : (
+                  <User className="h-2.5 w-2.5 text-slate-400" />
+                )}
+                {event.hostName}
               </span>
             </div>
           </div>
