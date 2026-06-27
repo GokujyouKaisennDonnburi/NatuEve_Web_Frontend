@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, MapPin, User } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export type EventItem = {
@@ -26,7 +27,8 @@ export function EventCard({ event }: EventCardProps) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
+  const router = useRouter();
+  // ローディングの高さも実際のカードの高さに合わせて調整
   if (!isMounted)
     return (
       <div className="w-full h-[76px] bg-slate-100 rounded-lg animate-pulse" />
@@ -50,7 +52,10 @@ export function EventCard({ event }: EventCardProps) {
   ).padStart(2, "0")}:${String(posted.getMinutes()).padStart(2, "0")}`;
 
   return (
-    <Card className="group relative w-full overflow-hidden border border-slate-200/80 bg-white shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-200">
+    <Card
+      onClick={() => router.push(`/event/${event.id}`)}
+      className="group relative w-full overflow-hidden border border-slate-200/80 bg-white shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-200 cursor-pointer"
+    >
       <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-400 to-teal-400 opacity-90" />
 
       <CardContent className="!p-0">

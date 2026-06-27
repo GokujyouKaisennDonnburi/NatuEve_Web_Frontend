@@ -121,6 +121,47 @@ export const eventHandlers = [
     return HttpResponse.json(getPagedEvents(new URL(request.url)));
   }),
 
+  // イベント詳細取得（id）
+  http.get("/api/events/:id", ({ params }) => {
+    const id = String(params?.id ?? "");
+    const found = createInitialDummyEvents().find((e) => e.id === id);
+    if (!found) {
+      return HttpResponse.json(
+        { error: { code: "not_found", message: "イベントが見つかりません" } },
+        { status: 404 },
+      );
+    }
+
+    // 詳細フィールドを付与して返す（投稿時のフォーマットを模倣）
+    const detail = {
+      id: found.id,
+      title: found.title,
+      description: `サンプル説明: ${found.title} の詳細情報です。自然観察を楽しみましょう。`,
+      location: found.location,
+      eventDate: found.startAt,
+      capacity: 30,
+      externalUrl: "https://example.com/event",
+      costs: [
+        { category: "大人", cost: 1000 },
+        { category: "子ども", cost: 500 },
+      ],
+      items: [
+        { item: "飲み物", isRequired: true },
+        { item: "帽子", isRequired: false },
+      ],
+      imageObjectKeys: [
+        // 外部プレースホルダ画像を使う（実ファイルがなくても表示される）
+        "https://via.placeholder.com/1200x600.png?text=Event+Image+1",
+        "https://via.placeholder.com/1200x600.png?text=Event+Image+2",
+      ],
+      pdfObjectKeys: [
+        // 外部PDFを指すURL（クリックでダウンロード）
+        "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      ],
+    };
+
+    return HttpResponse.json(detail);
+  }),
   // 新しいイベントを作成するモックエンドポイント
   http.post("/api/v1/events", async ({ request }) => {
     const authorizationHeader = request.headers.get("authorization");
