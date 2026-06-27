@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
+// Next.jsの設定ファイル
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+
   experimental: {
     optimizeCss: true,
   },

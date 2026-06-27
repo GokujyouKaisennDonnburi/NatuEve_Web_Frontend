@@ -136,7 +136,7 @@ export const eventHandlers = [
     const detail = {
       id: found.id,
       title: found.title,
-      description: `サンプル説明: ${found.title} の詳細情報です。自然観察を楽しみましょう。`,
+      description: `詳細情報です。自然観察を楽しみましょう。`,
       location: found.location,
       eventDate: found.startAt,
       capacity: 30,
@@ -151,8 +151,9 @@ export const eventHandlers = [
       ],
       imageObjectKeys: [
         // 外部プレースホルダ画像を使う（実ファイルがなくても表示される）
-        "https://via.placeholder.com/1200x600.png?text=Event+Image+1",
-        "https://via.placeholder.com/1200x600.png?text=Event+Image+2",
+        "https://picsum.photos/1200/600?random=1",
+        "https://picsum.photos/1200/600?random=2",
+        "https://picsum.photos/1200/600?random=3",
       ],
       pdfObjectKeys: [
         // 外部PDFを指すURL（クリックでダウンロード）

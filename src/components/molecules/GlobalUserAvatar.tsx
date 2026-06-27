@@ -19,8 +19,9 @@ export function GlobalUserAvatar({
 }: UserAvatarProps) {
   const [hasImageError, setHasImageError] = useState(false);
   const fallbackText = name ? name.charAt(0) : "";
+  const imageSrc = iconUrl ?? "";
 
-  const shouldShowImage = Boolean(iconUrl) && !hasImageError;
+  const shouldShowImage = imageSrc.length > 0 && !hasImageError;
 
   return (
     <span
@@ -30,8 +31,8 @@ export function GlobalUserAvatar({
     >
       {shouldShowImage && iconUrl ? (
         <Image
-          key={iconUrl}
-          src={iconUrl}
+          key={imageSrc}
+          src={imageSrc}
           alt={name ?? "ユーザーアバター"}
           width={32}
           height={32}
