@@ -4,15 +4,14 @@ import { EventCard, type EventItem } from "@/components/EventCard";
 import { TimelineHeader } from "@/components/organisms/TimelineHeader";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
+import { useAuth } from "@/hooks/useAuth";
 import { ArrowUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-// API仕様に合わせて許可されているソートカラムを定義
 type SortOption = "created_at" | "event_date";
 
-// ▼ 新しいAPI仕様に合わせた型定義
 type ApiResponseProfile = {
   id: string;
   displayName: string;
@@ -26,7 +25,7 @@ type ApiResponseEvent = {
   location: string;
   profileId: string;
   title: string;
-  profile: ApiResponseProfile; // ネストされたプロフィールオブジェクトを追加
+  profile: ApiResponseProfile;
 };
 
 type EventsApiResponse = {
@@ -36,7 +35,6 @@ type EventsApiResponse = {
   totalCount: number;
 };
 
-// ▼ /api/v1/me のレスポンス型定義
 type MeApiResponse = {
   avatarUrl: string;
   createdAt: string;
@@ -55,22 +53,39 @@ export default function EventListPage() {
 
   const router = useRouter();
 
-  // ▼ 独自ステートで認証状態を管理
-  const [currentUser, setCurrentUser] = useState<MeApiResponse | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  // Supabaseのセッション状態を取得
+  const { session, isLoading: isSessionLoading } = useAuth();
 
-  // ▼ 本人プロフィール(ログイン状態)を取得する副作用
+  const [currentUser, setCurrentUser] = useState<MeApiResponse | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+  // sessionのトークンを使って /api/v1/me を叩く
   useEffect(() => {
     let cancelled = false;
 
     const fetchMe = async () => {
+      // セッション自体がロード中の場合は待機
+      if (isSessionLoading) return;
+
+      // セッションがない（未ログイン）場合はAPIを叩かず終了
+      if (!session?.token) {
+        if (!cancelled) {
+          setCurrentUser(null);
+          setIsProfileLoading(false);
+        }
+        return;
+      }
+
       try {
-        const res = await fetch("/api/v1/me");
+        // Authorization ヘッダーに Bearer トークンを付与
+        const res = await fetch("/api/v1/me", {
+          headers: {
+            Authorization: `Bearer ${session.token}`,
+          },
+        });
 
         if (res.status === 401) {
-          if (!cancelled) {
-            setCurrentUser(null);
-          }
+          if (!cancelled) setCurrentUser(null);
           return;
         }
 
@@ -89,7 +104,7 @@ export default function EventListPage() {
         }
       } finally {
         if (!cancelled) {
-          setIsAuthLoading(false);
+          setIsProfileLoading(false);
         }
       }
     };
@@ -98,10 +113,10 @@ export default function EventListPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [session, isSessionLoading]); // 依存配列に session と isSessionLoading を追加
 
   const handleCreateEvent = () => {
-    if (isAuthLoading) {
+    if (isSessionLoading || isProfileLoading) {
       return;
     }
     if (!currentUser) {
@@ -125,7 +140,15 @@ export default function EventListPage() {
           offset: offset.toString(),
         });
 
-        const res = await fetch(`/api/v1/events?${params.toString()}`);
+        // 念のためイベント取得APIにもトークンがあれば渡すよう設定（不要な場合はheadersを外してもOKです）
+        const headers: Record<string, string> = {};
+        if (session?.token) {
+          headers["Authorization"] = `Bearer ${session.token}`;
+        }
+
+        const res = await fetch(`/api/v1/events?${params.toString()}`, {
+          headers,
+        });
 
         if (!res.ok) {
           if (!cancelled && attempt < 5) {
@@ -141,7 +164,6 @@ export default function EventListPage() {
         const data = (await res.json()) as EventsApiResponse;
 
         if (!cancelled) {
-          // 新しいAPI構造からデータを適切に展開・マッピングします
           const mappedEvents: EventItem[] = data.events.map((apiEvent) => ({
             id: apiEvent.id,
             title: apiEvent.title,
@@ -149,12 +171,8 @@ export default function EventListPage() {
             createdAt: apiEvent.createdAt,
             eventDate: apiEvent.eventDate,
             profileId: apiEvent.profileId,
-
-            // APIから取得した主催者の情報をEventCardに引き渡せるように展開
-            hostName: apiEvent.profile.displayName,
-            hostAvatarUrl: apiEvent.profile.avatarUrl,
-
-            // フロント側（UI）だけで必要な加工データ
+            hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
+            hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
             dateLabel: new Date(apiEvent.eventDate).toLocaleDateString(
               "ja-JP",
               {
@@ -180,7 +198,7 @@ export default function EventListPage() {
     return () => {
       cancelled = true;
     };
-  }, [currentPage, sortBy]);
+  }, [currentPage, sortBy, session]); // 依存配列に session を追加
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -199,8 +217,6 @@ export default function EventListPage() {
     setCurrentPage(1);
   };
 
-  // ▼ 変更: 型エラーの原因だった不完全な dummySession と as any を廃止
-  // TimelineHeaderが必要としているHeaderUser型に1対1で綺麗にマッピング
   const mappedUserForHeader = currentUser
     ? {
         name: currentUser.displayName,
@@ -212,7 +228,8 @@ export default function EventListPage() {
     <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased selection:bg-emerald-100">
       <TimelineHeader
         eventCount={totalCount}
-        isUserLoading={isAuthLoading}
+        // セッション取得とプロフィール取得の両方が終わるまでローディング状態とする
+        isUserLoading={isSessionLoading || isProfileLoading}
         onCreateEvent={handleCreateEvent}
         user={mappedUserForHeader}
       />
