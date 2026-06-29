@@ -121,7 +121,8 @@ export const userHandlers = [
       id: id,
       displayName: "ログインユーザー (動的モック)",
       // IDをシード値にして、ランダムだけどIDごとに固定のアイコンを生成する無料サービスを利用
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`,
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(id)}`,
+
       bio: "Googleアカウントでログイン中の動的モックプロフィールです。\n（実際のAPIが完成するまでの仮データです）",
     };
 
