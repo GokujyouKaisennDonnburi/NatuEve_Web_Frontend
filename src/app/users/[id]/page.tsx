@@ -95,8 +95,8 @@ export default function UserProfilePage(props: PageProps) {
             dateLabel: new Date(e.eventDate).toLocaleDateString("ja-JP", {
               month: "short",
               day: "numeric",
+              timeZone: "Asia/Tokyo",
             }),
-          }));
         }
 
         if (!cancelled) {
