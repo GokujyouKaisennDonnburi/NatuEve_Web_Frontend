@@ -89,6 +89,15 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
     const leftValue = sort === "event_date" ? left.eventDate : left.createdAt;
     const rightValue =
       sort === "event_date" ? right.eventDate : right.createdAt;
+    const leftTime = Date.parse(leftValue);
+    const rightTime = Date.parse(rightValue);
+
+    // 両方の値が有効な日付の場合は、日付の差を返す
+    if (Number.isFinite(leftTime) && Number.isFinite(rightTime)) {
+      return leftTime - rightTime;
+    }
+
+    // パースできない場合は文字列比較にフォールバック
     return leftValue.localeCompare(rightValue);
   });
 
