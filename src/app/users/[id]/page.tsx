@@ -59,7 +59,7 @@ export default function UserProfilePage(props: PageProps) {
         // 2. 表示対象のユーザープロフィールを取得
         const profileRes = await fetch(`/api/v1/users/${userId}`);
         if (!profileRes.ok) {
-          if (profileRes.status === 404) setIsNotFound(true);
+          if (profileRes.status === 404 && !cancelled) setIsNotFound(true);
           throw new Error("User not found");
         }
         const profileData = (await profileRes.json()) as UserProfile;
