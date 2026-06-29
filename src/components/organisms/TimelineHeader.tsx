@@ -17,14 +17,14 @@ type TimelineHeaderProps = {
   eventCount: number;
   isUserLoading: boolean;
   onCreateEvent: () => void;
-  user: HeaderUser | null; 
+  user: HeaderUser | null;
 };
 
 export function TimelineHeader({
   eventCount,
   isUserLoading,
   onCreateEvent,
-  user, 
+  user,
 }: TimelineHeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
