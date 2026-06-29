@@ -133,9 +133,10 @@ export default function EventListPage() {
       if (cancelled) return;
       try {
         const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+        const order = sortBy === "event_date" ? "asc" : "desc";
         const params = new URLSearchParams({
           sort: sortBy,
-          order: "desc",
+          order,
           limit: ITEMS_PER_PAGE.toString(),
           offset: offset.toString(),
         });
@@ -178,6 +179,7 @@ export default function EventListPage() {
               {
                 month: "short",
                 day: "numeric",
+                timeZone: "Asia/Tokyo",
               },
             ),
           }));
