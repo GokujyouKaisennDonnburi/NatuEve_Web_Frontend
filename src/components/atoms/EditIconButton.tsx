@@ -15,10 +15,10 @@ export function EditIconButton({
 }: EditIconButtonProps) {
   return (
     <Button
+      type="button"
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className={cn(
         "h-6 w-6 rounded-full text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors",
         className,
       )}
