@@ -1,17 +1,19 @@
 "use client";
 
+import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, MapPin, User } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 
 export type EventItem = {
   id: string;
   title: string;
   dateLabel: string;
-  startAt: string;
+  eventDate: string; // startAt から変更
   location: string;
-  host: string;
-  postedAt: string;
+  profileId: string; // host から変更
+  createdAt: string; // postedAt から変更
+  hostName: string; // ▼ 新規追加
+  hostAvatarUrl: string; // ▼ 新規追加
 };
 
 type EventCardProps = {
@@ -23,13 +25,13 @@ export function EventCard({ event }: EventCardProps) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
-  // ローディングの高さも実際のカードの高さに合わせて調整
+
   if (!isMounted)
     return (
       <div className="w-full h-[76px] bg-slate-100 rounded-lg animate-pulse" />
     );
 
-  const start = new Date(event.startAt);
+  const start = new Date(event.eventDate);
   const formattedDate = start.toLocaleDateString("ja-JP", {
     month: "short",
     day: "numeric",
@@ -41,17 +43,15 @@ export function EventCard({ event }: EventCardProps) {
     timeZone: "Asia/Tokyo",
   });
 
-  const posted = new Date(event.postedAt);
+  const posted = new Date(event.createdAt);
   const formattedPostedAt = `${posted.getMonth() + 1}/${posted.getDate()} ${String(
     posted.getHours(),
   ).padStart(2, "0")}:${String(posted.getMinutes()).padStart(2, "0")}`;
 
   return (
     <Card className="group relative w-full overflow-hidden border border-slate-200/80 bg-white shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-200">
-      {/* 左端のアクセントライン */}
       <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-400 to-teal-400 opacity-90" />
 
-      {/* shadcn独自の隠れ余白を強制リセット（!p-0）し、自前のdiv（p-3）で12pxの均等余白を再現 */}
       <CardContent className="!p-0">
         <div className="py-0 pr-3 pl-4 flex flex-col gap-1">
           {/* 1行目：メタ情報 */}
@@ -61,8 +61,17 @@ export function EventCard({ event }: EventCardProps) {
                 {event.dateLabel}
               </span>
               <span className="flex items-center gap-1 font-medium text-slate-500">
-                <User className="h-2.5 w-2.5 text-slate-400" />
-                {event.host}
+                {/* アバター画像があれば表示し、なければデフォルトのUserアイコンを表示 */}
+                {event.hostAvatarUrl ? (
+                  <img
+                    src={event.hostAvatarUrl}
+                    alt=""
+                    className="h-3 w-3 rounded-full object-cover"
+                  />
+                ) : (
+                  <User className="h-2.5 w-2.5 text-slate-400" />
+                )}
+                {event.hostName}
               </span>
             </div>
           </div>

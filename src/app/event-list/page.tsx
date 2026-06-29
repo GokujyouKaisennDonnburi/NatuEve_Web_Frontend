@@ -1,112 +1,156 @@
-"use client"; // ソート（状態管理）を行うため Client Component に変更
+"use client";
 
-import { ArrowUpDown } from "lucide-react"; // ソートアイコンをインポート
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react"; // useEffect を追加
-import { toast } from "sonner";
 import { EventCard, type EventItem } from "@/components/EventCard";
-import { TimelineHeader } from "@/components/organisms/TimelineHeader"; // headerコンポーネントをインポート
-import { Button } from "@/components/ui/button"; // 既存の共通ボタンをインポート
+import { TimelineHeader } from "@/components/organisms/TimelineHeader";
+import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { ArrowUpDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
-// ソートの種類をここで一元管理（増えたらここに追加）
-type SortOption = "postedAt_desc" /* | "startAt_asc" | "startAt_desc" */;
+type SortOption = "created_at" | "event_date";
+
+type ApiResponseProfile = {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+};
+
+type ApiResponseEvent = {
+  createdAt: string;
+  eventDate: string;
+  id: string;
+  location: string;
+  profileId: string;
+  title: string;
+  profile: ApiResponseProfile;
+};
+
+type EventsApiResponse = {
+  events: ApiResponseEvent[];
+  limit: number;
+  offset: number;
+  totalCount: number;
+};
+
+type MeApiResponse = {
+  avatarUrl: string;
+  createdAt: string;
+  displayName: string;
+  email: string;
+  id: string;
+  updatedAt: string;
+};
 
 export default function EventListPage() {
-  // データを保持するステートを定義（初期値は空配列）
   const [events, setEvents] = useState<EventItem[]>([]);
-  // 現在選択されているソート条件を管理（初期値は投稿日時の降順）
-  const [sortBy, setSortBy] = useState<SortOption>("postedAt_desc");
-
-  // ページネーション用のステート（1ページ目からスタート）
+  const [totalCount, setTotalCount] = useState(0);
+  const [sortBy, setSortBy] = useState<SortOption>("created_at");
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 15; // 1ページあたりの最大表示件数
+  const ITEMS_PER_PAGE = 15;
 
-  const router = useRouter(); // ルーターオブジェクトを取得（ページ遷移用）
+  const router = useRouter();
 
-  // 認証状態を取得するカスタムフックを使用
-  const { session, isLoading: isAuthLoading } = useAuth();
-  const { user: currentUser, isLoading: isUserLoading } =
-    useCurrentUser(session);
+  // Supabaseのセッション状態を取得
+  const { session, isLoading: isSessionLoading } = useAuth();
 
-  // イベント作成ボタンのクリックハンドラ
-  const handleCreateEvent = () => {
-    // 認証状態のロード中は何もしない
-    if (isAuthLoading) {
-      return;
-    }
+  const [currentUser, setCurrentUser] = useState<MeApiResponse | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-    // 認証されていない場合はログインを促すトーストを表示
-    if (!session) {
-      toast.error("イベントを投稿するにはログインしてください。");
-      return;
-    }
-
-    router.push(ROUTES.EVENT_POST);
-  };
-
-  /*
-  // MSW のログイン状態取得は残しています。
-  // 実運用では Supabase の認証状態を使うため、現在はコメントアウトしています。
+  // sessionのトークンを使って /api/v1/me を叩く
   useEffect(() => {
     let cancelled = false;
 
-    const fetchUserProfile = async (attempt = 0): Promise<void> => {
+    const fetchMe = async () => {
+      // セッション自体がロード中の場合は待機
+      if (isSessionLoading) return;
+
+      // セッションがない（未ログイン）場合はAPIを叩かず終了
+      if (!session?.token) {
+        if (!cancelled) {
+          setCurrentUser(null);
+          setIsProfileLoading(false);
+        }
+        return;
+      }
+
       try {
-        const res = await fetch("/api/v1/me");
+        // Authorization ヘッダーに Bearer トークンを付与
+        const res = await fetch("/api/v1/me", {
+          headers: {
+            Authorization: `Bearer ${session.token}`,
+          },
+        });
 
         if (res.status === 401) {
+          if (!cancelled) setCurrentUser(null);
           return;
         }
 
         if (!res.ok) {
-          throw new Error(
-            `ユーザー情報の取得に失敗しました (Status: ${res.status})`,
-          );
+          throw new Error(`プロフィール取得エラー (Status: ${res.status})`);
         }
 
-        const data = (await res.json()) as UserProfile;
-
+        const data = (await res.json()) as MeApiResponse;
         if (!cancelled) {
-          setUser(data);
-          setIsUserLoading(false);
+          setCurrentUser(data);
         }
       } catch (err) {
-        if (!cancelled && attempt < 5) {
-          setTimeout(
-            () => void fetchUserProfile(attempt + 1),
-            200 * (attempt + 1),
-          );
-          return;
-        }
-
-        console.log("ユーザーが未サインイン、または取得エラー:", err);
+        console.error("Me取得エラー:", err);
         if (!cancelled) {
-          setUser(null);
-          setIsUserLoading(false);
+          setCurrentUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsProfileLoading(false);
         }
       }
     };
 
-    void fetchUserProfile();
-
+    void fetchMe();
     return () => {
       cancelled = true;
     };
-  }, []);
-  */
+  }, [session, isSessionLoading]); // 依存配列に session と isSessionLoading を追加
 
-  // MSWの準備完了を待ってからフェッチする（既存のイベント一覧取得用）
+  const handleCreateEvent = () => {
+    if (isSessionLoading || isProfileLoading) {
+      return;
+    }
+    if (!currentUser) {
+      toast.error("イベントを投稿するにはログインしてください。");
+      return;
+    }
+    router.push(ROUTES.EVENT_POST);
+  };
+
   useEffect(() => {
-    let cancelled = false; // コンポーネントがアンマウントされたかどうかを追跡するフラグ
-    // データ取得関数を定義（リトライ機能付き）
-    const fetchEvents = async (attempt = 0): Promise<void> => {
-      try {
-        const res = await fetch("/api/events"); // MSWのモックAPIを叩く
+    let cancelled = false;
 
-        // MSW の起動前に素通りして 404 になることがあるため、数回はリトライする
+    const fetchEvents = async (attempt = 0): Promise<void> => {
+      if (cancelled) return;
+      try {
+        const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+        const order = sortBy === "event_date" ? "asc" : "desc";
+        const params = new URLSearchParams({
+          sort: sortBy,
+          order,
+          limit: ITEMS_PER_PAGE.toString(),
+          offset: offset.toString(),
+        });
+
+        // 念のためイベント取得APIにもトークンがあれば渡すよう設定（不要な場合はheadersを外してもOKです）
+        const headers: Record<string, string> = {};
+        if (session?.token) {
+          headers["Authorization"] = `Bearer ${session.token}`;
+        }
+
+        const res = await fetch(`/api/v1/events?${params.toString()}`, {
+          headers,
+        });
+
         if (!res.ok) {
           if (!cancelled && attempt < 5) {
             setTimeout(
@@ -115,57 +159,51 @@ export default function EventListPage() {
             );
             return;
           }
-
-          // それでも失敗した場合はエラーを投げる
           throw new Error(`データの取得に失敗しました (Status: ${res.status})`);
         }
 
-        const data = (await res.json()) as EventItem[]; // 取得したデータを型アサーションして EventItem[] として扱う
-        if (!cancelled) setEvents(data);
+        const data = (await res.json()) as EventsApiResponse;
+
+        if (!cancelled) {
+          const mappedEvents: EventItem[] = data.events.map((apiEvent) => ({
+            id: apiEvent.id,
+            title: apiEvent.title,
+            location: apiEvent.location,
+            createdAt: apiEvent.createdAt,
+            eventDate: apiEvent.eventDate,
+            profileId: apiEvent.profileId,
+            hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
+            hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
+            dateLabel: new Date(apiEvent.eventDate).toLocaleDateString(
+              "ja-JP",
+              {
+                month: "short",
+                day: "numeric",
+                timeZone: "Asia/Tokyo",
+              },
+            ),
+          }));
+
+          setEvents(mappedEvents);
+          setTotalCount(data.totalCount);
+        }
       } catch (err) {
-        // MSW の起動タイミングによっては最初のリクエストが素通りすることがあるため、数回だけリトライする
         if (!cancelled && attempt < 5) {
           setTimeout(() => void fetchEvents(attempt + 1), 200 * (attempt + 1));
           return;
         }
-
-        console.error("Fetchエラー:", err); // コンソールにエラーを出力
+        console.error("Fetchエラー:", err);
       }
     };
 
-    // データ取得関数を呼び出す
     void fetchEvents();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentPage, sortBy, session]); // 依存配列に session を追加
 
-  // useMemoでソート結果をキャッシュ。sortByかデータが変わった時だけ再計算する
-  const sortedEvents = useMemo(() => {
-    return [...events].sort((a, b) => {
-      switch (sortBy) {
-        case "postedAt_desc": // 投稿日時が新しい順（降順）
-          return (
-            new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()
-          );
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-        default:
-          return 0; // そのまま
-      }
-    });
-  }, [events, sortBy]);
-
-  // ソート済みのデータから、現在のページに必要な件数（最大15件）だけを切り出す
-  const paginatedEvents = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const _endIndex = startIndex + ITEMS_PER_PAGE;
-    return sortedEvents.slice(startIndex, _endIndex);
-  }, [sortedEvents, currentPage]);
-
-  // 全ページ数を計算（30件なら 30÷15＝2ページ）
-  const totalPages = Math.ceil(events.length / ITEMS_PER_PAGE);
-
-  // 現在のページから前後2ページ分の範囲のページ番号を動的に生成
   const pageNumbers = useMemo(() => {
     const numbers: number[] = [];
     for (let i = currentPage - 2; i <= currentPage + 2; i++) {
@@ -181,25 +219,29 @@ export default function EventListPage() {
     setCurrentPage(1);
   };
 
+  const mappedUserForHeader = currentUser
+    ? {
+        name: currentUser.displayName,
+        avatarUrl: currentUser.avatarUrl,
+      }
+    : null;
+
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased selection:bg-emerald-100">
-      {/* 固定ヘッダー */}
       <TimelineHeader
-        eventCount={events.length}
-        isUserLoading={isAuthLoading || isUserLoading}
+        eventCount={totalCount}
+        // セッション取得とプロフィール取得の両方が終わるまでローディング状態とする
+        isUserLoading={isSessionLoading || isProfileLoading}
         onCreateEvent={handleCreateEvent}
-        session={session}
-        user={currentUser}
+        user={mappedUserForHeader}
       />
 
-      {/* タイムラインメインコンテンツ */}
       <main className="mx-auto max-w-xl px-4 pt-4 pb-16">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mb-4">
           <p className="text-xs text-slate-500 px-1">
             これから開催される自然観察イベントを縦にスクロールして確認できます。
           </p>
 
-          {/* ソート切り替えUI（セレクトボックス） */}
           <div className="flex items-center gap-1.5 self-end shrink-0 bg-white border border-slate-200 rounded-md px-2 py-1 shadow-sm">
             <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
             <select
@@ -207,19 +249,23 @@ export default function EventListPage() {
               onChange={(e) => handleSortChange(e.target.value as SortOption)}
               className="text-xs font-medium text-slate-600 bg-transparent outline-none cursor-pointer"
             >
-              <option value="postedAt_desc">投稿が新しい順</option>
+              <option value="created_at">投稿が新しい順</option>
+              <option value="event_date">開催日が近い順</option>
             </select>
           </div>
         </div>
 
-        {/* カードを縦に並べるタイムラインコンテナ */}
         <div className="space-y-4">
-          {paginatedEvents.map((event) => (
+          {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
+          {events.length === 0 && (
+            <p className="text-center text-sm text-slate-400 py-8">
+              表示するイベントがありません。
+            </p>
+          )}
         </div>
 
-        {/* ページネーションUI（データが15件以上ある場合のみ表示） */}
         {totalPages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-1 px-2">
             <Button
