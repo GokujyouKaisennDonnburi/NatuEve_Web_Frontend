@@ -51,15 +51,28 @@ export function useAuth() {
     if (isMockAuthEnabled()) {
       let cancelled = false;
 
-      // モック認証のセッションを同期し、セッションが変化した場合に更新する
-      void syncMockWorker(true).then(() => {
-        if (cancelled) {
-          return;
-        }
+      // モック認証のセッションを同期し、失敗してもローディングを解除する
+      void (async () => {
+        try {
+          await syncMockWorker(true);
 
-        setSession(getMockAuthSession());
-        setIsLoading(false);
-      });
+          if (cancelled) {
+            return;
+          }
+
+          setSession(getMockAuthSession());
+        } catch {
+          if (cancelled) {
+            return;
+          }
+
+          setSession(getMockAuthSession());
+        } finally {
+          if (!cancelled) {
+            setIsLoading(false);
+          }
+        }
+      })();
 
       const unsubscribe = subscribeMockAuthSession(() => {
         if (cancelled) {
