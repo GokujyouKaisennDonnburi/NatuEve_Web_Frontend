@@ -35,6 +35,47 @@ const sampleCurrentUser = {
 
 // 認証トークンが有効かどうかをチェックする補助関数
 // （Bearer トークンが付与されているかを確認するのに使用）
+// プロフィール詳細用ダミーデータ (マイページ・他人のページ表示用)
+const sampleUserProfiles = [
+  {
+    id: "user-1", // 自分のIDとして扱う
+    displayName: "Aoi Tanaka",
+    avatarUrl: "https://example.com/avatar.jpg",
+    bio: "週末はよく登山に行きます。自然が大好きです！\nよろしくお願いします。",
+  },
+  {
+    id: "user-2", // 他人のIDとして扱う
+    displayName: "Ren Sato",
+    avatarUrl: "",
+    bio: "海沿いのクリーン活動をメインに活動しています。",
+  }
+];
+
+// ユーザー別イベント用ダミーデータ
+const sampleUserEvents = {
+  hosted: [
+    {
+      id: "101",
+      title: "高尾山クリーンハイク",
+      location: "東京都 高尾山",
+      createdAt: "2026-06-01T10:00:00Z",
+      eventDate: "2026-07-15T09:00:00Z",
+      profileId: "user-1",
+    },
+  ],
+  participated: [
+    {
+      id: "201",
+      title: "代々木公園ピクニック＆ゴミ拾い",
+      location: "東京都 代々木公園",
+      createdAt: "2026-05-20T10:00:00Z",
+      eventDate: "2026-06-10T10:00:00Z",
+      profileId: "user-2",
+    }
+  ]
+};
+
+// 認証トークンが有効かどうかをチェックする関数
 const hasBearerToken = (authorizationHeader: string | null) =>
   Boolean(authorizationHeader?.startsWith("Bearer "));
 
@@ -61,5 +102,26 @@ export const userHandlers = [
     }
 
     return HttpResponse.json(sampleCurrentUser);
+  }),
+
+  // 指定したIDのユーザープロフィール取得API
+  http.get("/api/v1/users/:id", ({ params }) => {
+    const { id } = params;
+    const user = sampleUserProfiles.find((u) => u.id === id);
+
+    if (!user) {
+      return new HttpResponse(null, { status: 404 });
+    }
+    return HttpResponse.json(user);
+  }),
+
+  // 指定したIDのユーザーが主催したイベント取得API
+  http.get("/api/v1/users/:id/events/hosted", () => {
+    return HttpResponse.json({ events: sampleUserEvents.hosted });
+  }),
+
+  // 指定したIDのユーザーが参加したイベント取得API
+  http.get("/api/v1/users/:id/events/participated", () => {
+    return HttpResponse.json({ events: sampleUserEvents.participated });
   }),
 ];
