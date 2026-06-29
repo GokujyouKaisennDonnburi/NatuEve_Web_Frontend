@@ -25,12 +25,12 @@ export default function UserProfilePage(props: PageProps) {
   const userId = params.id;
 
   const { session, isLoading: isSessionLoading } = useAuth();
-  
+
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [hostedEvents, setHostedEvents] = useState<EventItem[]>([]);
   const [participatedEvents, setParticipatedEvents] = useState<EventItem[]>([]);
-  
+
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
 
@@ -40,7 +40,7 @@ export default function UserProfilePage(props: PageProps) {
     const fetchData = async () => {
       // セッションのロード待ち
       if (isSessionLoading) return;
-      
+
       try {
         const headers = new Headers();
         if (session?.token) {
@@ -67,7 +67,7 @@ export default function UserProfilePage(props: PageProps) {
         // 3. イベント情報の取得
         const [hostedRes, participatedRes] = await Promise.all([
           fetch(`/api/v1/users/${userId}/events/hosted`),
-          fetch(`/api/v1/users/${userId}/events/participated`)
+          fetch(`/api/v1/users/${userId}/events/participated`),
         ]);
 
         let hEvents: EventItem[] = [];
@@ -79,7 +79,10 @@ export default function UserProfilePage(props: PageProps) {
             ...e,
             hostName: profileData.displayName,
             hostAvatarUrl: profileData.avatarUrl,
-            dateLabel: new Date(e.eventDate).toLocaleDateString("ja-JP", { month: "short", day: "numeric" }),
+            dateLabel: new Date(e.eventDate).toLocaleDateString("ja-JP", {
+              month: "short",
+              day: "numeric",
+            }),
           }));
         }
 
@@ -89,7 +92,10 @@ export default function UserProfilePage(props: PageProps) {
             ...e,
             hostName: "主催者", // ※参加イベントの主催者はAPI次第で調整
             hostAvatarUrl: "",
-            dateLabel: new Date(e.eventDate).toLocaleDateString("ja-JP", { month: "short", day: "numeric" }),
+            dateLabel: new Date(e.eventDate).toLocaleDateString("ja-JP", {
+              month: "short",
+              day: "numeric",
+            }),
           }));
         }
 
@@ -106,7 +112,9 @@ export default function UserProfilePage(props: PageProps) {
     };
 
     void fetchData();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [userId, session, isSessionLoading]);
 
   // ローディング表示
@@ -123,7 +131,9 @@ export default function UserProfilePage(props: PageProps) {
     return (
       <div className="min-h-screen bg-slate-50/60 flex flex-col items-center justify-center gap-4">
         <p className="text-slate-500">ユーザーが見つかりませんでした。</p>
-        <Link href="/" className="text-emerald-600 hover:underline">ホームに戻る</Link>
+        <Link href="/" className="text-emerald-600 hover:underline">
+          ホームに戻る
+        </Link>
       </div>
     );
   }
@@ -136,7 +146,10 @@ export default function UserProfilePage(props: PageProps) {
       {/* 戻るボタン付きヘッダー */}
       <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-xl items-center px-4">
-          <Link href="/" className="flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+          <Link
+            href="/"
+            className="flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+          >
             <ArrowLeft className="w-4 h-4" />
             戻る
           </Link>

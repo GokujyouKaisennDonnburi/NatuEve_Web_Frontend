@@ -48,7 +48,7 @@ const sampleUserProfiles = [
     displayName: "Ren Sato",
     avatarUrl: "",
     bio: "海沿いのクリーン活動をメインに活動しています。",
-  }
+  },
 ];
 
 // ユーザー別イベント用ダミーデータ
@@ -71,8 +71,8 @@ const sampleUserEvents = {
       createdAt: "2026-05-20T10:00:00Z",
       eventDate: "2026-06-10T10:00:00Z",
       profileId: "user-2",
-    }
-  ]
+    },
+  ],
 };
 
 // 認証トークンが有効かどうかをチェックする関数
@@ -87,14 +87,17 @@ export const userHandlers = [
   }),
 
   // 既存の現在のユーザー情報取得モック
-http.get("/api/v1/me", ({ request }) => {
+  http.get("/api/v1/me", ({ request }) => {
     const authHeader = request.headers.get("authorization");
     if (!hasBearerToken(authHeader)) {
-      return HttpResponse.json({ error: { code: "unauthorized", message: "認証無効" } }, { status: 401 });
+      return HttpResponse.json(
+        { error: { code: "unauthorized", message: "認証無効" } },
+        { status: 401 },
+      );
     }
 
     // Bearer の後ろのトークン文字列（実際のIDが入っていると仮定）をIDとして流用するハック
-    const token = authHeader!.split(" ")[1];
+    const token = authHeader?.split(" ")[1];
 
     return HttpResponse.json({
       ...sampleCurrentUser,

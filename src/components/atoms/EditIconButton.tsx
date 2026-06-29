@@ -8,7 +8,11 @@ type EditIconButtonProps = {
   label?: string;
 };
 
-export function EditIconButton({ onClick, className, label = "編集する" }: EditIconButtonProps) {
+export function EditIconButton({
+  onClick,
+  className,
+  label = "編集する",
+}: EditIconButtonProps) {
   return (
     <Button
       variant="ghost"
@@ -16,7 +20,7 @@ export function EditIconButton({ onClick, className, label = "編集する" }: E
       onClick={onClick}
       className={cn(
         "h-6 w-6 rounded-full text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors",
-        className
+        className,
       )}
       title={label}
       aria-label={label}
