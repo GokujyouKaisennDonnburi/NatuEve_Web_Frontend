@@ -13,7 +13,9 @@ export function MSWProvider({ children }: Readonly<MSWProviderProps>) {
       return;
     }
 
-    void syncMockWorker(process.env.NEXT_PUBLIC_USE_MSW === "true");
+    void syncMockWorker(process.env.NEXT_PUBLIC_USE_MSW === "true").catch(
+      () => undefined,
+    );
   }, []);
 
   return children;
