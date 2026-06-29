@@ -49,7 +49,7 @@ export function useAuth() {
   useEffect(() => {
     // モック認証が有効な場合の処理
     if (isMockAuthEnabled()) {
-      const cancelled = false;
+      let cancelled = false;
 
       // モック認証のセッションを同期し、セッションが変化した場合に更新する
       void syncMockWorker(true).then(() => {
@@ -61,10 +61,19 @@ export function useAuth() {
         setIsLoading(false);
       });
 
-      return subscribeMockAuthSession(() => {
+      const unsubscribe = subscribeMockAuthSession(() => {
+        if (cancelled) {
+          return;
+        }
+
         setSession(getMockAuthSession());
         setIsLoading(false);
       });
+
+      return () => {
+        cancelled = true;
+        unsubscribe();
+      };
     }
 
     // 初期セッション確認

@@ -10,7 +10,7 @@ import {
 } from "@/services/mockAuth";
 import type { AuthSession } from "@/types/common";
 
-// Googleログインへリダイレクト（戻り値なし・画面遷移する）
+// Googleログインへリダイレクト（モック時はセッションを保存して true を返す）
 export async function signInWithGoogle(): Promise<boolean> {
   if (isMockAuthEnabled()) {
     await syncMockWorker(true);
@@ -31,10 +31,9 @@ export async function signInWithGoogle(): Promise<boolean> {
 
 // サインアウト（戻り値なし・画面遷移しない）
 export async function signOut(): Promise<void> {
-  // モック認証が有効な場合は、モックセッションをクリアしてモックワーカーを停止する
+  // モック認証が有効な場合は、モックセッションをクリアする
   if (isMockAuthEnabled()) {
     clearMockAuthSession();
-    await syncMockWorker(false);
     return;
   }
 

@@ -135,7 +135,7 @@ export default function EventListPage() {
       // セッションがロード中の場合は待機
       if (isSessionLoading) return;
 
-      // セッションがない（未ログイン）場合はAPIを叩かず終了
+      // セッションの有無で Authorization ヘッダーを切り替える（未ログインでも一覧取得は行う）
       try {
         const offset = (currentPage - 1) * ITEMS_PER_PAGE;
         const order = sortBy === "event_date" ? "asc" : "desc";
@@ -149,7 +149,7 @@ export default function EventListPage() {
         // 念のためイベント取得APIにもトークンがあれば渡すよう設定（不要な場合はheadersを外してもOKです）
         const headers: Record<string, string> = {};
         if (session?.token) {
-          headers.Authorization = `Bearer·${session.token}`;
+          headers.Authorization = `Bearer ${session.token}`;
         }
 
         const res = await fetch(`/api/v1/events?${params.toString()}`, {

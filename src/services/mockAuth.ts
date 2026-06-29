@@ -52,13 +52,18 @@ const writeStoredSession = (session: AuthSession | null) => {
     return;
   }
 
-  if (session) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-  } else {
-    window.localStorage.removeItem(STORAGE_KEY);
-  }
+  // localStorage に保存する際に、セッションが null の場合は削除する
+  try {
+    if (session) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    } else {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
 
-  window.dispatchEvent(new Event(CHANGE_EVENT));
+    window.dispatchEvent(new Event(CHANGE_EVENT));
+  } catch {
+    // localStorage が使えない環境や容量超過では、モック認証を静かに無効化する
+  }
 };
 
 export function getMockAuthSession(): AuthSession | null {
