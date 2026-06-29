@@ -53,6 +53,7 @@ export function useAuth() {
 
       // モック認証のセッションを同期し、失敗してもローディングを解除する
       void (async () => {
+        // モックワーカーを同期する
         try {
           await syncMockWorker(true);
 
@@ -68,12 +69,14 @@ export function useAuth() {
 
           setSession(getMockAuthSession());
         } finally {
+          // ローディング状態を解除する
           if (!cancelled) {
             setIsLoading(false);
           }
         }
       })();
 
+      // モック認証のセッション変更を購読し、セッションが変化したらステートを更新する
       const unsubscribe = subscribeMockAuthSession(() => {
         if (cancelled) {
           return;

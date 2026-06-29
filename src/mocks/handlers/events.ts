@@ -66,6 +66,7 @@ const DUMMY_EVENTS = Array.from({ length: 100 }).map((_, index) => {
 
 // getPagedEvents関数は、指定されたURLのクエリパラメータに基づいて、ダミーイベントデータをページングして返す関数です。
 const getPagedEvents = (url: URL): MockEventListResponse => {
+  // クエリパラメータからlimit, offset, sort, orderを取得し、適切な値に正規化する
   const limit = Math.max(
     1,
     Math.min(100, Number(url.searchParams.get("limit") ?? "15") || 15),
@@ -78,6 +79,7 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
     url.searchParams.get("sort") === "event_date" ? "event_date" : "created_at";
   const order = url.searchParams.get("order") === "asc" ? "asc" : "desc";
 
+  // ダミーイベントデータをソートする
   const sortedEvents = [...DUMMY_EVENTS].sort((left, right) => {
     const leftValue = sort === "event_date" ? left.eventDate : left.createdAt;
     const rightValue =
