@@ -226,6 +226,7 @@ export default function EventListPage() {
 
   const mappedUserForHeader = currentUser
     ? {
+        id: currentUser.id,
         name: currentUser.displayName,
         avatarUrl: currentUser.avatarUrl,
       }
