@@ -135,6 +135,8 @@ export const eventHandlers = [
     // 詳細フィールドを付与して返す（投稿時のフォーマットを模倣）
     const detail = {
       id: found.id,
+      organizerName: found.host,
+      organizerAvatarUrl: undefined,
       title: found.title,
       description: `詳細情報です。自然観察を楽しみましょう。`,
       location: found.location,

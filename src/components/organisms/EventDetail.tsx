@@ -4,6 +4,7 @@ import { EventImageCarousel } from "@/components/molecules/event-detail/EventIma
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
 import { EventPdfList } from "@/components/molecules/event-detail/EventPdfList";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
+import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
@@ -33,10 +34,20 @@ export function EventDetail({ event }: { event: EventDetailType }) {
         <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">
           {event.title}
         </h1>
+        <div className="mt-2 flex items-center gap-2 text-sm text-slate-600">
+          <GlobalUserAvatar
+            name={event.organizerName}
+            iconUrl={event.organizerAvatarUrl}
+            className="h-5 w-5 border-slate-300"
+          />
+          <span className="font-medium text-slate-700">
+            {event.organizerName ?? "未設定"}
+          </span>
+        </div>
       </div>
 
       {/* イベント画像（固定アスペクト）後々配置場所をイベント内容内に変更予定 */}
-      <EventImageCarousel title={event.title} images={images} />
+      <EventImageCarousel images={images} />
 
       {/* イベント概要 */}
       <div>

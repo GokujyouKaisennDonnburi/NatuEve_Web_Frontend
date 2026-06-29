@@ -5,7 +5,13 @@ import type { EventDetailType } from "./types";
 type EventInfoTableProps = {
   event: Pick<
     EventDetailType,
-    "eventDate" | "location" | "costs" | "items" | "capacity"
+    | "organizerName"
+    | "organizerAvatarUrl"
+    | "eventDate"
+    | "location"
+    | "costs"
+    | "items"
+    | "capacity"
   >;
 };
 
@@ -19,12 +25,24 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
             <table className="w-full border-separate border-spacing-0 text-sm">
               <tbody>
+                {/* 主催者 */}
+                <tr>
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-emerald-500 text-sm font-semibold text-white">
+                    主催者
+                  </th>
+                  <td className="border-l  border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
+                    <span className="text-sm font-medium text-slate-800">
+                      {event.organizerName ?? "未設定"}
+                    </span>
+                  </td>
+                </tr>
+
                 {/* 開催日時 */}
                 <tr>
-                  <th className="w-44 py-4 px-4 text-left align-top bg-emerald-500 text-sm font-semibold text-white">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-emerald-500 text-sm font-semibold text-white">
                     開催日時
                   </th>
-                  <td className="border-l border-slate-200 bg-white px-4 py-4 text-slate-800">
+                  <td className="border-l  border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
                     {new Date(event.eventDate).toLocaleString("ja-JP", {
                       year: "numeric",
                       month: "long",

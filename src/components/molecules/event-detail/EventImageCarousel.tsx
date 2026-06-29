@@ -5,13 +5,11 @@ import * as React from "react";
 
 // イベント画像カルーセルコンポーネントのプロパティ型定義
 type EventImageCarouselProps = {
-  title: string;
   images: string[];
 };
 
 // イベント画像カルーセルコンポーネント
 export function EventImageCarousel({
-  title,
   images,
 }: Readonly<EventImageCarouselProps>) {
   // 選択された画像のインデックスを管理する状態
@@ -24,7 +22,7 @@ export function EventImageCarousel({
       <div
         className="h-56 w-full rounded-xl bg-slate-100"
         role="img"
-        aria-label={`${title} の画像はありません`}
+        aria-label="画像はありません"
       />
     );
   }
@@ -32,7 +30,12 @@ export function EventImageCarousel({
   return (
     <div className="w-full overflow-hidden rounded-xl shadow-sm">
       <div className="relative aspect-16/7 w-full overflow-hidden rounded-xl bg-slate-100">
-        <Image src={mainImage} alt={title} fill className="object-cover" />
+        <Image
+          src={mainImage}
+          alt="イベント画像"
+          fill
+          className="object-cover"
+        />
       </div>
 
       {images.length > 1 && (
@@ -49,7 +52,7 @@ export function EventImageCarousel({
             >
               <Image
                 src={src}
-                alt={`${title} サムネイル ${index + 1}`}
+                alt={`イベント画像 サムネイル ${index + 1}`}
                 width={112}
                 height={64}
                 className="h-full w-full object-cover"

@@ -13,6 +13,8 @@ export type EventDetailItem = {
 // イベント詳細の型定義
 export type EventDetailType = {
   id: string;
+  organizerName?: string;
+  organizerAvatarUrl?: string;
   title: string;
   description: string;
   imageObjectKeys?: string[];
