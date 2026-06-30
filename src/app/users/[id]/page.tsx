@@ -84,6 +84,7 @@ export default function UserProfilePage(props: PageProps) {
               day: "numeric",
               timeZone: "Asia/Tokyo",
             }),
+          }));
         }
 
         if (participatedRes.ok) {
@@ -97,6 +98,7 @@ export default function UserProfilePage(props: PageProps) {
               day: "numeric",
               timeZone: "Asia/Tokyo",
             }),
+          }));
         }
 
         if (!cancelled) {
