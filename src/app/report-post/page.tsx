@@ -78,43 +78,63 @@ export default function ReportPostPage() {
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!formState.content.trim()) {
-      errors.content = "活動記録は必須です";
-    } else if (formState.content.length > 2000) {
-      errors.content = "活動記録は2000文字以内である必要があります";
-    }
+    if (formState.externalUrlEnabled) {
+      // 外部URLが有効な場合は、外部URLのみを検証する（contentや画像は対象外）
+      const url = formState.externalUrl.trim();
 
-    if (formState.reportImages.length > 10) {
-      errors.reportImages = "画像は最大10枚までです";
-    }
-
-    // 画像が選択されている場合のみファイル内容のバリデーションを実施
-    if (formState.reportImages.length > 0) {
-      const imageValidationEntries = formState.reportImages.map((file) => ({
-        file,
-        kind: "image" as const,
-      }));
-      const imageError = findUploadValidationError(imageValidationEntries);
-      if (imageError) {
-        errors.reportImages = imageError;
-      }
-    }
-
-    if (formState.externalUrlEnabled && !formState.externalUrl.trim()) {
-      errors.externalUrl = "URLを入力してください";
-    }
-
-    if (formState.reportPdfs.length > 0) {
-      if (formState.reportPdfs.length > 3) {
-        errors.reportPdfs = "PDFは最大3つまでです";
+      if (!url) {
+        errors.externalUrl = "URLを入力してください";
+      } else if (url.length > 255) {
+        errors.externalUrl = "URLは255文字以内である必要があります";
       } else {
-        const pdfValidationEntries = formState.reportPdfs.map((file) => ({
+        try {
+          const parsed = new URL(url);
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            errors.externalUrl =
+              "http:// または https:// のURLを入力してください";
+          } else if (!parsed.hostname) {
+            errors.externalUrl = "正しいURL形式で入力してください";
+          }
+        } catch {
+          errors.externalUrl = "正しいURL形式で入力してください";
+        }
+      }
+    } else {
+      // 外部URLが無効な場合は通常通りcontent・画像・PDFを検証する
+      if (!formState.content.trim()) {
+        errors.content = "活動記録は必須です";
+      } else if (formState.content.length > 2000) {
+        errors.content = "活動記録は2000文字以内である必要があります";
+      }
+
+      if (formState.reportImages.length > 10) {
+        errors.reportImages = "画像は最大10枚までです";
+      }
+
+      // 画像が選択されている場合のみファイル内容のバリデーションを実施
+      if (formState.reportImages.length > 0) {
+        const imageValidationEntries = formState.reportImages.map((file) => ({
           file,
-          kind: "pdf" as const,
+          kind: "image" as const,
         }));
-        const pdfError = findUploadValidationError(pdfValidationEntries);
-        if (pdfError) {
-          errors.reportPdfs = pdfError;
+        const imageError = findUploadValidationError(imageValidationEntries);
+        if (imageError) {
+          errors.reportImages = imageError;
+        }
+      }
+
+      if (formState.reportPdfs.length > 0) {
+        if (formState.reportPdfs.length > 3) {
+          errors.reportPdfs = "PDFは最大3つまでです";
+        } else {
+          const pdfValidationEntries = formState.reportPdfs.map((file) => ({
+            file,
+            kind: "pdf" as const,
+          }));
+          const pdfError = findUploadValidationError(pdfValidationEntries);
+          if (pdfError) {
+            errors.reportPdfs = pdfError;
+          }
         }
       }
     }
@@ -134,24 +154,26 @@ export default function ReportPostPage() {
     setIsSubmitting(true);
 
     try {
-      // 画像をアップロード
       const imageObjectKeys: string[] = [];
-      for (const image of formState.reportImages) {
-        const objectKey = await uploadFile(image, "image");
-        imageObjectKeys.push(objectKey);
-      }
-
-      // PDFをアップロード（存在する場合）
       const pdfObjectKeys: string[] = [];
-      for (const pdfFile of formState.reportPdfs) {
-        const objectKey = await uploadFile(pdfFile, "pdf");
-        pdfObjectKeys.push(objectKey);
+
+      // 外部URLが無効な場合のみ、画像・PDFをアップロード
+      if (!formState.externalUrlEnabled) {
+        for (const image of formState.reportImages) {
+          const objectKey = await uploadFile(image, "image");
+          imageObjectKeys.push(objectKey);
+        }
+
+        for (const pdfFile of formState.reportPdfs) {
+          const objectKey = await uploadFile(pdfFile, "pdf");
+          pdfObjectKeys.push(objectKey);
+        }
       }
 
       // レポート作成リクエストを組み立て
       const payload: CreateReportRequest = {
         eventId,
-        content: formState.content.trim(),
+        content: formState.externalUrlEnabled ? "" : formState.content.trim(),
         imageObjectKeys,
         ...(formState.externalUrlEnabled &&
           formState.externalUrl.trim() && {
@@ -198,7 +220,7 @@ export default function ReportPostPage() {
 
         {/* メインカード */}
         <Card className="border-slate-200 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} noValidate className="space-y-8">
             <CardHeader className="border-b border-slate-200 pb-6">
               <CardTitle>レポート内容</CardTitle>
               <CardDescription>
@@ -219,6 +241,12 @@ export default function ReportPostPage() {
                     setFormState((prev) => ({
                       ...prev,
                       externalUrlEnabled: enabled,
+                      // ONにする場合は、content・画像・PDFをクリアする
+                      ...(enabled && {
+                        content: "",
+                        reportImages: [],
+                        reportPdfs: [],
+                      }),
                     }))
                   }
                   url={formState.externalUrl}

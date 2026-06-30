@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 import Image from "next/image";
 import type { ChangeEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { FieldNote } from "@/components/atoms/event-post/FieldNote";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,44 @@ export function MultiFileField({
 }: Readonly<MultiFileFieldProps>) {
   const isImage = accept?.startsWith("image/"); // 受け入れるファイルタイプが画像かどうかを判定するフラグ
   const canAddMore = selectedFiles.length < maxFiles; // さらにファイルを追加できるかどうかを判定
+
+  // file.id -> プレビュー用のBlob URLを保持するマップ
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  // アンマウント時のcleanupで最新のpreviewUrlsを参照するためのref
+  const previewUrlsRef = useRef<Record<string, string>>({});
+
+  // selectedFiles の増減に応じて、プレビューURLを生成・破棄する
+  useEffect(() => {
+    if (!isImage) return;
+
+    setPreviewUrls((prev) => {
+      const next: Record<string, string> = {};
+
+      // 既存ファイルのURLは再利用し、新規ファイルのみ生成する
+      for (const file of selectedFiles) {
+        next[file.id] = prev[file.id] ?? URL.createObjectURL(file);
+      }
+
+      // 配列からなくなったファイルのURLは解放する
+      for (const fileId of Object.keys(prev)) {
+        if (!(fileId in next)) {
+          URL.revokeObjectURL(prev[fileId]);
+        }
+      }
+
+      previewUrlsRef.current = next;
+      return next;
+    });
+  }, [selectedFiles, isImage]);
+
+  // コンポーネント自体がアンマウントされる際に、残っているURLをすべて解放する
+  useEffect(() => {
+    return () => {
+      for (const url of Object.values(previewUrlsRef.current)) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, []);
 
   // ファイルが選択されたときの処理
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -100,12 +139,14 @@ export function MultiFileField({
             >
               {isImage ? (
                 <div className="relative aspect-square">
-                  <Image
-                    src={URL.createObjectURL(file)}
-                    alt={file.name}
-                    fill
-                    className="object-cover"
-                  />
+                  {previewUrls[file.id] && (
+                    <Image
+                      src={previewUrls[file.id]}
+                      alt={file.name}
+                      fill
+                      className="object-cover"
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="flex aspect-square items-center justify-center bg-slate-100 p-2">

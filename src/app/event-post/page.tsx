@@ -378,7 +378,7 @@ export default function EventPostPage() {
           </CardHeader>
 
           {/* フォームの送信イベントをhandleSubmitにバインド */}
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} noValidate className="space-y-8">
             <CardContent className="space-y-8 pt-6">
               {!formState.applicationUrlEnabled ? (
                 <>
