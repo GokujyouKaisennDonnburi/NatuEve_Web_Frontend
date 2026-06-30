@@ -84,20 +84,20 @@ export default function ReportPostPage() {
       errors.content = "活動記録は2000文字以内である必要があります";
     }
 
-    if (formState.reportImages.length === 0) {
-      errors.reportImages = "最低1枚は画像をアップロードしてください";
-    } else if (formState.reportImages.length > 10) {
+    if (formState.reportImages.length > 10) {
       errors.reportImages = "画像は最大10枚までです";
     }
 
-    // 各画像のバリデーション
-    const imageValidationEntries = formState.reportImages.map((file) => ({
-      file,
-      kind: "image" as const,
-    }));
-    const imageError = findUploadValidationError(imageValidationEntries);
-    if (imageError) {
-      errors.reportImages = imageError;
+    // 画像が選択されている場合のみファイル内容のバリデーションを実施
+    if (formState.reportImages.length > 0) {
+      const imageValidationEntries = formState.reportImages.map((file) => ({
+        file,
+        kind: "image" as const,
+      }));
+      const imageError = findUploadValidationError(imageValidationEntries);
+      if (imageError) {
+        errors.reportImages = imageError;
+      }
     }
 
     if (formState.externalUrlEnabled && !formState.externalUrl.trim()) {
@@ -272,29 +272,30 @@ export default function ReportPostPage() {
                   {/* 区切り線 */}
                   <div className="border-t border-slate-200" />
 
-                  {/* 画像セクション */}
-                  <div>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                      <ImageIcon className="h-5 w-5 text-teal-600" />
-                      <span>活動している様子の画像</span>
-                    </div>
-                    <MultiFileField
-                      id="report-images"
-                      label="画像を選択"
-                      hint="活動の様子が分かる画像があれば添付してください（最大10枚）"
-                      accept="image/*"
-                      selectedFiles={formState.reportImages}
-                      onSelectedFilesChange={(files) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          reportImages: files,
-                        }))
-                      }
-                      maxFiles={10}
-                      className="mt-4"
-                      error={validationErrors.reportImages}
-                    />
-                  </div>
+              {/* 画像セクション */}
+              <div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                  <ImageIcon className="h-5 w-5 text-teal-600" />
+                  <span>活動している様子の画像</span>
+                </div>
+                <MultiFileField
+                  id="report-images"
+                  label="画像を選択"
+                  hint="活動の様子が分かる画像があれば添付してください（最大10枚）"
+                  accept="image/*"
+                  selectedFiles={formState.reportImages}
+                  onSelectedFilesChange={(files) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      reportImages: files,
+                    }))
+                  }
+                  maxFiles={10}
+                  className="mt-4"
+                  error={validationErrors.reportImages}
+                  disabled={formState.externalUrlEnabled}
+                />
+              </div>
 
                   {/* 区切り線 */}
                   <div className="border-t border-slate-200" />
