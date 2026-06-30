@@ -162,7 +162,7 @@ export const userHandlers = [
         message: "プロフィールを更新しました",
         updatedData: body,
       });
-    } catch (error) {
+    } catch (_error) {
       return HttpResponse.json(
         { error: "無効なリクエストです" },
         { status: 400 },
