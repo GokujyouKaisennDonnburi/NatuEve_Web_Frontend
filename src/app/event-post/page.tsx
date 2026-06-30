@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { createEvent } from "@/services/event";
@@ -45,8 +44,8 @@ type EventPostFormState = {
   eventDateTime: string; // 開催日時
   feeCategoryGroups: PriceCategory[]; // 参加費用のカテゴリと金額の配列
   capacity: string; // 定員数
-  applicationUrlEnabled: boolean; // 申し込みURLの有効化状態
-  applicationUrl: string; // 申し込みURL
+  applicationUrlEnabled: boolean; // 外部URLの有効化状態
+  applicationUrl: string; // 外部URL
   requiredItems: RequiredItem[]; // 持ち物の配列
 };
 
@@ -166,86 +165,90 @@ export default function EventPostPage() {
   const validate = () => {
     const nextErrors: EventPostFormErrors = {};
 
-    // 必須項目の検証
-    if (!formState.eventName.trim()) {
-      nextErrors.eventName = "イベント名は必須です。";
-    } else if (formState.eventName.trim().length > MAX_TEXT_LENGTH) {
-      nextErrors.eventName = "イベント名は255文字以内で入力してください。";
-    }
-
-    // 必須項目の検証
-    if (!formState.eventContent.trim()) {
-      nextErrors.eventContent = "イベント内容は必須です。";
-    }
-
-    // 必須項目の検証
-    if (!formState.location.trim()) {
-      nextErrors.location = "開催場所は必須です。";
-    } else if (formState.location.trim().length > MAX_TEXT_LENGTH) {
-      nextErrors.location = "開催場所は255文字以内で入力してください。";
-    }
-
-    // 必須項目の検証
-    if (!formState.eventDateTime.trim()) {
-      nextErrors.eventDateTime = "開催日時は必須です。";
-    } else if (!isValidLocalDateTime(formState.eventDateTime.trim())) {
-      nextErrors.eventDateTime = "開催日時の形式が正しくありません。";
-    }
-
-    // 参加費用の検証（カテゴリと金額が揃っているか）
-    const feeErrors: Record<number, string> = {};
-    if (formState.feeCategoryGroups.length === 0) {
-      nextErrors.feeCategoryGroups = {
-        0: "参加費用は1件以上入力してください。",
-      };
-    }
-    formState.feeCategoryGroups.forEach((group, index) => {
-      const hasCategory = Boolean(group.category.trim());
-      const hasAmount = Boolean(group.amount.trim());
-
-      if (!hasCategory && !hasAmount) {
-        feeErrors[index] = "カテゴリと金額を入力してください。";
-      } else if (!hasCategory) {
-        feeErrors[index] = "カテゴリを入力してください。";
-      } else if (!hasAmount) {
-        feeErrors[index] = "金額を入力してください。";
-      } else if (!/^\d+$/.test(group.amount.trim())) {
-        feeErrors[index] = "金額は数字で入力してください。";
+    if (!formState.applicationUrlEnabled) {
+      // 必須項目の検証
+      if (!formState.eventName.trim()) {
+        nextErrors.eventName = "イベント名は必須です。";
+      } else if (formState.eventName.trim().length > MAX_TEXT_LENGTH) {
+        nextErrors.eventName = "イベント名は255文字以内で入力してください。";
       }
-    });
-    // 参加費用のエラーがある場合、次のエラーオブジェクトに追加
-    if (Object.keys(feeErrors).length > 0) {
-      nextErrors.feeCategoryGroups = feeErrors;
-    }
 
-    // 持ち物の検証（持ち物名が空でないか）
-    const requiredItemErrors: Record<number, string> = {};
-    formState.requiredItems.forEach((item, index) => {
-      if (!item.itemName.trim()) {
-        requiredItemErrors[index] = "持ち物名を入力してください。";
-      } else if (item.itemName.trim().length > MAX_TEXT_LENGTH) {
-        requiredItemErrors[index] = "持ち物名は255文字以内で入力してください。";
+      // 必須項目の検証
+      if (!formState.eventContent.trim()) {
+        nextErrors.eventContent = "イベント内容は必須です。";
       }
-    });
-    if (Object.keys(requiredItemErrors).length > 0) {
-      nextErrors.requiredItems = requiredItemErrors;
+
+      // 必須項目の検証
+      if (!formState.location.trim()) {
+        nextErrors.location = "開催場所は必須です。";
+      } else if (formState.location.trim().length > MAX_TEXT_LENGTH) {
+        nextErrors.location = "開催場所は255文字以内で入力してください。";
+      }
+
+      // 必須項目の検証
+      if (!formState.eventDateTime.trim()) {
+        nextErrors.eventDateTime = "開催日時は必須です。";
+      } else if (!isValidLocalDateTime(formState.eventDateTime.trim())) {
+        nextErrors.eventDateTime = "開催日時の形式が正しくありません。";
+      }
+
+      // 参加費用の検証（カテゴリと金額が揃っているか）
+      const feeErrors: Record<number, string> = {};
+      if (formState.feeCategoryGroups.length === 0) {
+        nextErrors.feeCategoryGroups = {
+          0: "参加費用は1件以上入力してください。",
+        };
+      }
+      formState.feeCategoryGroups.forEach((group, index) => {
+        const hasCategory = Boolean(group.category.trim());
+        const hasAmount = Boolean(group.amount.trim());
+
+        if (!hasCategory && !hasAmount) {
+          feeErrors[index] = "カテゴリと金額を入力してください。";
+        } else if (!hasCategory) {
+          feeErrors[index] = "カテゴリを入力してください。";
+        } else if (!hasAmount) {
+          feeErrors[index] = "金額を入力してください。";
+        } else if (!/^\d+$/.test(group.amount.trim())) {
+          feeErrors[index] = "金額は数字で入力してください。";
+        }
+      });
+      // 参加費用のエラーがある場合、次のエラーオブジェクトに追加
+      if (Object.keys(feeErrors).length > 0) {
+        nextErrors.feeCategoryGroups = feeErrors;
+      }
+
+      // 持ち物の検証（持ち物名が空でないか）
+      const requiredItemErrors: Record<number, string> = {};
+      formState.requiredItems.forEach((item, index) => {
+        if (!item.itemName.trim()) {
+          requiredItemErrors[index] = "持ち物名を入力してください。";
+        } else if (item.itemName.trim().length > MAX_TEXT_LENGTH) {
+          requiredItemErrors[index] =
+            "持ち物名は255文字以内で入力してください。";
+        }
+      });
+      if (Object.keys(requiredItemErrors).length > 0) {
+        nextErrors.requiredItems = requiredItemErrors;
+      }
+
+      // 定員数の検証（0以上の整数であるか）
+      if (
+        formState.capacity.trim() &&
+        (!/^\d+$/.test(formState.capacity.trim()) ||
+          Number(formState.capacity) < 0)
+      ) {
+        // 定員数が空でない場合、0以上の整数であることを確認
+        nextErrors.capacity = "定員数は0以上の整数で入力してください。";
+      }
     }
 
-    // 定員数の検証（0以上の整数であるか）
-    if (
-      formState.capacity.trim() &&
-      (!/^\d+$/.test(formState.capacity.trim()) ||
-        Number(formState.capacity) < 0)
-    ) {
-      // 定員数が空でない場合、0以上の整数であることを確認
-      nextErrors.capacity = "定員数は0以上の整数で入力してください。";
-    }
-
-    // 申し込みURLの検証（有効化されている場合、正しいURL形式であるか）
-    if (formState.applicationUrlEnabled && formState.applicationUrl.trim()) {
-      if (formState.applicationUrl.trim().length > MAX_TEXT_LENGTH) {
-        nextErrors.applicationUrl =
-          "申し込みURLは255文字以内で入力してください。";
+    // 外部URLの検証（有効化されている場合、正しいURL形式であるか）
+    if (formState.applicationUrlEnabled) {
+      if (!formState.applicationUrl.trim()) {
+        nextErrors.applicationUrl = "外部URLを入力してください。";
+      } else if (formState.applicationUrl.trim().length > MAX_TEXT_LENGTH) {
+        nextErrors.applicationUrl = "外部URLは255文字以内で入力してください。";
       }
 
       // URLの形式を検証するために、try-catchでURLオブジェクトを生成
@@ -257,7 +260,7 @@ export default function EventPostPage() {
             parsedUrl.protocol !== "https:"
           ) {
             nextErrors.applicationUrl =
-              "申し込みURLは http か https で始めてください。";
+              "外部URLは http か https で始めてください。";
           }
         } catch {
           // URLオブジェクトの生成に失敗した場合、エラーとして設定
@@ -377,37 +380,39 @@ export default function EventPostPage() {
           {/* フォームの送信イベントをhandleSubmitにバインド */}
           <form onSubmit={handleSubmit} className="space-y-8">
             <CardContent className="space-y-8 pt-6">
-              <div className="grid gap-6">
-                {/* イベントの基本情報入力セクション */}
-                <SectionHeading
-                  eyebrow="Basic Info"
-                  title="イベントの骨格を入力"
-                  description="ここで入力した内容がイベントページの中心情報になります。"
-                  icon={<Sparkles className="h-4 w-4" />}
-                />
+              {!formState.applicationUrlEnabled ? (
+                <>
+                  <div className="grid gap-6">
+                    {/* イベントの基本情報入力セクション */}
+                    <SectionHeading
+                      eyebrow="Basic Info"
+                      title="イベントの骨格を入力"
+                      description="ここで入力した内容がイベントページの中心情報になります。"
+                      icon={<Sparkles className="h-4 w-4" />}
+                    />
 
-                {/* イベント名の入力フィールド */}
-                <FormField
-                  id={getFieldId("eventName")}
-                  label="イベント名"
-                  required
-                  hint="閲覧者が一覧で最初に目にする項目です。"
-                  error={errors.eventName}
-                >
-                  <Input
-                    id={getFieldId("eventName")}
-                    maxLength={MAX_TEXT_LENGTH}
-                    value={formState.eventName}
-                    onChange={(event) =>
-                      setField("eventName", event.target.value)
-                    }
-                    placeholder="例: 里山観察ワークショップ"
-                    aria-invalid={Boolean(errors.eventName)}
-                  />
-                </FormField>
+                    {/* イベント名の入力フィールド */}
+                    <FormField
+                      id={getFieldId("eventName")}
+                      label="イベント名"
+                      required
+                      hint="閲覧者が一覧で最初に目にする項目です。"
+                      error={errors.eventName}
+                    >
+                      <Input
+                        id={getFieldId("eventName")}
+                        maxLength={MAX_TEXT_LENGTH}
+                        value={formState.eventName}
+                        onChange={(event) =>
+                          setField("eventName", event.target.value)
+                        }
+                        placeholder="例: 里山観察ワークショップ"
+                        aria-invalid={Boolean(errors.eventName)}
+                      />
+                    </FormField>
 
-                {/* イベント画像のアップロードフィールド */}
-                {/*
+                    {/* イベント画像のアップロードフィールド */}
+                    {/*
                   TODO: event_images のバックエンド連携をここに追加する。
                   入れるコードの例:
                   - 画像ファイルを Storage API に送信する
@@ -415,26 +420,28 @@ export default function EventPostPage() {
                   - events 作成 API に image_objectkey を渡す
                   - 失敗時は submit を止めてエラー表示する
                 */}
-                <FileField
-                  id={getFieldId("eventImage")}
-                  label="イベント画像"
-                  accept="image/jpeg,image/png"
-                  hint="JPEG / PNG（最大10MB）。サムネイルや告知バナーに使います。"
-                  selectedFile={formState.eventImage}
-                  onSelectedFileChange={(file) => setField("eventImage", file)}
-                />
-              </div>
+                    <FileField
+                      id={getFieldId("eventImage")}
+                      label="イベント画像"
+                      accept="image/jpeg,image/png"
+                      hint="JPEG / PNG（最大10MB）。サムネイルや告知バナーに使います。"
+                      selectedFile={formState.eventImage}
+                      onSelectedFileChange={(file) =>
+                        setField("eventImage", file)
+                      }
+                    />
+                  </div>
 
-              {/* イベント資料のアップロードセクション */}
-              <div className="grid gap-6 rounded-3xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm shadow-slate-100">
-                <SectionHeading
-                  eyebrow="PDF Upload"
-                  title="イベント資料をアップロード"
-                  description="最大3つまでのPDFファイルを選択できます。"
-                  icon={<FileText className="h-4 w-4" />}
-                />
+                  {/* イベント資料のアップロードセクション */}
+                  <div className="grid gap-6 rounded-3xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm shadow-slate-100">
+                    <SectionHeading
+                      eyebrow="PDF Upload"
+                      title="イベント資料をアップロード"
+                      description="最大3つまでのPDFファイルを選択できます。"
+                      icon={<FileText className="h-4 w-4" />}
+                    />
 
-                {/*
+                    {/*
                   TODO: event_pdfs のバックエンド連携をここに追加する。
                   入れるコードの例:
                   - PDF ファイルを Storage API に順番に送信する
@@ -442,182 +449,190 @@ export default function EventPostPage() {
                   - event_pdfs テーブルに event_id と pdf_objectkey を保存する
                   - 1 件でも失敗したら submit を中断する
                 */}
-                <div className="space-y-2">
-                  <Label
-                    htmlFor={getFieldId("eventDocuments")}
-                    className="text-sm font-semibold text-slate-800"
-                  >
-                    イベント資料
-                  </Label>
-                  <Input
-                    id={getFieldId("eventDocuments")}
-                    type="file"
-                    accept="application/pdf"
-                    multiple
-                    onChange={(event) => {
-                      const newFiles = Array.from(event.target.files ?? []);
-                      const combined = [
-                        ...formState.eventDocuments,
-                        ...newFiles,
-                      ].slice(0, 3);
-                      setField("eventDocuments", combined);
-                    }}
-                    className="cursor-pointer"
-                  />
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor={getFieldId("eventDocuments")}
+                        className="text-sm font-semibold text-slate-800"
+                      >
+                        イベント資料
+                      </Label>
+                      <Input
+                        id={getFieldId("eventDocuments")}
+                        type="file"
+                        accept="application/pdf"
+                        multiple
+                        onChange={(event) => {
+                          const newFiles = Array.from(event.target.files ?? []);
+                          const combined = [
+                            ...formState.eventDocuments,
+                            ...newFiles,
+                          ].slice(0, 3);
+                          setField("eventDocuments", combined);
+                        }}
+                        className="cursor-pointer"
+                      />
 
-                  {/* アップロードされたPDFファイルのリスト表示 */}
-                  <div className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                    {formState.eventDocuments.length > 0 ? (
-                      <ul className="space-y-1">
-                        {formState.eventDocuments.map((file, idx) => (
-                          <li
-                            key={`${file.name}-${file.size}-${file.lastModified}`}
-                            className="flex items-center justify-between gap-3 text-xs"
-                          >
-                            <span className="min-w-0 flex-1 truncate">
-                              {idx + 1}. {file.name}
-                            </span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-xs"
-                              onClick={() => removeEventDocument(idx)}
-                              className="shrink-0 cursor-pointer text-red-600 hover:bg-transparent hover:text-red-700"
-                              aria-label={`${file.name} を削除`}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>未選択</p>
-                    )}
+                      {/* アップロードされたPDFファイルのリスト表示 */}
+                      <div className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                        {formState.eventDocuments.length > 0 ? (
+                          <ul className="space-y-1">
+                            {formState.eventDocuments.map((file, idx) => (
+                              <li
+                                key={`${file.name}-${file.size}-${file.lastModified}`}
+                                className="flex items-center justify-between gap-3 text-xs"
+                              >
+                                <span className="min-w-0 flex-1 truncate">
+                                  {idx + 1}. {file.name}
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  onClick={() => removeEventDocument(idx)}
+                                  className="shrink-0 cursor-pointer text-red-600 hover:bg-transparent hover:text-red-700"
+                                  aria-label={`${file.name} を削除`}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>未選択</p>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        企画書、ポスター、参加案内資料など、イベント関連のPDFをまとめてアップロードできます。
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500">
-                    企画書、ポスター、参加案内資料など、イベント関連のPDFをまとめてアップロードできます。
-                  </p>
-                </div>
-              </div>
 
-              {/* 開催条件の入力セクション */}
-              <div className="grid gap-6">
-                <SectionHeading
-                  eyebrow="Event Details"
-                  title="開催条件を整理"
-                  description="場所、日時、費用、必要物、定員をまとめて管理します。"
-                  icon={<MapPinned className="h-4 w-4" />}
-                />
-
-                {/* 開催場所の入力フィールド */}
-                <FormField
-                  id={getFieldId("location")}
-                  label="開催場所"
-                  required
-                  hint="住所や施設名、集合場所をわかりやすく記載してください。"
-                  error={errors.location}
-                >
-                  <Input
-                    id={getFieldId("location")}
-                    maxLength={MAX_TEXT_LENGTH}
-                    value={formState.location}
-                    onChange={(event) =>
-                      setField("location", event.target.value)
-                    }
-                    placeholder="例: 〇〇市民ホール 2F 会議室A"
-                    aria-invalid={Boolean(errors.location)}
-                  />
-                </FormField>
-
-                {/* 開催日時の入力フィールド */}
-                <FormField
-                  id={getFieldId("eventDateTime")}
-                  label="開催日時"
-                  required
-                  hint="開始予定日時を入力してください。"
-                  error={errors.eventDateTime}
-                >
-                  <Input
-                    id={getFieldId("eventDateTime")}
-                    type="datetime-local"
-                    value={formState.eventDateTime}
-                    onChange={(event) =>
-                      setField(
-                        "eventDateTime",
-                        clampDateYear(event.target.value),
-                      )
-                    }
-                    aria-invalid={Boolean(errors.eventDateTime)}
-                  />
-                </FormField>
-
-                {/* 参加費用と定員数の入力フィールドをグリッドでまとめる */}
-                <div className="grid gap-6">
-                  <FormField
-                    id={getFieldId("feeCategoryGroups")}
-                    label="参加費用"
-                    required
-                    hint="カテゴリと金額をセットで入力します。"
-                    error={
-                      Object.keys(errors.feeCategoryGroups ?? {}).length > 0
-                        ? "参加費用の入力内容を確認してください。"
-                        : undefined
-                    }
-                  >
-                    {/* 参加費用のカテゴリと金額を入力するカスタムコンポーネント */}
-                    <PriceCategoryField
-                      items={formState.feeCategoryGroups}
-                      onItemsChange={(items) =>
-                        setField("feeCategoryGroups", items)
-                      }
-                      errors={errors.feeCategoryGroups}
+                  {/* 開催条件の入力セクション */}
+                  <div className="grid gap-6">
+                    <SectionHeading
+                      eyebrow="Event Details"
+                      title="開催条件を整理"
+                      description="場所、日時、費用、必要物、定員をまとめて管理します。"
+                      icon={<MapPinned className="h-4 w-4" />}
                     />
-                  </FormField>
 
-                  {/* 定員数の入力フィールド */}
-                  <FormField
-                    id={getFieldId("capacity")}
-                    label="定員数"
-                    error={errors.capacity}
-                  >
-                    <Input
-                      id={getFieldId("capacity")}
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={formState.capacity}
-                      onChange={(event) =>
-                        setField(
-                          "capacity",
-                          normalizeHalfWidthDigits(event.target.value),
-                        )
+                    {/* 開催場所の入力フィールド */}
+                    <FormField
+                      id={getFieldId("location")}
+                      label="開催場所"
+                      required
+                      hint="住所や施設名、集合場所をわかりやすく記載してください。"
+                      error={errors.location}
+                    >
+                      <Input
+                        id={getFieldId("location")}
+                        maxLength={MAX_TEXT_LENGTH}
+                        value={formState.location}
+                        onChange={(event) =>
+                          setField("location", event.target.value)
+                        }
+                        placeholder="例: 〇〇市民ホール 2F 会議室A"
+                        aria-invalid={Boolean(errors.location)}
+                      />
+                    </FormField>
+
+                    {/* 開催日時の入力フィールド */}
+                    <FormField
+                      id={getFieldId("eventDateTime")}
+                      label="開催日時"
+                      required
+                      hint="開始予定日時を入力してください。"
+                      error={errors.eventDateTime}
+                    >
+                      <Input
+                        id={getFieldId("eventDateTime")}
+                        type="datetime-local"
+                        value={formState.eventDateTime}
+                        onChange={(event) =>
+                          setField(
+                            "eventDateTime",
+                            clampDateYear(event.target.value),
+                          )
+                        }
+                        aria-invalid={Boolean(errors.eventDateTime)}
+                      />
+                    </FormField>
+
+                    {/* 参加費用と定員数の入力フィールドをグリッドでまとめる */}
+                    <div className="grid gap-6">
+                      <FormField
+                        id={getFieldId("feeCategoryGroups")}
+                        label="参加費用"
+                        required
+                        hint="カテゴリと金額をセットで入力します。"
+                        error={
+                          Object.keys(errors.feeCategoryGroups ?? {}).length > 0
+                            ? "参加費用の入力内容を確認してください。"
+                            : undefined
+                        }
+                      >
+                        {/* 参加費用のカテゴリと金額を入力するカスタムコンポーネント */}
+                        <PriceCategoryField
+                          items={formState.feeCategoryGroups}
+                          onItemsChange={(items) =>
+                            setField("feeCategoryGroups", items)
+                          }
+                          errors={errors.feeCategoryGroups}
+                        />
+                      </FormField>
+
+                      {/* 定員数の入力フィールド */}
+                      <FormField
+                        id={getFieldId("capacity")}
+                        label="定員数"
+                        error={errors.capacity}
+                      >
+                        <Input
+                          id={getFieldId("capacity")}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={formState.capacity}
+                          onChange={(event) =>
+                            setField(
+                              "capacity",
+                              normalizeHalfWidthDigits(event.target.value),
+                            )
+                          }
+                          placeholder="例: 30"
+                          aria-invalid={Boolean(errors.capacity)}
+                        />
+                      </FormField>
+                    </div>
+
+                    {/* 持ち物の入力フィールド */}
+                    <FormField
+                      id={getFieldId("requiredItems")}
+                      label="持ち物"
+                      hint="持ち物名と必須判定をセットで管理します。"
+                      error={
+                        Object.keys(errors.requiredItems ?? {}).length > 0
+                          ? "持ち物の入力内容を確認してください。"
+                          : undefined
                       }
-                      placeholder="例: 30"
-                      aria-invalid={Boolean(errors.capacity)}
-                    />
-                  </FormField>
+                    >
+                      <RequiredItemField
+                        items={formState.requiredItems}
+                        onItemsChange={(items) =>
+                          setField("requiredItems", items)
+                        }
+                        errors={errors.requiredItems}
+                      />
+                    </FormField>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-700">
+                  外部URLを使う場合は、他の入力欄は表示されません。URLだけを入力してください。
                 </div>
+              )}
 
-                {/* 持ち物の入力フィールド */}
-                <FormField
-                  id={getFieldId("requiredItems")}
-                  label="持ち物"
-                  hint="持ち物名と必須判定をセットで管理します。"
-                  error={
-                    Object.keys(errors.requiredItems ?? {}).length > 0
-                      ? "持ち物の入力内容を確認してください。"
-                      : undefined
-                  }
-                >
-                  <RequiredItemField
-                    items={formState.requiredItems}
-                    onItemsChange={(items) => setField("requiredItems", items)}
-                    errors={errors.requiredItems}
-                  />
-                </FormField>
-              </div>
-
-              {/* 申し込みURLの入力セクション */}
+              {/* 外部URLの入力セクション */}
               <OptionalUrlField
                 id={getFieldId("applicationUrl")}
                 toggleId={getFieldId("applicationUrlEnabled")}
@@ -629,27 +644,6 @@ export default function EventPostPage() {
                 }
                 onUrlChange={(url) => setField("applicationUrl", url)}
               />
-
-              {/* イベント内容の入力フィールド */}
-              <FormField
-                id={getFieldId("eventContent")}
-                label="イベント内容"
-                required
-                hint="イベントの目的、参加対象、当日の流れなどを記載します。"
-                error={errors.eventContent}
-              >
-                <Textarea
-                  id={getFieldId("eventContent")}
-                  rows={8}
-                  className="max-h-60 resize-y overflow-y-auto"
-                  value={formState.eventContent}
-                  onChange={(event) =>
-                    setField("eventContent", event.target.value)
-                  }
-                  placeholder="イベントの概要や参加者への案内を入力してください。"
-                  aria-invalid={Boolean(errors.eventContent)}
-                />
-              </FormField>
             </CardContent>
 
             {/* フォームの送信ボタンと注意書きを含むフッター */}

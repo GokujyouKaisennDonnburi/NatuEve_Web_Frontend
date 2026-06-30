@@ -3,7 +3,7 @@ import { TogglePill } from "@/components/atoms/event-post/TogglePill";
 import { FormField } from "@/components/molecules/event-post/FormField";
 import { Input } from "@/components/ui/input";
 
-// 申し込みURLの入力欄を表示するコンポーネントのプロパティを定義
+// 外部URLの入力欄を表示するコンポーネントのプロパティを定義
 type OptionalUrlFieldProps = {
   id: string;
   toggleId: string;
@@ -14,7 +14,7 @@ type OptionalUrlFieldProps = {
   onUrlChange: (url: string) => void;
 };
 
-// 申し込みURLの入力欄を表示するコンポーネント
+// 外部URLの入力欄を表示するコンポーネント
 export function OptionalUrlField({
   id,
   toggleId,
@@ -28,10 +28,8 @@ export function OptionalUrlField({
     <div className="space-y-4 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm shadow-slate-100">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-slate-900">申し込みURL</p>
-          <FieldNote>
-            外部フォームや申込ページに遷移させる場合に使います。
-          </FieldNote>
+          <p className="text-sm font-semibold text-slate-900">外部URL</p>
+          <FieldNote>外部フォームに遷移させる場合に使います。</FieldNote>
         </div>
         <TogglePill
           id={toggleId}
@@ -44,7 +42,7 @@ export function OptionalUrlField({
       {enabled ? (
         <FormField
           id={id}
-          label="申し込みURL"
+          label="外部URL"
           required={false}
           hint="URL は公開前に動作確認しておくと安心です。"
           error={error}
@@ -62,7 +60,7 @@ export function OptionalUrlField({
         </FormField>
       ) : (
         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-          OFF の間は申し込みURLの入力欄を非表示にします。
+          OFF の間は外部URLの入力欄を非表示にします。
         </div>
       )}
     </div>
