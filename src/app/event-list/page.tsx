@@ -36,11 +36,24 @@ type EventsApiResponse = {
 };
 
 type MeApiResponse = {
+  id: string;
+  email: string;
+  display_name?: string;
+  avatar_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  displayName?: string;
+  avatarUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type CurrentUser = {
+  id: string;
+  email: string;
+  displayName: string;
   avatarUrl: string;
   createdAt: string;
-  displayName: string;
-  email: string;
-  id: string;
   updatedAt: string;
 };
 
@@ -56,7 +69,7 @@ export default function EventListPage() {
   // Supabaseのセッション状態を取得
   const { session, isLoading: isSessionLoading } = useAuth();
 
-  const [currentUser, setCurrentUser] = useState<MeApiResponse | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   // sessionのトークンを使って /api/v1/me を叩く
@@ -95,7 +108,14 @@ export default function EventListPage() {
 
         const data = (await res.json()) as MeApiResponse;
         if (!cancelled) {
-          setCurrentUser(data);
+          setCurrentUser({
+            id: data.id,
+            email: data.email,
+            displayName: data.displayName ?? data.display_name ?? "",
+            avatarUrl: data.avatarUrl ?? data.avatar_url ?? "",
+            createdAt: data.createdAt ?? data.created_at ?? "",
+            updatedAt: data.updatedAt ?? data.updated_at ?? "",
+          });
         }
       } catch (err) {
         console.error("Me取得エラー:", err);
@@ -226,6 +246,7 @@ export default function EventListPage() {
 
   const mappedUserForHeader = currentUser
     ? {
+        id: currentUser.id,
         name: currentUser.displayName,
         avatarUrl: currentUser.avatarUrl,
       }

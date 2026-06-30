@@ -8,6 +8,7 @@ import Link from "next/link";
 
 // UI表示に必要な最小限のユーザー情報を定義
 export type HeaderUser = {
+  id?: string;
   name: string;
   avatarUrl: string;
 };
@@ -60,14 +61,27 @@ export function TimelineHeader({
             >
               <Link href={ROUTES.SIGNIN}>新規登録・サインイン</Link>
             </Button>
+          ) : // サインイン済み状態：ユーザーアイコン
+          // userから直接名前とアイコン画像を展開
+          user.id ? (
+            <Link
+              href={`/users/${user.id}`}
+              className="block shrink-0 rounded-full hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+            >
+              <GlobalUserAvatar
+                name={user.name}
+                iconUrl={user.avatarUrl}
+                className="transition-opacity"
+              />
+            </Link>
           ) : (
-            // サインイン済み状態：ユーザーアイコン
-            // userから直接名前とアイコン画像を展開
-            <GlobalUserAvatar
-              name={user.name}
-              iconUrl={user.avatarUrl}
-              className="transition-opacity"
-            />
+            <div className="block shrink-0 rounded-full">
+              <GlobalUserAvatar
+                name={user.name}
+                iconUrl={user.avatarUrl}
+                className="transition-opacity"
+              />
+            </div>
           )}
         </div>
       </div>
