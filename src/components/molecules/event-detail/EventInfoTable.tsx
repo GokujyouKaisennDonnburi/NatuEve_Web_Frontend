@@ -70,12 +70,14 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                     参加費
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
-                    {event.costs
-                      .map(
-                        (cost) =>
-                          `${cost.category}: ¥${cost.cost.toLocaleString()}`,
-                      )
-                      .join(" / ")}
+                    {event.costs.length > 0
+                      ? event.costs
+                          .map(
+                            (cost) =>
+                              `${cost.category}: ¥${cost.cost.toLocaleString()}`,
+                          )
+                          .join(" / ")
+                      : ""}
                   </td>
                 </tr>
 
@@ -94,7 +96,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                         ))}
                       </ul>
                     ) : (
-                      "特になし"
+                      ""
                     )}
                   </td>
                 </tr>
@@ -105,7 +107,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                     定員
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
-                    {event.capacity ?? "未設定"}
+                    {event.capacity ?? ""}
                   </td>
                 </tr>
               </tbody>

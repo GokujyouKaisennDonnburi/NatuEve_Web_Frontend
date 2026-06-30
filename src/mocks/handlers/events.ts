@@ -27,6 +27,18 @@ type MockEventListResponse = {
   totalCount: number;
 };
 
+type MockEventDetail = MockEvent & {
+  organizerName: string;
+  organizerAvatarUrl: string;
+  description: string;
+  capacity?: number;
+  externalUrl?: string;
+  costs: { category: string; cost: number }[];
+  items?: { item: string; isRequired: boolean }[];
+  imageObjectKeys?: string[];
+  pdfObjectKeys?: string[];
+};
+
 // ダミーイベントデータの初期値を生成
 const createInitialDummyEvents = (): MockEvent[] => {
   return Array.from({ length: 100 }).map((_, index) => {
@@ -68,6 +80,41 @@ const createInitialDummyEvents = (): MockEvent[] => {
 
 // メモリ内でイベント一覧を管理する（初期値はダミーイベント）
 const mockEvents: MockEvent[] = createInitialDummyEvents();
+
+const createDefaultMockEventDetail = (
+  event: MockEvent,
+  index: number,
+): MockEventDetail => ({
+  ...event,
+  organizerName: event.profile.displayName,
+  organizerAvatarUrl: event.profile.avatarUrl,
+  description: `詳細情報です。自然観察を楽しみましょう。`,
+  capacity: 30,
+  externalUrl: "https://example.com/event",
+  costs: [
+    { category: "大人", cost: 1000 },
+    { category: "子ども", cost: 500 },
+  ],
+  items: [
+    { item: "飲み物", isRequired: true },
+    { item: "帽子", isRequired: false },
+  ],
+  imageObjectKeys: [
+    `https://picsum.photos/1200/600?random=${index * 3 + 1}`,
+    `https://picsum.photos/1200/600?random=${index * 3 + 2}`,
+    `https://picsum.photos/1200/600?random=${index * 3 + 3}`,
+  ],
+  pdfObjectKeys: [
+    "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+  ],
+});
+
+const mockEventDetails = new Map<string, MockEventDetail>(
+  mockEvents.map((event, index) => [
+    event.id,
+    createDefaultMockEventDetail(event, index),
+  ]),
+);
 
 // getPagedEvents関数は、指定されたURLのクエリパラメータに基づいて、イベントデータをページングして返す関数です。
 const getPagedEvents = (url: URL): MockEventListResponse => {
@@ -124,7 +171,7 @@ export const eventHandlers = [
   // イベント詳細取得（id）
   http.get("/api/events/:id", ({ params }) => {
     const id = String(params?.id ?? "");
-    const found = createInitialDummyEvents().find((e) => e.id === id);
+    const found = mockEventDetails.get(id);
     if (!found) {
       return HttpResponse.json(
         { error: { code: "not_found", message: "イベントが見つかりません" } },
@@ -133,37 +180,7 @@ export const eventHandlers = [
     }
 
     // 詳細フィールドを付与して返す（投稿時のフォーマットを模倣）
-    const detail = {
-      id: found.id,
-      organizerName: found.host,
-      organizerAvatarUrl: undefined,
-      title: found.title,
-      description: `詳細情報です。自然観察を楽しみましょう。`,
-      location: found.location,
-      eventDate: found.startAt,
-      capacity: 30,
-      externalUrl: "https://example.com/event",
-      costs: [
-        { category: "大人", cost: 1000 },
-        { category: "子ども", cost: 500 },
-      ],
-      items: [
-        { item: "飲み物", isRequired: true },
-        { item: "帽子", isRequired: false },
-      ],
-      imageObjectKeys: [
-        // 外部プレースホルダ画像を使う（実ファイルがなくても表示される）
-        "https://picsum.photos/1200/600?random=1",
-        "https://picsum.photos/1200/600?random=2",
-        "https://picsum.photos/1200/600?random=3",
-      ],
-      pdfObjectKeys: [
-        // 外部PDFを指すURL（クリックでダウンロード）
-        "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-      ],
-    };
-
-    return HttpResponse.json(detail);
+    return HttpResponse.json(found);
   }),
   // 新しいイベントを作成するモックエンドポイント
   http.post("/api/v1/events", async ({ request }) => {
@@ -189,6 +206,11 @@ export const eventHandlers = [
       location?: unknown;
       eventDate?: unknown;
       costs?: unknown;
+      capacity?: unknown;
+      externalUrl?: unknown;
+      items?: unknown;
+      imageObjectKeys?: unknown;
+      pdfObjectKeys?: unknown;
     };
 
     // 本番のサーバー側バリデーションを模し、必須項目が欠ける場合は 400 を返す。
@@ -238,6 +260,53 @@ export const eventHandlers = [
     };
 
     mockEvents.push(newEvent);
+    mockEventDetails.set(eventId, {
+      ...newEvent,
+      organizerName: newEvent.profile.displayName,
+      organizerAvatarUrl: newEvent.profile.avatarUrl,
+      description: body.description as string,
+      capacity: typeof body.capacity === "number" ? body.capacity : undefined,
+      externalUrl:
+        typeof body.externalUrl === "string" && body.externalUrl.length > 0
+          ? body.externalUrl
+          : undefined,
+      costs: Array.isArray(body.costs)
+        ? body.costs.map((cost) => {
+            const item = cost as {
+              category?: unknown;
+              cost?: unknown;
+            };
+
+            return {
+              category: typeof item.category === "string" ? item.category : "",
+              cost: typeof item.cost === "number" ? item.cost : 0,
+            };
+          })
+        : [],
+      items: Array.isArray(body.items)
+        ? body.items.map((item) => {
+            const entry = item as {
+              item?: unknown;
+              isRequired?: unknown;
+            };
+
+            return {
+              item: typeof entry.item === "string" ? entry.item : "",
+              isRequired: entry.isRequired === true,
+            };
+          })
+        : undefined,
+      imageObjectKeys: Array.isArray(body.imageObjectKeys)
+        ? body.imageObjectKeys.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : undefined,
+      pdfObjectKeys: Array.isArray(body.pdfObjectKeys)
+        ? body.pdfObjectKeys.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : undefined,
+    });
 
     // 本番と同形の CreateEventResponse（id / createdAt）を返す。
     return HttpResponse.json(

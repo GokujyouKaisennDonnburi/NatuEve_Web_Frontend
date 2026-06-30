@@ -47,7 +47,7 @@ export function EventDetail({ event }: { event: EventDetailType }) {
       </div>
 
       {/* イベント画像（固定アスペクト）後々配置場所をイベント内容内に変更予定 */}
-      <EventImageCarousel images={images} />
+      {images.length > 0 ? <EventImageCarousel images={images} /> : null}
 
       {/* イベント概要 */}
       <div>

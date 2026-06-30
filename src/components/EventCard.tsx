@@ -65,9 +65,9 @@ export function EventCard({ event }: EventCardProps) {
       }}
       className="group relative w-full overflow-hidden border border-slate-200/80 bg-white shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-200 cursor-pointer"
     >
-      <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-400 to-teal-400 opacity-90" />
+      <div className="absolute inset-y-0 left-0 w-1 bg-linear-to-b from-emerald-400 to-teal-400 opacity-90" />
 
-      <CardContent className="!p-0">
+      <CardContent className="p-0!">
         <div className="py-0 pr-3 pl-4 flex flex-col gap-1">
           {/* 1行目：メタ情報 */}
           <div className="flex items-center justify-between text-[10px] text-slate-400 leading-none">
