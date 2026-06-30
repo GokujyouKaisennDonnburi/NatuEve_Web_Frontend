@@ -19,6 +19,17 @@ type UserProfile = {
   bio: string;
 };
 
+// ユーザーのイベント情報を取得するAPIのレスポンス型
+type UserEventApiItem = Pick<
+  EventItem,
+  "id" | "title" | "location" | "createdAt" | "eventDate" | "profileId"
+>;
+
+// ユーザーのイベント情報をまとめたレスポンス型
+type UserEventListResponse = {
+  events: UserEventApiItem[];
+};
+
 export default function UserProfilePage(props: PageProps) {
   // Next.js 15: params を use() でアンラップ
   const params = use(props.params);
@@ -74,8 +85,8 @@ export default function UserProfilePage(props: PageProps) {
         let pEvents: EventItem[] = [];
 
         if (hostedRes.ok) {
-          const data = await hostedRes.json();
-          hEvents = data.events.map((e: any) => ({
+          const data = (await hostedRes.json()) as UserEventListResponse;
+          hEvents = data.events.map((e) => ({
             ...e,
             hostName: profileData.displayName,
             hostAvatarUrl: profileData.avatarUrl,
@@ -88,8 +99,8 @@ export default function UserProfilePage(props: PageProps) {
         }
 
         if (participatedRes.ok) {
-          const data = await participatedRes.json();
-          pEvents = data.events.map((e: any) => ({
+          const data = (await participatedRes.json()) as UserEventListResponse;
+          pEvents = data.events.map((e) => ({
             ...e,
             hostName: "主催者", // ※参加イベントの主催者はAPI次第で調整
             hostAvatarUrl: "",

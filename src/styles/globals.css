@@ -9,6 +9,13 @@
   --border: rgba(15, 23, 42, 0.1);
   --accent: #0f766e;
   --accent-foreground: #ffffff;
+
+  /* Emerald palette used by EventDetail */
+  --emerald-50: #ecfdf5;
+  --emerald-100: #d1fae5;
+  --emerald-400: #34d399;
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
 }
 
 html {
@@ -27,4 +34,12 @@ body {
 
 ::selection {
   background: rgba(15, 118, 110, 0.2);
+}
+
+.section-title {
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+  color: var(--foreground);
 }

@@ -115,8 +115,8 @@ export const userHandlers = [
   http.get("/api/v1/users/:id", ({ params }) => {
     const { id } = params;
     // idが存在することを保証（文字列型にキャスト）
-    const userId = typeof id === 'string' ? id : 'unknown';
-    
+    const userId = typeof id === "string" ? id : "unknown";
+
     // まずは事前定義されたモックデータ(user-1, user-2)を探す
     const user = sampleUserProfiles.find((u) => u.id === userId);
 
