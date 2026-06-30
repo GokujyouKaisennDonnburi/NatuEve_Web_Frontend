@@ -169,7 +169,7 @@ export const eventHandlers = [
   }),
 
   // イベント詳細取得（id）
-  http.get("/api/events/:id", ({ params }) => {
+  http.get("/api/v1/events/:id", ({ params }) => {
     const id = String(params?.id ?? "");
     const found = mockEventDetails.get(id);
     if (!found) {

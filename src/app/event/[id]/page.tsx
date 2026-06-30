@@ -24,13 +24,15 @@ export default function EventDetailPage() {
     // イベント詳細データを取得する非同期関数
     const fetchDetail = async (attempt = 0): Promise<void> => {
       setLoading(true);
+      let shouldKeepLoading = false;
 
       // fetch APIを使用してイベント詳細データを取得
       try {
         // APIエンドポイントにリクエストを送信
-        const res = await fetch(`/api/events/${id}`);
+        const res = await fetch(`/api/v1/events/${id}`);
         if (!res.ok) {
           if (!cancelled && attempt < 5) {
+            shouldKeepLoading = true;
             setTimeout(
               () => void fetchDetail(attempt + 1),
               200 * (attempt + 1),
@@ -46,13 +48,14 @@ export default function EventDetailPage() {
         if (!cancelled) setEvent(data);
       } catch (err) {
         if (!cancelled && attempt < 5) {
+          shouldKeepLoading = true;
           setTimeout(() => void fetchDetail(attempt + 1), 200 * (attempt + 1));
           return;
         }
 
         console.error("イベント詳細取得エラー", err);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && !shouldKeepLoading) setLoading(false);
       }
     };
 
