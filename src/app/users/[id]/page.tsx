@@ -113,6 +113,8 @@ export default function UserProfilePage(props: PageProps) {
       }
     };
 
+
+
     void fetchData();
     return () => {
       cancelled = true;
@@ -127,6 +129,50 @@ export default function UserProfilePage(props: PageProps) {
       </div>
     );
   }
+
+      const handleUpdateName = async (newName: string) => {
+    // APIを叩く処理 (PATCHメソッドで一部更新)
+    const res = await fetch(`/api/v1/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: newName }),
+    });
+    
+    if (!res.ok) throw new Error("名前の更新に失敗しました");
+    
+    // 成功したら画面上のステート（プロフィールデータ）も更新する
+    setProfile((prev) => prev ? { ...prev, displayName: newName } : null);
+  };
+
+  const handleUpdateBio = async (newBio: string) => {
+    const res = await fetch(`/api/v1/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bio: newBio }),
+    });
+    
+    if (!res.ok) throw new Error("自己紹介の更新に失敗しました");
+    
+    setProfile((prev) => prev ? { ...prev, bio: newBio } : null);
+  };
+
+  const handleUpdateAvatar = async (file: File) => {
+    // 画像はFormDataに入れて送信する
+    const formData = new FormData();
+    formData.append("avatar", file);
+    
+    // 画像アップロード用のエンドポイントに送信
+    const res = await fetch(`/api/v1/users/${userId}/avatar`, {
+      method: "POST",
+      body: formData, // FormDataをそのまま送付
+    });
+    
+    if (!res.ok) throw new Error("アイコンの更新に失敗しました");
+    
+    // モックAPIから返ってきた新しい画像URLを画面に反映
+    const data = await res.json();
+    setProfile((prev) => prev ? { ...prev, avatarUrl: data.avatarUrl } : null);
+  };
 
   // 404エラー時
   if (isNotFound || !profile) {
@@ -160,11 +206,15 @@ export default function UserProfilePage(props: PageProps) {
 
       {/* メインコンテンツ */}
       <main className="mx-auto max-w-xl px-4 pt-6 pb-16 space-y-8">
+        {/* 更新用の関数をPropsとして渡す */}
         <ProfileHeader
           name={profile.displayName}
           avatarUrl={profile.avatarUrl}
           bio={profile.bio}
           isOwnProfile={isOwnProfile}
+          onUpdateName={handleUpdateName}
+          onUpdateBio={handleUpdateBio}
+          onUpdateAvatar={handleUpdateAvatar}
         />
         <UserEventTabs
           hostedEvents={hostedEvents}
