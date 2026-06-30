@@ -43,9 +43,3 @@ body {
   font-weight: 700;
   color: var(--foreground);
 }
-
-/* Table left cell style used in EventDetail */
-.table-left-emerald th {
-  background-color: var(--emerald-500);
-  color: white;
-}
