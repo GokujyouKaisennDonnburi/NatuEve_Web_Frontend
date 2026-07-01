@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, Pencil, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type InlineTextareaFieldProps = {
   value: string;
@@ -26,6 +26,9 @@ export function InlineTextareaField({
   const [value, setValue] = useState(initialValue);
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    if (!isEditing) setValue(initialValue);
+  }, [initialValue, isEditing]);
   const handleSave = async () => {
     // 変更がない場合は何もしない（閉じるだけ）
     if (value === initialValue) {
