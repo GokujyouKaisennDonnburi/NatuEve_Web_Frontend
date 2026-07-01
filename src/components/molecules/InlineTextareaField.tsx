@@ -107,8 +107,8 @@ export function InlineTextareaField({
   return (
     <div className={`group relative pr-8 ${className}`}>
       <div className="max-h-32 overflow-y-auto pr-2">
-        <p className={`whitespace-pre-wrap break-words ${textClassName}`}>
-          {initialValue}
+        <p className={`whitespace-pre-wrap break-words ${!initialValue ? "text-slate-400" : ""} ${textClassName}`}>
+          {initialValue || "自己紹介がまだ設定されていません。"}
         </p>
       </div>
       {isEditable && (
