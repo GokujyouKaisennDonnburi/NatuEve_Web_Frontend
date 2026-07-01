@@ -85,13 +85,19 @@ export function InlineTextField({
   }
 
   return (
-    <div className={`group flex items-center gap-2 ${className}`}>
-      <span className={textClassName}>{initialValue}</span>
+    <div className={`group flex items-center gap-2 max-w-full ${className}`}>
+      <span 
+        // block, truncate, min-w-0 を追加して「...」の省略を有効化
+        className={`block truncate min-w-0 ${textClassName}`} 
+        title={initialValue} // マウスホバー時にフルネームを表示
+      >
+        {initialValue}
+      </span>
       {isEditable && (
         <Button
           size="icon"
           variant="ghost"
-          className="h-8 w-8 text-slate-400 hover:text-slate-600 transition-colors"
+          className="shrink-0 h-8 w-8 text-slate-400 hover:text-slate-600 transition-colors"
           onClick={() => setIsEditing(true)}
           aria-label="編集する"
         >
