@@ -188,7 +188,7 @@ export const userHandlers = [
     const { id } = params;
     const userId = typeof id === "string" ? id : "unknown";
 
-    const newAvatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}-${Date.now()}`;
+    const newAvatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userId)}-${Date.now()}`;
 
     // モックデータベースのアイコンURLを書き換える
     const userIndex = sampleUserProfiles.findIndex((u) => u.id === userId);
