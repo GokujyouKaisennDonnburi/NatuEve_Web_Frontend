@@ -10,11 +10,7 @@
       "Bash(bun run:*)",
       "Bash(bunx:*)"
     ],
-    "ask": [
-      "Bash",
-      "Write",
-      "Edit"
-    ],
+    "ask": [],
     "deny": [
       "Bash(rm -rf:*)",
       "Bash(sudo rm:*)",
