@@ -1,4 +1,4 @@
-import { HttpResponse, http } from "msw";
+import { HttpResponse, delay, http } from "msw";
 
 // ============================================
 // ユーザー系モックのダミーデータと補助関数
@@ -147,4 +147,38 @@ export const userHandlers = [
   http.get("/api/v1/users/:id/events/participated", () => {
     return HttpResponse.json({ events: sampleUserEvents.participated });
   }),
+
+  // 1. プロフィールテキスト情報（名前・自己紹介）の更新 (PATCH)
+  http.patch("/api/v1/users/:id", async ({ request, params }) => {
+    await delay(1000);
+
+    try {
+      const body = (await request.json()) as any;
+      const { id } = params;
+      const userId = typeof id === "string" ? id : "unknown";
+
+      // モックデータベース（配列）から該当ユーザーを探して直接書き換える
+      const userIndex = sampleUserProfiles.findIndex((u) => u.id === userId);
+      if (userIndex !== -1) {
+        if (body.displayName !== undefined) {
+          sampleUserProfiles[userIndex].displayName = body.displayName;
+        }
+        if (body.bio !== undefined) {
+          sampleUserProfiles[userIndex].bio = body.bio;
+        }
+      }
+
+      return HttpResponse.json({
+        success: true,
+        message: "プロフィールを更新しました",
+        updatedData: body,
+      });
+    } catch (_error) {
+      return HttpResponse.json(
+        { error: "無効なリクエストです" },
+        { status: 400 },
+      );
+    }
+  }),
+
 ];
