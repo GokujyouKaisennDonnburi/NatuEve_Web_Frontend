@@ -38,6 +38,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "assets.natuportal.org",
+      },
+      {
+        protocol: "https",
         hostname: "i.pravatar.cc",
       },
     ],

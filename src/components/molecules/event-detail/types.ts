@@ -1,3 +1,5 @@
+import type { EventDetailResponse } from "@/types/event";
+
 // イベント詳細の費用の型定義
 export type EventDetailCost = {
   category: string;
@@ -11,17 +13,7 @@ export type EventDetailItem = {
 };
 
 // イベント詳細の型定義
-export type EventDetailType = {
-  id: string;
+export type EventDetailType = EventDetailResponse & {
   organizerName?: string;
   organizerAvatarUrl?: string;
-  title: string;
-  description: string;
-  imageObjectKeys?: string[];
-  pdfObjectKeys?: string[];
-  location: string;
-  eventDate: string;
-  capacity?: number;
-  costs: EventDetailCost[];
-  items?: EventDetailItem[];
 };

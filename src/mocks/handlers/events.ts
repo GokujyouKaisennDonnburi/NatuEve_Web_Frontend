@@ -35,7 +35,9 @@ type MockEventDetail = MockEvent & {
   externalUrl?: string;
   costs: { category: string; cost: number }[];
   items?: { item: string; isRequired: boolean }[];
+  imageUrls?: string[];
   imageObjectKeys?: string[];
+  pdfUrls?: string[];
   pdfObjectKeys?: string[];
 };
 
@@ -104,7 +106,15 @@ const createDefaultMockEventDetail = (
     `https://picsum.photos/1200/600?random=${index * 3 + 2}`,
     `https://picsum.photos/1200/600?random=${index * 3 + 3}`,
   ],
+  imageUrls: [
+    `https://picsum.photos/1200/600?random=${index * 3 + 1}`,
+    `https://picsum.photos/1200/600?random=${index * 3 + 2}`,
+    `https://picsum.photos/1200/600?random=${index * 3 + 3}`,
+  ],
   pdfObjectKeys: [
+    "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+  ],
+  pdfUrls: [
     "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
   ],
 });
@@ -210,7 +220,9 @@ export const eventHandlers = [
       externalUrl?: unknown;
       items?: unknown;
       imageObjectKeys?: unknown;
+      imageUrls?: unknown;
       pdfObjectKeys?: unknown;
+      pdfUrls?: unknown;
     };
 
     // 本番のサーバー側バリデーションを模し、必須項目が欠ける場合は 400 を返す。
@@ -301,8 +313,18 @@ export const eventHandlers = [
             (value): value is string => typeof value === "string",
           )
         : undefined,
+      imageUrls: Array.isArray(body.imageUrls)
+        ? (body.imageUrls as unknown[]).filter(
+            (value): value is string => typeof value === "string",
+          )
+        : undefined,
       pdfObjectKeys: Array.isArray(body.pdfObjectKeys)
         ? body.pdfObjectKeys.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : undefined,
+      pdfUrls: Array.isArray(body.pdfUrls)
+        ? (body.pdfUrls as unknown[]).filter(
             (value): value is string => typeof value === "string",
           )
         : undefined,

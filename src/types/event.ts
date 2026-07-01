@@ -45,3 +45,42 @@ export type CreateEventResponse = {
   // レコード作成日時(RFC3339)。
   createdAt: string;
 };
+
+// イベント詳細取得 API のプロフィール情報 DTO。
+export type EventDetailProfile = {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+};
+
+// イベント詳細取得 API の費用内訳 DTO。
+export type EventDetailCost = {
+  category: string;
+  cost: number;
+};
+
+// イベント詳細取得 API の持ち物 DTO。
+export type EventDetailItem = {
+  item: string;
+  isRequired: boolean;
+};
+
+// イベント詳細取得 API のレスポンス DTO。
+export type EventDetailResponse = {
+  capacity: number;
+  costs: EventDetailCost[];
+  createdAt: string;
+  description: string;
+  eventDate: string;
+  externalUrl?: string;
+  id: string;
+  imageObjectKeys: string[];
+  imageUrls: string[];
+  items: EventDetailItem[];
+  location: string;
+  pdfObjectKeys: string[];
+  pdfUrls: string[];
+  profile: EventDetailProfile;
+  title: string;
+  updatedAt: string;
+};

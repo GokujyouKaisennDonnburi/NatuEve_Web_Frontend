@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizeAssetUrl } from "@/utils/media";
 import Image from "next/image";
 import * as React from "react";
 
@@ -14,7 +15,7 @@ export function EventImageCarousel({
 }: Readonly<EventImageCarouselProps>) {
   // 選択された画像のインデックスを管理する状態
   const [selected, setSelected] = React.useState(0);
-  const mainImage = images[selected] ?? "";
+  const mainImage = normalizeAssetUrl(images[selected] ?? "");
 
   // 画像が存在しない場合はプレースホルダーを表示
   if (!mainImage) {
@@ -34,7 +35,7 @@ export function EventImageCarousel({
           src={mainImage}
           alt="イベント画像"
           fill
-          className="object-cover"
+          className="object-contain"
         />
       </div>
 
@@ -51,7 +52,7 @@ export function EventImageCarousel({
               }`}
             >
               <Image
-                src={src}
+                src={normalizeAssetUrl(src)}
                 alt={`イベント画像 サムネイル ${index + 1}`}
                 width={112}
                 height={64}

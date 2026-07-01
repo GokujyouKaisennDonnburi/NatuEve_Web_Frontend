@@ -12,7 +12,12 @@ import { useRouter } from "next/navigation";
 
 // イベント詳細コンポーネント
 export function EventDetail({ event }: { event: EventDetailType }) {
-  const images = event.imageObjectKeys ?? [];
+  const images = event.imageUrls?.length
+    ? event.imageUrls
+    : (event.imageObjectKeys ?? []);
+  const organizerName = event.organizerName ?? event.profile?.displayName;
+  const organizerAvatarUrl =
+    event.organizerAvatarUrl ?? event.profile?.avatarUrl;
   const router = useRouter();
 
   return (
@@ -36,12 +41,12 @@ export function EventDetail({ event }: { event: EventDetailType }) {
         </h1>
         <div className="mt-2 flex items-center gap-2 text-sm text-slate-600">
           <GlobalUserAvatar
-            name={event.organizerName}
-            iconUrl={event.organizerAvatarUrl}
+            name={organizerName}
+            iconUrl={organizerAvatarUrl}
             className="h-5 w-5 border-slate-300"
           />
           <span className="font-medium text-slate-700">
-            {event.organizerName ?? "未設定"}
+            {organizerName ?? "未設定"}
           </span>
         </div>
       </div>
@@ -65,7 +70,11 @@ export function EventDetail({ event }: { event: EventDetailType }) {
       <EventInfoTable event={event} />
 
       {/* 添付資料（PDF） */}
-      <EventPdfList pdfObjectKeys={event.pdfObjectKeys ?? []} />
+      <EventPdfList
+        pdfSources={
+          event.pdfUrls?.length ? event.pdfUrls : (event.pdfObjectKeys ?? [])
+        }
+      />
     </div>
   );
 }
