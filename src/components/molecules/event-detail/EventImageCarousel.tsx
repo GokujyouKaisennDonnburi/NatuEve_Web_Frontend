@@ -35,7 +35,7 @@ export function EventImageCarousel({
           src={mainImage}
           alt="イベント画像"
           fill
-          className="object-cover"
+          className="object-contain"
         />
       </div>
 
