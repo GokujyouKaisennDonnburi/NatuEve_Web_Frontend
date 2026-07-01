@@ -220,7 +220,9 @@ export const eventHandlers = [
       externalUrl?: unknown;
       items?: unknown;
       imageObjectKeys?: unknown;
+      imageUrls?: unknown;
       pdfObjectKeys?: unknown;
+      pdfUrls?: unknown;
     };
 
     // 本番のサーバー側バリデーションを模し、必須項目が欠ける場合は 400 を返す。
@@ -311,8 +313,8 @@ export const eventHandlers = [
             (value): value is string => typeof value === "string",
           )
         : undefined,
-      imageUrls: Array.isArray(body.imageObjectKeys)
-        ? body.imageObjectKeys.filter(
+      imageUrls: Array.isArray(body.imageUrls)
+        ? (body.imageUrls as unknown[]).filter(
             (value): value is string => typeof value === "string",
           )
         : undefined,
@@ -321,8 +323,8 @@ export const eventHandlers = [
             (value): value is string => typeof value === "string",
           )
         : undefined,
-      pdfUrls: Array.isArray(body.pdfObjectKeys)
-        ? body.pdfObjectKeys.filter(
+      pdfUrls: Array.isArray(body.pdfUrls)
+        ? (body.pdfUrls as unknown[]).filter(
             (value): value is string => typeof value === "string",
           )
         : undefined,
