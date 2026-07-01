@@ -57,7 +57,7 @@ export function InlineTextareaField({
           onChange={(e) => setValue(e.target.value)}
           disabled={isLoading}
           placeholder={placeholder}
-          className="min-h-[100px] resize-none"
+          className="h-32 resize-none overflow-y-auto"
           autoFocus
         />
         <div className="flex justify-end gap-1">
@@ -99,7 +99,11 @@ export function InlineTextareaField({
 
   return (
     <div className={`group relative pr-8 ${className}`}>
-      <p className={`whitespace-pre-wrap ${textClassName}`}>{initialValue}</p>
+      <div className="max-h-32 overflow-y-auto pr-2">
+        <p className={`whitespace-pre-wrap break-words ${textClassName}`}>
+          {initialValue}
+        </p>
+      </div>
       {isEditable && (
         <Button
           size="icon"
