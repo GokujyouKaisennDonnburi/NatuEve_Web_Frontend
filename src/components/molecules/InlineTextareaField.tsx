@@ -63,6 +63,8 @@ export function InlineTextareaField({
         <div className="flex justify-end gap-1">
           {/* 変更がなくても押せるように統一 */}
           <Button
+            type="button"
+            aria-label="保存する"
             size="icon"
             variant="ghost"
             onClick={handleSave}
@@ -72,6 +74,8 @@ export function InlineTextareaField({
             <Check className="w-4 h-4" />
           </Button>
           <Button
+            type="button"
+            aria-label="キャンセルする"
             size="icon"
             variant="ghost"
             onClick={handleCancel}
