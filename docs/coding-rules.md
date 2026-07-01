@@ -10,7 +10,7 @@
 
 ---
 
-# 基本方針
+## 基本方針
 
 以下を優先順位として実装してください。
 
@@ -54,9 +54,9 @@ useAuth.ts
 機能単位で管理します。
 
 ```ts
-event.service.ts
-user.service.ts
-auth.service.ts
+event.ts
+user.ts
+auth.ts
 ```
 
 ---
