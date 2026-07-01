@@ -328,7 +328,7 @@ export const eventHandlers = [
         ? body.imageFilenames.filter(
             (value): value is string => typeof value === "string",
           )
-        : undefined,
+        : [],
       pdfObjectKeys: Array.isArray(body.pdfObjectKeys)
         ? body.pdfObjectKeys.filter(
             (value): value is string => typeof value === "string",
@@ -343,7 +343,7 @@ export const eventHandlers = [
         ? body.pdfFilenames.filter(
             (value): value is string => typeof value === "string",
           )
-        : undefined,
+        : [],
     });
 
     // 本番と同形の CreateEventResponse（id / createdAt）を返す。
