@@ -150,13 +150,13 @@ export const userHandlers = [
 
   // 1. プロフィールテキスト情報（名前・自己紹介）の更新 (PATCH)
   http.patch("/api/v1/users/:id", async ({ request, params }) => {
-    await delay(1000); 
+    await delay(1000);
 
     try {
-      const body = await request.json() as any;
+      const body = (await request.json()) as any;
       const { id } = params;
-      const userId = typeof id === 'string' ? id : 'unknown';
-      
+      const userId = typeof id === "string" ? id : "unknown";
+
       // モックデータベース（配列）から該当ユーザーを探して直接書き換える
       const userIndex = sampleUserProfiles.findIndex((u) => u.id === userId);
       if (userIndex !== -1) {
@@ -168,13 +168,16 @@ export const userHandlers = [
         }
       }
 
-      return HttpResponse.json({ 
-        success: true, 
+      return HttpResponse.json({
+        success: true,
         message: "プロフィールを更新しました",
-        updatedData: body 
+        updatedData: body,
       });
-    } catch (error) {
-      return HttpResponse.json({ error: "無効なリクエストです" }, { status: 400 });
+    } catch (_error) {
+      return HttpResponse.json(
+        { error: "無効なリクエストです" },
+        { status: 400 },
+      );
     }
   }),
 
@@ -183,8 +186,8 @@ export const userHandlers = [
     await delay(1500);
 
     const { id } = params;
-    const userId = typeof id === 'string' ? id : 'unknown';
-    
+    const userId = typeof id === "string" ? id : "unknown";
+
     const newAvatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}-${Date.now()}`;
 
     // モックデータベースのアイコンURLを書き換える
@@ -193,9 +196,9 @@ export const userHandlers = [
       sampleUserProfiles[userIndex].avatarUrl = newAvatarUrl;
     }
 
-    return HttpResponse.json({ 
+    return HttpResponse.json({
       success: true,
-      avatarUrl: newAvatarUrl 
+      avatarUrl: newAvatarUrl,
     });
   }),
 ];

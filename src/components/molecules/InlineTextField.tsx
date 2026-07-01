@@ -86,9 +86,9 @@ export function InlineTextField({
 
   return (
     <div className={`group flex items-center gap-2 max-w-full ${className}`}>
-      <span 
+      <span
         // block, truncate, min-w-0 を追加して「...」の省略を有効化
-        className={`block truncate min-w-0 ${textClassName}`} 
+        className={`block truncate min-w-0 ${textClassName}`}
         title={initialValue} // マウスホバー時にフルネームを表示
       >
         {initialValue}
