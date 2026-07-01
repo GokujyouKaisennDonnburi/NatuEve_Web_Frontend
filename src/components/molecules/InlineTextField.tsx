@@ -99,6 +99,7 @@ export function InlineTextField({
       </span>
       {isEditable && (
         <Button
+          type="button"
           size="icon"
           variant="ghost"
           className="shrink-0 h-8 w-8 text-slate-400 hover:text-slate-600 transition-colors"
