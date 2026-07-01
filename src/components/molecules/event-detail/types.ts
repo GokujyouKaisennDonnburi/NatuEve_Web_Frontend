@@ -16,6 +16,4 @@ export type EventDetailItem = {
 export type EventDetailType = EventDetailResponse & {
   organizerName?: string;
   organizerAvatarUrl?: string;
-  imageObjectKeys?: string[];
-  pdfObjectKeys?: string[];
 };
