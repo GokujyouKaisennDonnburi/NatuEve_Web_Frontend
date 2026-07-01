@@ -7,6 +7,13 @@ export type PresignRequest = {
   contentType: string;
 };
 
+// アップロード完了後にイベント/レポート作成へ渡す情報。
+// objectKey は昇格対象キー、filename は元ファイル名（ダウンロード名・UI表示に使う）。
+export type UploadedFile = {
+  objectKey: string;
+  filename: string;
+};
+
 // presign エンドポイントのレスポンス DTO。
 export type PresignResponse = {
   // R2 tmp 領域へ直接 PUT するための署名付き URL。

@@ -36,6 +36,10 @@ export type CreateEventRequest = {
   imageObjectKeys?: string[];
   // PDF オブジェクトキーの一覧（任意・各要素255文字以内）。
   pdfObjectKeys?: string[];
+  // 画像の元ファイル名一覧（任意）。指定時は imageObjectKeys と同数・同順。
+  imageFilenames?: string[];
+  // PDF の元ファイル名一覧（任意）。指定時は pdfObjectKeys と同数・同順。
+  pdfFilenames?: string[];
 };
 
 // イベント作成エンドポイントのレスポンス DTO。
@@ -75,10 +79,12 @@ export type EventDetailResponse = {
   externalUrl?: string;
   id: string;
   imageObjectKeys: string[];
+  imageFilenames: string[];
   imageUrls: string[];
   items: EventDetailItem[];
   location: string;
   pdfObjectKeys: string[];
+  pdfFilenames: string[];
   pdfUrls: string[];
   profile: EventDetailProfile;
   title: string;

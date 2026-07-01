@@ -155,18 +155,22 @@ export default function ReportPostPage() {
 
     try {
       const imageObjectKeys: string[] = [];
+      const imageFilenames: string[] = [];
       const pdfObjectKeys: string[] = [];
+      const pdfFilenames: string[] = [];
 
       // 外部URLが無効な場合のみ、画像・PDFをアップロード
       if (!formState.externalUrlEnabled) {
         for (const image of formState.reportImages) {
-          const objectKey = await uploadFile(image, "image");
+          const { objectKey, filename } = await uploadFile(image, "image");
           imageObjectKeys.push(objectKey);
+          imageFilenames.push(filename);
         }
 
         for (const pdfFile of formState.reportPdfs) {
-          const objectKey = await uploadFile(pdfFile, "pdf");
+          const { objectKey, filename } = await uploadFile(pdfFile, "pdf");
           pdfObjectKeys.push(objectKey);
+          pdfFilenames.push(filename);
         }
       }
 
@@ -179,8 +183,8 @@ export default function ReportPostPage() {
           formState.externalUrl.trim() && {
             externalUrl: formState.externalUrl.trim(),
           }),
-        ...(imageObjectKeys.length > 0 && { imageObjectKeys }),
-        ...(pdfObjectKeys.length > 0 && { pdfObjectKeys }),
+        ...(imageObjectKeys.length > 0 && { imageObjectKeys, imageFilenames }),
+        ...(pdfObjectKeys.length > 0 && { pdfObjectKeys, pdfFilenames }),
       };
 
       // レポート作成 API を呼び出し

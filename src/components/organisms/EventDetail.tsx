@@ -71,9 +71,13 @@ export function EventDetail({ event }: { event: EventDetailType }) {
 
       {/* 添付資料（PDF） */}
       <EventPdfList
-        pdfSources={
-          event.pdfUrls?.length ? event.pdfUrls : (event.pdfObjectKeys ?? [])
-        }
+        pdfItems={(event.pdfUrls?.length
+          ? event.pdfUrls
+          : (event.pdfObjectKeys ?? [])
+        ).map((source, index) => ({
+          source,
+          filename: event.pdfFilenames?.[index] ?? "",
+        }))}
       />
     </div>
   );

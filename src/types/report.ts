@@ -15,6 +15,10 @@ export type CreateReportRequest = {
   imageObjectKeys?: string[];
   // PDF オブジェクトキーの一覧（任意・各要素255文字以内）。
   pdfObjectKeys?: string[];
+  // 画像の元ファイル名一覧（任意）。指定時は imageObjectKeys と同数・同順。
+  imageFilenames?: string[];
+  // PDF の元ファイル名一覧（任意）。指定時は pdfObjectKeys と同数・同順。
+  pdfFilenames?: string[];
 };
 
 // レポート作成エンドポイントのレスポンス DTO。

@@ -299,10 +299,8 @@ export default function EventPostPage() {
       // 送信フロー:
       // 1. 画像と PDF を presign → R2 へ直接 PUT する
       // 2. 返却された objectKey をイベント作成 API に渡す
-      const imageObjectKey = await uploadEventImage(formState.eventImage);
-      const pdfObjectKeys = await uploadEventDocuments(
-        formState.eventDocuments,
-      );
+      const uploadedImage = await uploadEventImage(formState.eventImage);
+      const uploadedPdfs = await uploadEventDocuments(formState.eventDocuments);
 
       // フォーム state を本番 API（CreateEventRequest）の契約に合わせて変換する。
       // 任意項目（capacity / externalUrl / items / objectKeys）は値があるときだけ付与する。
@@ -335,12 +333,14 @@ export default function EventPostPage() {
         }));
       }
 
-      if (imageObjectKey) {
-        payload.imageObjectKeys = [imageObjectKey];
+      if (uploadedImage) {
+        payload.imageObjectKeys = [uploadedImage.objectKey];
+        payload.imageFilenames = [uploadedImage.filename];
       }
 
-      if (pdfObjectKeys.length > 0) {
-        payload.pdfObjectKeys = pdfObjectKeys;
+      if (uploadedPdfs.length > 0) {
+        payload.pdfObjectKeys = uploadedPdfs.map((f) => f.objectKey);
+        payload.pdfFilenames = uploadedPdfs.map((f) => f.filename);
       }
 
       await createEvent(payload);

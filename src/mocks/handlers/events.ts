@@ -37,8 +37,10 @@ type MockEventDetail = MockEvent & {
   items?: { item: string; isRequired: boolean }[];
   imageUrls?: string[];
   imageObjectKeys?: string[];
+  imageFilenames?: string[];
   pdfUrls?: string[];
   pdfObjectKeys?: string[];
+  pdfFilenames?: string[];
 };
 
 // ダミーイベントデータの初期値を生成
@@ -111,12 +113,14 @@ const createDefaultMockEventDetail = (
     `https://picsum.photos/1200/600?random=${index * 3 + 2}`,
     `https://picsum.photos/1200/600?random=${index * 3 + 3}`,
   ],
+  imageFilenames: ["観察風景1.jpg", "観察風景2.jpg", "観察風景3.jpg"],
   pdfObjectKeys: [
     "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
   ],
   pdfUrls: [
     "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
   ],
+  pdfFilenames: ["サンプル資料.pdf"],
 });
 
 const mockEventDetails = new Map<string, MockEventDetail>(
@@ -221,8 +225,10 @@ export const eventHandlers = [
       items?: unknown;
       imageObjectKeys?: unknown;
       imageUrls?: unknown;
+      imageFilenames?: unknown;
       pdfObjectKeys?: unknown;
       pdfUrls?: unknown;
+      pdfFilenames?: unknown;
     };
 
     // 本番のサーバー側バリデーションを模し、必須項目が欠ける場合は 400 を返す。
@@ -318,6 +324,11 @@ export const eventHandlers = [
             (value): value is string => typeof value === "string",
           )
         : undefined,
+      imageFilenames: Array.isArray(body.imageFilenames)
+        ? body.imageFilenames.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : [],
       pdfObjectKeys: Array.isArray(body.pdfObjectKeys)
         ? body.pdfObjectKeys.filter(
             (value): value is string => typeof value === "string",
@@ -328,6 +339,11 @@ export const eventHandlers = [
             (value): value is string => typeof value === "string",
           )
         : undefined,
+      pdfFilenames: Array.isArray(body.pdfFilenames)
+        ? body.pdfFilenames.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : [],
     });
 
     // 本番と同形の CreateEventResponse（id / createdAt）を返す。
