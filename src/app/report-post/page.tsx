@@ -224,8 +224,10 @@ export default function ReportPostPage() {
             <CardHeader className="border-b border-slate-200 pb-6">
               <CardTitle>レポート内容</CardTitle>
               <CardDescription>
-                外部サイトでレポートを公開している場合は、「外部URL」をONにしてURLを入力してください。<br/>
-                外部URLが設定されている場合、詳細画面の「レポート」ボタンから該当ページへ遷移します。<br/>
+                外部サイトでレポートを公開している場合は、「外部URL」をONにしてURLを入力してください。
+                <br />
+                外部URLが設定されている場合、詳細画面の「レポート」ボタンから該当ページへ遷移します。
+                <br />
                 公開先がない場合はOFFのまま、活動記録（必須）や画像・PDFを入力してください。
               </CardDescription>
             </CardHeader>
@@ -271,8 +273,7 @@ export default function ReportPostPage() {
                       htmlFor="content"
                       className="block text-sm font-semibold text-slate-800"
                     >
-                      活動した記録{" "}
-                      <span className="text-red-600">*</span>
+                      活動した記録 <span className="text-red-600">*</span>
                     </label>
                     <FieldNote>
                       イベント参加時に行った活動内容を詳しく記述してください
@@ -294,36 +295,38 @@ export default function ReportPostPage() {
                         {validationErrors.content}
                       </FieldNote>
                     )}
-                    <FieldNote>{formState.content.length} / 2000 文字</FieldNote>
+                    <FieldNote>
+                      {formState.content.length} / 2000 文字
+                    </FieldNote>
                   </div>
 
                   {/* 区切り線 */}
                   <div className="border-t border-slate-200" />
 
-              {/* 画像セクション */}
-              <div>
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                  <ImageIcon className="h-5 w-5 text-teal-600" />
-                  <span>活動している様子の画像</span>
-                </div>
-                <MultiFileField
-                  id="report-images"
-                  label="画像を選択"
-                  hint="活動の様子が分かる画像があれば添付してください（最大10枚）"
-                  accept="image/*"
-                  selectedFiles={formState.reportImages}
-                  onSelectedFilesChange={(files) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      reportImages: files,
-                    }))
-                  }
-                  maxFiles={10}
-                  className="mt-4"
-                  error={validationErrors.reportImages}
-                  disabled={formState.externalUrlEnabled}
-                />
-              </div>
+                  {/* 画像セクション */}
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                      <ImageIcon className="h-5 w-5 text-teal-600" />
+                      <span>活動している様子の画像</span>
+                    </div>
+                    <MultiFileField
+                      id="report-images"
+                      label="画像を選択"
+                      hint="活動の様子が分かる画像があれば添付してください（最大10枚）"
+                      accept="image/*"
+                      selectedFiles={formState.reportImages}
+                      onSelectedFilesChange={(files) =>
+                        setFormState((prev) => ({
+                          ...prev,
+                          reportImages: files,
+                        }))
+                      }
+                      maxFiles={10}
+                      className="mt-4"
+                      error={validationErrors.reportImages}
+                      disabled={formState.externalUrlEnabled}
+                    />
+                  </div>
 
                   {/* 区切り線 */}
                   <div className="border-t border-slate-200" />
@@ -358,7 +361,7 @@ export default function ReportPostPage() {
             {/* フッター */}
             <CardFooter className="border-t border-slate-200 flex gap-3 pt-6">
               <Button
-                className="cursor-pointer"
+                className="cursor-pointer border-transparent hover:border-slate-300"
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
@@ -368,7 +371,7 @@ export default function ReportPostPage() {
               </Button>
               <Button
                 type="submit"
-                className="cursor-pointer"
+                className="cursor-pointer border border-transparent hover:border-slate-300"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "投稿中..." : "レポートを投稿"}

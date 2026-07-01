@@ -82,16 +82,16 @@ export function MultiFileField({
 
   // ファイルが選択されたときの処理
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) return;
 
-    // 新しいファイルを既存のファイル配列に追加
-    const newFile: FileWithId = Object.assign(file, {
-      id: crypto.randomUUID(),
+    const newFiles = files.map((file) => {
+      const fileWithId = file as FileWithId;
+      fileWithId.id = crypto.randomUUID();
+      return fileWithId;
     });
-    onSelectedFilesChange([...selectedFiles, newFile]);
 
-    // input をリセットして、同じファイルでも再度選択できるようにする
+    onSelectedFilesChange([...selectedFiles, ...newFiles]);
     event.target.value = "";
   };
 
@@ -117,14 +117,27 @@ export function MultiFileField({
 
       {/* ファイル追加ボタン */}
       {canAddMore && (
-        <div className="relative">
+        <div className="relative w-full cursor-pointer">
+          <label
+            htmlFor={id}
+            className={cn(
+              "flex h-11 w-full cursor-pointer items-center justify-center rounded-xl border border-dashed bg-white text-sm font-medium text-slate-700 shadow-sm transition duration-150",
+              disabled
+                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                : "border-slate-300 hover:border-slate-400",
+            )}
+          >
+            ファイルを選択
+          </label>
           <Input
             id={id}
             type="file"
             accept={accept}
+            multiple
             onChange={handleFileChange}
             disabled={!canAddMore || disabled}
-            className="cursor-pointer"
+            title=""
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
         </div>
       )}

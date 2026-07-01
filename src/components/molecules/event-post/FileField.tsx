@@ -93,22 +93,28 @@ export function FileField({
       </div>
 
       {/* 選択されたファイルのプレビューを表示する部分 */}
-      {preview && isImage ? (
-        <div className="overflow-hidden rounded-xl border border-slate-300 bg-slate-100">
-          <Image
-            src={preview}
-            alt="Selected preview"
-            width={200}
-            height={128}
-            className="h-24 w-full object-contain bg-slate-50"
-          />
-          <p className="px-3 py-2 text-xs text-slate-600">
-            {selectedFile?.name}
-          </p>
-        </div>
+      {selectedFile ? (
+        preview && isImage ? (
+          <div className="overflow-hidden rounded-xl border border-slate-300 bg-slate-100">
+            <Image
+              src={preview}
+              alt="Selected preview"
+              width={200}
+              height={128}
+              className="h-24 w-full object-contain bg-slate-50"
+            />
+            <p className="px-3 py-2 text-xs text-slate-600">
+              {selectedFile.name}
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            {selectedFile.name}
+          </div>
+        )
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-          {selectedFile ? selectedFile.name : "未選択"}
+          未選択
         </div>
       )}
 
