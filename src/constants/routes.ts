@@ -7,6 +7,7 @@ export const ROUTES = {
   USERS: "/users",
   DOCS: "/docs",
   EVENT_POST: "/event-post",
+  REPORT_POST: "/report-post",
   AUTH_CALLBACK: "/auth/callback",
 } as const;
 
@@ -21,4 +22,7 @@ export const PUBLIC_ROUTES = [
 ] as const;
 
 // 保護されたルートを定義
-export const PROTECTED_ROUTES = [ROUTES.EVENT_POST] as const;
+export const PROTECTED_ROUTES = [
+  ROUTES.EVENT_POST,
+  ROUTES.REPORT_POST,
+] as const;

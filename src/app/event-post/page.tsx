@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { createEvent } from "@/services/event";
@@ -45,8 +44,8 @@ type EventPostFormState = {
   eventDateTime: string; // 開催日時
   feeCategoryGroups: PriceCategory[]; // 参加費用のカテゴリと金額の配列
   capacity: string; // 定員数
-  applicationUrlEnabled: boolean; // 申し込みURLの有効化状態
-  applicationUrl: string; // 申し込みURL
+  applicationUrlEnabled: boolean; // 外部URLの有効化状態
+  applicationUrl: string; // 外部URL
   requiredItems: RequiredItem[]; // 持ち物の配列
 };
 
@@ -173,19 +172,16 @@ export default function EventPostPage() {
       nextErrors.eventName = "イベント名は255文字以内で入力してください。";
     }
 
-    // 必須項目の検証
     if (!formState.eventContent.trim()) {
       nextErrors.eventContent = "イベント内容は必須です。";
     }
 
-    // 必須項目の検証
     if (!formState.location.trim()) {
       nextErrors.location = "開催場所は必須です。";
     } else if (formState.location.trim().length > MAX_TEXT_LENGTH) {
       nextErrors.location = "開催場所は255文字以内で入力してください。";
     }
 
-    // 必須項目の検証
     if (!formState.eventDateTime.trim()) {
       nextErrors.eventDateTime = "開催日時は必須です。";
     } else if (!isValidLocalDateTime(formState.eventDateTime.trim())) {
@@ -224,7 +220,8 @@ export default function EventPostPage() {
       if (!item.itemName.trim()) {
         requiredItemErrors[index] = "持ち物名を入力してください。";
       } else if (item.itemName.trim().length > MAX_TEXT_LENGTH) {
-        requiredItemErrors[index] = "持ち物名は255文字以内で入力してください。";
+        requiredItemErrors[index] =
+          "持ち物名は255文字以内で入力してください。";
       }
     });
     if (Object.keys(requiredItemErrors).length > 0) {
@@ -237,15 +234,15 @@ export default function EventPostPage() {
       (!/^\d+$/.test(formState.capacity.trim()) ||
         Number(formState.capacity) < 0)
     ) {
-      // 定員数が空でない場合、0以上の整数であることを確認
       nextErrors.capacity = "定員数は0以上の整数で入力してください。";
     }
 
-    // 申し込みURLの検証（有効化されている場合、正しいURL形式であるか）
-    if (formState.applicationUrlEnabled && formState.applicationUrl.trim()) {
-      if (formState.applicationUrl.trim().length > MAX_TEXT_LENGTH) {
-        nextErrors.applicationUrl =
-          "申し込みURLは255文字以内で入力してください。";
+    // 外部URLの検証（有効化されている場合、正しいURL形式であるか）
+    if (formState.applicationUrlEnabled) {
+      if (!formState.applicationUrl.trim()) {
+        nextErrors.applicationUrl = "外部URLを入力してください。";
+      } else if (formState.applicationUrl.trim().length > MAX_TEXT_LENGTH) {
+        nextErrors.applicationUrl = "外部URLは255文字以内で入力してください。";
       }
 
       // URLの形式を検証するために、try-catchでURLオブジェクトを生成
@@ -257,7 +254,7 @@ export default function EventPostPage() {
             parsedUrl.protocol !== "https:"
           ) {
             nextErrors.applicationUrl =
-              "申し込みURLは http か https で始めてください。";
+              "外部URLは http か https で始めてください。";
           }
         } catch {
           // URLオブジェクトの生成に失敗した場合、エラーとして設定
@@ -375,7 +372,7 @@ export default function EventPostPage() {
           </CardHeader>
 
           {/* フォームの送信イベントをhandleSubmitにバインド */}
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} noValidate className="space-y-8">
             <CardContent className="space-y-8 pt-6">
               <div className="grid gap-6">
                 {/* イベントの基本情報入力セクション */}
@@ -617,7 +614,7 @@ export default function EventPostPage() {
                 </FormField>
               </div>
 
-              {/* 申し込みURLの入力セクション */}
+              {/* 外部URLの入力セクション */}
               <OptionalUrlField
                 id={getFieldId("applicationUrl")}
                 toggleId={getFieldId("applicationUrlEnabled")}
@@ -629,27 +626,6 @@ export default function EventPostPage() {
                 }
                 onUrlChange={(url) => setField("applicationUrl", url)}
               />
-
-              {/* イベント内容の入力フィールド */}
-              <FormField
-                id={getFieldId("eventContent")}
-                label="イベント内容"
-                required
-                hint="イベントの目的、参加対象、当日の流れなどを記載します。"
-                error={errors.eventContent}
-              >
-                <Textarea
-                  id={getFieldId("eventContent")}
-                  rows={8}
-                  className="max-h-60 resize-y overflow-y-auto"
-                  value={formState.eventContent}
-                  onChange={(event) =>
-                    setField("eventContent", event.target.value)
-                  }
-                  placeholder="イベントの概要や参加者への案内を入力してください。"
-                  aria-invalid={Boolean(errors.eventContent)}
-                />
-              </FormField>
             </CardContent>
 
             {/* フォームの送信ボタンと注意書きを含むフッター */}
