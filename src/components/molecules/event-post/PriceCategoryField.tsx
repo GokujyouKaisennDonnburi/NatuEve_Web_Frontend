@@ -134,15 +134,18 @@ export function PriceCategoryField({
                 />
               </div>
 
-              {/* 行を削除するボタンを表示する部分。 */}
+              {/* 行を削除するボタンを表示する部分 */}
               <div className="flex items-center self-center">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-xs"
                   onClick={() => handleRemoveItem(index)}
+                  disabled={items.length <= 1}
                   aria-label={`行${index + 1}を削除`}
-                  className="cursor-pointer text-red-600 hover:bg-transparent hover:text-red-700"
+                  className={`text-red-600 hover:bg-transparent hover:text-red-700 ${
+                    items.length <= 1 ? "invisible" : "cursor-pointer"
+                  }`}
                 >
                   <X className="h-4 w-4" />
                 </Button>
