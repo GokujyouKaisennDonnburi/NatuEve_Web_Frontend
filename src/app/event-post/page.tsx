@@ -219,9 +219,9 @@ export default function EventPostPage() {
     const requiredItemErrors: Record<number, string> = {};
     formState.requiredItems.forEach((item, index) => {
       if (!item.itemName.trim()) {
-        requiredItemErrors[index] = "持ち物名を入力してください。";
+        requiredItemErrors[index] = "持ち物を入力してください。";
       } else if (item.itemName.trim().length > MAX_TEXT_LENGTH) {
-        requiredItemErrors[index] = "持ち物名は255文字以内で入力してください。";
+        requiredItemErrors[index] = "持ち物は255文字以内で入力してください。";
       }
     });
     if (Object.keys(requiredItemErrors).length > 0) {
