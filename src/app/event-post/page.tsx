@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { createEvent } from "@/services/event";
@@ -220,8 +221,7 @@ export default function EventPostPage() {
       if (!item.itemName.trim()) {
         requiredItemErrors[index] = "持ち物名を入力してください。";
       } else if (item.itemName.trim().length > MAX_TEXT_LENGTH) {
-        requiredItemErrors[index] =
-          "持ち物名は255文字以内で入力してください。";
+        requiredItemErrors[index] = "持ち物名は255文字以内で入力してください。";
       }
     });
     if (Object.keys(requiredItemErrors).length > 0) {
@@ -626,6 +626,27 @@ export default function EventPostPage() {
                 }
                 onUrlChange={(url) => setField("applicationUrl", url)}
               />
+
+              {/* イベント内容の入力フィールド */}
+              <FormField
+                id={getFieldId("eventContent")}
+                label="イベント内容"
+                required
+                hint="イベントの目的、参加対象、当日の流れなどを記載します。"
+                error={errors.eventContent}
+              >
+                <Textarea
+                  id={getFieldId("eventContent")}
+                  rows={8}
+                  className="max-h-60 resize-y overflow-y-auto"
+                  value={formState.eventContent}
+                  onChange={(event) =>
+                    setField("eventContent", event.target.value)
+                  }
+                  placeholder="イベントの概要や参加者への案内を入力してください。"
+                  aria-invalid={Boolean(errors.eventContent)}
+                />
+              </FormField>
             </CardContent>
 
             {/* フォームの送信ボタンと注意書きを含むフッター */}
