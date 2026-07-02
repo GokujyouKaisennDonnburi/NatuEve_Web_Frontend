@@ -7,7 +7,10 @@ import type { EventDetailType } from "@/components/molecules/event-detail/types"
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft } from "lucide-react";
+import { ROUTES } from "@/constants/routes";
+import { useAuth } from "@/hooks/useAuth";
+import { ChevronLeft, FileText } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 // イベント詳細コンポーネント
@@ -19,11 +22,17 @@ export function EventDetail({ event }: { event: EventDetailType }) {
   const organizerAvatarUrl =
     event.organizerAvatarUrl ?? event.profile?.avatarUrl;
   const router = useRouter();
+  const { session } = useAuth();
+
+  // ログイン中のユーザーが当該イベントの投稿者（主催者）かどうか
+  const isOrganizer = Boolean(
+    session?.userId && event.profile?.id && session.userId === event.profile.id,
+  );
 
   return (
     <div className="space-y-6">
-      {/* 戻るボタン */}
-      <div>
+      {/* 戻るボタン ＆ 投稿者向けレポート作成ボタン */}
+      <div className="flex items-center justify-between">
         <Button
           variant="ghost"
           size="sm"
@@ -32,6 +41,21 @@ export function EventDetail({ event }: { event: EventDetailType }) {
         >
           <ChevronLeft className="h-4 w-4 mr-2" /> 戻る
         </Button>
+
+        {isOrganizer ? (
+          <Button
+            asChild
+            size="sm"
+            className="cursor-pointer border border-transparent hover:border-slate-300"
+          >
+            <Link
+              href={`${ROUTES.REPORT_POST}?eventId=${encodeURIComponent(event.id)}`}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              レポート作成
+            </Link>
+          </Button>
+        ) : null}
       </div>
 
       {/* タイトル */}

@@ -12,8 +12,8 @@ export const normalizeAssetUrl = (url: string): string => {
 
   // それ以外の相対パスは、先頭にスラッシュを付与して返す。
   if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url)) {
-     return "";
-   }
+    return "";
+  }
 
   return `/${url}`;
 };

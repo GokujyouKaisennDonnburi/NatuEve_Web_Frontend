@@ -81,6 +81,12 @@ const sampleUserEvents = {
   ],
 };
 
+// ユーザープロフィール更新用リクエスト型
+type UpdateUserProfileRequest = {
+  displayName?: string;
+  bio?: string;
+};
+
 // 認証トークンが有効かどうかをチェックする関数
 const hasBearerToken = (authorizationHeader: string | null) =>
   Boolean(authorizationHeader?.startsWith("Bearer "));
@@ -153,7 +159,7 @@ export const userHandlers = [
     await delay(1000);
 
     try {
-      const body = (await request.json()) as any;
+      const body = (await request.json()) as UpdateUserProfileRequest;
       const { id } = params;
       const userId = typeof id === "string" ? id : "unknown";
 
@@ -180,5 +186,4 @@ export const userHandlers = [
       );
     }
   }),
-
 ];

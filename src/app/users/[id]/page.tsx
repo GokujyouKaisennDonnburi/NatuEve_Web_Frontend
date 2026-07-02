@@ -100,7 +100,7 @@ export default function UserProfilePage(props: PageProps) {
           const data = (await participatedRes.json()) as UserEventListResponse;
           pEvents = data.events.map((e) => ({
             ...e,
-            hostName: "主催者", 
+            hostName: "主催者",
             hostAvatarUrl: "",
             dateLabel: new Date(e.eventDate).toLocaleDateString("ja-JP", {
               month: "short",
@@ -151,9 +151,10 @@ export default function UserProfilePage(props: PageProps) {
 
   // ヘッダーを作成する共通関数を用意
   const getAuthHeaders = () => {
-    const headers: HeadersInit = { "Content-Type": "application/json" };
+    const headers = new Headers();
+    headers.set("Content-Type", "application/json");
     if (session?.token) {
-      headers["Authorization"] = `Bearer ${session.token}`;
+      headers.set("Authorization", `Bearer ${session.token}`);
     }
     return headers;
   };
