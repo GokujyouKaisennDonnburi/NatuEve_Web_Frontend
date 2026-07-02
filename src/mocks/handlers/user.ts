@@ -88,14 +88,14 @@ type UpdateUserProfileRequest = {
   bio?: string;
 };
 // ▼ マイページ用の初期モックデータ（メモリ上に保持）
-let myProfile = {
+const myProfile = {
   avatarUrl: "https://github.com/shadcn.png", // 代替アイコンのテスト用。空文字 "" にするとデフォルトの人型アイコンが出ます
   createdAt: "2026-06-22T12:00:00Z",
   description: "イベントを楽しむのが好きです。よろしくお願いします！",
   displayName: "なちゅいべ太郎",
   email: "user@example.com",
   id: "d290f1ee-6c54-4b01-90e6-d701748f0851",
-  updatedAt: "2026-06-22T12:00:00Z"
+  updatedAt: "2026-06-22T12:00:00Z",
 };
 
 // 認証トークンが有効かどうかをチェックする関数
@@ -109,7 +109,7 @@ export const userHandlers = [
     return HttpResponse.json({ users: sampleUsers });
   }),
 
-  http.get('/api/v1/me', ({ request }) => {
+  http.get("/api/v1/me", ({ request }) => {
     // ※本来は authorization ヘッダーを検証しますが、モックなので無条件で返します
     return HttpResponse.json(myProfile);
   }),
@@ -117,10 +117,13 @@ export const userHandlers = [
   // ------------------------------------------
   // 2. 本人プロフィール更新 (PATCH /api/v1/me)
   // ------------------------------------------
-  http.patch('/api/v1/me', async ({ request }) => {
+  http.patch("/api/v1/me", async ({ request }) => {
     // 送られてきたJSONを受け取る (スネークケースで送られてくる想定)
-    const body = (await request.json()) as { display_name?: string; description?: string };
-    
+    const body = (await request.json()) as {
+      display_name?: string;
+      description?: string;
+    };
+
     // 更新処理: 値が存在すれば書き換える
     if (body.display_name !== undefined) {
       myProfile.displayName = body.display_name;
@@ -128,7 +131,7 @@ export const userHandlers = [
     if (body.description !== undefined) {
       myProfile.description = body.description;
     }
-    
+
     // 更新日時を現在時刻に更新
     myProfile.updatedAt = new Date().toISOString();
 

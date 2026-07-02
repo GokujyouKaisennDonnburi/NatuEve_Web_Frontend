@@ -18,10 +18,10 @@ type ProfileHeaderProps = {
 export function ProfileHeader({
   name,
   avatarUrl,
-  description, 
+  description,
   isOwnProfile,
   onUpdateName,
-  onUpdateDescription, 
+  onUpdateDescription,
 }: ProfileHeaderProps) {
   const [imgError, setImgError] = useState(false);
 
