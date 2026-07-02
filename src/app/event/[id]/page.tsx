@@ -2,6 +2,8 @@
 
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import EventDetail from "@/components/organisms/EventDetail";
+import { getReport } from "@/services/report";
+import type { ReportDetail } from "@/types/report";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -11,6 +13,7 @@ export default function EventDetailPage() {
   const id = params?.id as string; // イベントIDを文字列として型アサーション
 
   const [event, setEvent] = useState<EventDetailType | null>(null); // イベント詳細データを保持するステート
+  const [report, setReport] = useState<ReportDetail | null>(null); // レポートデータを保持するステート
   const [loading, setLoading] = useState(true);
 
   // イベント詳細データを取得する副作用フック
@@ -65,6 +68,29 @@ export default function EventDetailPage() {
     };
   }, [id]);
 
+  // レポートデータを取得する副作用フック
+  // 認証不要・1イベント1レポート。404 は「レポート未投稿」の正常系として扱う。
+  useEffect(() => {
+    if (!id) return;
+
+    let cancelled = false;
+
+    const fetchReport = async (): Promise<void> => {
+      try {
+        const data = await getReport(id);
+        if (!cancelled) setReport(data);
+      } catch (err) {
+        // レポート取得失敗はイベント表示を妨げない
+        console.error("レポート取得エラー", err);
+      }
+    };
+
+    void fetchReport();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
   // ローディング中の表示
   if (loading)
     return (
@@ -85,7 +111,7 @@ export default function EventDetailPage() {
     // イベント詳細ページのメインコンテンツ
     <div className="min-h-screen bg-emerald-50 text-slate-900 antialiased">
       <main className="mx-auto max-w-4xl px-6 pt-8 pb-20">
-        <EventDetail event={event} />
+        <EventDetail event={event} report={report} />
       </main>
     </div>
   );
