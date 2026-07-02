@@ -24,13 +24,14 @@ const sampleUsers = [
 ];
 
 // ダミーの現在のユーザー情報（GET /api/v1/me で返すモックユーザープロフィール）
+// MeResponse 型（snake_case）に合わせる
 const sampleCurrentUser = {
   id: "user-1",
   email: "aoi@example.com",
-  displayName: "Aoi Tanaka",
-  avatarUrl: "https://example.com/avatar.jpg",
-  createdAt: "2026-06-24T10:00:00Z",
-  updatedAt: "2026-06-24T10:00:00Z",
+  display_name: "Aoi Tanaka",
+  avatar_url: "https://example.com/avatar.jpg",
+  created_at: "2026-06-24T10:00:00Z",
+  updated_at: "2026-06-24T10:00:00Z",
 };
 
 // 認証トークンが有効かどうかをチェックする補助関数

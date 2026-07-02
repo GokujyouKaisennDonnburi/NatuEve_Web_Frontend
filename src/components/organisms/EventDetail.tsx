@@ -5,6 +5,7 @@ import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTab
 import { EventPdfList } from "@/components/molecules/event-detail/EventPdfList";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
+import { EventParticipationButton } from "@/components/organisms/EventParticipationButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
@@ -103,6 +104,14 @@ export function EventDetail({ event }: { event: EventDetailType }) {
           filename: event.pdfFilenames?.[index] ?? "",
         }))}
       />
+
+      {/* 参加申し込みボタン（主催者自身のイベントでは非表示） */}
+      {/* スクロール中も画面下部に固定で表示する */}
+      {!isOrganizer ? (
+        <div className="sticky bottom-4 z-40">
+          <EventParticipationButton eventId={event.id} />
+        </div>
+      ) : null}
     </div>
   );
 }

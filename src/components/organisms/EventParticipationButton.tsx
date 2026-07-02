@@ -1,0 +1,250 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
+import { participateEvent } from "@/services/participate";
+import { fetchCurrentUser } from "@/services/user";
+import { useEffect, useId, useRef, useState } from "react";
+import { toast } from "sonner";
+
+type EventParticipationButtonProps = {
+  eventId: string;
+  disabled?: boolean; // 主催者自身のイベントなどで、参加申し込みを無効化するためのフラグ
+};
+
+// 参加申し込みボタンコンポーネント
+//
+// ログイン時は /api/v1/me からメールアドレスとユーザー名を取得して送信する。
+// 未ログイン時はモーダルでメールアドレスとユーザー名を入力してもらって送信する。
+// 送信結果はトーストで通知する。
+export function EventParticipationButton({
+  eventId,
+  disabled,
+}: EventParticipationButtonProps) {
+  const { session, isLoading: isSessionLoading } = useAuth();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ログイン時はトークン付きで送信
+  const handleSubmitForLoggedInUser = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      // メールアドレスとユーザー名を取得する
+      const me = await fetchCurrentUser();
+      await participateEvent(eventId, {
+        email: me.email,
+        displayName: me.displayName,
+      });
+      toast.success("参加申し込みを完了しました。");
+    } catch (error) {
+      console.error("参加申し込みに失敗しました。", error);
+      toast.error(
+        "参加申し込みに失敗しました。時間をおいて再度お試しください。",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleButtonClick = () => {
+    if (disabled) return;
+    // セッション読み込み中は何もしない
+    if (isSessionLoading) return;
+
+    if (session?.token) {
+      void handleSubmitForLoggedInUser();
+    } else {
+      setIsModalOpen(true);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        size="lg"
+        className="w-full cursor-pointer rounded-full bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 px-6 py-6 text-base font-semibold text-white shadow-lg shadow-teal-500/25 transition hover:-translate-y-px hover:shadow-xl hover:shadow-teal-500/30 focus-visible:ring-teal-500/30 disabled:opacity-50"
+        disabled={disabled || isSessionLoading || isSubmitting}
+        onClick={handleButtonClick}
+      >
+        {isSubmitting ? "送信中…" : "参加申し込み"}
+      </Button>
+
+      {isModalOpen ? (
+        <GuestParticipationModal
+          eventId={eventId}
+          onClose={() => setIsModalOpen(false)}
+          isSubmitting={isSubmitting}
+          setIsSubmitting={setIsSubmitting}
+        />
+      ) : null}
+    </>
+  );
+}
+
+// 未ログイン時の参加申し込みモーダル
+type GuestParticipationModalProps = {
+  eventId: string;
+  onClose: () => void;
+  isSubmitting: boolean;
+  setIsSubmitting: (value: boolean) => void;
+};
+
+const GuestParticipationModal = ({
+  eventId,
+  onClose,
+  isSubmitting,
+  setIsSubmitting,
+}: GuestParticipationModalProps) => {
+  const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const emailId = useId();
+  const nameId = useId();
+
+  // 未ログイン時のメールアドレス入力欄の参照を保持する
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  // Escape キーでモーダルを閉じる
+  useEffect(() => {
+    emailRef.current?.focus(); // メールアドレス入力欄にフォーカスする
+    document.body.style.overflow = "hidden"; // 背景のスクロールを無効化する
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !isSubmitting) {
+        onClose();
+      }
+    };
+
+    // Escape キーのイベントリスナーを追加
+    window.addEventListener("keydown", handleKeyDown);
+
+    // クリーンアップ関数でイベントリスナーを削除
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isSubmitting, onClose]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+
+    // UX 補助の簡易バリデーション（信頼の境界は API 側）
+    const trimmedEmail = email.trim();
+    const trimmedName = displayName.trim();
+    if (!trimmedEmail || !trimmedName) {
+      toast.error("メールアドレスとユーザー名を入力してください。");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await participateEvent(
+        eventId,
+        { email: trimmedEmail, displayName: trimmedName },
+        { auth: false },
+      );
+      toast.success("参加申し込みを完了しました。");
+      onClose();
+    } catch (error) {
+      console.error("参加申し込みに失敗しました。", error);
+      toast.error(
+        "参加申し込みに失敗しました。時間をおいて再度お試しください。",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      {/* 背景オーバーレイ：ボタンとして振るわせ、クリックで閉じる */}
+      <button
+        type="button"
+        aria-label="参加申し込みを閉じる"
+        className="absolute inset-0 cursor-default bg-black/50"
+        onClick={() => {
+          if (!isSubmitting) onClose();
+        }}
+        tabIndex={-1}
+      />
+      <div
+        className="relative w-full max-w-md"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="participation-modal-title"
+      >
+        <Card className="border-slate-200/80 bg-white/95 shadow-xl backdrop-blur">
+          <CardContent className="space-y-5 pt-6">
+            <div className="space-y-1">
+              <h2
+                id="participation-modal-title"
+                className="text-lg font-bold text-slate-900"
+              >
+                参加申し込み
+              </h2>
+              <p className="text-sm text-slate-600">
+                参加にはメールアドレスとお名前が必要です。入力をお願いします。
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+              <div className="space-y-2">
+                <Label htmlFor={emailId}>メールアドレス</Label>
+                <Input
+                  ref={emailRef}
+                  id={emailId}
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="例: nature@example.com"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={nameId}>ユーザー名</Label>
+                <Input
+                  id={nameId}
+                  type="text"
+                  autoComplete="name"
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="例: 山田 はなこ"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={isSubmitting}
+                  onClick={onClose}
+                  className="cursor-pointer"
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="cursor-pointer bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 text-white"
+                >
+                  {isSubmitting ? "送信中…" : "送信する"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default EventParticipationButton;

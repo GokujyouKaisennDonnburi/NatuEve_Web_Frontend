@@ -355,4 +355,55 @@ export const eventHandlers = [
       { status: 201 },
     );
   }),
+
+  // イベント参加申し込みモックエンドポイント
+  // ログイン時は Bearer トークン付き、未ログイン時はトークン無しで受け付ける。
+  http.post("/api/v1/events/:id/participate", async ({ request, params }) => {
+    const id = String(params?.id ?? "");
+
+    // イベントが存在しない場合は404エラーを返す
+    if (!mockEventDetails.has(id)) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "not_found",
+            message: "イベントが見つかりません",
+          },
+        },
+        { status: 404 },
+      );
+    }
+
+    // リクエストボディを取得する
+    const body = (await request.json()) as {
+      email?: unknown;
+      displayName?: unknown;
+    };
+
+    // 本番のサーバー側バリデーションを模し、必須項目が欠ける場合は 400 を返す
+    const hasEmail = typeof body.email === "string" && body.email.length > 0;
+    const hasDisplayName =
+      typeof body.displayName === "string" && body.displayName.length > 0;
+
+    if (!hasEmail || !hasDisplayName) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "メールアドレスとユーザー名は必須です",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    // 受領レスポンスを返す
+    return HttpResponse.json(
+      {
+        eventId: id,
+        acceptedAt: new Date().toISOString(),
+      },
+      { status: 201 },
+    );
+  }),
 ];
