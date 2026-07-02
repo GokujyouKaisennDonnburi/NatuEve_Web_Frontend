@@ -159,25 +159,6 @@ export const userHandlers = [
     return HttpResponse.json(myProfile);
   }),
 
-  // 既存の現在のユーザー情報取得モック
-  http.get("/api/v1/me", ({ request }) => {
-    const authHeader = request.headers.get("authorization");
-    if (!hasBearerToken(authHeader)) {
-      return HttpResponse.json(
-        { error: { code: "unauthorized", message: "認証無効" } },
-        { status: 401 },
-      );
-    }
-
-    // Bearer の後ろのトークン文字列（実際のIDが入っていると仮定）をIDとして流用するハック
-    const token = authHeader?.split(" ")[1]?.trim();
-
-    return HttpResponse.json({
-      ...sampleCurrentUser,
-      id: token || sampleCurrentUser.id, // モックが返す自分のIDもURLと同じになるようにする
-    });
-  }),
-
   // 指定したIDのユーザープロフィール取得API
   http.get("/api/v1/users/:id", ({ params }) => {
     const { id } = params;
