@@ -130,6 +130,14 @@ export const userHandlers = [
   // 2. 本人プロフィール更新 (PATCH /api/v1/me)
   // ------------------------------------------
   http.patch("/api/v1/me", async ({ request }) => {
+    const authHeader = request.headers.get("authorization");
+    if (!hasBearerToken(authHeader)) {
+      return HttpResponse.json(
+        { error: { code: "unauthorized", message: "認証無効" } },
+        { status: 401 },
+      );
+    }
+
     // 送られてきたJSONを受け取る (スネークケースで送られてくる想定)
     const body = (await request.json()) as {
       display_name?: string;
