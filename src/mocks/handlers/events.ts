@@ -41,6 +41,16 @@ type MockEventDetail = MockEvent & {
   pdfUrls?: string[];
   pdfObjectKeys?: string[];
   pdfFilenames?: string[];
+  reports?: {
+    id: string;
+    createdAt: string;
+    authorName: string;
+    authorAvatarUrl: string;
+    content?: string;
+    externalUrl?: string;
+    imageUrls?: string[];
+    pdfUrls?: string[];
+  }[];
 };
 
 // ダミーイベントデータの初期値を生成
@@ -121,6 +131,25 @@ const createDefaultMockEventDetail = (
     "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
   ],
   pdfFilenames: ["サンプル資料.pdf"],
+  reports: [
+    {
+      id: `report-${event.id}-1`,
+      createdAt: new Date(Date.UTC(2026, 5, 18 + index, 10, 30)).toISOString(),
+      authorName: event.profile.displayName,
+      authorAvatarUrl: event.profile.avatarUrl,
+      content:
+        "本日の観察記録です。参加者同士で花や昆虫の名前を確認し、自然の大切さを話し合いました。",
+      externalUrl:
+        index % 2 === 0 ? `https://example.com/reports/${event.id}` : undefined,
+      imageUrls: [
+        `https://picsum.photos/600/400?random=${index * 5 + 1}`,
+        `https://picsum.photos/600/400?random=${index * 5 + 2}`,
+      ],
+      pdfUrls: [
+        "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      ],
+    },
+  ],
 });
 
 const mockEventDetails = new Map<string, MockEventDetail>(

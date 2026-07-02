@@ -191,7 +191,9 @@ export default function ReportPostPage() {
       const _response = await createReport(payload);
 
       toast.success("レポートを投稿しました");
-      router.push(ROUTES.EVENT_LIST);
+      router.push(
+        eventId ? `/event/${encodeURIComponent(eventId)}` : ROUTES.EVENT_LIST,
+      );
     } catch (error) {
       console.error("レポート投稿エラー:", error);
       toast.error(

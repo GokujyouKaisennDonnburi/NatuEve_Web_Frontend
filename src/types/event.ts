@@ -69,6 +69,19 @@ export type EventDetailItem = {
   isRequired: boolean;
 };
 
+export type EventDetailReport = {
+  id: string;
+  createdAt: string;
+  authorName?: string;
+  authorAvatarUrl?: string;
+  content?: string;
+  externalUrl?: string;
+  imageObjectKeys?: string[];
+  imageUrls?: string[];
+  pdfObjectKeys?: string[];
+  pdfUrls?: string[];
+};
+
 // イベント詳細取得 API のレスポンス DTO。
 export type EventDetailResponse = {
   capacity: number;
@@ -87,6 +100,7 @@ export type EventDetailResponse = {
   pdfFilenames: string[];
   pdfUrls: string[];
   profile: EventDetailProfile;
+  reports?: EventDetailReport[];
   title: string;
   updatedAt: string;
 };

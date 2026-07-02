@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ChevronLeft, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { EventReportList } from "../molecules/event-detail/EventReportList";
 
 // イベント詳細コンポーネント
 export function EventDetail({ event }: { event: EventDetailType }) {
@@ -93,6 +94,8 @@ export function EventDetail({ event }: { event: EventDetailType }) {
 
       {/* イベント情報（表形式） */}
       <EventInfoTable event={event} />
+
+      <EventReportList reports={event.reports} />
 
       {/* 添付資料（PDF） */}
       <EventPdfList
