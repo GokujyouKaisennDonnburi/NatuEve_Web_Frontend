@@ -9,6 +9,7 @@ export const ROUTES = {
   EVENT_POST: "/event-post",
   REPORT_POST: "/report-post",
   AUTH_CALLBACK: "/auth/callback",
+  MYPAGE: "/mypage",
 } as const;
 
 // 公開ルートと保護されたルートを定義
@@ -25,4 +26,5 @@ export const PUBLIC_ROUTES = [
 export const PROTECTED_ROUTES = [
   ROUTES.EVENT_POST,
   ROUTES.REPORT_POST,
+  ROUTES.MYPAGE,
 ] as const;
