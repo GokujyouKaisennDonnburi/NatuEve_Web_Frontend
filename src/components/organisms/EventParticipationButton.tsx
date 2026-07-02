@@ -12,8 +12,7 @@ import { toast } from "sonner";
 
 type EventParticipationButtonProps = {
   eventId: string;
-  // 主催者自身のイベントでは参加申し込みを隠すためのフラグ
-  disabled?: boolean;
+  disabled?: boolean; // 主催者自身のイベントなどで、参加申し込みを無効化するためのフラグ
 };
 
 // 参加申し込みボタンコンポーネント
