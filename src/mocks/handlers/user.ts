@@ -110,8 +110,20 @@ export const userHandlers = [
   }),
 
   http.get("/api/v1/me", ({ request }) => {
-    // ※本来は authorization ヘッダーを検証しますが、モックなので無条件で返します
-    return HttpResponse.json(myProfile);
+    const authHeader = request.headers.get("authorization");
+    if (!hasBearerToken(authHeader)) {
+      return HttpResponse.json(
+        { error: { code: "unauthorized", message: "認証無効" } },
+        { status: 401 },
+      );
+    }
+
+    const token = authHeader?.split(" ")[1]?.trim();
+
+    return HttpResponse.json({
+      ...myProfile,
+      id: token || myProfile.id,
+    });
   }),
 
   // ------------------------------------------
