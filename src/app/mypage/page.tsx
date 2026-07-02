@@ -50,12 +50,7 @@ const fetchMeWithToken = (token: string) => {
     return cachedRequest;
   }
 
-  const request = apiFetch("/api/v1/me", {
-    auth: false,
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }).then(async (res) => {
+  const request = apiFetch("/api/v1/me").then(async (res) => {
     if (!res.ok) {
       throw Object.assign(
         new Error(`Failed to fetch my profile (Status: ${res.status})`),
