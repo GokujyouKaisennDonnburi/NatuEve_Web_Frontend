@@ -1,4 +1,5 @@
 import {
+  ChevronDown,
   Download,
   ExternalLink,
   FileText,
@@ -65,7 +66,7 @@ export function EventReportList({ reports }: Readonly<EventReportListProps>) {
                       })}
                     </div>
                   </div>
-                  <span className="text-xs text-slate-500">開く</span>
+                  <ChevronDown className="h-5 w-5 text-slate-500 transition-transform duration-200 group-open:rotate-180" />
                 </summary>
 
                 <div className="border-t border-slate-200 bg-white px-5 py-5 text-sm text-slate-700">
