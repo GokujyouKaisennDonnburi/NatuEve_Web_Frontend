@@ -4,6 +4,7 @@ import type { EventItem } from "@/components/EventCard";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
 import { useAuth } from "@/hooks/useAuth";
+import { apiFetch } from "@/services/apiClient";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -12,17 +13,83 @@ type UserProfile = {
   id: string;
   displayName: string;
   avatarUrl: string;
-  description?: string; 
+  description?: string;
   email?: string;
   createdAt?: string;
   updatedAt?: string;
 };
 
+type MeApiResponse = {
+  id: string;
+  email?: string;
+  description?: string;
+  display_name?: string;
+  avatar_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  displayName?: string;
+  avatarUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type ApiStatusError = Error & {
+  status: number;
+};
+
+const meRequestCache = new Map<string, Promise<MeApiResponse>>();
+
+const isApiStatusError = (error: unknown): error is ApiStatusError =>
+  error instanceof Error &&
+  "status" in error &&
+  typeof error.status === "number";
+
+const fetchMeWithToken = (token: string) => {
+  const cachedRequest = meRequestCache.get(token);
+  if (cachedRequest) {
+    return cachedRequest;
+  }
+
+  const request = apiFetch("/api/v1/me", {
+    auth: false,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }).then(async (res) => {
+    if (!res.ok) {
+      throw Object.assign(
+        new Error(`Failed to fetch my profile (Status: ${res.status})`),
+        { status: res.status },
+      );
+    }
+
+    return (await res.json()) as MeApiResponse;
+  });
+
+  meRequestCache.set(token, request);
+  request.then(
+    () => meRequestCache.delete(token),
+    () => meRequestCache.delete(token),
+  );
+
+  return request;
+};
+
+const toUserProfile = (data: MeApiResponse): UserProfile => ({
+  id: data.id,
+  displayName: data.displayName ?? data.display_name ?? "",
+  avatarUrl: data.avatarUrl ?? data.avatar_url ?? "",
+  description: data.description,
+  email: data.email,
+  createdAt: data.createdAt ?? data.created_at,
+  updatedAt: data.updatedAt ?? data.updated_at,
+});
+
 export default function MyPage() {
   const { session, isLoading: isSessionLoading } = useAuth();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  
+
   // 今後のAPI実装時にそのまま使えるよう、Stateは残しておきます
   const [hostedEvents, setHostedEvents] = useState<EventItem[]>([]);
   const [participatedEvents, setParticipatedEvents] = useState<EventItem[]>([]);
@@ -44,22 +111,14 @@ export default function MyPage() {
       }
 
       try {
-        const headers = new Headers();
-        headers.set("Authorization", `Bearer ${session.token}`);
-
         // 1. 自身のプロフィールを取得
-        const meRes = await fetch("/api/v1/me", { headers });
-        if (!meRes.ok) {
-          if (meRes.status === 401 || meRes.status === 404) {
-             if (!cancelled) setIsNotFound(true);
-          }
-          throw new Error("Failed to fetch my profile");
-        }
-        const profileData = (await meRes.json()) as UserProfile;
+        const profileData = toUserProfile(
+          await fetchMeWithToken(session.token),
+        );
 
         if (!cancelled) {
           setProfile(profileData);
-          
+
           // ==========================================
           // イベント取得APIが実装されたらここを追加
           // ==========================================
@@ -68,7 +127,7 @@ export default function MyPage() {
           //   fetch(`/api/v1/users/${myId}/events/hosted`, { headers }),
           //   fetch(`/api/v1/users/${myId}/events/participated`, { headers }),
           // ]);
-          // 
+          //
           // 各resのok判定と、setHostedEvents / setParticipatedEvents への格納処理をここに書く
           // ==========================================
 
@@ -77,6 +136,12 @@ export default function MyPage() {
           setParticipatedEvents([]);
         }
       } catch (err) {
+        if (
+          isApiStatusError(err) &&
+          (err.status === 401 || err.status === 404)
+        ) {
+          if (!cancelled) setIsNotFound(true);
+        }
         console.error(err);
       } finally {
         if (!cancelled) setIsDataLoading(false);
@@ -100,7 +165,9 @@ export default function MyPage() {
   if (isNotFound || !profile) {
     return (
       <div className="min-h-screen bg-slate-50/60 flex flex-col items-center justify-center gap-4">
-        <p className="text-slate-500">ユーザー情報が取得できませんでした。ログインし直してください。</p>
+        <p className="text-slate-500">
+          ユーザー情報が取得できませんでした。ログインし直してください。
+        </p>
         <Link href="/" className="text-sm text-emerald-600 hover:underline">
           トップページに戻る
         </Link>
@@ -108,19 +175,12 @@ export default function MyPage() {
     );
   }
 
-  const getAuthHeaders = () => {
-    const headers = new Headers();
-    headers.set("Content-Type", "application/json");
-    if (session?.token) {
-      headers.set("Authorization", `Bearer ${session.token}`);
-    }
-    return headers;
-  };
-
   const handleUpdateName = async (newName: string) => {
-    const res = await fetch(`/api/v1/me`, {
+    const res = await apiFetch(`/api/v1/me`, {
       method: "PATCH",
-      headers: getAuthHeaders(),
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ display_name: newName }),
     });
 
@@ -129,14 +189,18 @@ export default function MyPage() {
   };
 
   const handleUpdateDescription = async (newDescription: string) => {
-    const res = await fetch(`/api/v1/me`, {
+    const res = await apiFetch(`/api/v1/me`, {
       method: "PATCH",
-      headers: getAuthHeaders(),
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ description: newDescription }),
     });
 
     if (!res.ok) throw new Error("自己紹介の更新に失敗しました");
-    setProfile((prev) => (prev ? { ...prev, description: newDescription } : null));
+    setProfile((prev) =>
+      prev ? { ...prev, description: newDescription } : null,
+    );
   };
 
   return (
@@ -158,7 +222,7 @@ export default function MyPage() {
           name={profile.displayName}
           avatarUrl={profile.avatarUrl}
           description={profile.description}
-          isOwnProfile={true} 
+          isOwnProfile={true}
           onUpdateName={handleUpdateName}
           onUpdateDescription={handleUpdateDescription}
         />
