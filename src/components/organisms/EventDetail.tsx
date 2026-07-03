@@ -11,12 +11,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
+import type { ReportDetail } from "@/types/report";
 import { ChevronLeft, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 // イベント詳細コンポーネント
-export function EventDetail({ event }: { event: EventDetailType }) {
+export function EventDetail({
+  event,
+  report,
+}: {
+  event: EventDetailType;
+  report?: ReportDetail | null;
+}) {
   const images = event.imageUrls?.length
     ? event.imageUrls
     : (event.imageObjectKeys ?? []);
@@ -106,8 +113,8 @@ export function EventDetail({ event }: { event: EventDetailType }) {
         }))}
       />
 
-      {/* レポート一覧 */}
-      <EventReportList reports={event.reports} />
+      {/* レポート */}
+      <EventReportList report={report} />
 
       {/* 参加申し込みボタン（主催者自身のイベントでは非表示） */}
       {/* スクロール中も画面下部に固定で表示する */}

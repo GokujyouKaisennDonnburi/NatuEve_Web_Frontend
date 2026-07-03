@@ -175,13 +175,14 @@ export default function ReportPostPage() {
       }
 
       // レポート作成リクエストを組み立て
+      const trimmedExternalUrl = formState.externalUrl.trim();
       const payload: CreateReportRequest = {
         eventId,
         ...(!formState.externalUrlEnabled &&
           formState.content.trim() && { content: formState.content.trim() }),
         ...(formState.externalUrlEnabled &&
-          formState.externalUrl.trim() && {
-            externalUrl: formState.externalUrl.trim(),
+          trimmedExternalUrl && {
+            externalUrls: [trimmedExternalUrl],
           }),
         ...(imageObjectKeys.length > 0 && { imageObjectKeys, imageFilenames }),
         ...(pdfObjectKeys.length > 0 && { pdfObjectKeys, pdfFilenames }),
