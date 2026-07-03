@@ -7,6 +7,7 @@ export const MOCK_AUTH_SESSION: AuthSession = {
   userId: "mock-user-1",
   token: "mock-access-token",
   name: "Aoi Tanaka",
+  email: "aoi@example.com",
   iconUrl: "https://example.com/avatar.jpg",
 };
 
@@ -28,6 +29,7 @@ const normalizeSession = (
     userId: session.userId,
     token: session.token,
     name: typeof session.name === "string" ? session.name : undefined,
+    email: typeof session.email === "string" ? session.email : undefined,
     iconUrl: typeof session.iconUrl === "string" ? session.iconUrl : undefined,
   };
 };

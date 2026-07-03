@@ -36,6 +36,7 @@ const buildSession = (session: {
     token: session.access_token,
     name:
       metadata.full_name ?? metadata.name ?? session.user.email ?? undefined,
+    email: session.user.email ?? undefined,
     iconUrl: metadata.avatar_url ?? metadata.picture,
   };
 };

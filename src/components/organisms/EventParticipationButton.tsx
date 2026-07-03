@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { participateEvent } from "@/services/participate";
-import { fetchCurrentUser } from "@/services/user";
 import { ParticipateError, ParticipateErrorCode } from "@/types/participate";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -50,8 +49,8 @@ const handleParticipateError = (error: unknown) => {
 
 // 参加申し込みボタンコンポーネント
 //
-// ログイン時は /api/v1/me からメールアドレスとユーザー名を取得して送信する。
-// 未ログイン時はモーダルでメールアドレスとユーザー名を入力してもらって送信する。
+// ログイン時は Supabase セッション（Google プロフィール由来）のメールアドレスと
+// ユーザー名をそのまま送信する。未ログイン時はモーダルで入力してもらって送信する。
 // 送信結果はトーストで通知する。
 export function EventParticipationButton({
   eventId,
@@ -66,11 +65,10 @@ export function EventParticipationButton({
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      // メールアドレスとユーザー名を取得する
-      const me = await fetchCurrentUser();
+      // セッションのメールアドレスとユーザー名をそのまま使用する
       await participateEvent(eventId, {
-        mailAddress: me.email,
-        username: me.displayName,
+        mailAddress: session?.email ?? "",
+        username: session?.name ?? "",
       });
       toast.success("参加申し込みを完了しました。");
     } catch (error) {
