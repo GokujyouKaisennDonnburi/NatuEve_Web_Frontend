@@ -204,6 +204,10 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
   };
 };
 
+// メモリ内参加者管理：eventId ごとに参加者キー（profileId or mailAddress）を保持
+// 重複参加チェック（409 Conflict）のために使用
+const eventParticipants = new Map<string, Set<string>>();
+
 // MSWのハンドラーを定義
 export const eventHandlers = [
   // イベント一覧取得モックエンドポイント
@@ -423,9 +427,13 @@ export const eventHandlers = [
     );
   }),
 
-  // イベント参加申し込みモックエンドポイント
-  // ログイン時は Bearer トークン付き、未ログイン時はトークン無しで受け付ける。
-  http.post("/api/v1/events/:id/participate", async ({ request, params }) => {
+  // イベント参加モックエンドポイント（POST /api/v1/events/:id/join）
+  // 認証は任意。Authorization ヘッダなし → 匿名参加（profileId = null）。
+  // ヘッダありで有効な Bearer → profileId を記録してログイン参加。
+  // 同一イベントへの重複参加は 409 Conflict で返す。
+  // メモリ内参加者管理はモジュールスコープの eventParticipants を使用
+
+  http.post("/api/v1/events/:id/join", async ({ request, params }) => {
     const id = String(params?.id ?? "");
 
     // イベントが存在しない場合は404エラーを返す
@@ -441,18 +449,19 @@ export const eventHandlers = [
       );
     }
 
-    // リクエストボディを取得する
+    // リクエストボディを取得する（本番 ParticipateEventRequest と同じ契約）
     const body = (await request.json()) as {
-      email?: unknown;
-      displayName?: unknown;
+      mailAddress?: unknown;
+      username?: unknown;
     };
 
     // 本番のサーバー側バリデーションを模し、必須項目が欠ける場合は 400 を返す
-    const hasEmail = typeof body.email === "string" && body.email.length > 0;
-    const hasDisplayName =
-      typeof body.displayName === "string" && body.displayName.length > 0;
+    const hasMailAddress =
+      typeof body.mailAddress === "string" && body.mailAddress.length > 0;
+    const hasUsername =
+      typeof body.username === "string" && body.username.length > 0;
 
-    if (!hasEmail || !hasDisplayName) {
+    if (!hasMailAddress || !hasUsername) {
       return HttpResponse.json(
         {
           error: {
@@ -464,11 +473,43 @@ export const eventHandlers = [
       );
     }
 
-    // 受領レスポンスを返す
+    const mailAddress = body.mailAddress as string;
+    const username = body.username as string;
+
+    // 認証ヘッダの有無で profileId を決定
+    // ヘッダなし → 匿名参加（profileId = null）
+    // ヘッダあり（Bearer） → トークンを profileId として流用（モック限定ハック）
+    const authorizationHeader = request.headers.get("authorization");
+    const hasBearer = Boolean(authorizationHeader?.startsWith("Bearer "));
+    const profileId = hasBearer
+      ? (authorizationHeader?.split(" ")[1]?.trim() ?? null)
+      : null;
+
+    // 重複参加チェック：ログイン時は profileId、匿名時は mailAddress で識別
+    const participantKey = profileId ?? `anon:${mailAddress}`;
+    const participants = eventParticipants.get(id) ?? new Set<string>();
+    if (participants.has(participantKey)) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "conflict",
+            message: "既に参加しています",
+          },
+        },
+        { status: 409 },
+      );
+    }
+    participants.add(participantKey);
+    eventParticipants.set(id, participants);
+
+    // 受領レスポンスを返す（本番 ParticipateEventResponse と同じ契約）
     return HttpResponse.json(
       {
         eventId: id,
-        acceptedAt: new Date().toISOString(),
+        mailAddress,
+        username,
+        profileId,
+        createdAt: new Date().toISOString(),
       },
       { status: 201 },
     );

@@ -3,6 +3,7 @@
 import { InlineTextField } from "@/components/molecules/InlineTextField";
 import { InlineTextareaField } from "@/components/molecules/InlineTextareaField";
 import { User } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 
 type ProfileHeaderProps = {
@@ -31,10 +32,13 @@ export function ProfileHeader({
       {/* 1. アイコン領域 (フォールバック対応) */}
       <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border border-slate-200 shrink-0 bg-slate-100 flex items-center justify-center text-slate-400">
         {avatarUrl && !imgError ? (
-          <img
+          <Image
+            width={96}
+            height={96}
             src={avatarUrl}
             alt={`${name}のアイコン`}
             className="w-full h-full object-cover"
+            unoptimized
             onError={() => setImgError(true)}
           />
         ) : (

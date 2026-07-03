@@ -6,19 +6,51 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { participateEvent } from "@/services/participate";
-import { fetchCurrentUser } from "@/services/user";
+import { ParticipateError, ParticipateErrorCode } from "@/types/participate";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
+// 参加申し込みボタンのプロパティ
 type EventParticipationButtonProps = {
   eventId: string;
   disabled?: boolean; // 主催者自身のイベントなどで、参加申し込みを無効化するためのフラグ
 };
 
+// 参加申し込みのエラーを種別ごとにトーストへ振り分ける
+const handleParticipateError = (error: unknown) => {
+  if (error instanceof ParticipateError) {
+    switch (error.code) {
+      // 既に参加している場合
+      case ParticipateErrorCode.Conflict:
+        toast.error(error.message || "既に参加しています。");
+        return;
+      // 参加申し込みの権限がない場合
+      case ParticipateErrorCode.Unauthorized:
+        toast.error(error.message || "認証が必要です。");
+        return;
+      // イベントが見つからない場合
+      case ParticipateErrorCode.NotFound:
+        toast.error(error.message || "イベントが見つかりません。");
+        return;
+      // 入力内容に不備がある場合
+      case ParticipateErrorCode.InvalidRequest:
+        toast.error(error.message || "入力内容に不備があります。");
+        return;
+      // その他のエラー
+      default:
+        toast.error(error.message);
+        return;
+    }
+  }
+
+  console.error("参加申し込みに失敗しました。", error);
+  toast.error("参加申し込みに失敗しました。時間をおいて再度お試しください。");
+};
+
 // 参加申し込みボタンコンポーネント
 //
-// ログイン時は /api/v1/me からメールアドレスとユーザー名を取得して送信する。
-// 未ログイン時はモーダルでメールアドレスとユーザー名を入力してもらって送信する。
+// ログイン時は Supabase セッション（Google プロフィール由来）のメールアドレスと
+// ユーザー名をそのまま送信する。未ログイン時はモーダルで入力してもらって送信する。
 // 送信結果はトーストで通知する。
 export function EventParticipationButton({
   eventId,
@@ -33,23 +65,26 @@ export function EventParticipationButton({
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      // メールアドレスとユーザー名を取得する
-      const me = await fetchCurrentUser();
-      await participateEvent(eventId, {
-        email: me.email,
-        displayName: me.displayName,
-      });
+      // セッションのメールアドレスとユーザー名をそのまま使用する
+      const mailAddress = session?.email ?? "";
+      const username = session?.name ?? "";
+
+      // 必須項目が欠損している場合は送信せず、再ログインを促す
+      if (!mailAddress || !username) {
+        toast.error("ユーザー情報が取得できませんでした。再度ログインしてください。");
+        return;
+      }
+
+      await participateEvent(eventId, { mailAddress, username });
       toast.success("参加申し込みを完了しました。");
     } catch (error) {
-      console.error("参加申し込みに失敗しました。", error);
-      toast.error(
-        "参加申し込みに失敗しました。時間をおいて再度お試しください。",
-      );
+      handleParticipateError(error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // 参加申し込みボタンのクリックハンドラ
   const handleButtonClick = () => {
     if (disabled) return;
     // セッション読み込み中は何もしない
@@ -93,6 +128,7 @@ type GuestParticipationModalProps = {
   setIsSubmitting: (value: boolean) => void;
 };
 
+// 未ログイン時の参加申し込みモーダルコンポーネント
 const GuestParticipationModal = ({
   eventId,
   onClose,
@@ -112,6 +148,7 @@ const GuestParticipationModal = ({
     emailRef.current?.focus(); // メールアドレス入力欄にフォーカスする
     document.body.style.overflow = "hidden"; // 背景のスクロールを無効化する
 
+    // Escape キーでモーダルを閉じる処理
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isSubmitting) {
         onClose();
@@ -128,6 +165,7 @@ const GuestParticipationModal = ({
     };
   }, [isSubmitting, onClose]);
 
+  // 参加申し込みフォームの送信処理
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (isSubmitting) return;
@@ -141,19 +179,18 @@ const GuestParticipationModal = ({
     }
 
     setIsSubmitting(true);
+
+    // 参加申し込み API を呼び出す
     try {
       await participateEvent(
         eventId,
-        { email: trimmedEmail, displayName: trimmedName },
+        { mailAddress: trimmedEmail, username: trimmedName },
         { auth: false },
       );
       toast.success("参加申し込みを完了しました。");
       onClose();
     } catch (error) {
-      console.error("参加申し込みに失敗しました。", error);
-      toast.error(
-        "参加申し込みに失敗しました。時間をおいて再度お試しください。",
-      );
+      handleParticipateError(error);
     } finally {
       setIsSubmitting(false);
     }

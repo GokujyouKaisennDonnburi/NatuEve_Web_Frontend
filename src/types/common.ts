@@ -9,5 +9,6 @@ export type AuthSession = {
   userId: string;
   token: string;
   name?: string;
+  email?: string;
   iconUrl?: string;
 };
