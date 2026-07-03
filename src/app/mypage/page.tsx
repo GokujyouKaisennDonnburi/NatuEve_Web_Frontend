@@ -6,38 +6,24 @@ import { UserEventTabs } from "@/components/organisms/UserEventTabs";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { use, useEffect, useState } from "react";
-
-type PageProps = {
-  params: Promise<{ id: string }>;
-};
+import { useEffect, useState } from "react";
 
 type UserProfile = {
   id: string;
   displayName: string;
   avatarUrl: string;
-  bio: string;
+  description?: string; 
+  email?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-// ユーザーのイベント情報を取得するAPIのレスポンス型
-type UserEventApiItem = Pick<
-  EventItem,
-  "id" | "title" | "location" | "createdAt" | "eventDate" | "profileId"
->;
-
-// ユーザーのイベント情報をまとめたレスポンス型
-type UserEventListResponse = {
-  events: UserEventApiItem[];
-};
-
-export default function UserProfilePage(props: PageProps) {
-  const params = use(props.params);
-  const userId = params.id;
-
+export default function MyPage() {
   const { session, isLoading: isSessionLoading } = useAuth();
 
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  
+  // 今後のAPI実装時にそのまま使えるよう、Stateは残しておきます
   const [hostedEvents, setHostedEvents] = useState<EventItem[]>([]);
   const [participatedEvents, setParticipatedEvents] = useState<EventItem[]>([]);
 
@@ -49,71 +35,46 @@ export default function UserProfilePage(props: PageProps) {
 
     const fetchData = async () => {
       if (isSessionLoading) return;
+      if (!session?.token) {
+        if (!cancelled) {
+          setIsNotFound(true);
+          setIsDataLoading(false);
+        }
+        return;
+      }
 
       try {
         const headers = new Headers();
-        if (session?.token) {
-          headers.set("Authorization", `Bearer ${session.token}`);
-        }
+        headers.set("Authorization", `Bearer ${session.token}`);
 
-        // 1. ログイン中ユーザー情報の取得
-        if (session?.token) {
-          const meRes = await fetch("/api/v1/me", { headers });
-          if (meRes.ok) {
-            const meData = await meRes.json();
-            if (!cancelled) setCurrentUserId(meData.id);
+        // 1. 自身のプロフィールを取得
+        const meRes = await fetch("/api/v1/me", { headers });
+        if (!meRes.ok) {
+          if (meRes.status === 401 || meRes.status === 404) {
+             if (!cancelled) setIsNotFound(true);
           }
+          throw new Error("Failed to fetch my profile");
         }
-
-        // 2. 表示対象のユーザープロフィールを取得
-        const profileRes = await fetch(`/api/v1/users/${userId}`);
-        if (!profileRes.ok) {
-          if (profileRes.status === 404 && !cancelled) setIsNotFound(true);
-          throw new Error("User not found");
-        }
-        const profileData = (await profileRes.json()) as UserProfile;
-
-        // 3. イベント情報の取得
-        const [hostedRes, participatedRes] = await Promise.all([
-          fetch(`/api/v1/users/${userId}/events/hosted`),
-          fetch(`/api/v1/users/${userId}/events/participated`),
-        ]);
-
-        let hEvents: EventItem[] = [];
-        let pEvents: EventItem[] = [];
-
-        if (hostedRes.ok) {
-          const data = (await hostedRes.json()) as UserEventListResponse;
-          hEvents = data.events.map((e) => ({
-            ...e,
-            hostName: profileData.displayName,
-            hostAvatarUrl: profileData.avatarUrl,
-            dateLabel: new Date(e.eventDate).toLocaleDateString("ja-JP", {
-              month: "short",
-              day: "numeric",
-              timeZone: "Asia/Tokyo",
-            }),
-          }));
-        }
-
-        if (participatedRes.ok) {
-          const data = (await participatedRes.json()) as UserEventListResponse;
-          pEvents = data.events.map((e) => ({
-            ...e,
-            hostName: "主催者",
-            hostAvatarUrl: "",
-            dateLabel: new Date(e.eventDate).toLocaleDateString("ja-JP", {
-              month: "short",
-              day: "numeric",
-              timeZone: "Asia/Tokyo",
-            }),
-          }));
-        }
+        const profileData = (await meRes.json()) as UserProfile;
 
         if (!cancelled) {
           setProfile(profileData);
-          setHostedEvents(hEvents);
-          setParticipatedEvents(pEvents);
+          
+          // ==========================================
+          // イベント取得APIが実装されたらここを追加
+          // ==========================================
+          // const myId = profileData.id;
+          // const [hostedRes, participatedRes] = await Promise.all([
+          //   fetch(`/api/v1/users/${myId}/events/hosted`, { headers }),
+          //   fetch(`/api/v1/users/${myId}/events/participated`, { headers }),
+          // ]);
+          // 
+          // 各resのok判定と、setHostedEvents / setParticipatedEvents への格納処理をここに書く
+          // ==========================================
+
+          // 今回はAPIがないため、空配列のままローディングを終了させる
+          setHostedEvents([]);
+          setParticipatedEvents([]);
         }
       } catch (err) {
         console.error(err);
@@ -126,9 +87,8 @@ export default function UserProfilePage(props: PageProps) {
     return () => {
       cancelled = true;
     };
-  }, [userId, session, isSessionLoading]);
+  }, [session, isSessionLoading]);
 
-  // ローディング表示
   if (isSessionLoading || isDataLoading) {
     return (
       <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
@@ -137,11 +97,10 @@ export default function UserProfilePage(props: PageProps) {
     );
   }
 
-  // プロフィールが見つからなかった場合のエラーハンドリング
   if (isNotFound || !profile) {
     return (
       <div className="min-h-screen bg-slate-50/60 flex flex-col items-center justify-center gap-4">
-        <p className="text-slate-500">ユーザーが見つかりませんでした。</p>
+        <p className="text-slate-500">ユーザー情報が取得できませんでした。ログインし直してください。</p>
         <Link href="/" className="text-sm text-emerald-600 hover:underline">
           トップページに戻る
         </Link>
@@ -149,7 +108,6 @@ export default function UserProfilePage(props: PageProps) {
     );
   }
 
-  // ヘッダーを作成する共通関数を用意
   const getAuthHeaders = () => {
     const headers = new Headers();
     headers.set("Content-Type", "application/json");
@@ -160,32 +118,26 @@ export default function UserProfilePage(props: PageProps) {
   };
 
   const handleUpdateName = async (newName: string) => {
-    // 認証ヘッダーを付与
-    const res = await fetch(`/api/v1/users/${userId}`, {
+    const res = await fetch(`/api/v1/me`, {
       method: "PATCH",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ displayName: newName }),
+      body: JSON.stringify({ display_name: newName }),
     });
 
     if (!res.ok) throw new Error("名前の更新に失敗しました");
-
     setProfile((prev) => (prev ? { ...prev, displayName: newName } : null));
   };
 
-  const handleUpdateBio = async (newBio: string) => {
-    // 認証ヘッダーを付与
-    const res = await fetch(`/api/v1/users/${userId}`, {
+  const handleUpdateDescription = async (newDescription: string) => {
+    const res = await fetch(`/api/v1/me`, {
       method: "PATCH",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ bio: newBio }),
+      body: JSON.stringify({ description: newDescription }),
     });
 
     if (!res.ok) throw new Error("自己紹介の更新に失敗しました");
-
-    setProfile((prev) => (prev ? { ...prev, bio: newBio } : null));
+    setProfile((prev) => (prev ? { ...prev, description: newDescription } : null));
   };
-
-  const isOwnProfile = currentUserId === userId;
 
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased">
@@ -205,11 +157,12 @@ export default function UserProfilePage(props: PageProps) {
         <ProfileHeader
           name={profile.displayName}
           avatarUrl={profile.avatarUrl}
-          bio={profile.bio}
-          isOwnProfile={isOwnProfile}
+          description={profile.description}
+          isOwnProfile={true} 
           onUpdateName={handleUpdateName}
-          onUpdateBio={handleUpdateBio}
+          onUpdateDescription={handleUpdateDescription}
         />
+        {/* APIから取得できない間は、「まだイベントがありません」等の初期UIが安全に表示されます */}
         <UserEventTabs
           hostedEvents={hostedEvents}
           participatedEvents={participatedEvents}
