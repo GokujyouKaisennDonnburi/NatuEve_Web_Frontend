@@ -38,6 +38,7 @@ export function ProfileHeader({
             src={avatarUrl}
             alt={`${name}のアイコン`}
             className="w-full h-full object-cover"
+            unoptimized
             onError={() => setImgError(true)}
           />
         ) : (
