@@ -66,10 +66,16 @@ export function EventParticipationButton({
     setIsSubmitting(true);
     try {
       // セッションのメールアドレスとユーザー名をそのまま使用する
-      await participateEvent(eventId, {
-        mailAddress: session?.email ?? "",
-        username: session?.name ?? "",
-      });
+      const mailAddress = session?.email ?? "";
+      const username = session?.name ?? "";
+
+      // 必須項目が欠損している場合は送信せず、再ログインを促す
+      if (!mailAddress || !username) {
+        toast.error("ユーザー情報が取得できませんでした。再度ログインしてください。");
+        return;
+      }
+
+      await participateEvent(eventId, { mailAddress, username });
       toast.success("参加申し込みを完了しました。");
     } catch (error) {
       handleParticipateError(error);
