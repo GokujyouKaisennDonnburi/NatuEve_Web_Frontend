@@ -65,7 +65,7 @@ export function TimelineHeader({
           // userから直接名前とアイコン画像を展開
           user.id ? (
             <Link
-              href={`/users/${user.id}`}
+              href={ROUTES.MYPAGE}
               className="block shrink-0 rounded-full hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
             >
               <GlobalUserAvatar

@@ -3,31 +3,27 @@
 import { InlineTextField } from "@/components/molecules/InlineTextField";
 import { InlineTextareaField } from "@/components/molecules/InlineTextareaField";
 import { User } from "lucide-react";
-import Image from "next/image";
 import { useState } from "react";
 
 type ProfileHeaderProps = {
   name: string;
   avatarUrl: string;
-  bio?: string;
+  description?: string;
   isOwnProfile: boolean;
-  // 保存時に実行される関数を親から受け取る
   onUpdateName?: (newName: string) => Promise<void>;
-  onUpdateBio?: (newBio: string) => Promise<void>;
+  onUpdateDescription?: (newDescription: string) => Promise<void>;
 };
 
 export function ProfileHeader({
   name,
   avatarUrl,
-  bio,
+  description,
   isOwnProfile,
   onUpdateName,
-  onUpdateBio,
+  onUpdateDescription,
 }: ProfileHeaderProps) {
-  // 画像読み込みエラー状態の管理
   const [imgError, setImgError] = useState(false);
 
-  // 保存関数が渡されていない場合のフォールバック（エラー防止）
   const defaultOnSave = async () => {};
 
   return (
@@ -35,14 +31,13 @@ export function ProfileHeader({
       {/* 1. アイコン領域 (フォールバック対応) */}
       <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border border-slate-200 shrink-0 bg-slate-100 flex items-center justify-center text-slate-400">
         {avatarUrl && !imgError ? (
-          <Image
+          <img
             src={avatarUrl}
             alt={`${name}のアイコン`}
             className="w-full h-full object-cover"
-            onError={() => setImgError(true)} // 読み込み失敗時にエラー状態をtrueにする
+            onError={() => setImgError(true)}
           />
         ) : (
-          // 画像がない、またはエラーの時はデフォルトアイコンを表示
           <User className="w-10 h-10 sm:w-12 sm:h-12" />
         )}
       </div>
@@ -63,9 +58,9 @@ export function ProfileHeader({
         {/* 自己紹介 (インライン編集) */}
         <div className="relative p-3 bg-slate-50 rounded-lg border border-slate-100 min-h-[4rem] text-left">
           <InlineTextareaField
-            value={bio || ""}
+            value={description || ""}
             isEditable={isOwnProfile}
-            onSave={onUpdateBio || defaultOnSave}
+            onSave={onUpdateDescription || defaultOnSave}
             placeholder="自己紹介を入力してみましょう！"
             textClassName="text-sm text-slate-600 leading-relaxed pr-6"
           />
