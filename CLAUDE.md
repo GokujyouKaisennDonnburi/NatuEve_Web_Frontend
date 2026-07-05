@@ -46,7 +46,4 @@ bun run storybook            # Storybook 起動
 - ドメイン: `natuportal.org`（サブドメイン方式）
 - **`.env.local` は絶対に読まない**（Supabase 鍵等のシークレットを含む）。変数名や形式は `.env.example` を参照する
 
-## 詳細ルール
-以下を常時参照する（Claude Code の `@import`）。
-@.claude/rules/nextjs-app-router.md
-@.claude/rules/bun-usage.md
+<!-- 詳細ルールは .claude/rules/ に配置（Claude Code 2.0.64+ が自動ロード） -->

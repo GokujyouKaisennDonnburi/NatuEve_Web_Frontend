@@ -1,7 +1,7 @@
 # Next.js App Router ルール
 
 > 適用対象: `app/**/*.tsx`, `app/**/*.ts`。
-> このファイルは CLAUDE.md から `@import` で常時ロードされる。
+> このファイルは `.claude/rules/` から常時自動ロードされる（新規ページ・コンポーネント作成時にも確実に適用するため、意図的にパススコープを付けていない）。
 
 ## 規約
 - Server Components をデフォルトとする
