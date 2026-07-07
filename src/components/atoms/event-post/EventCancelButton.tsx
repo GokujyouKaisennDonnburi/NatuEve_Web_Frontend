@@ -17,23 +17,26 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleCancel = async () => {
+  const handleCancel = () => {
     if (isDeleting) return;
 
     setIsDeleting(true);
-    try {
-      await deleteEvent(eventId);
-      toast.success("イベント投稿を削除しました。");
-      router.push(ROUTES.EVENT_LIST);
-    } catch (error) {
-      console.error("イベント投稿の削除に失敗しました:", error);
-      toast.error(
-        "イベント投稿の削除に失敗しました。時間をおいて再度お試しください。",
-      );
-    } finally {
-      setIsDeleting(false);
-      setIsConfirmOpen(false);
-    }
+    setIsConfirmOpen(false);
+
+    void (async () => {
+      try {
+        await deleteEvent(eventId);
+        toast.success("イベント投稿をキャンセルしました。");
+        router.push(ROUTES.EVENT_LIST);
+      } catch (error) {
+        console.error("イベント投稿のキャンセルに失敗しました:", error);
+        toast.error(
+          "イベント投稿のキャンセルに失敗しました。時間をおいて再度お試しください。",
+        );
+      } finally {
+        setIsDeleting(false);
+      }
+    })();
   };
 
   useEffect(() => {
