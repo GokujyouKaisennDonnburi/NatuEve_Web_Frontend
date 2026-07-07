@@ -71,7 +71,9 @@ export function EventParticipationButton({
 
       // 必須項目が欠損している場合は送信せず、再ログインを促す
       if (!mailAddress || !username) {
-        toast.error("ユーザー情報が取得できませんでした。再度ログインしてください。");
+        toast.error(
+          "ユーザー情報が取得できませんでした。再度ログインしてください。",
+        );
         return;
       }
 

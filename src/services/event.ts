@@ -23,3 +23,18 @@ export async function createEvent(
 
   return (await response.json()) as CreateEventResponse;
 }
+
+/**
+ * イベント削除 API (DELETE /api/v1/events/:eventId) を呼ぶ (要認証)。
+ *
+ * 削除に失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
+ */
+export async function deleteEvent(eventId: string): Promise<void> {
+  const response = await apiFetch(`/api/v1/events/${eventId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error(`イベント削除に失敗しました (Status: ${response.status})`);
+  }
+}
