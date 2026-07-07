@@ -159,6 +159,48 @@ const mockEventDetails = new Map<string, MockEventDetail>(
   ]),
 );
 
+// 検索対象フィールドを収集する。
+// 検索対象: title / location / profile.displayName(主催者) /
+//           description / organizerName(主催者) / items(イベントアイテム)
+// 一覧 API が返す MockEvent には description / items / organizerName が無いため、
+// 詳細モック（mockEventDetails）を参照して検索対象を拡張する。
+const collectSearchTargets = (event: MockEvent): string[] => {
+  const haystacks: string[] = [
+    event.title,
+    event.location,
+    event.profile.displayName,
+  ];
+  const detail = mockEventDetails.get(event.id);
+  if (detail) {
+    if (typeof detail.description === "string") {
+      haystacks.push(detail.description);
+    }
+    if (typeof detail.organizerName === "string") {
+      haystacks.push(detail.organizerName);
+    }
+    if (Array.isArray(detail.items)) {
+      for (const entry of detail.items) {
+        if (typeof entry?.item === "string") {
+          haystacks.push(entry.item);
+        }
+      }
+    }
+  }
+  return haystacks;
+};
+
+// matchesAllKeywords は、event が keywords の全てを（AND 検索として）
+// いずれかの検索対象フィールドに部分一致で含むかを判定する。
+const matchesAllKeywords = (event: MockEvent, keywords: string[]): boolean => {
+  if (keywords.length === 0) return true;
+  const haystacks = collectSearchTargets(event).map((value) =>
+    value.toLowerCase(),
+  );
+  return keywords.every((keyword) =>
+    haystacks.some((value) => value.includes(keyword.toLowerCase())),
+  );
+};
+
 // getPagedEvents関数は、指定されたURLのクエリパラメータに基づいて、イベントデータをページングして返す関数です。
 const getPagedEvents = (url: URL): MockEventListResponse => {
   // クエリパラメータからlimit, offset, sort, orderを取得し、適切な値に正規化する
@@ -174,8 +216,20 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
     url.searchParams.get("sort") === "event_date" ? "event_date" : "created_at";
   const order = url.searchParams.get("order") === "asc" ? "asc" : "desc";
 
+  // 同名の q パラメータが複数ある場合は getAll で配列として取り出し、
+  // 1件の場合も同じ配列相当の形で扱う。空キーワードは除外する。
+  const keywords = url.searchParams
+    .getAll("q")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  // 検索キーワードで絞り込む
+  const filteredEvents = keywords.length
+    ? mockEvents.filter((event) => matchesAllKeywords(event, keywords))
+    : mockEvents;
+
   // イベントデータをソートする
-  const sortedEvents = [...mockEvents].sort((left, right) => {
+  const sortedEvents = [...filteredEvents].sort((left, right) => {
     const leftValue = sort === "event_date" ? left.eventDate : left.createdAt;
     const rightValue =
       sort === "event_date" ? right.eventDate : right.createdAt;
@@ -200,7 +254,7 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
     events,
     limit,
     offset,
-    totalCount: mockEvents.length,
+    totalCount: filteredEvents.length,
   };
 };
 

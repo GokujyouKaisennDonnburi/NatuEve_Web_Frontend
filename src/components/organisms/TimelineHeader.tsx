@@ -1,6 +1,7 @@
 "use client";
 
 import { CreateEventButton } from "@/components/atoms/CreateEventButton";
+import { EventSearchBar } from "@/components/molecules/EventSearchBar";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
@@ -18,6 +19,8 @@ type TimelineHeaderProps = {
   eventCount: number;
   isUserLoading: boolean;
   onCreateEvent: () => void;
+  onSearch: (query: string) => void;
+  searchQuery: string;
   user: HeaderUser | null;
 };
 
@@ -25,6 +28,8 @@ export function TimelineHeader({
   eventCount,
   isUserLoading,
   onCreateEvent,
+  onSearch,
+  searchQuery,
   user,
 }: TimelineHeaderProps) {
   return (
@@ -84,6 +89,15 @@ export function TimelineHeader({
             </div>
           )}
         </div>
+      </div>
+
+      {/* 検索バー：Enter キー押下で検索を実行（ボタンは設置しない） */}
+      <div className="mx-auto max-w-xl px-4 pb-3">
+        <EventSearchBar
+          onSearch={onSearch}
+          initialValue={searchQuery}
+          placeholder="タイトル・詳細・主催者・地域・持ち物で検索"
+        />
       </div>
     </header>
   );
