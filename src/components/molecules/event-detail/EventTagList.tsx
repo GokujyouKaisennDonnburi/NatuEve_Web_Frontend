@@ -14,7 +14,7 @@ export function EventTagList({ tags }: Readonly<EventTagListProps>) {
     <ul className="mt-3 flex flex-wrap gap-2" aria-label="イベントタグ">
       {tags.map((tag) => (
         <li key={tag}>
-          <Badge tone="subtle" className="max-w-[12rem] truncate">
+          <Badge tone="subtle" className="max-w-[12rem] truncate" title={tag}>
             {tag}
           </Badge>
         </li>
