@@ -30,10 +30,10 @@ export function EventDetail({
   const organizerName = event.organizerName ?? event.profile?.displayName;
   const organizerAvatarUrl =
     event.organizerAvatarUrl ?? event.profile?.avatarUrl;
-  
+
   // 主催者のIDを取得
   const organizerId = event.profile?.id;
-  
+
   const router = useRouter();
   const { session } = useAuth();
 
@@ -76,11 +76,11 @@ export function EventDetail({
         <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">
           {event.title}
         </h1>
-        
+
         {/* アイコンと名前の表示部分をLinkで囲む */}
         <div className="mt-2 w-fit">
           {organizerId ? (
-            <Link 
+            <Link
               href={isOrganizer ? "/mypage" : `/users/${organizerId}`}
               className="flex items-center gap-2 text-sm text-slate-600 hover:opacity-80 transition-opacity cursor-pointer group"
             >
