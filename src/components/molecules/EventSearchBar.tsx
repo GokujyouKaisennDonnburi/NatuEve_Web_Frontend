@@ -62,9 +62,6 @@ export function EventSearchBar({
       <Button
         type="button"
         onClick={submitSearch}
-        aria-label="検索を実行"
-        size="icon"
-        variant="ghost"
         className="shrink-0 h-9 px-5 bg-slate-900 text-white hover:bg-slate-700"
       >
         検索
