@@ -159,21 +159,17 @@ const mockEventDetails = new Map<string, MockEventDetail>(
   ]),
 );
 
-// 検索クエリ（q）が指定された場合、以下の項目で部分一致検索を行う。
-// 一覧 API が返す MockEvent には description / items が無いため、
+// 検索対象フィールドを収集する。
+// 検索対象: title / location / profile.displayName(主催者) /
+//           description / organizerName(主催者) / items(イベントアイテム)
+// 一覧 API が返す MockEvent には description / items / organizerName が無いため、
 // 詳細モック（mockEventDetails）を参照して検索対象を拡張する。
-const matchesQuery = (event: MockEvent, query: string): boolean => {
-  if (query.length === 0) return true;
-
-  // 検索クエリを小文字に変換して、部分一致検索を行う
-  const needle = query.toLowerCase();
+const collectSearchTargets = (event: MockEvent): string[] => {
   const haystacks: string[] = [
     event.title,
     event.location,
     event.profile.displayName,
   ];
-
-  // 詳細モックから description / organizerName / items を検索対象に追加
   const detail = mockEventDetails.get(event.id);
   if (detail) {
     if (typeof detail.description === "string") {
@@ -190,8 +186,19 @@ const matchesQuery = (event: MockEvent, query: string): boolean => {
       }
     }
   }
+  return haystacks;
+};
 
-  return haystacks.some((value) => value.toLowerCase().includes(needle));
+// matchesAllKeywords は、event が keywords の全てを（AND 検索として）
+// いずれかの検索対象フィールドに部分一致で含むかを判定する。
+const matchesAllKeywords = (event: MockEvent, keywords: string[]): boolean => {
+  if (keywords.length === 0) return true;
+  const haystacks = collectSearchTargets(event).map((value) =>
+    value.toLowerCase(),
+  );
+  return keywords.every((keyword) =>
+    haystacks.some((value) => value.includes(keyword.toLowerCase())),
+  );
 };
 
 // getPagedEvents関数は、指定されたURLのクエリパラメータに基づいて、イベントデータをページングして返す関数です。
@@ -208,11 +215,17 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
   const sort =
     url.searchParams.get("sort") === "event_date" ? "event_date" : "created_at";
   const order = url.searchParams.get("order") === "asc" ? "asc" : "desc";
-  const query = (url.searchParams.get("q") ?? "").trim();
 
-  // 検索クエリで絞り込む
-  const filteredEvents = query
-    ? mockEvents.filter((event) => matchesQuery(event, query))
+  // 同名の q パラメータが複数ある場合は getAll で配列として取り出し、
+  // 1件の場合も同じ配列相当の形で扱う。空キーワードは除外する。
+  const keywords = url.searchParams
+    .getAll("q")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  // 検索キーワードで絞り込む
+  const filteredEvents = keywords.length
+    ? mockEvents.filter((event) => matchesAllKeywords(event, keywords))
     : mockEvents;
 
   // イベントデータをソートする

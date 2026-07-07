@@ -167,9 +167,16 @@ export default function EventListPage() {
           offset: offset.toString(),
         });
 
-        // 検索クエリがある場合はパラメータに追加
+        // 検索クエリがある場合は半角/全角スペースで分割し、
+        // 各キーワードを q パラメータとして多重送信する（AND 検索）
         if (searchQuery) {
-          params.set("q", searchQuery);
+          const keywords = searchQuery
+            .split(/[\s\u3000]+/)
+            .map((keyword) => keyword.trim())
+            .filter((keyword) => keyword.length > 0);
+          for (const keyword of keywords) {
+            params.append("q", keyword);
+          }
         }
 
         // 念のためイベント取得APIにもトークンがあれば渡すよう設定（不要な場合はheadersを外してもOKです）
