@@ -1,5 +1,6 @@
 "use client";
 
+import { EventCancelButton } from "@/components/atoms/event-post/EventCancelButton";
 import { EventImageCarousel } from "@/components/molecules/event-detail/EventImageCarousel";
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
 import { EventPdfList } from "@/components/molecules/event-detail/EventPdfList";
@@ -141,13 +142,15 @@ export function EventDetail({
       {/* レポート */}
       <EventReportList report={report} />
 
-      {/* 参加申し込みボタン（主催者自身のイベントでは非表示） */}
+      {/* イベント投稿者向けボタンと参加申し込みボタンの切り替え */}
       {/* スクロール中も画面下部に固定で表示する */}
-      {!isOrganizer ? (
-        <div className="sticky bottom-4 z-40">
+      <div className="sticky bottom-4 z-40">
+        {isOrganizer ? (
+          <EventCancelButton eventId={event.id} />
+        ) : (
           <EventParticipationButton eventId={event.id} />
-        </div>
-      ) : null}
+        )}
+      </div>
     </div>
   );
 }

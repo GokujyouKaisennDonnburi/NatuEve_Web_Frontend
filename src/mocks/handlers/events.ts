@@ -321,6 +321,44 @@ export const eventHandlers = [
       updatedAt: report.createdAt,
     });
   }),
+
+  // イベント削除モックエンドポイント（DELETE /api/v1/events/:id）
+  http.delete("/api/v1/events/:id", async ({ request, params }) => {
+    const id = String(params?.id ?? "");
+    const authorizationHeader = request.headers.get("authorization");
+
+    if (!authorizationHeader?.startsWith("Bearer ")) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証トークンが無効です",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    const eventIndex = mockEvents.findIndex((event) => event.id === id);
+    if (eventIndex === -1) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "not_found",
+            message: "イベントが見つかりません",
+          },
+        },
+        { status: 404 },
+      );
+    }
+
+    mockEvents.splice(eventIndex, 1);
+    mockEventDetails.delete(id);
+    eventParticipants.delete(id);
+
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   // 新しいイベントを作成するモックエンドポイント
   http.post("/api/v1/events", async ({ request }) => {
     const authorizationHeader = request.headers.get("authorization");
