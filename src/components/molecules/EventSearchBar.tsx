@@ -30,7 +30,11 @@ export function EventSearchBar({
 
   return (
     <div className={`relative block ${className}`}>
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <Search
+        aria-hidden="true"
+        focusable="false"
+        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+      />
       <label htmlFor={inputId} className="sr-only">
         {placeholder}
       </label>
