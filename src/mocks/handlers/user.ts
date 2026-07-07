@@ -163,14 +163,14 @@ export const userHandlers = [
   // ------------------------------------------
   // 他人のプロフィール取得 (GET /api/v1/profiles/:id)
   // ------------------------------------------
-  http.get('/api/v1/profiles/:id', ({ params }) => {
+  http.get("/api/v1/profiles/:id", ({ params }) => {
     const { id } = params;
 
     // "other-user" 以外のIDが指定された場合は 404 Not Found を返す
     if (id !== "other-user") {
       return HttpResponse.json(
         { error: { code: "not_found", message: "リソースが見つかりません" } },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -179,7 +179,8 @@ export const userHandlers = [
       id: id,
       displayName: "他のユーザーさん",
       avatarUrl: "https://github.com/shadcn.png",
-      description: "これはAPIから取得した他のユーザーの自己紹介文です。よろしくおねがいします！",
+      description:
+        "これはAPIから取得した他のユーザーの自己紹介文です。よろしくおねがいします！",
     });
   }),
 

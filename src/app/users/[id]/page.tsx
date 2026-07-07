@@ -106,9 +106,7 @@ export default function UserProfilePage({
   if (isNotFound || !profile) {
     return (
       <div className="min-h-screen bg-slate-50/60 flex flex-col items-center justify-center gap-4">
-        <p className="text-slate-500">
-          ユーザー情報が見つかりませんでした。
-        </p>
+        <p className="text-slate-500">ユーザー情報が見つかりませんでした。</p>
         <Link href="/" className="text-sm text-emerald-600 hover:underline">
           トップページに戻る
         </Link>

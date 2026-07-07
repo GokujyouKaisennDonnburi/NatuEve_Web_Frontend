@@ -1,8 +1,8 @@
 "use client";
 
-import { Search } from "lucide-react";
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useId, useState } from "react";
 
 type EventSearchBarProps = {
   onSearch: (query: string) => void;
@@ -17,9 +17,10 @@ export function EventSearchBar({
   placeholder = "イベントを検索",
   className = "",
 }: Readonly<EventSearchBarProps>) {
-  const inputId = "event-search-bar-input";
+  const inputId = useId();
   const [value, setValue] = useState(initialValue);
 
+  // Enter キー押下時に検索を実行するハンドラー
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
