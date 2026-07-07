@@ -62,6 +62,7 @@ export default function EventListPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("created_at");
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const ITEMS_PER_PAGE = 15;
 
   const router = useRouter();
@@ -166,6 +167,11 @@ export default function EventListPage() {
           offset: offset.toString(),
         });
 
+        // 検索クエリがある場合はパラメータに追加
+        if (searchQuery) {
+          params.set("q", searchQuery);
+        }
+
         // 念のためイベント取得APIにもトークンがあれば渡すよう設定（不要な場合はheadersを外してもOKです）
         const headers: Record<string, string> = {};
         if (session?.token) {
@@ -225,7 +231,7 @@ export default function EventListPage() {
     return () => {
       cancelled = true;
     };
-  }, [currentPage, sortBy, session, isSessionLoading]); // 依存配列に session と loading 状態を追加
+  }, [currentPage, sortBy, searchQuery, session, isSessionLoading]); // 依存配列に session と loading 状態を追加
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -239,8 +245,15 @@ export default function EventListPage() {
     return numbers;
   }, [currentPage, totalPages]);
 
+  // ソートオプションの変更を処理する関数
   const handleSortChange = (value: SortOption) => {
     setSortBy(value);
+    setCurrentPage(1);
+  };
+
+  // 検索クエリの変更を処理する関数
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
     setCurrentPage(1);
   };
 
@@ -259,6 +272,8 @@ export default function EventListPage() {
         // セッション取得とプロフィール取得の両方が終わるまでローディング状態とする
         isUserLoading={isSessionLoading || isProfileLoading}
         onCreateEvent={handleCreateEvent}
+        onSearch={handleSearch}
+        searchQuery={searchQuery}
         user={mappedUserForHeader}
       />
 

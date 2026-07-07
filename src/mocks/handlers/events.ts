@@ -159,6 +159,41 @@ const mockEventDetails = new Map<string, MockEventDetail>(
   ]),
 );
 
+// 検索クエリ（q）が指定された場合、以下の項目で部分一致検索を行う。
+// 一覧 API が返す MockEvent には description / items が無いため、
+// 詳細モック（mockEventDetails）を参照して検索対象を拡張する。
+const matchesQuery = (event: MockEvent, query: string): boolean => {
+  if (query.length === 0) return true;
+
+  // 検索クエリを小文字に変換して、部分一致検索を行う
+  const needle = query.toLowerCase();
+  const haystacks: string[] = [
+    event.title,
+    event.location,
+    event.profile.displayName,
+  ];
+
+  // 詳細モックから description / organizerName / items を検索対象に追加
+  const detail = mockEventDetails.get(event.id);
+  if (detail) {
+    if (typeof detail.description === "string") {
+      haystacks.push(detail.description);
+    }
+    if (typeof detail.organizerName === "string") {
+      haystacks.push(detail.organizerName);
+    }
+    if (Array.isArray(detail.items)) {
+      for (const entry of detail.items) {
+        if (typeof entry?.item === "string") {
+          haystacks.push(entry.item);
+        }
+      }
+    }
+  }
+
+  return haystacks.some((value) => value.toLowerCase().includes(needle));
+};
+
 // getPagedEvents関数は、指定されたURLのクエリパラメータに基づいて、イベントデータをページングして返す関数です。
 const getPagedEvents = (url: URL): MockEventListResponse => {
   // クエリパラメータからlimit, offset, sort, orderを取得し、適切な値に正規化する
@@ -173,9 +208,15 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
   const sort =
     url.searchParams.get("sort") === "event_date" ? "event_date" : "created_at";
   const order = url.searchParams.get("order") === "asc" ? "asc" : "desc";
+  const query = (url.searchParams.get("q") ?? "").trim();
+
+  // 検索クエリで絞り込む
+  const filteredEvents = query
+    ? mockEvents.filter((event) => matchesQuery(event, query))
+    : mockEvents;
 
   // イベントデータをソートする
-  const sortedEvents = [...mockEvents].sort((left, right) => {
+  const sortedEvents = [...filteredEvents].sort((left, right) => {
     const leftValue = sort === "event_date" ? left.eventDate : left.createdAt;
     const rightValue =
       sort === "event_date" ? right.eventDate : right.createdAt;
@@ -200,7 +241,7 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
     events,
     limit,
     offset,
-    totalCount: mockEvents.length,
+    totalCount: filteredEvents.length,
   };
 };
 
