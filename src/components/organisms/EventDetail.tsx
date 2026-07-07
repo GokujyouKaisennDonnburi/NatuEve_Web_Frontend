@@ -30,12 +30,16 @@ export function EventDetail({
   const organizerName = event.organizerName ?? event.profile?.displayName;
   const organizerAvatarUrl =
     event.organizerAvatarUrl ?? event.profile?.avatarUrl;
+  
+  // 主催者のIDを取得
+  const organizerId = event.profile?.id;
+  
   const router = useRouter();
   const { session } = useAuth();
 
   // ログイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(
-    session?.userId && event.profile?.id && session.userId === event.profile.id,
+    session?.userId && organizerId && session.userId === organizerId,
   );
 
   return (
@@ -72,15 +76,36 @@ export function EventDetail({
         <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">
           {event.title}
         </h1>
-        <div className="mt-2 flex items-center gap-2 text-sm text-slate-600">
-          <GlobalUserAvatar
-            name={organizerName}
-            iconUrl={organizerAvatarUrl}
-            className="h-5 w-5 border-slate-300"
-          />
-          <span className="font-medium text-slate-700">
-            {organizerName ?? "未設定"}
-          </span>
+        
+        {/* アイコンと名前の表示部分をLinkで囲む */}
+        <div className="mt-2 w-fit">
+          {organizerId ? (
+            <Link 
+              href={isOrganizer ? "/mypage" : `/users/${organizerId}`}
+              className="flex items-center gap-2 text-sm text-slate-600 hover:opacity-80 transition-opacity cursor-pointer group"
+            >
+              <GlobalUserAvatar
+                name={organizerName}
+                iconUrl={organizerAvatarUrl}
+                className="h-5 w-5 border-slate-300 group-hover:ring-2 group-hover:ring-emerald-100 transition-all"
+              />
+              <span className="font-medium text-slate-700 group-hover:text-emerald-600 transition-colors">
+                {organizerName ?? "未設定"}
+              </span>
+            </Link>
+          ) : (
+            // IDがない（過去のデータ等で紐付いていない）場合のフォールバック（リンクなし）
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <GlobalUserAvatar
+                name={organizerName}
+                iconUrl={organizerAvatarUrl}
+                className="h-5 w-5 border-slate-300"
+              />
+              <span className="font-medium text-slate-700">
+                {organizerName ?? "未設定"}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
