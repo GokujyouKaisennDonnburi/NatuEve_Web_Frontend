@@ -4,6 +4,7 @@ import { EventImageCarousel } from "@/components/molecules/event-detail/EventIma
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
 import { EventPdfList } from "@/components/molecules/event-detail/EventPdfList";
 import { EventReportList } from "@/components/molecules/event-detail/EventReportList";
+import { EventTagList } from "@/components/molecules/event-detail/EventTagList";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { EventParticipationButton } from "@/components/organisms/EventParticipationButton";
@@ -76,6 +77,9 @@ export function EventDetail({
         <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">
           {event.title}
         </h1>
+
+        {/* タグ表示(Qiita 風)バックエンド未対応時は空配列で非表示 */}
+        <EventTagList tags={event.tags ?? []} />
 
         {/* アイコンと名前の表示部分をLinkで囲む */}
         <div className="mt-2 w-fit">
