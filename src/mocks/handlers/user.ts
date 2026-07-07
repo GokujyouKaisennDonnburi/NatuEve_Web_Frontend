@@ -160,31 +160,27 @@ export const userHandlers = [
     return HttpResponse.json(myProfile);
   }),
 
-  // 指定したIDのユーザープロフィール取得API
-  http.get("/api/v1/users/:id", ({ params }) => {
+  // ------------------------------------------
+  // 他人のプロフィール取得 (GET /api/v1/profiles/:id)
+  // ------------------------------------------
+  http.get('/api/v1/profiles/:id', ({ params }) => {
     const { id } = params;
-    // idが存在することを保証（文字列型にキャスト）
-    const userId = typeof id === "string" ? id : "unknown";
 
-    // まずは事前定義されたモックデータ(user-1, user-2)を探す
-    const user = sampleUserProfiles.find((u) => u.id === userId);
-
-    if (user) {
-      return HttpResponse.json(user);
+    // "other-user" 以外のIDが指定された場合は 404 Not Found を返す
+    if (id !== "other-user") {
+      return HttpResponse.json(
+        { error: { code: "not_found", message: "リソースが見つかりません" } },
+        { status: 404 }
+      );
     }
 
-    // 未知のID（実際のGoogleアカウントIDなど）が来た場合のフォールバック
-    // そのIDを持った動的なモックユーザーを生成して返す
-    const dynamicUser = {
-      id: userId,
-      displayName: "ログインユーザー (動的モック)",
-      // IDをシード値にして、ランダムだけどIDごとに固定のアイコンを生成する無料サービスを利用
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userId)}`,
-
-      bio: "Googleアカウントでログイン中の動的モックプロフィールです。\n（実際のAPIが完成するまでの仮データです）",
-    };
-
-    return HttpResponse.json(dynamicUser);
+    // id が "other-user" の場合のみ正常データを返す
+    return HttpResponse.json({
+      id: id,
+      displayName: "他のユーザーさん",
+      avatarUrl: "https://github.com/shadcn.png",
+      description: "これはAPIから取得した他のユーザーの自己紹介文です。よろしくおねがいします！",
+    });
   }),
 
   // 指定したIDのユーザーが主催したイベント取得API
