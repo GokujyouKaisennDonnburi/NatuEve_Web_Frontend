@@ -123,7 +123,11 @@ const createDefaultMockEventDetail = (
     { item: "飲み物", isRequired: true },
     { item: "帽子", isRequired: false },
   ],
-  tags: index % 5 === 0 ? [] : SAMPLE_TAG_POOL[index % SAMPLE_TAG_POOL.length],
+  // tags フィールドは index % 5 === 0 のとき JSON に含めない(undefined として返却)。
+  // EventTagList のオプショナル props フォールバック動作を end-to-end で検証できるようにしている。
+  ...(index % 5 === 0
+    ? {}
+    : { tags: SAMPLE_TAG_POOL[index % SAMPLE_TAG_POOL.length] }),
   imageObjectKeys: [
     `https://picsum.photos/1200/600?random=${index * 3 + 1}`,
     `https://picsum.photos/1200/600?random=${index * 3 + 2}`,
