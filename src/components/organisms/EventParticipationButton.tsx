@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
+import { MOCK_AUTH_SESSION, isMockAuthEnabled } from "@/services/mockAuth";
 import { participateEvent } from "@/services/participate";
 import { ParticipateError, ParticipateErrorCode } from "@/types/participate";
 import { useEffect, useId, useRef, useState } from "react";
@@ -14,6 +15,8 @@ import { toast } from "sonner";
 type EventParticipationButtonProps = {
   eventId: string;
   disabled?: boolean; // 主催者自身のイベントなどで、参加申し込みを無効化するためのフラグ
+  // イベントの定員（参加人数の上限）。未設定時は上限なし。
+  capacity?: number;
 };
 
 // 参加申し込みのエラーを種別ごとにトーストへ振り分ける
@@ -55,10 +58,16 @@ const handleParticipateError = (error: unknown) => {
 export function EventParticipationButton({
   eventId,
   disabled,
+  capacity,
 }: EventParticipationButtonProps) {
   const { session, isLoading: isSessionLoading } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // 参加人数（代表者を含む）。初期値 1、最小値 1、上限は定員（capacity）があればそれ。
+  const maxCount =
+    typeof capacity === "number" && capacity >= 1 ? Math.floor(capacity) : null;
+  const [participantCount, setParticipantCount] = useState(1);
+  const countId = useId();
 
   // ログイン時はトークン付きで送信
   const handleSubmitForLoggedInUser = async () => {
@@ -66,8 +75,12 @@ export function EventParticipationButton({
     setIsSubmitting(true);
     try {
       // セッションのメールアドレスとユーザー名をそのまま使用する
-      const mailAddress = session?.email ?? "";
-      const username = session?.name ?? "";
+      // モック環境下ではセッションに email/name が欠ける場合があるため、
+      // モック既定値でフォールバックする
+      const isMock = isMockAuthEnabled();
+      const mailAddress =
+        session?.email ?? (isMock ? MOCK_AUTH_SESSION.email : "");
+      const username = session?.name ?? (isMock ? MOCK_AUTH_SESSION.name : "");
 
       // 必須項目が欠損している場合は送信せず、再ログインを促す
       if (!mailAddress || !username) {
@@ -77,7 +90,11 @@ export function EventParticipationButton({
         return;
       }
 
-      await participateEvent(eventId, { mailAddress, username });
+      await participateEvent(eventId, {
+        mailAddress,
+        username,
+        participantCount,
+      });
       toast.success("参加申し込みを完了しました。");
     } catch (error) {
       handleParticipateError(error);
@@ -99,20 +116,98 @@ export function EventParticipationButton({
     }
   };
 
+  // 参加人数を減らす
+  const handleDecrement = () => {
+    if (disabled || isSessionLoading || isSubmitting) return;
+    setParticipantCount((prev) => (prev <= 1 ? 1 : prev - 1));
+  };
+
+  // 参加人数を増やす
+  const handleIncrement = () => {
+    if (disabled || isSessionLoading || isSubmitting) return;
+    setParticipantCount((prev) => {
+      const next = prev + 1;
+      return maxCount !== null && next > maxCount ? prev : next;
+    });
+  };
+
+  // 参加人数の直接入力（数値入力欄）
+  const handleCountChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled || isSessionLoading || isSubmitting) return;
+    let next = Number(event.target.value);
+    if (Number.isNaN(next) || next < 1) {
+      next = 1;
+    } else {
+      next = Math.floor(next);
+      if (maxCount !== null && next > maxCount) next = maxCount;
+    }
+    setParticipantCount(next);
+  };
+
+  // コントロールの無効状態を判定
+  const isControlDisabled = disabled || isSessionLoading || isSubmitting;
+  const canDecrement = !isControlDisabled && participantCount > 1;
+  const canIncrement =
+    !isControlDisabled && (maxCount === null || participantCount < maxCount);
+
   return (
     <>
-      <Button
-        size="lg"
-        className="w-full cursor-pointer rounded-full bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 px-6 py-6 text-base font-semibold text-white shadow-lg shadow-teal-500/25 transition hover:-translate-y-px hover:shadow-xl hover:shadow-teal-500/30 focus-visible:ring-teal-500/30 disabled:opacity-50"
-        disabled={disabled || isSessionLoading || isSubmitting}
-        onClick={handleButtonClick}
-      >
-        {isSubmitting ? "送信中…" : "参加申し込み"}
-      </Button>
+      <Label htmlFor={countId} className="sr-only">
+        参加人数
+      </Label>
+      <div className="group flex h-10 w-full items-stretch overflow-hidden rounded-xl bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 shadow-lg shadow-teal-500/25 transition hover:-translate-y-px hover:shadow-xl hover:shadow-teal-500/30 focus-within:ring-2 focus-within:ring-teal-500/30 disabled:opacity-50">
+        {/* 左：メインアクション */}
+        <button
+          type="button"
+          className="flex flex-1 cursor-pointer items-center justify-center px-6 text-base font-semibold text-white transition hover:bg-white/10 active:bg-white/20 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+          disabled={isControlDisabled}
+          onClick={handleButtonClick}
+        >
+          {isSubmitting ? "送信中…" : "参加申し込み"}
+        </button>
+        {/* 区切り線 */}
+        <div className="w-px bg-white/30" />
+        {/* 右：人数変更エリア */}
+        <div className="flex items-center gap-1 bg-white/10 px-3">
+          <button
+            type="button"
+            aria-label="参加人数を1減らす"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-lg font-bold leading-none text-white transition hover:bg-white/20 active:bg-white/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            disabled={!canDecrement}
+            onClick={handleDecrement}
+          >
+            －
+          </button>
+          <Input
+            id={countId}
+            type="number"
+            min={1}
+            max={maxCount ?? undefined}
+            step={1}
+            inputMode="numeric"
+            value={participantCount}
+            onChange={handleCountChange}
+            disabled={isControlDisabled}
+            aria-label="参加人数"
+            className="h-8 w-12 border-none bg-transparent px-0 text-center text-base font-semibold text-white [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <button
+            type="button"
+            aria-label="参加人数を1増やす"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-lg font-bold leading-none text-white transition hover:bg-white/20 active:bg-white/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            disabled={!canIncrement}
+            onClick={handleIncrement}
+          >
+            ＋
+          </button>
+        </div>
+      </div>
 
+      {/* 未ログイン時の参加申し込みモーダル */}
       {isModalOpen ? (
         <GuestParticipationModal
           eventId={eventId}
+          participantCount={participantCount}
           onClose={() => setIsModalOpen(false)}
           isSubmitting={isSubmitting}
           setIsSubmitting={setIsSubmitting}
@@ -125,6 +220,8 @@ export function EventParticipationButton({
 // 未ログイン時の参加申し込みモーダル
 type GuestParticipationModalProps = {
   eventId: string;
+  // 参加人数（代表者を含む）
+  participantCount: number;
   onClose: () => void;
   isSubmitting: boolean;
   setIsSubmitting: (value: boolean) => void;
@@ -133,6 +230,7 @@ type GuestParticipationModalProps = {
 // 未ログイン時の参加申し込みモーダルコンポーネント
 const GuestParticipationModal = ({
   eventId,
+  participantCount,
   onClose,
   isSubmitting,
   setIsSubmitting,
@@ -186,7 +284,11 @@ const GuestParticipationModal = ({
     try {
       await participateEvent(
         eventId,
-        { mailAddress: trimmedEmail, username: trimmedName },
+        {
+          mailAddress: trimmedEmail,
+          username: trimmedName,
+          participantCount,
+        },
         { auth: false },
       );
       toast.success("参加申し込みを完了しました。");
