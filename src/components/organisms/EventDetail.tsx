@@ -78,8 +78,8 @@ export function EventDetail({
           {event.title}
         </h1>
 
-        {/* タグ表示(Qiita 風)バックエンド未対応時は空配列で非表示 */}
-        <EventTagList tags={event.tags ?? []} />
+        {/* タグ表示(Qiita 風)バックエンド未対応時は undefined → フォールバック */}
+        <EventTagList tags={event.tags} />
 
         {/* アイコンと名前の表示部分をLinkで囲む */}
         <div className="mt-2 w-fit">
