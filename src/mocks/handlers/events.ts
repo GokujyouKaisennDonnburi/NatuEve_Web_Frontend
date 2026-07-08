@@ -230,10 +230,12 @@ const matchesAllKeywords = (event: MockEvent, keywords: string[]): boolean => {
   const haystacks = collectSearchTargets(event).map((value) =>
     normalizeForKeywordSearch(value),
   );
-  return keywords.every((keyword) =>
-    haystacks.some((value) =>
-      value.includes(normalizeForKeywordSearch(keyword)),
-    ),
+  // キーワードは最大10語なので先に一度だけ正規化してから照合する
+  const normalizedKeywords = keywords.map((keyword) =>
+    normalizeForKeywordSearch(keyword),
+  );
+  return normalizedKeywords.every((keyword) =>
+    haystacks.some((value) => value.includes(keyword)),
   );
 };
 
