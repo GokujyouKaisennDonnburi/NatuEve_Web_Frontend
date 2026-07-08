@@ -17,6 +17,7 @@ type MockEvent = {
   profile: MockProfile;
   profileId: string;
   title: string;
+  tags?: string[];
 };
 
 // MockEventListResponse型は、イベントリストのレスポンスを表す型です。
@@ -54,6 +55,15 @@ type MockEventDetail = MockEvent & {
   }[];
 };
 
+// 開発環境でタグ表示の確認ができるようサンプルタグを用意。
+// 一部のイベントはタグ未設定にしておき、未設定時の非表示挙動も検証可能にしている。
+const SAMPLE_TAG_POOL: string[][] = [
+  ["自然観察", "ファミリー向け"],
+  ["生き物", "屋外"],
+  ["ハイキング", "初心者歓迎"],
+  ["野鳥", "双眼鏡推奨"],
+];
+
 // ダミーイベントデータの初期値を生成
 const createInitialDummyEvents = (): MockEvent[] => {
   return Array.from({ length: 100 }).map((_, index) => {
@@ -89,21 +99,15 @@ const createInitialDummyEvents = (): MockEvent[] => {
             : "https://i.pravatar.cc/150?img=2",
       },
       createdAt: `${pYyyy}-${pMm}-${pDd}T${pHh}:${pMin}:00+09:00`,
+      ...(index % 5 === 0
+        ? {}
+        : { tags: SAMPLE_TAG_POOL[index % SAMPLE_TAG_POOL.length] }),
     };
   });
 };
 
 // メモリ内でイベント一覧を管理する（初期値はダミーイベント）
 const mockEvents: MockEvent[] = createInitialDummyEvents();
-
-// 開発環境でタグ表示の確認ができるようサンプルタグを用意。
-// 一部のイベントはタグ未設定にしておき、未設定時の非表示挙動も検証可能にしている。
-const SAMPLE_TAG_POOL: string[][] = [
-  ["自然観察", "ファミリー向け"],
-  ["生き物", "屋外"],
-  ["ハイキング", "初心者歓迎"],
-  ["野鳥", "双眼鏡推奨"],
-];
 
 const createDefaultMockEventDetail = (
   event: MockEvent,
@@ -197,6 +201,13 @@ const collectSearchTargets = (event: MockEvent): string[] => {
       for (const entry of detail.items) {
         if (typeof entry?.item === "string") {
           haystacks.push(entry.item);
+        }
+      }
+    }
+    if (Array.isArray(detail.tags)) {
+      for (const tag of detail.tags) {
+        if (typeof tag === "string") {
+          haystacks.push(tag);
         }
       }
     }
