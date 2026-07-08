@@ -101,6 +101,7 @@ export type EventDetailResponse = {
   pdfUrls: string[];
   profile: EventDetailProfile;
   reports?: EventDetailReport[];
+  tags?: string[];
   title: string;
   updatedAt: string;
 };

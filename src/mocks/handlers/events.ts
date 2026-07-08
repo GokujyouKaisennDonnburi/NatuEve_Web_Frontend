@@ -41,6 +41,7 @@ type MockEventDetail = MockEvent & {
   pdfUrls?: string[];
   pdfObjectKeys?: string[];
   pdfFilenames?: string[];
+  tags?: string[];
   reports?: {
     id: string;
     createdAt: string;
@@ -95,6 +96,15 @@ const createInitialDummyEvents = (): MockEvent[] => {
 // メモリ内でイベント一覧を管理する（初期値はダミーイベント）
 const mockEvents: MockEvent[] = createInitialDummyEvents();
 
+// 開発環境でタグ表示の確認ができるようサンプルタグを用意。
+// 一部のイベントはタグ未設定にしておき、未設定時の非表示挙動も検証可能にしている。
+const SAMPLE_TAG_POOL: string[][] = [
+  ["自然観察", "ファミリー向け"],
+  ["生き物", "屋外"],
+  ["ハイキング", "初心者歓迎"],
+  ["野鳥", "双眼鏡推奨"],
+];
+
 const createDefaultMockEventDetail = (
   event: MockEvent,
   index: number,
@@ -113,6 +123,11 @@ const createDefaultMockEventDetail = (
     { item: "飲み物", isRequired: true },
     { item: "帽子", isRequired: false },
   ],
+  // tags フィールドは index % 5 === 0 のとき JSON に含めない(undefined として返却)。
+  // EventTagList のオプショナル props フォールバック動作を end-to-end で検証できるようにしている。
+  ...(index % 5 === 0
+    ? {}
+    : { tags: SAMPLE_TAG_POOL[index % SAMPLE_TAG_POOL.length] }),
   imageObjectKeys: [
     `https://picsum.photos/1200/600?random=${index * 3 + 1}`,
     `https://picsum.photos/1200/600?random=${index * 3 + 2}`,
