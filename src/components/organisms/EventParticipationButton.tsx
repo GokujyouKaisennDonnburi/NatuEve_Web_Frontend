@@ -24,8 +24,12 @@ const handleParticipateError = (error: unknown) => {
   if (error instanceof ParticipateError) {
     switch (error.code) {
       // 既に参加している場合
-      case ParticipateErrorCode.Conflict:
+      case ParticipateErrorCode.AlreadyJoined:
         toast.error(error.message || "既に参加しています。");
+        return;
+      // 定員に達している場合
+      case ParticipateErrorCode.CapacityFull:
+        toast.error(error.message || "定員に達しています。");
         return;
       // 参加申し込みの権限がない場合
       case ParticipateErrorCode.Unauthorized:
@@ -93,7 +97,7 @@ export function EventParticipationButton({
       await participateEvent(eventId, {
         mailAddress,
         username,
-        participantCount,
+        partySize: participantCount,
       });
       toast.success("参加申し込みを完了しました。");
     } catch (error) {
@@ -289,7 +293,7 @@ const GuestParticipationModal = ({
         {
           mailAddress: trimmedEmail,
           username: trimmedName,
-          participantCount,
+          partySize: participantCount,
         },
         { auth: false },
       );

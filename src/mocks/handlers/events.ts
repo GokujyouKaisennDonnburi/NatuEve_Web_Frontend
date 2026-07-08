@@ -548,9 +548,8 @@ export const eventHandlers = [
   // イベント参加モックエンドポイント（POST /api/v1/events/:id/join）
   // 認証は任意。Authorization ヘッダなし → 匿名参加（profileId = null）。
   // ヘッダありで有効な Bearer → profileId を記録してログイン参加。
-  // 同一イベントへの重複参加は 409 Conflict で返す。
+  // 同一イベントへの重複参加は 409 already_joined、定員超過は 409 capacity_full で返す。
   // メモリ内参加者管理はモジュールスコープの eventParticipants を使用
-
   http.post("/api/v1/events/:id/join", async ({ request, params }) => {
     const id = String(params?.id ?? "");
 
@@ -571,7 +570,7 @@ export const eventHandlers = [
     const body = (await request.json()) as {
       mailAddress?: unknown;
       username?: unknown;
-      participantCount?: unknown;
+      partySize?: unknown;
     };
 
     // 本番のサーバー側バリデーションを模し、必須項目が欠ける場合は 400 を返す
@@ -579,19 +578,13 @@ export const eventHandlers = [
       typeof body.mailAddress === "string" && body.mailAddress.length > 0;
     const hasUsername =
       typeof body.username === "string" && body.username.length > 0;
-    const hasValidParticipantCount =
-      typeof body.participantCount === "number" &&
-      Number.isInteger(body.participantCount) &&
-      body.participantCount >= 1;
-    // イベントの定員が設定されている場合は、参加人数が定員を超えないことも検証する
-    const detail = mockEventDetails.get(id);
-    const withinCapacity =
-      typeof detail?.capacity !== "number" ||
-      detail.capacity < 1 ||
-      (typeof body.participantCount === "number" &&
-        body.participantCount <= detail.capacity);
+    const hasValidPartySize =
+      typeof body.partySize === "number" &&
+      Number.isInteger(body.partySize) &&
+      body.partySize >= 1;
 
-    if (!hasMailAddress || !hasUsername || !hasValidParticipantCount || !withinCapacity) {
+    // 必須項目が欠けている場合は400エラーを返す
+    if (!hasMailAddress || !hasUsername || !hasValidPartySize) {
       return HttpResponse.json(
         {
           error: {
@@ -606,7 +599,26 @@ export const eventHandlers = [
 
     const mailAddress = body.mailAddress as string;
     const username = body.username as string;
-    const participantCount = body.participantCount as number;
+    const partySize = body.partySize as number;
+
+    // 定員チェック：イベントの定員が設定されている場合は、
+    // 参加人数が定員を超える場合は 409 capacity_full を返す
+    const detail = mockEventDetails.get(id);
+    if (
+      typeof detail?.capacity === "number" &&
+      detail.capacity >= 1 &&
+      partySize > detail.capacity
+    ) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "capacity_full",
+            message: "定員に達しています",
+          },
+        },
+        { status: 409 },
+      );
+    }
 
     // 認証ヘッダの有無で profileId を決定
     // ヘッダなし → 匿名参加（profileId = null）
@@ -624,7 +636,7 @@ export const eventHandlers = [
       return HttpResponse.json(
         {
           error: {
-            code: "conflict",
+            code: "already_joined",
             message: "既に参加しています",
           },
         },
@@ -640,7 +652,7 @@ export const eventHandlers = [
         eventId: id,
         mailAddress,
         username,
-        participantCount,
+        partySize,
         profileId,
         createdAt: new Date().toISOString(),
       },

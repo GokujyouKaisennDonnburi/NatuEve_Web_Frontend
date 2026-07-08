@@ -8,7 +8,7 @@ export type ParticipateEventRequest = {
   // 参加者の表示名（必須）。
   username: string;
   // 参加人数（代表者を含む）。初期値は 1、最小値は 1。
-  participantCount: number;
+  partySize: number;
 };
 
 // 参加エンドポイントのレスポンス DTO。
@@ -20,7 +20,7 @@ export type ParticipateEventResponse = {
   // 参加者の表示名。
   username: string;
   // 参加人数（代表者を含む）。
-  participantCount: number;
+  partySize: number;
   // プロフィールID（ログイン参加時はユーザーID・匿名参加時は null）。
   profileId: string | null;
   // 受領日時(RFC3339)。
@@ -40,7 +40,10 @@ export const ParticipateErrorCode = {
   InvalidRequest: "invalid_request",
   Unauthorized: "unauthorized",
   NotFound: "not_found",
-  Conflict: "conflict",
+  AlreadyJoined: "already_joined",
+  CapacityFull: "capacity_full",
+  RequestTooLarge: "request_too_large",
+  RateLimited: "rate_limited",
   InternalError: "internal_error",
 } as const;
 
