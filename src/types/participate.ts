@@ -19,6 +19,8 @@ export type ParticipateEventResponse = {
   mailAddress: string;
   // 参加者の表示名。
   username: string;
+  // 参加人数（代表者を含む）。
+  participantCount: number;
   // プロフィールID（ログイン参加時はユーザーID・匿名参加時は null）。
   profileId: string | null;
   // 受領日時(RFC3339)。

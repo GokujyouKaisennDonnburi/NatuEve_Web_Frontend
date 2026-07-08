@@ -571,6 +571,7 @@ export const eventHandlers = [
     const body = (await request.json()) as {
       mailAddress?: unknown;
       username?: unknown;
+      participantCount?: unknown;
     };
 
     // 本番のサーバー側バリデーションを模し、必須項目が欠ける場合は 400 を返す
@@ -578,13 +579,25 @@ export const eventHandlers = [
       typeof body.mailAddress === "string" && body.mailAddress.length > 0;
     const hasUsername =
       typeof body.username === "string" && body.username.length > 0;
+    const hasValidParticipantCount =
+      typeof body.participantCount === "number" &&
+      Number.isInteger(body.participantCount) &&
+      body.participantCount >= 1;
+    // イベントの定員が設定されている場合は、参加人数が定員を超えないことも検証する
+    const detail = mockEventDetails.get(id);
+    const withinCapacity =
+      typeof detail?.capacity !== "number" ||
+      detail.capacity < 1 ||
+      (typeof body.participantCount === "number" &&
+        body.participantCount <= detail.capacity);
 
-    if (!hasMailAddress || !hasUsername) {
+    if (!hasMailAddress || !hasUsername || !hasValidParticipantCount || !withinCapacity) {
       return HttpResponse.json(
         {
           error: {
             code: "invalid_request",
-            message: "メールアドレスとユーザー名は必須です",
+            message:
+              "メールアドレス・ユーザー名・参加人数（1以上の整数）は必須です",
           },
         },
         { status: 400 },
@@ -593,6 +606,7 @@ export const eventHandlers = [
 
     const mailAddress = body.mailAddress as string;
     const username = body.username as string;
+    const participantCount = body.participantCount as number;
 
     // 認証ヘッダの有無で profileId を決定
     // ヘッダなし → 匿名参加（profileId = null）
@@ -626,6 +640,7 @@ export const eventHandlers = [
         eventId: id,
         mailAddress,
         username,
+        participantCount,
         profileId,
         createdAt: new Date().toISOString(),
       },
