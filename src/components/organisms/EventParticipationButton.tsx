@@ -155,7 +155,9 @@ export function EventParticipationButton({
       <Label htmlFor={countId} className="sr-only">
         参加人数
       </Label>
-      <div className="group flex h-10 w-full items-stretch overflow-hidden rounded-xl bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 shadow-lg shadow-teal-500/25 transition hover:-translate-y-px hover:shadow-xl hover:shadow-teal-500/30 focus-within:ring-2 focus-within:ring-teal-500/30 disabled:opacity-50">
+      <div
+        className={`group flex h-10 w-full items-stretch overflow-hidden rounded-xl bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 shadow-lg shadow-teal-500/25 transition hover:-translate-y-px hover:shadow-xl hover:shadow-teal-500/30 focus-within:ring-2 focus-within:ring-teal-500/30 ${isControlDisabled ? "opacity-50" : ""}`}
+      >
         {/* 左：メインアクション */}
         <button
           type="button"
