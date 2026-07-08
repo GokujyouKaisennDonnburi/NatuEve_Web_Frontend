@@ -1,7 +1,7 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/atoms/Badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, MapPin, User } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -91,8 +91,8 @@ export function EventCard({ event }: EventCardProps) {
                   <User className="h-2.5 w-2.5 text-slate-400" />
                 )}
                 {event.hostName}
-            </span>
-          </div>
+              </span>
+            </div>
 
           {event.tags && event.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 justify-end ml-2">
