@@ -26,6 +26,7 @@ type ApiResponseEvent = {
   profileId: string;
   title: string;
   profile: ApiResponseProfile;
+  tags?: string[];
 };
 
 type EventsApiResponse = {
@@ -220,6 +221,7 @@ export default function EventListPage() {
                 timeZone: "Asia/Tokyo",
               },
             ),
+            tags: apiEvent.tags,
           }));
 
           setEvents(mappedEvents);

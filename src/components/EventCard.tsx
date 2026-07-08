@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/atoms/Badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, MapPin, User } from "lucide-react";
 import Image from "next/image";
@@ -10,12 +11,13 @@ export type EventItem = {
   id: string;
   title: string;
   dateLabel: string;
-  eventDate: string; // startAt から変更
+  eventDate: string;
   location: string;
-  profileId: string; // host から変更
-  createdAt: string; // postedAt から変更
-  hostName: string; // ▼ 新規追加
-  hostAvatarUrl: string; // ▼ 新規追加
+  profileId: string;
+  createdAt: string;
+  hostName: string;
+  hostAvatarUrl: string;
+  tags?: string[];
 };
 
 type EventCardProps = {
@@ -91,7 +93,22 @@ export function EventCard({ event }: EventCardProps) {
                 {event.hostName}
               </span>
             </div>
-          </div>
+
+          {event.tags && event.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 justify-end ml-2">
+              {event.tags.map((tag) => (
+                <Badge
+                  key={tag}
+                  tone="subtle"
+                  className="max-w-[6rem] truncate text-[10px] px-1.5 py-0.5 leading-none"
+                  title={tag}
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
 
           {/* 2行目：タイトル */}
           <h3 className="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors duration-200 leading-none line-clamp-1">
