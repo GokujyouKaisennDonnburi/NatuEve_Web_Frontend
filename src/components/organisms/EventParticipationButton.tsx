@@ -31,6 +31,17 @@ const handleParticipateError = (error: unknown) => {
       case ParticipateErrorCode.CapacityFull:
         toast.error(error.message || "定員に達しています。");
         return;
+      // 参加人数が大きすぎる場合
+      case ParticipateErrorCode.RequestTooLarge:
+        toast.error(error.message || "参加人数が多すぎます。");
+        return;
+      // レート制限されている場合
+      case ParticipateErrorCode.RateLimited:
+        toast.error(
+          error.message ||
+            "アクセスが集中しています。時間をおいて再度お試しください。",
+        );
+        return;
       // 参加申し込みの権限がない場合
       case ParticipateErrorCode.Unauthorized:
         toast.error(error.message || "認証が必要です。");
