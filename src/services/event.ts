@@ -30,9 +30,12 @@ export async function createEvent(
  * 削除に失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
  */
 export async function deleteEvent(eventId: string): Promise<void> {
-  const response = await apiFetch(`/api/v1/events/${encodeURIComponent(eventId)}`, {
-    method: "DELETE",
-  });
+  const response = await apiFetch(
+    `/api/v1/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "DELETE",
+    },
+  );
 
   if (!response.ok) {
     throw new Error(`イベント削除に失敗しました (Status: ${response.status})`);

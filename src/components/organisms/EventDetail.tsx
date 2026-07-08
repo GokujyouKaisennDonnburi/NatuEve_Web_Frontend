@@ -152,7 +152,10 @@ export function EventDetail({
         {isOrganizer ? (
           <EventCancelButton eventId={event.id} />
         ) : (
-          <EventParticipationButton eventId={event.id} />
+          <EventParticipationButton
+            eventId={event.id}
+            capacity={event.capacity}
+          />
         )}
       </div>
     </div>

@@ -7,6 +7,8 @@ export type ParticipateEventRequest = {
   mailAddress: string;
   // 参加者の表示名（必須）。
   username: string;
+  // 参加人数（代表者を含む）。初期値は 1、最小値は 1。
+  participantCount: number;
 };
 
 // 参加エンドポイントのレスポンス DTO。
