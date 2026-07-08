@@ -24,5 +24,3 @@ export function EventTagList({ tags }: Readonly<EventTagListProps>) {
     </ul>
   );
 }
-
-export default EventTagList;
