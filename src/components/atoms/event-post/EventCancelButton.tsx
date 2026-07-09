@@ -115,7 +115,9 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
                     イベント投稿を削除しますか？
                   </h2>
                   <p className="text-sm text-slate-600">
-                    この操作は取り消せません。投稿内容は削除され、イベント一覧へ移動します。
+                    この操作は取り消せません。
+                    <br />
+                    投稿内容は削除され、イベント一覧へ移動します。
                   </p>
                 </div>
 
@@ -137,7 +139,7 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="notify-body">キャンセル・中止理由</Label>
+                    <Label htmlFor="notify-body">中止理由</Label>
                     <Textarea
                       id="notify-body"
                       value={notifyBody}
