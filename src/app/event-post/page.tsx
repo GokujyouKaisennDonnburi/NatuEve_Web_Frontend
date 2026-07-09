@@ -5,6 +5,7 @@ import { SectionHeading } from "@/components/atoms/event-post/SectionHeading";
 import { FileField } from "@/components/molecules/event-post/FileField";
 import { FormField } from "@/components/molecules/event-post/FormField";
 import { OptionalUrlField } from "@/components/molecules/event-post/OptionalUrlField";
+import { TagInputField } from "@/components/molecules/event-post/TagInputField";
 import {
   type PriceCategory,
   PriceCategoryField,
@@ -24,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { createEvent } from "@/services/event";
@@ -48,6 +50,7 @@ type EventPostFormState = {
   applicationUrlEnabled: boolean; // 外部URLの有効化状態
   applicationUrl: string; // 外部URL
   requiredItems: RequiredItem[]; // 持ち物の配列
+  tags: string[]; // タグの配列
 };
 
 // イベント投稿フォームの入力エラーを管理する型定義
@@ -60,6 +63,7 @@ type EventPostFormErrors = {
   capacity?: string;
   applicationUrl?: string;
   requiredItems?: Record<number, string>;
+  tags?: string;
 };
 
 const MAX_TEXT_LENGTH = 255;
@@ -84,6 +88,7 @@ const INITIAL_STATE: EventPostFormState = {
   applicationUrlEnabled: false,
   applicationUrl: "",
   requiredItems: [],
+  tags: [],
 };
 
 // イベント投稿ページコンポーネント
@@ -263,6 +268,29 @@ export default function EventPostPage() {
       }
     }
 
+    // タグの検証（空文字・文字数・重複・件数）
+    if (formState.tags.length > MAX_TAG_COUNT) {
+      nextErrors.tags = `タグは最大${MAX_TAG_COUNT}件までです。`;
+    } else {
+      const tagSet = new Set<string>();
+      for (const tag of formState.tags) {
+        const trimmed = tag.trim();
+        if (!trimmed) {
+          nextErrors.tags = "タグに空文字は指定できません。";
+          break;
+        }
+        if (trimmed.length > MAX_TAG_LENGTH) {
+          nextErrors.tags = `タグは1つあたり${MAX_TAG_LENGTH}文字以内で入力してください。`;
+          break;
+        }
+        if (tagSet.has(trimmed)) {
+          nextErrors.tags = "同じタグが重複しています。";
+          break;
+        }
+        tagSet.add(trimmed);
+      }
+    }
+
     return nextErrors;
   };
 
@@ -331,6 +359,10 @@ export default function EventPostPage() {
           item: item.itemName.trim(),
           isRequired: item.isRequired,
         }));
+      }
+
+      if (formState.tags.length > 0) {
+        payload.tags = formState.tags.map((tag) => tag.trim());
       }
 
       if (uploadedImage) {
@@ -402,6 +434,14 @@ export default function EventPostPage() {
                     aria-invalid={Boolean(errors.eventName)}
                   />
                 </FormField>
+
+                {/* タグの入力フィールド */}
+                <TagInputField
+                  id={getFieldId("tags")}
+                  tags={formState.tags}
+                  onTagsChange={(tags) => setField("tags", tags)}
+                  error={errors.tags}
+                />
 
                 {/* イベント画像のアップロードフィールド */}
                 {/*
