@@ -1,4 +1,5 @@
 // このファイルは、MSW（Mock Service Worker）を使用して、イベント関連のAPIエンドポイントのモックハンドラーを定義するためのものです。
+import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import { HttpResponse, http } from "msw";
 
 // MockProfile型は、イベントのプロフィール情報を表す型です。
@@ -317,6 +318,15 @@ type MockEventMember = {
 // メモリ内参加者一覧管理：eventId ごとに参加者レコード配列を保持する。
 // members エンドポイントはこの配列を元に参加者一覧 / 参加組数 / 合計参加人数を算出する。
 const eventMembers = new Map<string, MockEventMember[]>();
+
+// モック環境での「Bearer トークン → profileId」対応表。
+// 本番ではトークン検証でユーザーID（profileId）が決まるが、モックでは
+// トークン文字列をそのまま profileId として扱うと、主催者の profileId を直接
+// Bearer に仕込むだけで主催者チェックを通過できてしまう認可バグの温床になる。
+// そのため既知トークンのみを受け付け、未知トークンは 401 で弾く。
+const TOKEN_TO_PROFILE_ID: Readonly<Record<string, string>> = {
+  [MOCK_AUTH_SESSION.token]: MOCK_AUTH_SESSION.userId,
+};
 
 // 新規作成イベントに参加者モックデータをシードする。
 // 主催者画面の動作確認用で、ログイン参加・匿名参加（profileId: null）を混在させることで
@@ -745,14 +755,28 @@ export const eventHandlers = [
   }),
 
   // イベント参加者一覧取得モックエンドポイント（GET /api/v1/events/:id/members）
-  // 主催者のみ閲覧可能。主催者以外は 403、未認証は 401 を返す。
-  // モック環境では Bearer トークン "mock-access-token" を "mock-user-1" に対応付け、
-  // 新規作成イベント（profileId = mock-user-1）の主催者のみ取得できるようにしている。
+  // 主催者のみ閲覧可能。主催者以外は 403、未認証・未知トークンは 401 を返す。
+  // トークン→profileId は TOKEN_TO_PROFILE_ID で明示的に対応付け、
+  // 未知トークンをそのまま profileId として扱う認可バイパスを防ぐ。
   http.get("/api/v1/events/:id/members", ({ request, params }) => {
     const id = String(params?.id ?? "");
     const authorizationHeader = request.headers.get("authorization");
 
     if (!authorizationHeader?.startsWith("Bearer ")) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証トークンが無効です",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    const token = authorizationHeader.split(" ")[1]?.trim() ?? "";
+    const requesterProfileId = TOKEN_TO_PROFILE_ID[token];
+    if (!requesterProfileId) {
       return HttpResponse.json(
         {
           error: {
@@ -776,13 +800,6 @@ export const eventHandlers = [
         { status: 404 },
       );
     }
-
-    // Bearer トークンからリクエスト元の profileId を導出する。
-    // 実環境ではトークン検証でユーザーIDが得られる想定だが、
-    // モック環境では "mock-access-token" を "mock-user-1" に対応付ける。
-    const token = authorizationHeader.split(" ")[1]?.trim() ?? "";
-    const requesterProfileId =
-      token === "mock-access-token" ? "mock-user-1" : token;
 
     if (event.profileId !== requesterProfileId) {
       return HttpResponse.json(
