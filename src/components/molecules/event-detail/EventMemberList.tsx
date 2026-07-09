@@ -45,6 +45,16 @@ export function EventMemberList({ eventId }: Readonly<EventMemberListProps>) {
           </div>
         ) : (
           <div className="mt-4 space-y-4">
+            {/* 参加組数・合計参加人数サマリー */}
+            <div className="flex flex-wrap gap-3 text-sm">
+              <span className="rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-700">
+                参加組数: {data.totalCount}
+              </span>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-700">
+                合計参加人数: {data.totalMembers}
+              </span>
+            </div>
+
             {/* 参加者テーブル */}
             <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
               <table className="w-full text-left text-sm">
