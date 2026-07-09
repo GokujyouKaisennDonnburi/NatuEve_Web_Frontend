@@ -34,6 +34,8 @@ export function TagInputField({
   const trimmedDraft = draft.trim();
   const isDuplicate = trimmedDraft.length > 0 && tags.includes(trimmedDraft);
   const isAddDisabled = !trimmedDraft || isLimitReached || isDuplicate;
+  // 重複エラーメッセージの id。aria-describedby で Input と関連付ける。
+  const helperId = `${id}-helper`;
 
   // タグ追加処理。空文字・空白のみ・重複の場合は追加しない。
   // 文字数・件数上限の最終的な検証は親 validate() に集約する。
@@ -79,7 +81,8 @@ export function TagInputField({
           placeholder="例: 自然観察"
           maxLength={MAX_TAG_LENGTH}
           disabled={isLimitReached}
-          aria-invalid={Boolean(error)}
+          aria-invalid={Boolean(error) || isDuplicate}
+          aria-describedby={isDuplicate ? helperId : undefined}
         />
         <Button
           type="button"
@@ -87,18 +90,21 @@ export function TagInputField({
           onClick={handleAdd}
           disabled={isAddDisabled}
           className="shrink-0 cursor-pointer"
-          title={
-            isDuplicate
-              ? "同じタグが既に追加されています"
-              : isLimitReached
-                ? `タグは最大${MAX_TAG_COUNT}件まで追加できます`
-                : undefined
-          }
         >
           <Plus className="h-4 w-4" />
           追加
         </Button>
       </div>
+
+      {/* 重複時のエラー表示。
+          Button は disabled 状態で `disabled:pointer-events-none` が基底クラスに
+          適用されるため、title 属性の tooltip は表示されない。
+          そのため Input 直下の FieldNote で常時表示する。 */}
+      {isDuplicate ? (
+        <FieldNote tone="error">
+          <span id={helperId}>「{trimmedDraft}」は既に追加されています。</span>
+        </FieldNote>
+      ) : null}
 
       {/* 追加済みタグの表示。0 件のときはプレースホルダーを表示する。 */}
       {tags.length > 0 ? (
