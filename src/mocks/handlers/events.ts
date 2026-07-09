@@ -66,6 +66,9 @@ const SAMPLE_TAG_POOL: string[][] = [
   ["ハイキング", "初心者歓迎"],
   ["野鳥", "双眼鏡推奨"],
 ];
+// モック用の UUID を番号から生成する（PostgreSQL の UUID 型と互換）。
+const toUuid = (n: number): string =>
+  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 // ダミーイベントデータの初期値を生成
 const createInitialDummyEvents = (): MockEvent[] => {
@@ -85,7 +88,7 @@ const createInitialDummyEvents = (): MockEvent[] => {
     const profileId = `profile-${(index % 6) + 1}`;
 
     return {
-      id: String(index + 1),
+      id: toUuid(index + 1),
       title: `${index % 3 === 0 ? "🦆" : index % 3 === 1 ? "🐟" : "🦋"} 森と水の生き物観察ハイク Vol.${index + 1}`,
       eventDate: `${yyyy}-${mm}-${dd}T${isMorning ? "10:00:00" : "14:00:00"}+09:00`,
       location:
@@ -465,6 +468,60 @@ export const eventHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  // イベント参加者への一斉通知モックエンドポイント（POST /api/v1/events/:id/notifications）
+  http.post("/api/v1/events/:id/notifications", async ({ request, params }) => {
+    const id = String(params?.id ?? "");
+    const authorizationHeader = request.headers.get("authorization");
+
+    if (!authorizationHeader?.startsWith("Bearer ")) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証が必要です",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    if (!mockEventDetails.has(id)) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "not_found",
+            message: "イベントが見つかりません",
+          },
+        },
+        { status: 404 },
+      );
+    }
+
+    const body = (await request.json().catch(() => ({}))) as {
+      subject?: unknown;
+      body?: unknown;
+    };
+
+    if (typeof body.subject !== "string" || body.subject.length === 0) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "リクエストボディが不正です",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    return HttpResponse.json({
+      eventId: id,
+      recipientCount: 0,
+      sentCount: 0,
+      failedCount: 0,
+    });
+  }),
+
   // 新しいイベントを作成するモックエンドポイント
   http.post("/api/v1/events", async ({ request }) => {
     const authorizationHeader = request.headers.get("authorization");
@@ -616,9 +673,7 @@ export const eventHandlers = [
     }
 
     // 新しいイベントを構築してメモリに追加する
-    const eventId = String(
-      Math.max(...mockEvents.map((e) => Number(e.id))) + 1,
-    );
+    const eventId = crypto.randomUUID();
     const newEvent: MockEvent = {
       id: eventId,
       title: body.title as string,

@@ -107,3 +107,16 @@ export type EventDetailResponse = {
   title: string;
   updatedAt: string;
 };
+
+// イベント参加者への一斉通知 API のリクエスト/レスポンス DTO
+export type NotifyEventParticipantsRequest = {
+  // 通知件名
+  subject: string;
+  // 通知本文（任意）
+  body?: string;
+};
+
+export type NotifyEventParticipantsResponse = {
+  // 実際に通知された参加者数（任意）
+  notifiedCount?: number;
+};
