@@ -170,11 +170,13 @@ export default function EventListPage() {
 
         // 検索クエリがある場合は半角/全角スペースで分割し、
         // 各キーワードを q パラメータとして多重送信する（AND 検索）
+        // swagger 仕様に基づき最大10語までとする
         if (searchQuery) {
           const keywords = searchQuery
             .split(/[\s\u3000]+/)
             .map((keyword) => keyword.trim())
-            .filter((keyword) => keyword.length > 0);
+            .filter((keyword) => keyword.length > 0)
+            .slice(0, 10);
           for (const keyword of keywords) {
             params.append("q", keyword);
           }

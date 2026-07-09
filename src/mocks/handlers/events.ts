@@ -215,15 +215,27 @@ const collectSearchTargets = (event: MockEvent): string[] => {
   return haystacks;
 };
 
+// 検索時の文字列正規化。
+// swagger 仕様に基づき NFKC 正規化で半角/全角を同一視し、
+// さらに大文字小文字も無視する（toLowerCase）。
+// 例: "１０" ↔ "10", "ＡＢ" ↔ "AB", "ｶﾅ" ↔ "カナ"
+const normalizeForKeywordSearch = (value: string): string =>
+  value.normalize("NFKC").toLowerCase();
+
 // matchesAllKeywords は、event が keywords の全てを（AND 検索として）
 // いずれかの検索対象フィールドに部分一致で含むかを判定する。
+// 照合は NFKC 正規化＋大文字小文字無視で行う。
 const matchesAllKeywords = (event: MockEvent, keywords: string[]): boolean => {
   if (keywords.length === 0) return true;
   const haystacks = collectSearchTargets(event).map((value) =>
-    value.toLowerCase(),
+    normalizeForKeywordSearch(value),
   );
-  return keywords.every((keyword) =>
-    haystacks.some((value) => value.includes(keyword.toLowerCase())),
+  // キーワードは最大10語なので先に一度だけ正規化してから照合する
+  const normalizedKeywords = keywords.map((keyword) =>
+    normalizeForKeywordSearch(keyword),
+  );
+  return normalizedKeywords.every((keyword) =>
+    haystacks.some((value) => value.includes(keyword)),
   );
 };
 
@@ -244,10 +256,12 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
 
   // 同名の q パラメータが複数ある場合は getAll で配列として取り出し、
   // 1件の場合も同じ配列相当の形で扱う。空キーワードは除外する。
+  // swagger 仕様に基づき最大10語までとし、超過分は切り捨てる。
   const keywords = url.searchParams
     .getAll("q")
     .map((value) => value.trim())
-    .filter((value) => value.length > 0);
+    .filter((value) => value.length > 0)
+    .slice(0, 10);
 
   // 検索キーワードで絞り込む
   const filteredEvents = keywords.length
