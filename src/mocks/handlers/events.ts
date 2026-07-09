@@ -481,6 +481,17 @@ export const eventHandlers = [
           );
         }
         const trimmed = value.trim();
+        if (trimmed.length === 0) {
+          return HttpResponse.json(
+            {
+              error: {
+                code: "invalid_request",
+                message: "タグに空文字は指定できません。",
+              },
+            },
+            { status: 400 },
+          );
+        }
         if (trimmed.length > MAX_TAG_LENGTH) {
           return HttpResponse.json(
             {
