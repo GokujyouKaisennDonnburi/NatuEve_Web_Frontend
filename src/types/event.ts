@@ -32,6 +32,8 @@ export type CreateEventRequest = {
   costs: EventCostInput[];
   // 持ち物リスト（任意）。
   items?: EventItemInput[];
+  // タグリスト（任意・各要素30文字以内・最大10件）。
+  tags?: string[];
   // 画像オブジェクトキーの一覧（任意）。
   imageObjectKeys?: string[];
   // PDF オブジェクトキーの一覧（任意・各要素255文字以内）。
