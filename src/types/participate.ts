@@ -93,9 +93,4 @@ export type EventMembersResponse = {
 };
 
 // 参加者一覧取得APIのエラーレスポンスボディDTO。
-export type GetEventMembersErrorBody = {
-  error: {
-    code: string;
-    message: string;
-  };
-};
+export type GetEventMembersErrorBody = ParticipateEventErrorBody;
