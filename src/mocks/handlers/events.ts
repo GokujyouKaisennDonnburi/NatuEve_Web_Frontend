@@ -1,6 +1,8 @@
 // このファイルは、MSW（Mock Service Worker）を使用して、イベント関連のAPIエンドポイントのモックハンドラーを定義するためのものです。
 import { HttpResponse, http } from "msw";
 
+import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";
+
 // MockProfile型は、イベントのプロフィール情報を表す型です。
 type MockProfile = {
   id: string;
@@ -412,6 +414,7 @@ export const eventHandlers = [
       capacity?: unknown;
       externalUrl?: unknown;
       items?: unknown;
+      tags?: unknown;
       imageObjectKeys?: unknown;
       imageUrls?: unknown;
       imageFilenames?: unknown;
@@ -446,6 +449,81 @@ export const eventHandlers = [
         },
         { status: 400 },
       );
+    }
+
+    // タグのサーバー側バリデーション(任意項目)。本番仕様に合わせて
+    // 配列・文字列・空文字・文字数・件数・重複をここで検証する。
+    let normalizedTags: string[] | undefined;
+    if (body.tags !== undefined && body.tags !== null) {
+      if (!Array.isArray(body.tags)) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: "invalid_request",
+              message: "タグの形式が不正です",
+            },
+          },
+          { status: 400 },
+        );
+      }
+
+      const candidateTags: string[] = [];
+      for (const value of body.tags) {
+        if (typeof value !== "string") {
+          return HttpResponse.json(
+            {
+              error: {
+                code: "invalid_request",
+                message: "タグは文字列で指定してください",
+              },
+            },
+            { status: 400 },
+          );
+        }
+        const trimmed = value.trim();
+        if (trimmed.length > MAX_TAG_LENGTH) {
+          return HttpResponse.json(
+            {
+              error: {
+                code: "invalid_request",
+                message: `タグは1つあたり${MAX_TAG_LENGTH}文字以内で指定してください`,
+              },
+            },
+            { status: 400 },
+          );
+        }
+        candidateTags.push(trimmed);
+      }
+
+      if (candidateTags.length > MAX_TAG_COUNT) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: "invalid_request",
+              message: `タグは最大${MAX_TAG_COUNT}件までです`,
+            },
+          },
+          { status: 400 },
+        );
+      }
+
+      const tagSet = new Set<string>();
+      for (const tag of candidateTags) {
+        if (tagSet.has(tag)) {
+          return HttpResponse.json(
+            {
+              error: {
+                code: "invalid_request",
+                message: "同じタグが重複しています",
+              },
+            },
+            { status: 400 },
+          );
+        }
+        tagSet.add(tag);
+      }
+
+      normalizedTags = candidateTags.length > 0 ? candidateTags : undefined;
     }
 
     // 新しいイベントを構築してメモリに追加する
@@ -533,6 +611,7 @@ export const eventHandlers = [
             (value): value is string => typeof value === "string",
           )
         : [],
+      tags: normalizedTags,
     });
 
     // 本番と同形の CreateEventResponse（id / createdAt）を返す。
