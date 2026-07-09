@@ -1,5 +1,7 @@
 import { apiFetch } from "@/services/apiClient";
 import type {
+  EventMembersResponse,
+  GetEventMembersErrorBody,
   ParticipateEventErrorBody,
   ParticipateEventRequest,
   ParticipateEventResponse,
@@ -53,4 +55,37 @@ export async function participateEvent(
   }
 
   return (await response.json()) as ParticipateEventResponse;
+}
+
+// イベント参加者一覧取得 API（GET /api/v1/events/{eventId}/members）を呼ぶ（要認証・主催者のみ）。
+//
+// 主催者以外は 403 となる。APIエラー・通信エラーは例外を送出し、呼び出し側で
+// エラー表示に切り替えられるようにする。
+export async function getEventMembers(
+  eventId: string,
+): Promise<EventMembersResponse> {
+  const response = await apiFetch(
+    `/api/v1/events/${encodeURIComponent(eventId)}/members`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    // バックエンドは { error: { code, message } } 形式でエラー詳細を返す。
+    // message を取得できれば呼び出し側の表示に活かす。取得失敗時はステータスでフォールバック。
+    let message: string | undefined;
+    try {
+      const body = (await response.json()) as GetEventMembersErrorBody;
+      message = body?.error?.message;
+    } catch {
+      // JSON 以外のボディは無視する
+    }
+
+    throw new Error(
+      message ?? `参加者一覧の取得に失敗しました (Status: ${response.status})`,
+    );
+  }
+
+  return (await response.json()) as EventMembersResponse;
 }

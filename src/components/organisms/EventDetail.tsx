@@ -3,6 +3,7 @@
 import { EventCancelButton } from "@/components/atoms/event-post/EventCancelButton";
 import { EventImageCarousel } from "@/components/molecules/event-detail/EventImageCarousel";
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
+import { EventMemberList } from "@/components/molecules/event-detail/EventMemberList";
 import { EventPdfList } from "@/components/molecules/event-detail/EventPdfList";
 import { EventReportList } from "@/components/molecules/event-detail/EventReportList";
 import { EventTagList } from "@/components/molecules/event-detail/EventTagList";
@@ -145,6 +146,9 @@ export function EventDetail({
 
       {/* レポート */}
       <EventReportList report={report} />
+
+      {/* 参加者一覧（主催者のみ表示） */}
+      {isOrganizer ? <EventMemberList eventId={event.id} /> : null}
 
       {/* イベント投稿者向けボタンと参加申し込みボタンの切り替え */}
       {/* スクロール中も画面下部に固定で表示する */}
