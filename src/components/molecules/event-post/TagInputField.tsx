@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 
 import { FieldNote } from "@/components/atoms/event-post/FieldNote";
 import { TagChip } from "@/components/atoms/event-post/TagChip";
@@ -36,6 +36,31 @@ export function TagInputField({
   const isAddDisabled = !trimmedDraft || isLimitReached || isDuplicate;
   // 重複エラーメッセージの id。aria-describedby で Input と関連付ける。
   const helperId = `${id}-helper`;
+
+  // 各行に安定した一意 key を割り当てるための ID 配列。タグ配列の長さに追従して
+  // 追加/削除を再現する。万一の重複タグが入った場合の key 衝突を回避する目的。
+  const [rowIds, setRowIds] = useState<string[]>(() =>
+    tags.map(() => crypto.randomUUID()),
+  );
+
+  // tags の長さに追従して rowIds を更新する。並び替えは行わないため、
+  // 中間削除時は index を維持したまま後ろ側の ID を破棄する。
+  useEffect(() => {
+    setRowIds((current) => {
+      if (current.length === tags.length) {
+        return current;
+      }
+      if (current.length < tags.length) {
+        return [
+          ...current,
+          ...Array.from({ length: tags.length - current.length }, () =>
+            crypto.randomUUID(),
+          ),
+        ];
+      }
+      return current.slice(0, tags.length);
+    });
+  }, [tags.length]);
 
   // タグ追加処理。空文字・空白のみ・重複の場合は追加しない。
   // 文字数・件数上限の最終的な検証は親 validate() に集約する。
@@ -110,7 +135,7 @@ export function TagInputField({
       {tags.length > 0 ? (
         <ul className="flex flex-wrap gap-2" aria-label="追加済みのタグ">
           {tags.map((tag, index) => (
-            <li key={tag}>
+            <li key={rowIds[index] ?? `${id}-tag-${index}`}>
               <TagChip label={tag} onRemove={() => handleRemove(index)} />
             </li>
           ))}
