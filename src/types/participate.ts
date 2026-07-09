@@ -60,3 +60,37 @@ export class ParticipateError extends Error {
     this.status = status;
   }
 }
+
+// イベント参加者一覧取得 API（GET /api/v1/events/{id}/members）の DTO 群。
+// 主催者のみが閲覧できる。バックエンドの契約に合わせる。
+
+// 参加者1件分のDTO。匿名参加時は profileId が null となる。
+export type EventMember = {
+  // 参加レコードID。
+  id: string;
+  // イベントID。
+  eventId: string;
+  // 参加者の表示名。
+  username: string;
+  // 参加者のメールアドレス。
+  mailAddress: string;
+  // 参加人数（代表者を含む）。
+  partySize: number;
+  // プロフィールID（ログイン参加時はユーザーID・匿名参加時は null）。
+  profileId: string | null;
+  // 申込日時(RFC3339)。
+  createdAt: string;
+};
+
+// 参加者一覧レスポンスDTO。
+export type EventMembersResponse = {
+  // 参加者一覧。
+  members: EventMember[];
+  // 参加組数（members 配列長と一致）。
+  totalCount: number;
+  // 合計参加人数（members の partySize 総和）。
+  totalMembers: number;
+};
+
+// 参加者一覧取得APIのエラーレスポンスボディDTO。
+export type GetEventMembersErrorBody = ParticipateEventErrorBody;

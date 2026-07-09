@@ -1,4 +1,5 @@
 // このファイルは、MSW（Mock Service Worker）を使用して、イベント関連のAPIエンドポイントのモックハンドラーを定義するためのものです。
+import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import { HttpResponse, http } from "msw";
 
 import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";
@@ -304,6 +305,68 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
 // 重複参加チェック（409 Conflict）のために使用
 const eventParticipants = new Map<string, Set<string>>();
 
+// 参加者一覧取得 API（GET /api/v1/events/{id}/members）が返す参加者1件分の型。
+// 匿名参加時は profileId が null となる。
+type MockEventMember = {
+  id: string;
+  eventId: string;
+  username: string;
+  mailAddress: string;
+  partySize: number;
+  profileId: string | null;
+  createdAt: string;
+};
+
+// メモリ内参加者一覧管理：eventId ごとに参加者レコード配列を保持する。
+// members エンドポイントはこの配列を元に参加者一覧 / 参加組数 / 合計参加人数を算出する。
+const eventMembers = new Map<string, MockEventMember[]>();
+
+// モック環境での「Bearer トークン → profileId」対応表。
+// 本番ではトークン検証でユーザーID（profileId）が決まるが、モックでは
+// トークン文字列をそのまま profileId として扱うと、主催者の profileId を直接
+// Bearer に仕込むだけで主催者チェックを通過できてしまう認可バグの温床になる。
+// そのため既知トークンのみを受け付け、未知トークンは 401 で弾く。
+const TOKEN_TO_PROFILE_ID: Readonly<Record<string, string>> = {
+  [MOCK_AUTH_SESSION.token]: MOCK_AUTH_SESSION.userId,
+};
+
+// 新規作成イベントに参加者モックデータをシードする。
+// 主催者画面の動作確認用で、ログイン参加・匿名参加（profileId: null）を混在させることで
+// 参加組数 / 合計参加人数 / 匿名表示の検証を網羅できるようにしている。
+const seedMembersForNewEvent = (eventId: string): void => {
+  const base = Date.now() - 1000 * 60 * 60 * 24 * 3;
+  const members: MockEventMember[] = [
+    {
+      id: `${eventId}-member-1`,
+      eventId,
+      username: "Ren Sato",
+      mailAddress: "ren@example.com",
+      partySize: 2,
+      profileId: "profile-2",
+      createdAt: new Date(base).toISOString(),
+    },
+    {
+      id: `${eventId}-member-2`,
+      eventId,
+      username: "Mina Suzuki",
+      mailAddress: "mina@example.com",
+      partySize: 1,
+      profileId: "profile-3",
+      createdAt: new Date(base + 1000 * 60 * 60 * 12).toISOString(),
+    },
+    {
+      id: `${eventId}-member-3`,
+      eventId,
+      username: "ゲストさん",
+      mailAddress: "guest@example.com",
+      partySize: 3,
+      profileId: null,
+      createdAt: new Date(base + 1000 * 60 * 60 * 24).toISOString(),
+    },
+  ];
+  eventMembers.set(eventId, members);
+};
+
 // MSWのハンドラーを定義
 export const eventHandlers = [
   // イベント一覧取得モックエンドポイント
@@ -397,6 +460,7 @@ export const eventHandlers = [
     mockEvents.splice(eventIndex, 1);
     mockEventDetails.delete(id);
     eventParticipants.delete(id);
+    eventMembers.delete(id);
 
     return new HttpResponse(null, { status: 204 });
   }),
@@ -639,6 +703,9 @@ export const eventHandlers = [
       tags: normalizedTags,
     });
 
+    // 主催者画面（参加者一覧）の動作確認用に、新規イベントに参加者モックをシードする。
+    seedMembersForNewEvent(eventId);
+
     // 本番と同形の CreateEventResponse（id / createdAt）を返す。
     return HttpResponse.json(
       {
@@ -750,6 +817,19 @@ export const eventHandlers = [
     participants.add(participantKey);
     eventParticipants.set(id, participants);
 
+    // members エンドポイントで参加者一覧に反映されるよう、参加レコードを蓄積する。
+    const members = eventMembers.get(id) ?? [];
+    members.push({
+      id: `${id}-member-${members.length + 1}`,
+      eventId: id,
+      username,
+      mailAddress,
+      partySize,
+      profileId,
+      createdAt: new Date().toISOString(),
+    });
+    eventMembers.set(id, members);
+
     // 受領レスポンスを返す（本番 ParticipateEventResponse と同じ契約）
     return HttpResponse.json(
       {
@@ -762,5 +842,75 @@ export const eventHandlers = [
       },
       { status: 201 },
     );
+  }),
+
+  // イベント参加者一覧取得モックエンドポイント（GET /api/v1/events/:id/members）
+  // 主催者のみ閲覧可能。主催者以外は 403、未認証・未知トークンは 401 を返す。
+  // トークン→profileId は TOKEN_TO_PROFILE_ID で明示的に対応付け、
+  // 未知トークンをそのまま profileId として扱う認可バイパスを防ぐ。
+  http.get("/api/v1/events/:id/members", ({ request, params }) => {
+    const id = String(params?.id ?? "");
+    const authorizationHeader = request.headers.get("authorization");
+
+    if (!authorizationHeader?.startsWith("Bearer ")) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証トークンが無効です",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    const token = authorizationHeader.split(" ")[1]?.trim() ?? "";
+    const requesterProfileId = TOKEN_TO_PROFILE_ID[token];
+    if (!requesterProfileId) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証トークンが無効です",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    const event = mockEventDetails.get(id);
+    if (!event) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "not_found",
+            message: "イベントが見つかりません",
+          },
+        },
+        { status: 404 },
+      );
+    }
+
+    if (event.profileId !== requesterProfileId) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "forbidden",
+            message: "主催者のみ閲覧できます",
+          },
+        },
+        { status: 403 },
+      );
+    }
+
+    const members = eventMembers.get(id) ?? [];
+    const totalCount = members.length;
+    const totalMembers = members.reduce(
+      (sum, member) =>
+        sum + (Number.isFinite(member.partySize) ? member.partySize : 0),
+      0,
+    );
+
+    return HttpResponse.json({ members, totalCount, totalMembers });
   }),
 ];
