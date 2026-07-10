@@ -3,15 +3,14 @@ import type {
   EventMembersResponse,
   GetEventMembersErrorBody,
   GetParticipationLogsErrorBody,
-  JoinedCancelErrorBody,
-  JoinedCancelResponse,
+  LeaveErrorBody,
+  LeaveResponse,
   ParticipateEventErrorBody,
   ParticipateEventRequest,
   ParticipateEventResponse,
   ParticipationLogsResponse,
 } from "@/types/participate";
-import { ParticipateError, ParticipationLogsError } from "@/types/participate";
-import { JoinedCancelError } from "@/types/participate";
+import { LeaveError, ParticipateError, ParticipationLogsError } from "@/types/participate";
 
 // イベント参加 API（POST /api/v1/events/{eventId}/join）を呼ぶ。
 //
@@ -134,17 +133,16 @@ export async function getParticipationLogs(
   return (await response.json()) as ParticipationLogsResponse;
 }
 
-// イベント参加キャンセル API（POST /api/v1/events/{eventId}/joined-cancel）を呼ぶ（要認証）。
+// イベント参加キャンセル API（POST /api/v1/events/{eventId}/leave）を呼ぶ（要認証）。
 //
-// 参加済みユーザーが参加をキャンセルする。リクエストボディは不要。
-// 未認証・無効トークンは 401、未参加時は 409 not_joined となる。
-// APIエラー・通信エラーは JoinedCancelError を送出し、呼び出し側で
+// ログイン参加者が参加を取り消す。リクエストボディは不要。
+// 未認証・無効トークンは 401、イベント不存在 または 未参加時は 404 not_found となる。
+// 匿名参加（profileId=null）は本 API の対象外。
+// APIエラー・通信エラーは LeaveError を送出し、呼び出し側で
 // エラー表示に切り替えられるようにする。
-export async function joinedCancel(
-  eventId: string,
-): Promise<JoinedCancelResponse> {
+export async function leaveEvent(eventId: string): Promise<LeaveResponse> {
   const response = await apiFetch(
-    `/api/v1/events/${encodeURIComponent(eventId)}/joined-cancel`,
+    `/api/v1/events/${encodeURIComponent(eventId)}/leave`,
     {
       method: "POST",
     },
@@ -152,23 +150,23 @@ export async function joinedCancel(
 
   if (!response.ok) {
     // バックエンドは { error: { code, message } } 形式でエラー詳細を返す。
-    // code を取得して呼び出し側で 401 / 409 等を判別できるようにする。
+    // code を取得して呼び出し側で 401 / 404 等を判別できるようにする。
     let code = "internal_error";
     let message: string | undefined;
     try {
-      const body = (await response.json()) as JoinedCancelErrorBody;
+      const body = (await response.json()) as LeaveErrorBody;
       code = body?.error?.code ?? code;
       message = body?.error?.message;
     } catch {
       // JSON 以外のボディは無視する
     }
 
-    throw new JoinedCancelError(
+    throw new LeaveError(
       code,
       message ?? `参加キャンセルに失敗しました (Status: ${response.status})`,
       response.status,
     );
   }
 
-  return (await response.json()) as JoinedCancelResponse;
+  return (await response.json()) as LeaveResponse;
 }

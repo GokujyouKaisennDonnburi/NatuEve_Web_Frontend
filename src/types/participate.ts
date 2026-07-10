@@ -97,8 +97,8 @@ export type GetEventMembersErrorBody = ParticipateEventErrorBody;
 // 認証ユーザー自身の、指定イベントに対する最新の参加状態を取得する。要認証。
 // 履歴がない場合は action=null, participating=false, updatedAt=null となる（200）。
 
-// 参加状態のアクション種別。"join"（参加）/ "cancel"（キャンセル）/ null（履歴なし）。
-export type ParticipationAction = "join" | "cancel" | null;
+// 参加状態のアクション種別。"join"（参加）/ "leave"（参加キャンセル）/ null（履歴なし）。
+export type ParticipationAction = "join" | "leave" | null;
 
 // 参加状態レスポンスDTO。
 export type ParticipationLogsResponse = {
@@ -135,12 +135,15 @@ export class ParticipationLogsError extends Error {
   }
 }
 
-// イベント参加キャンセル API（POST /api/v1/events/{id}/joined-cancel）の DTO 群。
-// 参加済みユーザーが参加をキャンセルする。要認証。リクエストボディは不要。
+// イベント参加キャンセル API（POST /api/v1/events/{id}/leave）の DTO 群。
+// ログイン参加者が参加を取り消す。要認証。匿名参加（profileId=null）は対象外。
+// 参加行を削除し、参加状態ログへ action=leave を1件追記する。
 
 // 参加キャンセルエンドポイントのレスポンス DTO。
-export type JoinedCancelResponse = {
-  // キャンセルしたユーザーのプロフィールID（匿名参加時は null）。
+export type LeaveResponse = {
+  // 実行されたアクション。本エンドポイントでは常に "leave"。
+  action: "leave";
+  // キャンセルしたユーザーのプロフィールID（ログイン参加時）。
   profileId: string | null;
   // キャンセルを受け付けたイベントID。
   eventId: string;
@@ -149,27 +152,26 @@ export type JoinedCancelResponse = {
 };
 
 // 参加キャンセルAPIのエラーレスポンスボディDTO。
-export type JoinedCancelErrorBody = ParticipateEventErrorBody;
+export type LeaveErrorBody = ParticipateEventErrorBody;
 
 // 参加キャンセルAPIのエラーコード（ハンドリングで区別するもの）。
-export const JoinedCancelErrorCode = {
+// 404 not_found はイベント不存在 または 未参加の両方をカバーする。
+export const LeaveErrorCode = {
   InvalidRequest: "invalid_request",
   Unauthorized: "unauthorized",
-  Forbidden: "forbidden",
   NotFound: "not_found",
-  NotJoined: "not_joined",
   InternalError: "internal_error",
 } as const;
 
-// 参加キャンセルAPIのエラー。code を保持し、呼び出し側で 409 Not-Found 等を判別できるようにする。
-export class JoinedCancelError extends Error {
+// 参加キャンセルAPIのエラー。code を保持し、呼び出し側で 404 NotFound 等を判別できるようにする。
+export class LeaveError extends Error {
   readonly code: string;
   readonly status: number;
 
   // コンストラクタ
   constructor(code: string, message: string, status: number) {
     super(message);
-    this.name = "JoinedCancelError";
+    this.name = "LeaveError";
     this.code = code;
     this.status = status;
   }
