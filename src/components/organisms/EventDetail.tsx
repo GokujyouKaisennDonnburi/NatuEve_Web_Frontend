@@ -1,6 +1,7 @@
 "use client";
 
 import { EventCancelButton } from "@/components/atoms/event-post/EventCancelButton";
+import { EventNotifyButton } from "@/components/atoms/event-post/EventNotifyButton";
 import { EventImageCarousel } from "@/components/molecules/event-detail/EventImageCarousel";
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
 import { EventMemberListModal } from "@/components/molecules/event-detail/EventMemberList";
@@ -63,18 +64,21 @@ export function EventDetail({
         </Button>
 
         {isOrganizer ? (
-          <Button
-            asChild
-            size="sm"
-            className="cursor-pointer border border-transparent hover:border-slate-300"
-          >
-            <Link
-              href={`${ROUTES.REPORT_POST}?eventId=${encodeURIComponent(event.id)}`}
+          <div className="flex items-center gap-2">
+            <EventNotifyButton eventId={event.id} />
+            <Button
+              asChild
+              size="sm"
+              className="cursor-pointer border border-transparent hover:border-slate-300"
             >
-              <FileText className="h-4 w-4 mr-2" />
-              レポート作成
-            </Link>
-          </Button>
+              <Link
+                href={`${ROUTES.REPORT_POST}?eventId=${encodeURIComponent(event.id)}`}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                レポート作成
+              </Link>
+            </Button>
+          </div>
         ) : null}
       </div>
 
