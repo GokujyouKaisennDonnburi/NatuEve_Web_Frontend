@@ -62,7 +62,7 @@ const sampleUserProfiles = [
 const sampleUserEvents = {
   hosted: [
     {
-      id: "101",
+      id: "00000000-0000-4000-8000-000000000101",
       title: "高尾山クリーンハイク",
       location: "東京都 高尾山",
       createdAt: "2026-06-01T10:00:00Z",
