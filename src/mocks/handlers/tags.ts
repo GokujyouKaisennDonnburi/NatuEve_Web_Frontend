@@ -38,6 +38,19 @@ export const tagHandlers = [
     }
 
     const trimmed = (body.name as string).trim();
+    // 本番の service.TagService.Create と同じく trim 後の空文字を弾く。
+    // 入力が " " のみのようなケースも 400 invalid_request とする。
+    if (trimmed.length === 0) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "タグ名を入力してください",
+          },
+        },
+        { status: 400 },
+      );
+    }
     if (trimmed.length > MAX_TAG_LENGTH) {
       return HttpResponse.json(
         {
