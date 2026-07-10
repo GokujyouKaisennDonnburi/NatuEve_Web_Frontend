@@ -26,7 +26,7 @@ type TagInputFieldProps = {
 // 確定時にバックエンドの POST /api/v1/tags を呼び出し、
 // 成功時は API レスポンスの name を chip として追加する。
 // 409 duplicate_tag はサーバ側に同名タグが存在する成功扱いのため、
-// info toast を表示しつつローカルにも追加する。
+// 通知を出さずローカルに追加する。
 // 既存タグは Badge 風チップとして表示し、× ボタンで削除できる。
 export function TagInputField({
   id,
@@ -85,12 +85,11 @@ export function TagInputField({
       setDraft("");
     } catch (caughtError) {
       // 409 duplicate_tag はサーバ側に同名タグが存在する成功扱いのため、
-      // info toast を出しつつローカルにも追加する。
+      // ローカルに追加するだけで通知は行わない。
       if (
         caughtError instanceof TagError &&
         caughtError.code === TagErrorCode.DuplicateTag
       ) {
-        toast.info("このタグは既に登録されています。");
         onTagsChange([...tags, name]);
         setDraft("");
         return;
