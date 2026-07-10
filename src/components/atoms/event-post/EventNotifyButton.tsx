@@ -96,13 +96,13 @@ export function EventNotifyButton({ eventId }: EventNotifyButtonProps) {
             className="relative w-full max-w-md"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="event-notify-modal-title"
+            aria-labelledby={`event-notify-modal-title-${eventId}`}
           >
             <Card className="border-slate-200/80 bg-white/95 shadow-xl backdrop-blur">
               <CardContent className="space-y-5 pt-6">
                 <div className="space-y-1">
                   <h2
-                    id="event-notify-modal-title"
+                    id={`event-notify-modal-title-${eventId}`}
                     className="text-lg font-bold text-slate-900"
                   >
                     イベント参加者へ全体連絡
@@ -114,12 +114,12 @@ export function EventNotifyButton({ eventId }: EventNotifyButtonProps) {
 
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="notify-subject">
+                    <Label htmlFor={`notify-subject-${eventId}`}>
                       件名
                       <span className="ml-1 text-red-600">(必須)</span>
                     </Label>
                     <Input
-                      id="notify-subject"
+                      id={`notify-subject-${eventId}`}
                       type="text"
                       value={notifySubject}
                       onChange={(e) => setNotifySubject(e.target.value)}
@@ -130,12 +130,12 @@ export function EventNotifyButton({ eventId }: EventNotifyButtonProps) {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="notify-body">
+                    <Label htmlFor={`notify-body-${eventId}`}>
                       連絡内容
                       <span className="ml-1 text-red-600">(必須)</span>
                     </Label>
                     <Textarea
-                      id="notify-body"
+                      id={`notify-body-${eventId}`}
                       value={notifyBody}
                       onChange={(e) => setNotifyBody(e.target.value)}
                       placeholder="例:当日の集合場所をA公園からB公園に変更しました。ご注意ください。"
