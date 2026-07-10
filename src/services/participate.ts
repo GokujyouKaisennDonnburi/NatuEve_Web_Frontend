@@ -2,11 +2,16 @@ import { apiFetch } from "@/services/apiClient";
 import type {
   EventMembersResponse,
   GetEventMembersErrorBody,
+  GetParticipationLogsErrorBody,
+  JoinedCancelErrorBody,
+  JoinedCancelResponse,
   ParticipateEventErrorBody,
   ParticipateEventRequest,
   ParticipateEventResponse,
+  ParticipationLogsResponse,
 } from "@/types/participate";
-import { ParticipateError } from "@/types/participate";
+import { ParticipateError, ParticipationLogsError } from "@/types/participate";
+import { JoinedCancelError } from "@/types/participate";
 
 // イベント参加 API（POST /api/v1/events/{eventId}/join）を呼ぶ。
 //
@@ -88,4 +93,82 @@ export async function getEventMembers(
   }
 
   return (await response.json()) as EventMembersResponse;
+}
+
+// イベント参加状態取得 API（GET /api/v1/events/{eventId}/participation-logs）を呼ぶ（要認証）。
+//
+// 現在のログインユーザーが当該イベントに参加中かどうかを判定する。
+// 未認証・無効トークンは 401、イベント不存在は 400 invalid_request となる。
+// APIエラー・通信エラーは ParticipationLogsError を送出し、呼び出し側で
+// エラー表示に切り替えられるようにする。
+export async function getParticipationLogs(
+  eventId: string,
+): Promise<ParticipationLogsResponse> {
+  const response = await apiFetch(
+    `/api/v1/events/${encodeURIComponent(eventId)}/participation-logs`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    // バックエンドは { error: { code, message } } 形式でエラー詳細を返す。
+    // code を取得して呼び出し側で 401 / 403 / 400 等を判別できるようにする。
+    let code = "internal_error";
+    let message: string | undefined;
+    try {
+      const body = (await response.json()) as GetParticipationLogsErrorBody;
+      code = body?.error?.code ?? code;
+      message = body?.error?.message;
+    } catch {
+      // JSON 以外のボディは無視する
+    }
+
+    throw new ParticipationLogsError(
+      code,
+      message ?? `参加状態の取得に失敗しました (Status: ${response.status})`,
+      response.status,
+    );
+  }
+
+  return (await response.json()) as ParticipationLogsResponse;
+}
+
+// イベント参加キャンセル API（POST /api/v1/events/{eventId}/joined-cancel）を呼ぶ（要認証）。
+//
+// 参加済みユーザーが参加をキャンセルする。リクエストボディは不要。
+// 未認証・無効トークンは 401、未参加時は 409 not_joined となる。
+// APIエラー・通信エラーは JoinedCancelError を送出し、呼び出し側で
+// エラー表示に切り替えられるようにする。
+export async function joinedCancel(
+  eventId: string,
+): Promise<JoinedCancelResponse> {
+  const response = await apiFetch(
+    `/api/v1/events/${encodeURIComponent(eventId)}/joined-cancel`,
+    {
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    // バックエンドは { error: { code, message } } 形式でエラー詳細を返す。
+    // code を取得して呼び出し側で 401 / 409 等を判別できるようにする。
+    let code = "internal_error";
+    let message: string | undefined;
+    try {
+      const body = (await response.json()) as JoinedCancelErrorBody;
+      code = body?.error?.code ?? code;
+      message = body?.error?.message;
+    } catch {
+      // JSON 以外のボディは無視する
+    }
+
+    throw new JoinedCancelError(
+      code,
+      message ?? `参加キャンセルに失敗しました (Status: ${response.status})`,
+      response.status,
+    );
+  }
+
+  return (await response.json()) as JoinedCancelResponse;
 }
