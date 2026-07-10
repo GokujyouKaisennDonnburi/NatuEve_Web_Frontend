@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
+import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
 import { ChevronLeft, FileText, Users } from "lucide-react";
 import Link from "next/link";
@@ -48,6 +49,16 @@ export function EventDetail({
 
   // 参加者一覧モーダルの開閉状態（主催者のみ操作可能）
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
+
+  // 参加状態取得（主催者以外のログインユーザーのみ）
+  // 未ログイン時は取得をスキップし、participating=false として扱う。
+  const isAuthenticated = Boolean(session?.token);
+  const {
+    data: participationData,
+    refetch: refetchParticipation,
+    error: participationError,
+  } = useParticipationLogs(isOrganizer ? null : event.id, isAuthenticated);
+  const participating = participationData?.participating ?? false;
 
   return (
     <div className="space-y-6">
@@ -166,10 +177,21 @@ export function EventDetail({
         {isOrganizer ? (
           <EventCancelButton eventId={event.id} />
         ) : (
-          <EventParticipationButton
-            eventId={event.id}
-            capacity={event.capacity}
-          />
+          <>
+            {participationError ? (
+              <p className="text-center text-sm text-slate-500">
+                参加状態の取得に失敗しました。
+                参加申し込みは通常通りご利用いただけます。
+              </p>
+            ) : null}
+            <EventParticipationButton
+              eventId={event.id}
+              capacity={event.capacity}
+              participating={participating}
+              onParticipateSuccess={refetchParticipation}
+              onCancelSuccess={refetchParticipation}
+            />
+          </>
         )}
       </div>
 

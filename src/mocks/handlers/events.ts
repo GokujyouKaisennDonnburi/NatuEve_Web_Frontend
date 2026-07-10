@@ -970,4 +970,147 @@ export const eventHandlers = [
 
     return HttpResponse.json({ members, totalCount, totalMembers });
   }),
+
+  // イベント参加状態取得モックエンドポイント（GET /api/v1/events/:id/participation-logs）
+  // 現在のログインユーザーが当該イベントに参加中かどうかを返す。要認証。
+  // 未認証・未知トークンは 401、イベント不存在は 400 invalid_request（兄弟エンドポイントと統一）。
+  // 参加判定は eventParticipants に登録されたキー（ログイン時はトークンを profileId として扱う）で行う。
+  http.get("/api/v1/events/:id/participation-logs", ({ request, params }) => {
+    const id = String(params?.id ?? "");
+    const authorizationHeader = request.headers.get("authorization");
+
+    if (!authorizationHeader?.startsWith("Bearer ")) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証が必要です",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    // トークン→profileId の対応付け検証のみ（unknown トークンを弾く）。
+    // 参加判定には eventParticipants のキー（raw token）をそのまま使用する。
+    // これは join エンドポイントが raw token を participantKey として登録する挙動と一致させるため。
+    const token = authorizationHeader.split(" ")[1]?.trim() ?? "";
+    const requesterProfileId = TOKEN_TO_PROFILE_ID[token];
+    if (!requesterProfileId) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証が必要です",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    // イベント不存在は swagger 指定により 400 invalid_request（兄弟エンドポイントと統一）。
+    if (!mockEventDetails.has(id)) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "リクエストが不正です",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    // eventParticipants のキーは join エンドポイントが raw token で登録するため、
+    // ここでも raw token で判定する。
+    const participants = eventParticipants.get(id);
+    const participating = participants?.has(token) ?? false;
+
+    return HttpResponse.json({ participating });
+  }),
+
+  // イベント参加キャンセルモックエンドポイント（POST /api/v1/events/:id/joined-cancel）
+  // 参加済みユーザーが参加をキャンセルする。要認証。リクエストボディは不要。
+  // 未認証・未知トークンは 401、イベント不存在は 400 invalid_request、未参加は 409 not_joined。
+  http.post("/api/v1/events/:id/joined-cancel", ({ request, params }) => {
+    const id = String(params?.id ?? "");
+    const authorizationHeader = request.headers.get("authorization");
+
+    if (!authorizationHeader?.startsWith("Bearer ")) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証が必要です",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    const token = authorizationHeader.split(" ")[1]?.trim() ?? "";
+    const requesterProfileId = TOKEN_TO_PROFILE_ID[token];
+    if (!requesterProfileId) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "unauthorized",
+            message: "認証が必要です",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
+    // イベント不存在は swagger 指定により 400 invalid_request（兄弟エンドポイントと統一）。
+    if (!mockEventDetails.has(id)) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "リクエストが不正です",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    // 未参加チェック：eventParticipants にトークンが登録されていなければ 409 not_joined。
+    const participants = eventParticipants.get(id);
+    const participantKey = token;
+    if (!participants?.has(participantKey)) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "not_joined",
+            message: "このイベントに参加していません",
+          },
+        },
+        { status: 409 },
+      );
+    }
+
+    // 参加記録を削除してキャンセル完了
+    participants.delete(participantKey);
+    eventParticipants.set(id, participants);
+
+    // eventMembers からも該当レコードを削除する。
+    // ログイン参加の場合は profileId（= TOKEN_TO_PROFILE_ID[token]）で特定する。
+    const members = eventMembers.get(id);
+    if (members) {
+      const updatedMembers = members.filter(
+        (member) => member.profileId !== requesterProfileId,
+      );
+      eventMembers.set(id, updatedMembers);
+    }
+
+    return HttpResponse.json(
+      {
+        profileId: requesterProfileId,
+        eventId: id,
+        createdAt: new Date().toISOString(),
+      },
+      { status: 200 },
+    );
+  }),
 ];
