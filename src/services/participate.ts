@@ -10,7 +10,11 @@ import type {
   ParticipateEventResponse,
   ParticipationLogsResponse,
 } from "@/types/participate";
-import { LeaveError, ParticipateError, ParticipationLogsError } from "@/types/participate";
+import {
+  LeaveError,
+  ParticipateError,
+  ParticipationLogsError,
+} from "@/types/participate";
 
 // イベント参加 API（POST /api/v1/events/{eventId}/join）を呼ぶ。
 //

@@ -481,7 +481,9 @@ const handleLeaveError = (error: unknown) => {
     switch (error.code) {
       // イベント不存在 または 未参加
       case LeaveErrorCode.NotFound:
-        toast.error(error.message || "イベントが見つからない、または参加していません。");
+        toast.error(
+          error.message || "イベントが見つからない、または参加していません。",
+        );
         return;
       case LeaveErrorCode.Unauthorized:
         toast.error(error.message || "認証が必要です。");
