@@ -810,6 +810,11 @@ export const eventHandlers = [
     participants.add(participantKey);
     eventParticipants.set(id, participants);
 
+    // 申込日時を1回だけ生成し、参加者一覧と受領レスポンスの両方に使い回す。
+    // id が廃止され createdAt が識別・表示の重要情報になったため、同一申込で
+    // タイムスタンプがズレないよう単一の値で整合性を保つ。
+    const createdAt = new Date().toISOString();
+
     // members エンドポイントで参加者一覧に反映されるよう、参加レコードを蓄積する。
     const members = eventMembers.get(id) ?? [];
     members.push({
@@ -817,7 +822,7 @@ export const eventHandlers = [
       mailAddress,
       partySize,
       profileId,
-      createdAt: new Date().toISOString(),
+      createdAt,
     });
     eventMembers.set(id, members);
 
@@ -829,7 +834,7 @@ export const eventHandlers = [
         username,
         partySize,
         profileId,
-        createdAt: new Date().toISOString(),
+        createdAt,
       },
       { status: 201 },
     );
