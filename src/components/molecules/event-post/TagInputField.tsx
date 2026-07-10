@@ -1,5 +1,5 @@
 import { Loader2, Plus } from "lucide-react";
-import { useEffect, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 
 import { FieldNote } from "@/components/atoms/event-post/FieldNote";
@@ -46,6 +46,14 @@ export function TagInputField({
   // 重複エラーメッセージの id。aria-describedby で Input と関連付ける。
   const helperId = `${id}-helper`;
 
+  // 通信中(await submit)中も親 tags が変わる可能性があるため、
+  // 最新の tags を ref に保持しておき、await 完了後は ref から参照して更新する。
+  // 古いクロージャの tags で上書きして削除等の更新を取りこぼすのを防ぐ目的。
+  const latestTagsRef = useRef(tags);
+  useEffect(() => {
+    latestTagsRef.current = tags;
+  }, [tags]);
+
   // 各行に安定した一意 key を割り当てるための ID 配列。タグ配列の長さに追従して
   // 追加/削除を再現する。万一の重複タグが入った場合の key 衝突を回避する目的。
   const [rowIds, setRowIds] = useState<string[]>(() =>
@@ -73,6 +81,8 @@ export function TagInputField({
 
   // タグ追加処理。POST /api/v1/tags を呼び出し、成功時に chip を追加する。
   // 文字数・件数上限の最終的な検証は親 validate() に集約する。
+  // await 完了後はクロージャの tags ではなく latestTagsRef から最新値を
+  // 読み出してマージする(通信中の削除を取りこぼさないため)。
   const handleAdd = async () => {
     if (isAddDisabled) {
       return;
@@ -81,7 +91,7 @@ export function TagInputField({
     try {
       // 成功時はサーバが正規化／トリムした name を採用する。
       const created = await submit(name);
-      onTagsChange([...tags, created.name]);
+      onTagsChange([...latestTagsRef.current, created.name]);
       setDraft("");
     } catch (caughtError) {
       // 409 duplicate_tag はサーバ側に同名タグが存在する成功扱いのため、
@@ -90,7 +100,7 @@ export function TagInputField({
         caughtError instanceof TagError &&
         caughtError.code === TagErrorCode.DuplicateTag
       ) {
-        onTagsChange([...tags, name]);
+        onTagsChange([...latestTagsRef.current, name]);
         setDraft("");
         return;
       }
