@@ -36,7 +36,7 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
     setIsDeleting(true);
 
     void (async () => {
-      // 通知は「イベント生存中」しか送れないため先に送信する。
+      // 通知は「イベント開催中」しか送れないため先に送信する。
       // isNotited の場合はスキップ（重複防止）。
       if (!isNotified) {
         try {
@@ -48,7 +48,7 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
         } catch (error) {
           console.error("参加者への通知送信に失敗しました:", error);
           toast.error(
-            "参加者への通知送信に失敗しました。時間をおいて再度お试しください。",
+            "参加者への通知送信に失敗しました。時間をおいて再度お試しください。",
           );
           setIsDeleting(false);
           return;
