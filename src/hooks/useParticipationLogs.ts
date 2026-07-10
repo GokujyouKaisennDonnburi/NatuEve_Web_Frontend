@@ -67,7 +67,7 @@ export function useParticipationLogs(
             "status" in err &&
             (err as { status: number }).status === 401
           ) {
-            setData({ participating: false });
+            setData({ action: null, participating: false, updatedAt: null });
             setError(null);
           } else {
             setError(

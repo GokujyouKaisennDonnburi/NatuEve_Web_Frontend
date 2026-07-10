@@ -94,12 +94,20 @@ export type EventMembersResponse = {
 export type GetEventMembersErrorBody = ParticipateEventErrorBody;
 
 // イベント参加状態取得 API（GET /api/v1/events/{id}/participation-logs）の DTO 群。
-// ログインユーザーが当該イベントに参加中かどうかを判定する。要認証。
+// 認証ユーザー自身の、指定イベントに対する最新の参加状態を取得する。要認証。
+// 履歴がない場合は action=null, participating=false, updatedAt=null となる（200）。
+
+// 参加状態のアクション種別。"join"（参加）/ "cancel"（キャンセル）/ null（履歴なし）。
+export type ParticipationAction = "join" | "cancel" | null;
 
 // 参加状態レスポンスDTO。
 export type ParticipationLogsResponse = {
+  // 直近のアクション。履歴がない場合は null。
+  action: ParticipationAction;
   // 現在のユーザーがこのイベントに参加中かどうか。
   participating: boolean;
+  // 直近のアクション日時(RFC3339)。履歴がない場合は null。
+  updatedAt: string | null;
 };
 
 // 参加状態取得APIのエラーレスポンスボディDTO。
@@ -109,7 +117,6 @@ export type GetParticipationLogsErrorBody = ParticipateEventErrorBody;
 export const ParticipationLogsErrorCode = {
   InvalidRequest: "invalid_request",
   Unauthorized: "unauthorized",
-  Forbidden: "forbidden",
   NotFound: "not_found",
   InternalError: "internal_error",
 } as const;
