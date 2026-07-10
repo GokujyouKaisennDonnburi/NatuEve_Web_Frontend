@@ -27,7 +27,12 @@ export const tagHandlers = [
     const hasName = typeof body.name === "string" && body.name.length > 0;
     if (!hasName) {
       return HttpResponse.json(
-        { error: { code: "invalid_request", message: "タグ名を入力してください" } },
+        {
+          error: {
+            code: "invalid_request",
+            message: "タグ名を入力してください",
+          },
+        },
         { status: 400 },
       );
     }
@@ -48,7 +53,12 @@ export const tagHandlers = [
     // 重複作成は 409 で返す（バックエンドの ErrTagAlreadyExists 相当）。
     if (createdTags.has(trimmed)) {
       return HttpResponse.json(
-        { error: { code: "duplicate_tag", message: "同じタグが既に存在します" } },
+        {
+          error: {
+            code: "duplicate_tag",
+            message: "同じタグが既に存在します",
+          },
+        },
         { status: 409 },
       );
     }
