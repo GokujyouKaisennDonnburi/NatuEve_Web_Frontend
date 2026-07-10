@@ -430,7 +430,7 @@ export const eventHandlers = [
         {
           error: {
             code: "unauthorized",
-            message: "認証トークンが無効です",
+            message: "認証が必要です",
           },
         },
         { status: 401 },
@@ -468,7 +468,7 @@ export const eventHandlers = [
         {
           error: {
             code: "unauthorized",
-            message: "認証トークンが無効です",
+            message: "認証が必要です",
           },
         },
         { status: 401 },
