@@ -369,6 +369,9 @@ const seedMembersForNewEvent = (eventId: string): void => {
   ];
   eventMembers.set(eventId, members);
 };
+// 削除済みイベントIDの記録: 「削除 → 通知」フローで削除後に通知 API を叩けるようにするため、
+// 削除後も通知エンドポイントが 404 にならないよう直近の削除 ID を保持する。
+const deletedEventIds = new Set<string>();
 
 // MSWのハンドラーを定義
 export const eventHandlers = [
@@ -464,6 +467,7 @@ export const eventHandlers = [
     mockEventDetails.delete(id);
     eventParticipants.delete(id);
     eventMembers.delete(id);
+    deletedEventIds.add(id);
 
     return new HttpResponse(null, { status: 204 });
   }),
@@ -485,7 +489,7 @@ export const eventHandlers = [
       );
     }
 
-    if (!mockEventDetails.has(id)) {
+    if (!mockEventDetails.has(id) && !deletedEventIds.has(id)) {
       return HttpResponse.json(
         {
           error: {
@@ -518,6 +522,7 @@ export const eventHandlers = [
       eventId: id,
       recipientCount: 0,
       sentCount: 0,
+      notifiedCount: 0,
       failedCount: 0,
     });
   }),

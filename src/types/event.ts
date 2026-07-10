@@ -112,8 +112,8 @@ export type EventDetailResponse = {
 export type NotifyEventParticipantsRequest = {
   // 通知件名
   subject: string;
-  // 通知本文（任意）
-  body?: string;
+  // 通知本文（必須）
+  body: string;
 };
 
 export type NotifyEventParticipantsResponse = {

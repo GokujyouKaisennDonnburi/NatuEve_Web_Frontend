@@ -21,8 +21,14 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [notifySubject, setNotifySubject] = useState("");
   const [notifyBody, setNotifyBody] = useState("");
+  // 通知送信済みフラグ: 「通知 → 削除」順で通知成功後に削除が失敗した場合、
+  // 再試行時は通知をスキップして削除のみ行い、重複送信を防ぐ。
+  const [isNotified, setIsNotified] = useState(false);
 
-  const canDelete = notifySubject.trim().length > 0 && !isDeleting;
+  const canDelete =
+    notifySubject.trim().length > 0 &&
+    notifyBody.trim().length > 0 &&
+    !isDeleting;
 
   const handleCancel = () => {
     if (!canDelete) return;
@@ -30,29 +36,37 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
     setIsDeleting(true);
 
     void (async () => {
-      try {
-        await notifyEventParticipants(eventId, {
-          subject: notifySubject.trim(),
-          body: notifyBody.trim() ? notifyBody.trim() : undefined,
-        });
-      } catch (error) {
-        console.error("参加者への通知送信に失敗しました:", error);
-        toast.error(
-          "参加者への通知送信に失敗しました。時間をおいて再度お试しください。",
-        );
-        setIsDeleting(false);
-        return;
+      // 通知は「イベント生存中」しか送れないため先に送信する。
+      // isNotited の場合はスキップ（重複防止）。
+      if (!isNotified) {
+        try {
+          await notifyEventParticipants(eventId, {
+            subject: notifySubject.trim(),
+            body: notifyBody.trim(),
+          });
+          setIsNotified(true);
+        } catch (error) {
+          console.error("参加者への通知送信に失敗しました:", error);
+          toast.error(
+            "参加者への通知送信に失敗しました。時間をおいて再度お试しください。",
+          );
+          setIsDeleting(false);
+          return;
+        }
       }
 
+      // 通知成功後（または送信済み）に削除を実行。
       try {
         await deleteEvent(eventId);
-        toast.success("イベント投稿をキャンセルしました。");
+        toast.success(
+          "イベント投稿をキャンセルし、参加者へ通知を送信しました。",
+        );
         setIsConfirmOpen(false);
         router.push(ROUTES.EVENT_LIST);
       } catch (error) {
         console.error("イベント投稿のキャンセルに失敗しました:", error);
         toast.error(
-          "イベント投稿のキャンセルに失敗しました。時間をおいて再度お试しください。",
+          "通知は送信済みです。イベント削除に失敗しました。「削除する」を再押下で削除のみ再試行できます。",
         );
       } finally {
         setIsDeleting(false);
@@ -139,7 +153,10 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="notify-body">中止理由</Label>
+                    <Label htmlFor="notify-body">
+                      中止理由
+                      <span className="ml-1 text-red-600">(必須)</span>
+                    </Label>
                     <Textarea
                       id="notify-body"
                       value={notifyBody}
@@ -147,6 +164,7 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
                       placeholder="例:主催者の都合により中止となりました。ご参加予定でした皆様にはお詫び申し上げます。"
                       disabled={isDeleting}
                       rows={3}
+                      required
                       className="field-sizing-fixed h-[4.5rem] resize-none overflow-y-auto"
                     />
                   </div>
