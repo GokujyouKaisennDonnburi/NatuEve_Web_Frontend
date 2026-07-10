@@ -1,5 +1,6 @@
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useEffect, useState, type KeyboardEvent } from "react";
+import { toast } from "sonner";
 
 import { FieldNote } from "@/components/atoms/event-post/FieldNote";
 import { TagChip } from "@/components/atoms/event-post/TagChip";
@@ -7,6 +8,8 @@ import { FormField } from "@/components/molecules/event-post/FormField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";
+import { useCreateTag } from "@/hooks/useCreateTag";
+import { TagError, TagErrorCode } from "@/types/tag";
 
 // タグ入力欄コンポーネントのプロパティを定義。
 // タグ配列は親コンポーネントで管理する controlled 設計とし、
@@ -20,6 +23,10 @@ type TagInputFieldProps = {
 
 // タグ入力欄を表示するコンポーネント。
 // Input にタグ名を入力し、Enter または追加ボタンで確定する。
+// 確定時にバックエンドの POST /api/v1/tags を呼び出し、
+// 成功時は API レスポンスの name を chip として追加する。
+// 409 duplicate_tag はサーバ側に同名タグが存在する成功扱いのため、
+// info toast を表示しつつローカルにも追加する。
 // 既存タグは Badge 風チップとして表示し、× ボタンで削除できる。
 export function TagInputField({
   id,
@@ -28,12 +35,14 @@ export function TagInputField({
   error,
 }: Readonly<TagInputFieldProps>) {
   const [draft, setDraft] = useState(""); // 入力中のタグ文字列
+  const { isSubmitting, submit } = useCreateTag();
   const isLimitReached = tags.length >= MAX_TAG_COUNT; // 件数上限に達したか
   // 入力中のタグを正規化し、空文字以外で既存タグと重複しているかを判定する。
   // ボタンの disabled と Enter キー処理の両方で利用する。
   const trimmedDraft = draft.trim();
   const isDuplicate = trimmedDraft.length > 0 && tags.includes(trimmedDraft);
-  const isAddDisabled = !trimmedDraft || isLimitReached || isDuplicate;
+  const isAddDisabled =
+    !trimmedDraft || isLimitReached || isDuplicate || isSubmitting;
   // 重複エラーメッセージの id。aria-describedby で Input と関連付ける。
   const helperId = `${id}-helper`;
 
@@ -62,14 +71,37 @@ export function TagInputField({
     });
   }, [tags.length]);
 
-  // タグ追加処理。空文字・空白のみ・重複の場合は追加しない。
+  // タグ追加処理。POST /api/v1/tags を呼び出し、成功時に chip を追加する。
   // 文字数・件数上限の最終的な検証は親 validate() に集約する。
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (isAddDisabled) {
       return;
     }
-    onTagsChange([...tags, trimmedDraft]);
-    setDraft("");
+    const name = trimmedDraft;
+    try {
+      // 成功時はサーバが正規化／トリムした name を採用する。
+      const created = await submit(name);
+      onTagsChange([...tags, created.name]);
+      setDraft("");
+    } catch (caughtError) {
+      // 409 duplicate_tag はサーバ側に同名タグが存在する成功扱いのため、
+      // info toast を出しつつローカルにも追加する。
+      if (
+        caughtError instanceof TagError &&
+        caughtError.code === TagErrorCode.DuplicateTag
+      ) {
+        toast.info("このタグは既に登録されています。");
+        onTagsChange([...tags, name]);
+        setDraft("");
+        return;
+      }
+      console.error("タグの作成に失敗しました。", caughtError);
+      toast.error(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "タグの作成に失敗しました。時間をおいて再度お試しください。",
+      );
+    }
   };
 
   // Enter 押下で追加する。IME 変換中の Enter は誤発火防止のため除外する。
@@ -81,7 +113,7 @@ export function TagInputField({
       return;
     }
     event.preventDefault();
-    handleAdd();
+    void handleAdd();
   };
 
   // インデックス指定でタグを削除する。
@@ -105,18 +137,24 @@ export function TagInputField({
           onKeyDown={handleKeyDown}
           placeholder="例: 自然観察"
           maxLength={MAX_TAG_LENGTH}
-          disabled={isLimitReached}
+          disabled={isLimitReached || isSubmitting}
           aria-invalid={Boolean(error) || isDuplicate}
           aria-describedby={isDuplicate ? helperId : undefined}
         />
         <Button
           type="button"
           variant="outline"
-          onClick={handleAdd}
+          onClick={() => {
+            void handleAdd();
+          }}
           disabled={isAddDisabled}
           className="shrink-0 cursor-pointer"
         >
-          <Plus className="h-4 w-4" />
+          {isSubmitting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
           追加
         </Button>
       </div>
