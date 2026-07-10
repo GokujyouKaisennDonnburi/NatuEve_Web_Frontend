@@ -69,7 +69,10 @@ function EventMemberListBody({ eventId }: { eventId: string }) {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {data.members.map((member) => (
-              <tr key={member.id} className="align-top">
+              <tr
+                key={`${member.mailAddress}-${member.createdAt}`}
+                className="align-top"
+              >
                 <td className="px-4 py-3 text-slate-800">
                   <div className="flex flex-col gap-0.5">
                     <span className="font-medium">{member.username}</span>
