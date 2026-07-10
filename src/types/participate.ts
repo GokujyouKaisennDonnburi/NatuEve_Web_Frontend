@@ -65,11 +65,9 @@ export class ParticipateError extends Error {
 // 主催者のみが閲覧できる。バックエンドの契約に合わせる。
 
 // 参加者1件分のDTO。匿名参加時は profileId が null となる。
+// swagger（GET /api/v1/events/{id}/members）のレスポンス定義に合わせ、
+// username / mailAddress / partySize / profileId / createdAt の5項目のみ。
 export type EventMember = {
-  // 参加レコードID。
-  id: string;
-  // イベントID。
-  eventId: string;
   // 参加者の表示名。
   username: string;
   // 参加者のメールアドレス。

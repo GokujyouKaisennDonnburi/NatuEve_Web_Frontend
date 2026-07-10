@@ -306,10 +306,9 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
 const eventParticipants = new Map<string, Set<string>>();
 
 // 参加者一覧取得 API（GET /api/v1/events/{id}/members）が返す参加者1件分の型。
-// 匿名参加時は profileId が null となる。
+// 匿名参加時は profileId が null となる。swagger（GET .../members）の
+// レスポンス定義に合わせ、id / eventId は含めない（兄弟エンドポイントと統一）。
 type MockEventMember = {
-  id: string;
-  eventId: string;
   username: string;
   mailAddress: string;
   partySize: number;
@@ -337,8 +336,6 @@ const seedMembersForNewEvent = (eventId: string): void => {
   const base = Date.now() - 1000 * 60 * 60 * 24 * 3;
   const members: MockEventMember[] = [
     {
-      id: `${eventId}-member-1`,
-      eventId,
       username: "Ren Sato",
       mailAddress: "ren@example.com",
       partySize: 2,
@@ -346,8 +343,6 @@ const seedMembersForNewEvent = (eventId: string): void => {
       createdAt: new Date(base).toISOString(),
     },
     {
-      id: `${eventId}-member-2`,
-      eventId,
       username: "Mina Suzuki",
       mailAddress: "mina@example.com",
       partySize: 1,
@@ -355,8 +350,6 @@ const seedMembersForNewEvent = (eventId: string): void => {
       createdAt: new Date(base + 1000 * 60 * 60 * 12).toISOString(),
     },
     {
-      id: `${eventId}-member-3`,
-      eventId,
       username: "ゲストさん",
       mailAddress: "guest@example.com",
       partySize: 3,
@@ -820,8 +813,6 @@ export const eventHandlers = [
     // members エンドポイントで参加者一覧に反映されるよう、参加レコードを蓄積する。
     const members = eventMembers.get(id) ?? [];
     members.push({
-      id: `${id}-member-${members.length + 1}`,
-      eventId: id,
       username,
       mailAddress,
       partySize,
@@ -848,6 +839,7 @@ export const eventHandlers = [
   // 主催者のみ閲覧可能。主催者以外は 403、未認証・未知トークンは 401 を返す。
   // トークン→profileId は TOKEN_TO_PROFILE_ID で明示的に対応付け、
   // 未知トークンをそのまま profileId として扱う認可バイパスを防ぐ。
+  // swagger に合わせ、イベント不存在は 400 invalid_request（兄弟エンドポイントと統一）。
   http.get("/api/v1/events/:id/members", ({ request, params }) => {
     const id = String(params?.id ?? "");
     const authorizationHeader = request.headers.get("authorization");
@@ -857,7 +849,7 @@ export const eventHandlers = [
         {
           error: {
             code: "unauthorized",
-            message: "認証トークンが無効です",
+            message: "認証が必要です",
           },
         },
         { status: 401 },
@@ -871,7 +863,7 @@ export const eventHandlers = [
         {
           error: {
             code: "unauthorized",
-            message: "認証トークンが無効です",
+            message: "認証が必要です",
           },
         },
         { status: 401 },
@@ -883,11 +875,11 @@ export const eventHandlers = [
       return HttpResponse.json(
         {
           error: {
-            code: "not_found",
-            message: "イベントが見つかりません",
+            code: "invalid_request",
+            message: "リクエストが不正です",
           },
         },
-        { status: 404 },
+        { status: 400 },
       );
     }
 
