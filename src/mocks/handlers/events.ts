@@ -1098,9 +1098,12 @@ export const eventHandlers = [
     // ログイン参加の場合は profileId（= TOKEN_TO_PROFILE_ID[token]）で特定する。
     const members = eventMembers.get(id);
     if (members) {
-      const updatedMembers = members.filter(
-        (member) => member.profileId !== requesterProfileId,
-      );
+      const updatedMembers = members.filter((member) => {
+        // join モックが profileId に raw token を入れる挙動と、TOKEN_TO_PROFILE_ID による userId の両方に対応する
+        return (
+          member.profileId !== token && member.profileId !== requesterProfileId
+        );
+      });
       eventMembers.set(id, updatedMembers);
     }
 
