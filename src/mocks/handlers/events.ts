@@ -21,6 +21,8 @@ type MockEvent = {
   profileId: string;
   title: string;
   tags?: string[];
+  // イベントが取りやめになった日時(RFC3339)。未設定(undefined)の場合は開催予定。
+  cancelledAt?: string | null;
 };
 
 // MockEventListResponse型は、イベントリストのレスポンスを表す型です。
@@ -108,6 +110,11 @@ const createInitialDummyEvents = (): MockEvent[] => {
       ...(index % 5 === 0
         ? {}
         : { tags: SAMPLE_TAG_POOL[index % SAMPLE_TAG_POOL.length] }),
+      // イベント一覧取得の cancelledAt 絞り込み挙動を検証するため、
+      // インデックス 0 と 50 のイベントをキャンセル済みとしてマークする。
+      ...(index === 0 || index === 50
+        ? { cancelledAt: new Date(Date.UTC(2026, 6, 1, 0, 0, 0)).toISOString() }
+        : {}),
     };
   });
 };
@@ -269,10 +276,14 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
     .filter((value) => value.length > 0)
     .slice(0, 10);
 
+  // キャンセル済みイベント(cancelledAt が設定済み)は一覧から除外する。
+  // バックエンド仕様: 公開イベント一覧は開催予定のみを返し totalCount も絞り込み後件数とする。
+  const activeEvents = mockEvents.filter((event) => !event.cancelledAt);
+
   // 検索キーワードで絞り込む
   const filteredEvents = keywords.length
-    ? mockEvents.filter((event) => matchesAllKeywords(event, keywords))
-    : mockEvents;
+    ? activeEvents.filter((event) => matchesAllKeywords(event, keywords))
+    : activeEvents;
 
   // イベントデータをソートする
   const sortedEvents = [...filteredEvents].sort((left, right) => {
@@ -373,9 +384,9 @@ const seedMembersForNewEvent = (eventId: string): void => {
   ];
   eventMembers.set(eventId, members);
 };
-// 削除済みイベントIDの記録: 「削除 → 通知」フローで削除後に通知 API を叩けるようにするため、
-// 削除後も通知エンドポイントが 404 にならないよう直近の削除 ID を保持する。
-const deletedEventIds = new Set<string>();
+// キャンセル済みイベントIDの記録: POST /api/v1/events/{id}/cancel の非冪等性を表現するため、
+// 既にキャンセル済みのイベントに対する再呼び出しは 409 を返す。
+const cancelledEventIds = new Set<string>();
 
 // MSWのハンドラーを定義
 export const eventHandlers = [
@@ -437,11 +448,12 @@ export const eventHandlers = [
     });
   }),
 
-  // イベント削除モックエンドポイント（DELETE /api/v1/events/:id）
-  http.delete("/api/v1/events/:id", async ({ request, params }) => {
+  // イベント取りやめ（キャンセル）モックエンドポイント（POST /api/v1/events/:id/cancel）
+  http.post("/api/v1/events/:id/cancel", async ({ request, params }) => {
     const id = String(params?.id ?? "");
     const authorizationHeader = request.headers.get("authorization");
 
+    // 認証トークンが無効な場合は401エラーを返す
     if (!authorizationHeader?.startsWith("Bearer ")) {
       return HttpResponse.json(
         {
@@ -454,8 +466,8 @@ export const eventHandlers = [
       );
     }
 
-    const eventIndex = mockEvents.findIndex((event) => event.id === id);
-    if (eventIndex === -1) {
+    // イベントが存在しない場合は 404 を返す
+    if (!mockEventDetails.has(id)) {
       return HttpResponse.json(
         {
           error: {
@@ -467,14 +479,59 @@ export const eventHandlers = [
       );
     }
 
-    mockEvents.splice(eventIndex, 1);
-    mockEventDetails.delete(id);
-    eventParticipants.delete(id);
-    eventMembers.delete(id);
-    participationLogs.delete(id);
-    deletedEventIds.add(id);
+    // 非冪等: 既にキャンセル済みのイベントに対する呼び出しは 409 を返す。
+    if (cancelledEventIds.has(id)) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "conflict",
+            message: "このイベントは既にキャンセルされています",
+          },
+        },
+        { status: 409 },
+      );
+    }
 
-    return new HttpResponse(null, { status: 204 });
+    // リクエストボディを取得する。本番 CancelEventRequest と同じ契約を想定する。
+    const body = (await request.json().catch(() => ({}))) as {
+      subject?: unknown;
+      body?: unknown;
+    };
+
+    // リクエストボディの subject と body は文字列で必須。空文字も不正とする。
+    if (
+      typeof body.subject !== "string" ||
+      body.subject.length === 0 ||
+      typeof body.body !== "string" ||
+      body.body.length === 0
+    ) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "リクエストボディが不正です",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    // キャンセル確定をデータへ反映し、一覧/詳細の再取得でキャンセル状態が再現されるようにする。
+    cancelledEventIds.add(id);
+    const cancelledAt = new Date().toISOString();
+    const mockEvent = mockEvents.find((event) => event.id === id);
+    if (mockEvent) {
+      mockEvent.cancelledAt = cancelledAt;
+    }
+    const mockEventDetail = mockEventDetails.get(id);
+    if (mockEventDetail) {
+      mockEventDetail.cancelledAt = cancelledAt;
+    }
+
+    return HttpResponse.json({
+      id,
+      cancelledAt,
+    });
   }),
 
   // イベント参加者への一斉通知モックエンドポイント（POST /api/v1/events/:id/notifications）
@@ -494,7 +551,7 @@ export const eventHandlers = [
       );
     }
 
-    if (!mockEventDetails.has(id) && !deletedEventIds.has(id)) {
+    if (!mockEventDetails.has(id)) {
       return HttpResponse.json(
         {
           error: {

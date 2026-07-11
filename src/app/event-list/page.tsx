@@ -27,6 +27,8 @@ type ApiResponseEvent = {
   title: string;
   profile: ApiResponseProfile;
   tags?: string[];
+  // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
+  cancelledAt?: string | null;
 };
 
 type EventsApiResponse = {
@@ -206,28 +208,40 @@ export default function EventListPage() {
         const data = (await res.json()) as EventsApiResponse;
 
         if (!cancelled) {
-          const mappedEvents: EventItem[] = data.events.map((apiEvent) => ({
-            id: apiEvent.id,
-            title: apiEvent.title,
-            location: apiEvent.location,
-            createdAt: apiEvent.createdAt,
-            eventDate: apiEvent.eventDate,
-            profileId: apiEvent.profileId,
-            hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
-            hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
-            dateLabel: new Date(apiEvent.eventDate).toLocaleDateString(
-              "ja-JP",
-              {
-                month: "short",
-                day: "numeric",
-                timeZone: "Asia/Tokyo",
-              },
-            ),
-            tags: apiEvent.tags,
-          }));
+          // キャンセル済みイベント(cancelledAt が設定済み)は一覧から除外する。
+          // MSW は API 側で除外済みだが、実 API はキャンセル済みも返すため
+          // クライアント側で表示と件数を制御する。
+          const visibleApiEvents = data.events.filter(
+            (apiEvent) => apiEvent.cancelledAt == null,
+          );
+
+          const mappedEvents: EventItem[] = visibleApiEvents.map(
+            (apiEvent) => ({
+              id: apiEvent.id,
+              title: apiEvent.title,
+              location: apiEvent.location,
+              createdAt: apiEvent.createdAt,
+              eventDate: apiEvent.eventDate,
+              profileId: apiEvent.profileId,
+              hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
+              hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
+              dateLabel: new Date(apiEvent.eventDate).toLocaleDateString(
+                "ja-JP",
+                {
+                  month: "short",
+                  day: "numeric",
+                  timeZone: "Asia/Tokyo",
+                },
+              ),
+              tags: apiEvent.tags,
+            }),
+          );
 
           setEvents(mappedEvents);
-          setTotalCount(data.totalCount);
+          // 件数は API の totalCount から当ページに含まれるキャンセル済み件数を引く
+          setTotalCount(
+            data.totalCount - (data.events.length - visibleApiEvents.length),
+          );
         }
       } catch (err) {
         if (!cancelled && attempt < 5) {

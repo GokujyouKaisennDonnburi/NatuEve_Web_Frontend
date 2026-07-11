@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
-import { deleteEvent, notifyEventParticipants } from "@/services/event";
+import { cancelEvent } from "@/services/event";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -15,61 +15,42 @@ type EventCancelButtonProps = {
   eventId: string;
 };
 
+// 削除になってるけど、物理的に削除しているわけではなく、中止状態にしているだけで存在はする
 export function EventCancelButton({ eventId }: EventCancelButtonProps) {
   const router = useRouter();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [notifySubject, setNotifySubject] = useState("");
   const [notifyBody, setNotifyBody] = useState("");
-  // 通知送信済みフラグ: 「通知 → 削除」順で通知成功後に削除が失敗した場合、
-  // 再試行時は通知をスキップして削除のみ行い、重複送信を防ぐ。
-  const [isNotified, setIsNotified] = useState(false);
 
-  const canDelete =
+  const canCancel =
     notifySubject.trim().length > 0 &&
     notifyBody.trim().length > 0 &&
-    !isDeleting;
+    !isCancelling;
 
   const handleCancel = () => {
-    if (!canDelete) return;
+    if (!canCancel) return;
 
-    setIsDeleting(true);
+    setIsCancelling(true);
 
     void (async () => {
-      // 通知は「イベント開催中」しか送れないため先に送信する。
-      // isNotited の場合はスキップ（重複防止）。
-      if (!isNotified) {
-        try {
-          await notifyEventParticipants(eventId, {
-            subject: notifySubject.trim(),
-            body: notifyBody.trim(),
-          });
-          setIsNotified(true);
-        } catch (error) {
-          console.error("参加者への通知送信に失敗しました:", error);
-          toast.error(
-            "参加者への通知送信に失敗しました。時間をおいて再度お試しください。",
-          );
-          setIsDeleting(false);
-          return;
-        }
-      }
-
-      // 通知成功後（または送信済み）に削除を実行。
+      // キャンセルAPIは非冪等: キャンセル確定と通知予約(outbox)を同一トランザクションで行う。
+      // 件名・本文は必須。既にキャンセル済みの場合は 409 を返す。
       try {
-        await deleteEvent(eventId);
-        toast.success(
-          "イベント投稿をキャンセルし、参加者へ通知を送信しました。",
-        );
+        await cancelEvent(eventId, {
+          subject: notifySubject.trim(),
+          body: notifyBody.trim(),
+        });
+        toast.success("イベントを削除し、参加者へ通知を送信しました。");
         setIsConfirmOpen(false);
         router.push(ROUTES.EVENT_LIST);
       } catch (error) {
-        console.error("イベント投稿のキャンセルに失敗しました:", error);
+        console.error("イベントの削除に失敗しました:", error);
         toast.error(
-          "通知は送信済みです。イベント削除に失敗しました。「削除する」を再押下で削除のみ再試行できます。",
+          "イベントの削除に失敗しました。時間をおいて再度お試しください。",
         );
       } finally {
-        setIsDeleting(false);
+        setIsCancelling(false);
       }
     })();
   };
@@ -99,9 +80,9 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
         size="lg"
         className="w-full cursor-pointer rounded-full bg-red-600 px-6 py-6 text-base font-semibold text-white shadow-lg shadow-red-500/25 transition hover:-translate-y-px hover:shadow-xl hover:shadow-red-500/30 focus-visible:ring-red-500/30 disabled:opacity-50"
         onClick={() => setIsConfirmOpen(true)}
-        disabled={isDeleting}
+        disabled={isCancelling}
       >
-        {isDeleting ? "削除中…" : "投稿をキャンセルする"}
+        {isCancelling ? "送信中…" : "イベントを削除する"}
       </Button>
 
       {isConfirmOpen ? (
@@ -126,12 +107,12 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
                     id={`cancel-event-modal-title-${eventId}`}
                     className="text-lg font-bold text-slate-900"
                   >
-                    イベント投稿を削除しますか？
+                    イベントを削除しますか？
                   </h2>
                   <p className="text-sm text-slate-600">
                     この操作は取り消せません。
                     <br />
-                    投稿内容は削除され、イベント一覧へ移動します。
+                    イベントを削除し、参加者へ中止通知を送信した上でイベント一覧へ移動します。
                   </p>
                 </div>
 
@@ -147,22 +128,22 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
                       value={notifySubject}
                       onChange={(e) => setNotifySubject(e.target.value)}
                       placeholder="例:【重要】イベント開催中止のお知らせ"
-                      disabled={isDeleting}
+                      disabled={isCancelling}
                       maxLength={255}
                       required
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor={`cancel-notify-body-${eventId}`}>
-                      中止理由
+                      本文
                       <span className="ml-1 text-red-600">(必須)</span>
                     </Label>
                     <Textarea
                       id={`cancel-notify-body-${eventId}`}
                       value={notifyBody}
                       onChange={(e) => setNotifyBody(e.target.value)}
-                      placeholder="例:主催者の都合により中止となりました。ご参加予定でした皆様にはお詫び申し上げます。"
-                      disabled={isDeleting}
+                      placeholder="例:台風接近に伴い、安全のため本イベントは中止とさせていただきます。"
+                      disabled={isCancelling}
                       rows={3}
                       required
                       className="field-sizing-fixed h-[4.5rem] resize-none overflow-y-auto"
@@ -177,19 +158,19 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
                   <Button
                     type="button"
                     variant="ghost"
-                    disabled={isDeleting}
+                    disabled={isCancelling}
                     onClick={() => setIsConfirmOpen(false)}
                     className="cursor-pointer"
                   >
-                    キャンセル
+                    戻る
                   </Button>
                   <Button
                     type="button"
-                    disabled={!canDelete}
+                    disabled={!canCancel}
                     className="cursor-pointer bg-red-600 text-white hover:bg-red-700"
                     onClick={handleCancel}
                   >
-                    {isDeleting ? "削除中…" : "削除する"}
+                    {isCancelling ? "送信中…" : "イベントを削除する"}
                   </Button>
                 </div>
               </CardContent>
