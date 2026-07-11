@@ -144,7 +144,7 @@ export type LeaveResponse = {
   // 実行されたアクション。本エンドポイントでは常に "leave"。
   action: "leave";
   // キャンセルしたユーザーのプロフィールID（ログイン参加時）。
-  profileId: string | null;
+  profileId: string;
   // キャンセルを受け付けたイベントID。
   eventId: string;
   // キャンセル受領日時(RFC3339)。
