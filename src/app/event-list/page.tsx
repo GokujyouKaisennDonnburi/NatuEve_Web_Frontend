@@ -26,8 +26,8 @@ type ApiResponseEvent = {
   profileId: string;
   title: string;
   profile: ApiResponseProfile;
-  tags?: string[];
-  // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
+  tags?: Array<{ id: string; name: string }>;
+    // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
   cancelledAt?: string | null;
 };
 

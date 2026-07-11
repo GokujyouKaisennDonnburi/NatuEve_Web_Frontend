@@ -1,6 +1,12 @@
 // タグ作成 API（POST /api/v1/tags）の DTO 群。
 // バックエンドの契約に合わせる。OpenAPI codegen 未導入のため participate.ts 等と同様に手書きする。
 
+// タグの基本型（id + name）。イベント一覧・詳細の tags レスポンスやフォームの選択済みタグに使う。
+export type TagItem = {
+  id: string;
+  name: string;
+};
+
 // タグ作成エンドポイントへのリクエストボディ DTO。
 export type CreateTagRequest = {
   // タグ名（必須・30文字以内）。

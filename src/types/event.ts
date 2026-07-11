@@ -1,3 +1,5 @@
+import type { TagItem } from "@/types/tag";
+
 // イベント作成 API（POST /api/v1/events）の DTO 群。
 // バックエンド（NatuEve_API internal/model/event.go の CreateEventRequest）と
 // フィールド名・型を一致させる。OpenAPI codegen は未導入のため upload.ts と同様に手書きする。
@@ -103,7 +105,7 @@ export type EventDetailResponse = {
   pdfUrls: string[];
   profile: EventDetailProfile;
   reports?: EventDetailReport[];
-  tags?: string[];
+  tags?: TagItem[];
   title: string;
   updatedAt: string;
 };

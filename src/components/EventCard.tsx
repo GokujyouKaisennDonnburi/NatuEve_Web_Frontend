@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/atoms/Badge";
 import { Card, CardContent } from "@/components/ui/card";
+import type { TagItem } from "@/types/tag";
 import { Calendar, MapPin, User } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -17,7 +18,7 @@ export type EventItem = {
   createdAt: string;
   hostName: string;
   hostAvatarUrl: string;
-  tags?: string[];
+  tags?: TagItem[];
 };
 
 type EventCardProps = {
@@ -98,12 +99,12 @@ export function EventCard({ event }: EventCardProps) {
               <div className="flex flex-wrap gap-1 justify-end ml-2">
                 {event.tags.map((tag) => (
                   <Badge
-                    key={tag}
+                    key={tag.id}
                     tone="subtle"
                     className="max-w-[6rem] truncate text-[10px] px-1.5 py-0.5 leading-none"
-                    title={tag}
+                    title={tag.name}
                   >
-                    {tag}
+                    {tag.name}
                   </Badge>
                 ))}
               </div>

@@ -2,7 +2,7 @@
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import { HttpResponse, http } from "msw";
 
-import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";
+import { MAX_TAG_COUNT } from "@/constants/config";
 
 // MockProfile型は、イベントのプロフィール情報を表す型です。
 type MockProfile = {
@@ -20,7 +20,7 @@ type MockEvent = {
   profile: MockProfile;
   profileId: string;
   title: string;
-  tags?: string[];
+  tags?: Array<{ id: string; name: string }>;
   // イベントが取りやめになった日時(RFC3339)。未設定(undefined)の場合は開催予定。
   cancelledAt?: string | null;
 };
@@ -47,7 +47,7 @@ type MockEventDetail = MockEvent & {
   pdfUrls?: string[];
   pdfObjectKeys?: string[];
   pdfFilenames?: string[];
-  tags?: string[];
+  tags?: Array<{ id: string; name: string }>;
   reports?: {
     id: string;
     createdAt: string;
@@ -60,17 +60,35 @@ type MockEventDetail = MockEvent & {
   }[];
 };
 
-// 開発環境でタグ表示の確認ができるようサンプルタグを用意。
-// 一部のイベントはタグ未設定にしておき、未設定時の非表示挙動も検証可能にしている。
-const SAMPLE_TAG_POOL: string[][] = [
-  ["自然観察", "ファミリー向け"],
-  ["生き物", "屋外"],
-  ["ハイキング", "初心者歓迎"],
-  ["野鳥", "双眼鏡推奨"],
-];
 // モック用の UUID を番号から生成する（PostgreSQL の UUID 型と互換）。
 const toUuid = (n: number): string =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+
+// 開発環境でタグ表示の確認ができるようサンプルタグを用意。
+// 一部のイベントはタグ未設定にしておき、未設定時の非表示挙動も検証可能にしている。
+const SAMPLE_TAG_POOL: Array<Array<{ id: string; name: string }>> = [
+  [
+    { id: toUuid(1001), name: "自然観察" },
+    { id: toUuid(1002), name: "ファミリー向け" },
+  ],
+  [
+    { id: toUuid(1003), name: "生き物" },
+    { id: toUuid(1004), name: "屋外" },
+  ],
+  [
+    { id: toUuid(1005), name: "ハイキング" },
+    { id: toUuid(1006), name: "初心者歓迎" },
+  ],
+  [
+    { id: toUuid(1007), name: "野鳥" },
+    { id: toUuid(1008), name: "双眼鏡推奨" },
+  ],
+];
+
+// サンプルタグの ID→名前解決マップ。POST ハンドラで tagIds から { id, name } を復元するために使う。
+const MOCK_TAG_NAME_MAP: ReadonlyMap<string, string> = new Map(
+  SAMPLE_TAG_POOL.flat().map((tag) => [tag.id, tag.name]),
+);
 
 // ダミーイベントデータの初期値を生成
 const createInitialDummyEvents = (): MockEvent[] => {
@@ -219,8 +237,8 @@ const collectSearchTargets = (event: MockEvent): string[] => {
     }
     if (Array.isArray(detail.tags)) {
       for (const tag of detail.tags) {
-        if (typeof tag === "string") {
-          haystacks.push(tag);
+        if (typeof tag?.name === "string") {
+          haystacks.push(tag.name);
         }
       }
     }
@@ -616,7 +634,7 @@ export const eventHandlers = [
       capacity?: unknown;
       externalUrl?: unknown;
       items?: unknown;
-      tags?: unknown;
+      tagIds?: unknown;
       imageObjectKeys?: unknown;
       imageUrls?: unknown;
       imageFilenames?: unknown;
@@ -653,30 +671,30 @@ export const eventHandlers = [
       );
     }
 
-    // タグのサーバー側バリデーション(任意項目)。本番仕様に合わせて
-    // 配列・文字列・空文字・文字数・件数・重複をここで検証する。
-    let normalizedTags: string[] | undefined;
-    if (body.tags !== undefined && body.tags !== null) {
-      if (!Array.isArray(body.tags)) {
+    // タグ ID のサーバー側バリデーション(任意項目)。本番仕様に合わせて
+    // 配列・UUID 形式・件数をここで検証する。
+    let normalizedTags: Array<{ id: string; name: string }> | undefined;
+    if (body.tagIds !== undefined && body.tagIds !== null) {
+      if (!Array.isArray(body.tagIds)) {
         return HttpResponse.json(
           {
             error: {
               code: "invalid_request",
-              message: "タグの形式が不正です",
+              message: "タグIDの形式が不正です",
             },
           },
           { status: 400 },
         );
       }
 
-      const candidateTags: string[] = [];
-      for (const value of body.tags) {
+      const candidateTagIds: string[] = [];
+      for (const value of body.tagIds) {
         if (typeof value !== "string") {
           return HttpResponse.json(
             {
               error: {
                 code: "invalid_request",
-                message: "タグは文字列で指定してください",
+                message: "タグIDは文字列で指定してください",
               },
             },
             { status: 400 },
@@ -688,27 +706,32 @@ export const eventHandlers = [
             {
               error: {
                 code: "invalid_request",
-                message: "タグに空文字は指定できません。",
+                message: "タグIDに空文字は指定できません。",
               },
             },
             { status: 400 },
           );
         }
-        if (trimmed.length > MAX_TAG_LENGTH) {
+        // UUID 簡易形式チェック (8-4-4-4-12 のパターン)
+        if (
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            trimmed,
+          )
+        ) {
           return HttpResponse.json(
             {
               error: {
                 code: "invalid_request",
-                message: `タグは1つあたり${MAX_TAG_LENGTH}文字以内で指定してください`,
+                message: "タグIDはUUID形式で指定してください",
               },
             },
             { status: 400 },
           );
         }
-        candidateTags.push(trimmed);
+        candidateTagIds.push(trimmed);
       }
 
-      if (candidateTags.length > MAX_TAG_COUNT) {
+      if (candidateTagIds.length > MAX_TAG_COUNT) {
         return HttpResponse.json(
           {
             error: {
@@ -720,9 +743,10 @@ export const eventHandlers = [
         );
       }
 
-      const tagSet = new Set<string>();
-      for (const tag of candidateTags) {
-        if (tagSet.has(tag)) {
+      // 重複チェック
+      const idSet = new Set<string>();
+      for (const tagId of candidateTagIds) {
+        if (idSet.has(tagId)) {
           return HttpResponse.json(
             {
               error: {
@@ -733,10 +757,20 @@ export const eventHandlers = [
             { status: 400 },
           );
         }
-        tagSet.add(tag);
+        idSet.add(tagId);
       }
 
-      normalizedTags = candidateTags.length > 0 ? candidateTags : undefined;
+      // 空配列は「未指定」と同じ扱いとして undefined に正規化する。
+      // API 契約上 tags は任意項目であり、[] と undefined で挙動がブレないようにする。
+      if (candidateTagIds.length === 0) {
+        normalizedTags = undefined;
+      } else {
+        // タグ名を解決する。未知のIDは仮の名前で補完する。
+        normalizedTags = candidateTagIds.map((tagId) => {
+          const known = MOCK_TAG_NAME_MAP.get(tagId);
+          return { id: tagId, name: known ?? "不明なタグ" };
+        });
+      }
     }
 
     // 新しいイベントを構築してメモリに追加する

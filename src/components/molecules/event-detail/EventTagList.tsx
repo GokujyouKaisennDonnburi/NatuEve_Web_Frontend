@@ -1,8 +1,9 @@
 import { Badge } from "@/components/atoms/Badge";
+import type { TagItem } from "@/types/tag";
 
 // イベントタグリストのプロパティ型定義
 type EventTagListProps = {
-  tags?: string[];
+  tags?: TagItem[];
 };
 
 // イベントタグリストコンポーネント
@@ -15,9 +16,13 @@ export function EventTagList({ tags }: Readonly<EventTagListProps>) {
   return (
     <ul className="mt-3 flex flex-wrap gap-2" aria-label="イベントタグ">
       {safeTags.map((tag) => (
-        <li key={tag}>
-          <Badge tone="subtle" className="max-w-[12rem] truncate" title={tag}>
-            {tag}
+        <li key={tag.id}>
+          <Badge
+            tone="subtle"
+            className="max-w-[12rem] truncate"
+            title={tag.name}
+          >
+            {tag.name}
           </Badge>
         </li>
       ))}
