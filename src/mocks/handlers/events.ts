@@ -671,9 +671,9 @@ export const eventHandlers = [
       );
     }
 
-    // タグ ID のサーバー側バリデーション(任意項目)。本番仕様に合わせて
-    // 配列・UUID 形式・件数をここで検証する。
-    let normalizedTags: Array<{ id: string; name: string }> | undefined;
+    // タグIDのサーバー側バリデーション(任意項目)。本番仕様に合わせて
+    // 配列・文字列(UUID)・件数をここで検証する。
+    let normalizedTagIds: string[] | undefined;
     if (body.tagIds !== undefined && body.tagIds !== null) {
       if (!Array.isArray(body.tagIds)) {
         return HttpResponse.json(
@@ -687,7 +687,7 @@ export const eventHandlers = [
         );
       }
 
-      const candidateTagIds: string[] = [];
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       for (const value of body.tagIds) {
         if (typeof value !== "string") {
           return HttpResponse.json(
@@ -700,13 +700,12 @@ export const eventHandlers = [
             { status: 400 },
           );
         }
-        const trimmed = value.trim();
-        if (trimmed.length === 0) {
+        if (!uuidRegex.test(value)) {
           return HttpResponse.json(
             {
               error: {
                 code: "invalid_request",
-                message: "タグIDに空文字は指定できません。",
+                message: "タグIDの形式が不正です",
               },
             },
             { status: 400 },
@@ -731,7 +730,7 @@ export const eventHandlers = [
         candidateTagIds.push(trimmed);
       }
 
-      if (candidateTagIds.length > MAX_TAG_COUNT) {
+      if (body.tagIds.length > MAX_TAG_COUNT) {
         return HttpResponse.json(
           {
             error: {
@@ -743,34 +742,10 @@ export const eventHandlers = [
         );
       }
 
-      // 重複チェック
-      const idSet = new Set<string>();
-      for (const tagId of candidateTagIds) {
-        if (idSet.has(tagId)) {
-          return HttpResponse.json(
-            {
-              error: {
-                code: "invalid_request",
-                message: "同じタグが重複しています",
-              },
-            },
-            { status: 400 },
-          );
-        }
-        idSet.add(tagId);
-      }
-
-      // 空配列は「未指定」と同じ扱いとして undefined に正規化する。
-      // API 契約上 tags は任意項目であり、[] と undefined で挙動がブレないようにする。
-      if (candidateTagIds.length === 0) {
-        normalizedTags = undefined;
-      } else {
-        // タグ名を解決する。未知のIDは仮の名前で補完する。
-        normalizedTags = candidateTagIds.map((tagId) => {
-          const known = MOCK_TAG_NAME_MAP.get(tagId);
-          return { id: tagId, name: known ?? "不明なタグ" };
-        });
-      }
+      normalizedTagIds =
+        (body.tagIds as string[]).length > 0
+          ? (body.tagIds as string[])
+          : undefined;
     }
 
     // 新しいイベントを構築してメモリに追加する
@@ -856,7 +831,7 @@ export const eventHandlers = [
             (value): value is string => typeof value === "string",
           )
         : [],
-      tags: normalizedTags,
+      tags: normalizedTagIds,
     });
 
     // 主催者画面（参加者一覧）の動作確認用に、新規イベントに参加者モックをシードする。
