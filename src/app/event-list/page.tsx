@@ -27,6 +27,8 @@ type ApiResponseEvent = {
   title: string;
   profile: ApiResponseProfile;
   tags?: string[];
+  // イベントが取りやめになった日時(RFC3339)。未設定(nil)の場合は開催予定。
+  cancelledAt?: string | null;
 };
 
 type EventsApiResponse = {
@@ -206,25 +208,34 @@ export default function EventListPage() {
         const data = (await res.json()) as EventsApiResponse;
 
         if (!cancelled) {
-          const mappedEvents: EventItem[] = data.events.map((apiEvent) => ({
-            id: apiEvent.id,
-            title: apiEvent.title,
-            location: apiEvent.location,
-            createdAt: apiEvent.createdAt,
-            eventDate: apiEvent.eventDate,
-            profileId: apiEvent.profileId,
-            hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
-            hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
-            dateLabel: new Date(apiEvent.eventDate).toLocaleDateString(
-              "ja-JP",
-              {
-                month: "short",
-                day: "numeric",
-                timeZone: "Asia/Tokyo",
-              },
-            ),
-            tags: apiEvent.tags,
-          }));
+          // 取りやめになったイベント(cancelledAt が存在する)は一覧から除外する。
+          // ただし API の totalCount は絞り込み前の全体件数を返す可能性があるため、
+          // 絞り込み後の件数を別途計算してページネーションに反映する。
+          const visibleApiEvents = data.events.filter(
+            (apiEvent) => apiEvent.cancelledAt == null,
+          );
+
+          const mappedEvents: EventItem[] = visibleApiEvents.map(
+            (apiEvent) => ({
+              id: apiEvent.id,
+              title: apiEvent.title,
+              location: apiEvent.location,
+              createdAt: apiEvent.createdAt,
+              eventDate: apiEvent.eventDate,
+              profileId: apiEvent.profileId,
+              hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
+              hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
+              dateLabel: new Date(apiEvent.eventDate).toLocaleDateString(
+                "ja-JP",
+                {
+                  month: "short",
+                  day: "numeric",
+                  timeZone: "Asia/Tokyo",
+                },
+              ),
+              tags: apiEvent.tags,
+            }),
+          );
 
           setEvents(mappedEvents);
           setTotalCount(data.totalCount);

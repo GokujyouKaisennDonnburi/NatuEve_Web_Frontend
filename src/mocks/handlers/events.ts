@@ -21,6 +21,8 @@ type MockEvent = {
   profileId: string;
   title: string;
   tags?: string[];
+  // イベントが取りやめになった日時(RFC3339)。未設定(undefined)の場合は開催予定。
+  cancelledAt?: string | null;
 };
 
 // MockEventListResponse型は、イベントリストのレスポンスを表す型です。
@@ -108,6 +110,11 @@ const createInitialDummyEvents = (): MockEvent[] => {
       ...(index % 5 === 0
         ? {}
         : { tags: SAMPLE_TAG_POOL[index % SAMPLE_TAG_POOL.length] }),
+      // イベント一覧取得の cancelledAt 絞り込み挙動を検証するため、
+      // インデックス 0 と 50 のイベントをキャンセル済みとしてマークする。
+      ...(index === 0 || index === 50
+        ? { cancelledAt: new Date(Date.UTC(2026, 6, 1, 0, 0, 0)).toISOString() }
+        : {}),
     };
   });
 };
