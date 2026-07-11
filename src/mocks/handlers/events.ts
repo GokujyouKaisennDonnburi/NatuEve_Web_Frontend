@@ -60,6 +60,10 @@ type MockEventDetail = MockEvent & {
   }[];
 };
 
+// モック用の UUID を番号から生成する（PostgreSQL の UUID 型と互換）。
+const toUuid = (n: number): string =>
+  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+
 // 開発環境でタグ表示の確認ができるようサンプルタグを用意。
 // 一部のイベントはタグ未設定にしておき、未設定時の非表示挙動も検証可能にしている。
 const SAMPLE_TAG_POOL: Array<Array<{ id: string; name: string }>> = [
@@ -85,9 +89,6 @@ const SAMPLE_TAG_POOL: Array<Array<{ id: string; name: string }>> = [
 const MOCK_TAG_NAME_MAP: ReadonlyMap<string, string> = new Map(
   SAMPLE_TAG_POOL.flat().map((tag) => [tag.id, tag.name]),
 );
-// モック用の UUID を番号から生成する（PostgreSQL の UUID 型と互換）。
-const toUuid = (n: number): string =>
-  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 // ダミーイベントデータの初期値を生成
 const createInitialDummyEvents = (): MockEvent[] => {
@@ -670,7 +671,7 @@ export const eventHandlers = [
       );
     }
 
-// タグ ID のサーバー側バリデーション(任意項目)。本番仕様に合わせて
+    // タグ ID のサーバー側バリデーション(任意項目)。本番仕様に合わせて
     // 配列・UUID 形式・件数をここで検証する。
     let normalizedTags: Array<{ id: string; name: string }> | undefined;
     if (body.tagIds !== undefined && body.tagIds !== null) {
@@ -712,7 +713,11 @@ export const eventHandlers = [
           );
         }
         // UUID 簡易形式チェック (8-4-4-4-12 のパターン)
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+        if (
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            trimmed,
+          )
+        ) {
           return HttpResponse.json(
             {
               error: {
