@@ -5,7 +5,6 @@ import { SectionHeading } from "@/components/atoms/event-post/SectionHeading";
 import { FileField } from "@/components/molecules/event-post/FileField";
 import { FormField } from "@/components/molecules/event-post/FormField";
 import { OptionalUrlField } from "@/components/molecules/event-post/OptionalUrlField";
-import { TagInputField } from "@/components/molecules/event-post/TagInputField";
 import {
   type PriceCategory,
   PriceCategoryField,
@@ -14,6 +13,7 @@ import {
   type RequiredItem,
   RequiredItemField,
 } from "@/components/molecules/event-post/RequiredItemField";
+import { TagInputField } from "@/components/molecules/event-post/TagInputField";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -395,7 +395,7 @@ export default function EventPostPage() {
             <SectionHeading
               eyebrow="Event Entry"
               title="イベント基本情報"
-              description="まずは必須項目を整え、次に画像やPDF、申込導線を追加します。"
+              description="まずは必須項目を整え、次に画像やPDF、申し込みURLを追加します。"
               icon={<Megaphone className="h-4 w-4" />}
             />
             <CardDescription className="text-sm text-slate-600">
@@ -410,7 +410,7 @@ export default function EventPostPage() {
                 {/* イベントの基本情報入力セクション */}
                 <SectionHeading
                   eyebrow="Basic Info"
-                  title="イベントの骨格を入力"
+                  title="イベントの内容を入力"
                   description="ここで入力した内容がイベントページの中心情報になります。"
                   icon={<Sparkles className="h-4 w-4" />}
                 />
@@ -542,7 +542,7 @@ export default function EventPostPage() {
                 <SectionHeading
                   eyebrow="Event Details"
                   title="開催条件を整理"
-                  description="場所、日時、費用、必要物、定員をまとめて管理します。"
+                  description="開催場所、開催日時、参加費用、持ち物、定員数をまとめて管理します。"
                   icon={<MapPinned className="h-4 w-4" />}
                 />
 
@@ -667,10 +667,10 @@ export default function EventPostPage() {
                 onUrlChange={(url) => setField("applicationUrl", url)}
               />
 
-              {/* イベント内容の入力フィールド */}
+              {/* イベント概要の入力フィールド */}
               <FormField
                 id={getFieldId("eventContent")}
-                label="イベント内容"
+                label="イベント概要"
                 required
                 hint="イベントの目的、参加対象、当日の流れなどを記載します。"
                 error={errors.eventContent}
