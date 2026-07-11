@@ -760,11 +760,17 @@ export const eventHandlers = [
         idSet.add(tagId);
       }
 
-      // タグ名を解決する。未知のIDは仮の名前で補完する。
-      normalizedTags = candidateTagIds.map((tagId) => {
-        const known = MOCK_TAG_NAME_MAP.get(tagId);
-        return { id: tagId, name: known ?? "不明なタグ" };
-      });
+      // 空配列は「未指定」と同じ扱いとして undefined に正規化する。
+      // API 契約上 tags は任意項目であり、[] と undefined で挙動がブレないようにする。
+      if (candidateTagIds.length === 0) {
+        normalizedTags = undefined;
+      } else {
+        // タグ名を解決する。未知のIDは仮の名前で補完する。
+        normalizedTags = candidateTagIds.map((tagId) => {
+          const known = MOCK_TAG_NAME_MAP.get(tagId);
+          return { id: tagId, name: known ?? "不明なタグ" };
+        });
+      }
     }
 
     // 新しいイベントを構築してメモリに追加する
