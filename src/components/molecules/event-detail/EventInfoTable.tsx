@@ -100,7 +100,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                         ))}
                       </ul>
                     ) : (
-                      ""
+                      "なし"
                     )}
                   </td>
                 </tr>
