@@ -35,6 +35,11 @@ export type TagItem = {
   name: string;
 };
 
+// タグ一覧取得 API（GET /api/v1/tags）のレスポンス DTO。
+export type TagListResponse = {
+  tags: TagItem[];
+};
+
 // タグ作成 API のエラーコード（ハンドリングで区別するもの）。
 export const TagErrorCode = {
   InvalidRequest: "invalid_request",
