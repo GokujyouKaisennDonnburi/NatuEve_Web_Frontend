@@ -276,10 +276,14 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
     .filter((value) => value.length > 0)
     .slice(0, 10);
 
+  // キャンセル済みイベント(cancelledAt が設定済み)は一覧から除外する。
+  // バックエンド仕様: 公開イベント一覧は開催予定のみを返し totalCount も絞り込み後件数とする。
+  const activeEvents = mockEvents.filter((event) => !event.cancelledAt);
+
   // 検索キーワードで絞り込む
   const filteredEvents = keywords.length
-    ? mockEvents.filter((event) => matchesAllKeywords(event, keywords))
-    : mockEvents;
+    ? activeEvents.filter((event) => matchesAllKeywords(event, keywords))
+    : activeEvents;
 
   // イベントデータをソートする
   const sortedEvents = [...filteredEvents].sort((left, right) => {
@@ -512,12 +516,21 @@ export const eventHandlers = [
       );
     }
 
-    // キャンセル確定をマーク（実データは保持し、詳細画面で再取得可能とする）。
+    // キャンセル確定をデータへ反映し、一覧/詳細の再取得でキャンセル状態が再現されるようにする。
     cancelledEventIds.add(id);
+    const cancelledAt = new Date().toISOString();
+    const mockEvent = mockEvents.find((event) => event.id === id);
+    if (mockEvent) {
+      mockEvent.cancelledAt = cancelledAt;
+    }
+    const mockEventDetail = mockEventDetails.get(id);
+    if (mockEventDetail) {
+      mockEventDetail.cancelledAt = cancelledAt;
+    }
 
     return HttpResponse.json({
       id,
-      cancelledAt: new Date().toISOString(),
+      cancelledAt,
     });
   }),
 

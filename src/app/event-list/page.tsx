@@ -208,9 +208,9 @@ export default function EventListPage() {
         const data = (await res.json()) as EventsApiResponse;
 
         if (!cancelled) {
-          // 取りやめになったイベント(cancelledAt が存在する)は一覧から除外する。
-          // ただし API の totalCount は絞り込み前の全体件数を返す可能性があるため、
-          // 絞り込み後の件数を別途計算してページネーションに反映する。
+          // キャンセル済みイベント(cancelledAt が設定済み)は一覧から除外する。
+          // MSW は API 側で除外済みだが、実 API はキャンセル済みも返すため
+          // クライアント側で表示と件数を制御する。
           const visibleApiEvents = data.events.filter(
             (apiEvent) => apiEvent.cancelledAt == null,
           );
@@ -238,7 +238,10 @@ export default function EventListPage() {
           );
 
           setEvents(mappedEvents);
-          setTotalCount(data.totalCount);
+          // 件数は API の totalCount から当ページに含まれるキャンセル済み件数を引く
+          setTotalCount(
+            data.totalCount - (data.events.length - visibleApiEvents.length),
+          );
         }
       } catch (err) {
         if (!cancelled && attempt < 5) {
