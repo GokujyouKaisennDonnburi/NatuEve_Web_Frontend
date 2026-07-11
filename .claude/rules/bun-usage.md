@@ -1,7 +1,7 @@
 # Bun 使用ルール
 
 > 適用対象: `package.json`, `bun.lockb`, `bunfig.toml`。
-> このファイルは CLAUDE.md から `@import` で常時ロードされる。
+> このファイルは `.claude/rules/` から常時自動ロードされる。
 
 ## Bun はパッケージマネージャーとしてのみ使用
 
