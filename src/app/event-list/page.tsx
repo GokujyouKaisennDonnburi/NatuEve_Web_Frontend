@@ -305,7 +305,7 @@ export default function EventListPage() {
       <main className="mx-auto max-w-xl px-4 pt-4 pb-16">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mb-4">
           <p className="text-xs text-slate-500 px-1">
-            これから開催される自然観察イベントを縦にスクロールして確認できます。
+            これから開催されるイベントを縦にスクロールして確認できます。
           </p>
 
           <div className="flex items-center gap-1.5 self-end shrink-0 bg-white border border-slate-200 rounded-md px-2 py-1 shadow-sm">
