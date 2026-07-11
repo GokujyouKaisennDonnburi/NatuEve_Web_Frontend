@@ -31,6 +31,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { createEvent } from "@/services/event";
 import { uploadFile, uploadFiles } from "@/services/upload";
 import type { CreateEventRequest } from "@/types/event";
+import type { TagItem } from "@/types/tag";
 import { findUploadValidationError } from "@/utils/upload";
 import { FileText, MapPinned, Megaphone, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -50,7 +51,7 @@ type EventPostFormState = {
   applicationUrlEnabled: boolean; // 外部URLの有効化状態
   applicationUrl: string; // 外部URL
   requiredItems: RequiredItem[]; // 持ち物の配列
-  tags: string[]; // タグの配列
+  tags: TagItem[]; // タグの配列
 };
 
 // イベント投稿フォームの入力エラーを管理する型定義
@@ -88,7 +89,7 @@ const INITIAL_STATE: EventPostFormState = {
   applicationUrlEnabled: false,
   applicationUrl: "",
   requiredItems: [],
-  tags: [],
+  tags: [] as TagItem[],
 };
 
 // イベント投稿ページコンポーネント
@@ -274,7 +275,7 @@ export default function EventPostPage() {
     } else {
       const tagSet = new Set<string>();
       for (const tag of formState.tags) {
-        const trimmed = tag.trim();
+        const trimmed = tag.name.trim();
         if (!trimmed) {
           nextErrors.tags = "タグに空文字は指定できません。";
           break;
@@ -362,7 +363,7 @@ export default function EventPostPage() {
       }
 
       if (formState.tags.length > 0) {
-        payload.tags = formState.tags.map((tag) => tag.trim());
+        payload.tagIds = formState.tags.map((tag) => tag.id);
       }
 
       if (uploadedImage) {
