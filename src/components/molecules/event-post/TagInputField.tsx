@@ -221,17 +221,18 @@ export function TagInputField({
             />
 
             {showDropdown ? (
-              <ul
+              <div
                 id={`${id}-listbox`}
                 role="listbox"
                 aria-label="タグ候補"
                 className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
               >
                 {suggestions.map((suggestion, index) => (
-                  <li
+                  <div
                     key={suggestion.id}
                     role="option"
                     aria-selected={index === highlightIndex}
+                    tabIndex={-1}
                     className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm ${
                       index === highlightIndex
                         ? "bg-teal-50 text-teal-700"
@@ -244,12 +245,14 @@ export function TagInputField({
                     {index === highlightIndex ? (
                       <Check className="h-3.5 w-3.5 shrink-0" />
                     ) : null}
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : null}
 
-            {isTagsLoading && trimmedDraft.length > 0 && suggestions.length === 0 ? (
+            {isTagsLoading &&
+            trimmedDraft.length > 0 &&
+            suggestions.length === 0 ? (
               <div className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
                 読み込み中…
               </div>

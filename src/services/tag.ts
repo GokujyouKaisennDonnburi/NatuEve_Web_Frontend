@@ -56,7 +56,9 @@ export async function getTags(): Promise<TagListResponse> {
   });
 
   if (!response.ok) {
-    throw new Error(`タグ一覧の取得に失敗しました (Status: ${response.status})`);
+    throw new Error(
+      `タグ一覧の取得に失敗しました (Status: ${response.status})`,
+    );
   }
 
   return (await response.json()) as TagListResponse;

@@ -99,10 +99,7 @@ export const tagHandlers = [
     const id = crypto.randomUUID();
     tagStore.set(trimmed, { id, name: trimmed });
 
-    return HttpResponse.json(
-      { id, name: trimmed },
-      { status: 201 },
-    );
+    return HttpResponse.json({ id, name: trimmed }, { status: 201 });
   }),
 
   // タグ一覧取得モックエンドポイント（GET /api/v1/tags）。
