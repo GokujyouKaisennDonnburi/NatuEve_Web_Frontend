@@ -104,9 +104,12 @@ export function TagInputField({
         caughtError instanceof TagError &&
         caughtError.code === TagErrorCode.DuplicateTag
       ) {
-        onTagsChange([...latestTagsRef.current, { id: "", name }]);
-        setDraft("");
-        setIsOpen(false);
+        const existing = allTags.find((t) => t.name === name);
+        if (existing) {
+          onTagsChange([...latestTagsRef.current, existing]);
+          setDraft("");
+          setIsOpen(false);
+        }
         return;
       }
       console.error("タグの作成に失敗しました。", caughtError);

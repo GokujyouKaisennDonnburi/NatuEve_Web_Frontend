@@ -29,12 +29,6 @@ export type TagErrorBody = {
   };
 };
 
-// タグ入力欄で選択済みタグを保持する型（ID + 表示名）。
-export type TagItem = {
-  id: string;
-  name: string;
-};
-
 // タグ一覧取得 API（GET /api/v1/tags）のレスポンス DTO。
 export type TagListResponse = {
   tags: TagItem[];

@@ -3,6 +3,7 @@ import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import { HttpResponse, http } from "msw";
 
 import { MAX_TAG_COUNT } from "@/constants/config";
+import { tagStore } from "@/mocks/handlers/tags";
 
 // MockProfile型は、イベントのプロフィール情報を表す型です。
 type MockProfile = {
@@ -84,11 +85,6 @@ const SAMPLE_TAG_POOL: Array<Array<{ id: string; name: string }>> = [
     { id: toUuid(1008), name: "双眼鏡推奨" },
   ],
 ];
-
-// サンプルタグの ID→名前解決マップ。POST ハンドラで tagIds から { id, name } を復元するために使う。
-const MOCK_TAG_NAME_MAP: ReadonlyMap<string, string> = new Map(
-  SAMPLE_TAG_POOL.flat().map((tag) => [tag.id, tag.name]),
-);
 
 // ダミーイベントデータの初期値を生成
 const createInitialDummyEvents = (): MockEvent[] => {
@@ -672,8 +668,8 @@ export const eventHandlers = [
     }
 
     // タグIDのサーバー側バリデーション(任意項目)。本番仕様に合わせて
-    // 配列・文字列(UUID)・件数をここで検証する。
-    let normalizedTagIds: string[] | undefined;
+    // 配列・UUID形式・件数をここで検証する。
+    let resolvedTags: Array<{ id: string; name: string }> | undefined;
     if (body.tagIds !== undefined && body.tagIds !== null) {
       if (!Array.isArray(body.tagIds)) {
         return HttpResponse.json(
@@ -689,6 +685,7 @@ export const eventHandlers = [
 
       const uuidRegex =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const candidateTagIds: string[] = [];
       for (const value of body.tagIds) {
         if (typeof value !== "string") {
           return HttpResponse.json(
@@ -701,23 +698,8 @@ export const eventHandlers = [
             { status: 400 },
           );
         }
-        if (!uuidRegex.test(value)) {
-          return HttpResponse.json(
-            {
-              error: {
-                code: "invalid_request",
-                message: "タグIDの形式が不正です",
-              },
-            },
-            { status: 400 },
-          );
-        }
-        // UUID 簡易形式チェック (8-4-4-4-12 のパターン)
-        if (
-          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-            trimmed,
-          )
-        ) {
+        const trimmed = value.trim();
+        if (!uuidRegex.test(trimmed)) {
           return HttpResponse.json(
             {
               error: {
@@ -731,7 +713,7 @@ export const eventHandlers = [
         candidateTagIds.push(trimmed);
       }
 
-      if (body.tagIds.length > MAX_TAG_COUNT) {
+      if (candidateTagIds.length > MAX_TAG_COUNT) {
         return HttpResponse.json(
           {
             error: {
@@ -743,9 +725,22 @@ export const eventHandlers = [
         );
       }
 
-      normalizedTagIds =
-        (body.tagIds as string[]).length > 0
-          ? (body.tagIds as string[])
+      resolvedTags =
+        candidateTagIds.length > 0
+          ? candidateTagIds
+              .map((id) => {
+                // tagStore から一致するタグを検索（id で検索）
+                for (const entry of tagStore.values()) {
+                  if (entry.id === id) {
+                    return { id: entry.id, name: entry.name };
+                  }
+                }
+                return null;
+              })
+              .filter(
+                (entry): entry is { id: string; name: string } =>
+                  entry !== null,
+              )
           : undefined;
     }
 
@@ -832,7 +827,7 @@ export const eventHandlers = [
             (value): value is string => typeof value === "string",
           )
         : [],
-      tags: normalizedTagIds,
+      tags: resolvedTags,
     });
 
     // 主催者画面（参加者一覧）の動作確認用に、新規イベントに参加者モックをシードする。

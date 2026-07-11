@@ -26,6 +26,8 @@ const SEED_TAGS: { id: string; name: string }[] = [
 const tagStore = new Map<string, { id: string; name: string }>(
   SEED_TAGS.map((t) => [t.name, t]),
 );
+// イベントモックからタグ名解決のために利用できるよう export する。
+export { tagStore };
 
 export const tagHandlers = [
   // タグ作成モックエンドポイント（POST /api/v1/tags）。
