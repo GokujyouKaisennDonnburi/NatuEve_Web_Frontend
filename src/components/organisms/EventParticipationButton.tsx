@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { MOCK_AUTH_SESSION, isMockAuthEnabled } from "@/services/mockAuth";
-import { joinedCancel, participateEvent } from "@/services/participate";
+import { leaveEvent, participateEvent } from "@/services/participate";
 import {
-  JoinedCancelError,
-  JoinedCancelErrorCode,
+  LeaveError,
+  LeaveErrorCode,
   ParticipateError,
   ParticipateErrorCode,
 } from "@/types/participate";
@@ -476,19 +476,19 @@ type CancelParticipationModalProps = {
 };
 
 // 参加キャンセルのエラーを種別ごとにトーストへ振り分ける
-const handleJoinedCancelError = (error: unknown) => {
-  if (error instanceof JoinedCancelError) {
+const handleLeaveError = (error: unknown) => {
+  if (error instanceof LeaveError) {
     switch (error.code) {
-      case JoinedCancelErrorCode.NotJoined:
-        toast.error(error.message || "このイベントに参加していません。");
+      // イベント不存在 または 未参加
+      case LeaveErrorCode.NotFound:
+        toast.error(
+          error.message || "イベントが見つからない、または参加していません。",
+        );
         return;
-      case JoinedCancelErrorCode.Unauthorized:
+      case LeaveErrorCode.Unauthorized:
         toast.error(error.message || "認証が必要です。");
         return;
-      case JoinedCancelErrorCode.NotFound:
-        toast.error(error.message || "イベントが見つかりません。");
-        return;
-      case JoinedCancelErrorCode.InvalidRequest:
+      case LeaveErrorCode.InvalidRequest:
         toast.error(error.message || "リクエストが不正です。");
         return;
       default:
@@ -502,7 +502,7 @@ const handleJoinedCancelError = (error: unknown) => {
 };
 
 // 参加キャンセル確認モーダルコンポーネント
-// POST /api/v1/events/{id}/joined-cancel を呼び出して参加をキャンセルする。
+// POST /api/v1/events/{id}/leave を呼び出して参加をキャンセルする。
 const CancelParticipationModal = ({
   eventId,
   onClose,
@@ -535,12 +535,12 @@ const CancelParticipationModal = ({
     setIsSubmitting(true);
 
     try {
-      await joinedCancel(eventId);
+      await leaveEvent(eventId);
       toast.success("参加キャンセルを受け付けました。");
       onSuccess?.();
       onClose();
     } catch (error) {
-      handleJoinedCancelError(error);
+      handleLeaveError(error);
     } finally {
       setIsSubmitting(false);
     }

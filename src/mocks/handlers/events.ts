@@ -308,6 +308,17 @@ const getPagedEvents = (url: URL): MockEventListResponse => {
 // 重複参加チェック（409 Conflict）のために使用
 const eventParticipants = new Map<string, Set<string>>();
 
+// participation-logs エンドポイントが返す参加履歴1件分の型。
+// 直近のアクション（join / leave）とその日時を保持する。
+type MockParticipationLog = {
+  action: "join" | "leave";
+  updatedAt: string;
+};
+
+// メモリ内参加履歴管理：eventId ごとに participantKey → 最新ログ を保持する。
+// GET /participation-logs はこの履歴を元に action / participating / updatedAt を返す。
+const participationLogs = new Map<string, Map<string, MockParticipationLog>>();
+
 // 参加者一覧取得 API（GET /api/v1/events/{id}/members）が返す参加者1件分の型。
 // 匿名参加時は profileId が null となる。swagger（GET .../members）の
 // レスポンス定義に合わせ、id / eventId は含めない（兄弟エンドポイントと統一）。
@@ -460,6 +471,7 @@ export const eventHandlers = [
     mockEventDetails.delete(id);
     eventParticipants.delete(id);
     eventMembers.delete(id);
+    participationLogs.delete(id);
     deletedEventIds.add(id);
 
     return new HttpResponse(null, { status: 204 });
@@ -875,6 +887,12 @@ export const eventHandlers = [
     // タイムスタンプがズレないよう単一の値で整合性を保つ。
     const createdAt = new Date().toISOString();
 
+    // participation-logs エンドポイントが返す参加履歴を記録する。
+    const logs =
+      participationLogs.get(id) ?? new Map<string, MockParticipationLog>();
+    logs.set(participantKey, { action: "join", updatedAt: createdAt });
+    participationLogs.set(id, logs);
+
     // members エンドポイントで参加者一覧に反映されるよう、参加レコードを蓄積する。
     const members = eventMembers.get(id) ?? [];
     members.push({
@@ -972,9 +990,9 @@ export const eventHandlers = [
   }),
 
   // イベント参加状態取得モックエンドポイント（GET /api/v1/events/:id/participation-logs）
-  // 現在のログインユーザーが当該イベントに参加中かどうかを返す。要認証。
-  // 未認証・未知トークンは 401、イベント不存在は 400 invalid_request（兄弟エンドポイントと統一）。
-  // 参加判定は eventParticipants に登録されたキー（ログイン時はトークンを profileId として扱う）で行う。
+  // 認証ユーザー自身の、指定イベントに対する最新の参加状態を返す。要認証。
+  // 未認証・未知トークンは 401、イベント不存在は 404 not_found（swagger準拠）。
+  // 履歴がない場合は action=null, participating=false, updatedAt=null を返す（200）。
   http.get("/api/v1/events/:id/participation-logs", ({ request, params }) => {
     const id = String(params?.id ?? "");
     const authorizationHeader = request.headers.get("authorization");
@@ -991,9 +1009,6 @@ export const eventHandlers = [
       );
     }
 
-    // トークン→profileId の対応付け検証のみ（unknown トークンを弾く）。
-    // 参加判定には eventParticipants のキー（raw token）をそのまま使用する。
-    // これは join エンドポイントが raw token を participantKey として登録する挙動と一致させるため。
     const token = authorizationHeader.split(" ")[1]?.trim() ?? "";
     const requesterProfileId = TOKEN_TO_PROFILE_ID[token];
     if (!requesterProfileId) {
@@ -1008,31 +1023,35 @@ export const eventHandlers = [
       );
     }
 
-    // イベント不存在は swagger 指定により 400 invalid_request（兄弟エンドポイントと統一）。
+    // イベント不存在は swagger 指定により 404 not_found。
     if (!mockEventDetails.has(id)) {
       return HttpResponse.json(
         {
           error: {
-            code: "invalid_request",
-            message: "リクエストが不正です",
+            code: "not_found",
+            message: "リソースが見つかりません",
           },
         },
-        { status: 400 },
+        { status: 404 },
       );
     }
 
-    // eventParticipants のキーは join エンドポイントが raw token で登録するため、
+    // participationLogs から最新の参加履歴を取得する。
+    // participantKey は join エンドポイントが raw token で登録するため、
     // ここでも raw token で判定する。
-    const participants = eventParticipants.get(id);
-    const participating = participants?.has(token) ?? false;
+    const log = participationLogs.get(id)?.get(token) ?? null;
+    const action = log?.action ?? null;
+    const updatedAt = log?.updatedAt ?? null;
+    const participating = action === "join";
 
-    return HttpResponse.json({ participating });
+    return HttpResponse.json({ action, participating, updatedAt });
   }),
 
-  // イベント参加キャンセルモックエンドポイント（POST /api/v1/events/:id/joined-cancel）
-  // 参加済みユーザーが参加をキャンセルする。要認証。リクエストボディは不要。
-  // 未認証・未知トークンは 401、イベント不存在は 400 invalid_request、未参加は 409 not_joined。
-  http.post("/api/v1/events/:id/joined-cancel", ({ request, params }) => {
+  // イベント参加キャンセルモックエンドポイント（POST /api/v1/events/:id/leave）
+  // ログイン参加者が参加を取り消す。要認証。リクエストボディは不要。匿名参加は対象外。
+  // 未認証・未知トークンは 401、イベント不存在 または 未参加は 404 not_found となる。
+  // 参加行を削除し、参加状態ログへ action=leave を1件追記する。
+  http.post("/api/v1/events/:id/leave", ({ request, params }) => {
     const id = String(params?.id ?? "");
     const authorizationHeader = request.headers.get("authorization");
 
@@ -1062,37 +1081,44 @@ export const eventHandlers = [
       );
     }
 
-    // イベント不存在は swagger 指定により 400 invalid_request（兄弟エンドポイントと統一）。
+    // イベント不存在は swagger 指定により 404 not_found。
     if (!mockEventDetails.has(id)) {
       return HttpResponse.json(
         {
           error: {
-            code: "invalid_request",
-            message: "リクエストが不正です",
+            code: "not_found",
+            message: "リソースが見つかりません",
           },
         },
-        { status: 400 },
+        { status: 404 },
       );
     }
 
-    // 未参加チェック：eventParticipants にトークンが登録されていなければ 409 not_joined。
+    // 未参加チェック：eventParticipants にトークンが登録されていなければ 404 not_found。
     const participants = eventParticipants.get(id);
     const participantKey = token;
     if (!participants?.has(participantKey)) {
       return HttpResponse.json(
         {
           error: {
-            code: "not_joined",
-            message: "このイベントに参加していません",
+            code: "not_found",
+            message: "リソースが見つかりません",
           },
         },
-        { status: 409 },
+        { status: 404 },
       );
     }
 
     // 参加記録を削除してキャンセル完了
+    const canceledAt = new Date().toISOString();
     participants.delete(participantKey);
     eventParticipants.set(id, participants);
+
+    // participation-logs エンドポイントが返す参加履歴を記録する。
+    const logs =
+      participationLogs.get(id) ?? new Map<string, MockParticipationLog>();
+    logs.set(participantKey, { action: "leave", updatedAt: canceledAt });
+    participationLogs.set(id, logs);
 
     // eventMembers からも該当レコードを削除する。
     // ログイン参加の場合は profileId（= TOKEN_TO_PROFILE_ID[token]）で特定する。
@@ -1109,6 +1135,7 @@ export const eventHandlers = [
 
     return HttpResponse.json(
       {
+        action: "leave",
         profileId: requesterProfileId,
         eventId: id,
         createdAt: new Date().toISOString(),
