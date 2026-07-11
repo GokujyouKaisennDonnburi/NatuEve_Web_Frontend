@@ -58,13 +58,11 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
       // 通知成功後（または送信済み）に削除を実行。
       try {
         await deleteEvent(eventId);
-        toast.success(
-          "イベント投稿をキャンセルし、参加者へ通知を送信しました。",
-        );
+        toast.success("イベント投稿を削除し、参加者へ通知を送信しました。");
         setIsConfirmOpen(false);
         router.push(ROUTES.EVENT_LIST);
       } catch (error) {
-        console.error("イベント投稿のキャンセルに失敗しました:", error);
+        console.error("イベント投稿の削除に失敗しました:", error);
         toast.error(
           "通知は送信済みです。イベント削除に失敗しました。「削除する」を再押下で削除のみ再試行できます。",
         );
@@ -101,7 +99,7 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
         onClick={() => setIsConfirmOpen(true)}
         disabled={isDeleting}
       >
-        {isDeleting ? "削除中…" : "投稿をキャンセルする"}
+        {isDeleting ? "削除中…" : "投稿を削除する"}
       </Button>
 
       {isConfirmOpen ? (
@@ -181,7 +179,7 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
                     onClick={() => setIsConfirmOpen(false)}
                     className="cursor-pointer"
                   >
-                    キャンセル
+                    戻る
                   </Button>
                   <Button
                     type="button"
