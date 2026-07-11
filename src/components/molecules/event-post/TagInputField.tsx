@@ -9,22 +9,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";
 import { useCreateTag } from "@/hooks/useCreateTag";
-import { TagError, TagErrorCode } from "@/types/tag";
+import { TagError, TagErrorCode, type TagItem } from "@/types/tag";
 
 // タグ入力欄コンポーネントのプロパティを定義。
 // タグ配列は親コンポーネントで管理する controlled 設計とし、
 // バリデーション(重複・空文字・文字数・件数)は page.tsx の validate() に集約する。
 type TagInputFieldProps = {
   id: string;
-  tags: string[];
-  onTagsChange: (tags: string[]) => void;
+  tags: TagItem[];
+  onTagsChange: (tags: TagItem[]) => void;
   error?: string;
 };
 
 // タグ入力欄を表示するコンポーネント。
 // Input にタグ名を入力し、Enter または追加ボタンで確定する。
 // 確定時にバックエンドの POST /api/v1/tags を呼び出し、
-// 成功時は API レスポンスの name を chip として追加する。
+// 成功時は API レスポンスの id と name を chip として追加する。
 // 409 duplicate_tag はサーバ側に同名タグが存在する成功扱いのため、
 // 通知を出さずローカルに追加する。
 // 既存タグは Badge 風チップとして表示し、× ボタンで削除できる。
@@ -40,7 +40,8 @@ export function TagInputField({
   // 入力中のタグを正規化し、空文字以外で既存タグと重複しているかを判定する。
   // ボタンの disabled と Enter キー処理の両方で利用する。
   const trimmedDraft = draft.trim();
-  const isDuplicate = trimmedDraft.length > 0 && tags.includes(trimmedDraft);
+  const isDuplicate =
+    trimmedDraft.length > 0 && tags.some((t) => t.name === trimmedDraft);
   const isAddDisabled =
     !trimmedDraft || isLimitReached || isDuplicate || isSubmitting;
   // 重複エラーメッセージの id。aria-describedby で Input と関連付ける。
@@ -89,9 +90,12 @@ export function TagInputField({
     }
     const name = trimmedDraft;
     try {
-      // 成功時はサーバが正規化／トリムした name を採用する。
+      // 成功時はサーバが正規化／トリムした name と id を採用する。
       const created = await submit(name);
-      onTagsChange([...latestTagsRef.current, created.name]);
+      onTagsChange([
+        ...latestTagsRef.current,
+        { id: created.id, name: created.name },
+      ]);
       setDraft("");
     } catch (caughtError) {
       // 409 duplicate_tag はサーバ側に同名タグが存在する成功扱いのため、
@@ -100,7 +104,7 @@ export function TagInputField({
         caughtError instanceof TagError &&
         caughtError.code === TagErrorCode.DuplicateTag
       ) {
-        onTagsChange([...latestTagsRef.current, name]);
+        onTagsChange([...latestTagsRef.current, { id: "", name }]);
         setDraft("");
         return;
       }
@@ -183,7 +187,7 @@ export function TagInputField({
         <ul className="flex flex-wrap gap-2" aria-label="追加済みのタグ">
           {tags.map((tag, index) => (
             <li key={rowIds[index] ?? `${id}-tag-${index}`}>
-              <TagChip label={tag} onRemove={() => handleRemove(index)} />
+              <TagChip label={tag.name} onRemove={() => handleRemove(index)} />
             </li>
           ))}
         </ul>
