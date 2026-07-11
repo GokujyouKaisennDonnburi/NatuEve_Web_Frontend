@@ -117,13 +117,13 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
             className="relative w-full max-w-md"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="cancel-event-modal-title"
+            aria-labelledby={`cancel-event-modal-title-${eventId}`}
           >
             <Card className="border-slate-200/80 bg-white/95 shadow-xl backdrop-blur">
               <CardContent className="space-y-5 pt-6">
                 <div className="space-y-1">
                   <h2
-                    id="cancel-event-modal-title"
+                    id={`cancel-event-modal-title-${eventId}`}
                     className="text-lg font-bold text-slate-900"
                   >
                     イベント投稿を削除しますか？
@@ -137,12 +137,12 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
 
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="notify-subject">
+                    <Label htmlFor={`cancel-notify-subject-${eventId}`}>
                       件名
                       <span className="ml-1 text-red-600">(必須)</span>
                     </Label>
                     <Input
-                      id="notify-subject"
+                      id={`cancel-notify-subject-${eventId}`}
                       type="text"
                       value={notifySubject}
                       onChange={(e) => setNotifySubject(e.target.value)}
@@ -153,12 +153,12 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="notify-body">
+                    <Label htmlFor={`cancel-notify-body-${eventId}`}>
                       中止理由
                       <span className="ml-1 text-red-600">(必須)</span>
                     </Label>
                     <Textarea
-                      id="notify-body"
+                      id={`cancel-notify-body-${eventId}`}
                       value={notifyBody}
                       onChange={(e) => setNotifyBody(e.target.value)}
                       placeholder="例:主催者の都合により中止となりました。ご参加予定でした皆様にはお詫び申し上げます。"
