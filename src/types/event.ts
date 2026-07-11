@@ -120,3 +120,22 @@ export type NotifyEventParticipantsResponse = {
   // 実際に通知された参加者数（任意）
   notifiedCount?: number;
 };
+
+// イベント取りやめ（キャンセル）API（POST /api/v1/events/{id}/cancel）の DTO 群。
+// 主催者のみ実行可能。非冪等: 参加者へ送る通知メールの件名・本文を必須で受け取り、
+// キャンセル確定と同一トランザクションで通知を outbox に予約する
+// （バックグラウンドワーカーが個別送信する）。
+export type CancelEventRequest = {
+  // 通知メールの件名（必須）
+  subject: string;
+  // 通知メールの本文（必須）
+  body: string;
+};
+
+// キャンセルエンドポイントの成功(200)レスポンス DTO。
+export type CancelEventResponse = {
+  // キャンセル確定したイベントの UUID。
+  id: string;
+  // キャンセル受領日時(RFC3339)。
+  cancelledAt: string;
+};
