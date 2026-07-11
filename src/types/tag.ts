@@ -29,6 +29,12 @@ export type TagErrorBody = {
   };
 };
 
+// タグ入力欄で選択済みタグを保持する型（ID + 表示名）。
+export type TagItem = {
+  id: string;
+  name: string;
+};
+
 // タグ作成 API のエラーコード（ハンドリングで区別するもの）。
 export const TagErrorCode = {
   InvalidRequest: "invalid_request",
