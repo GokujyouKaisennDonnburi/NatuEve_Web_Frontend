@@ -185,7 +185,7 @@ export function EventDetail({
       {/* スクロール中も画面下部に固定で表示する */}
       <div className="sticky bottom-4 z-40">
         {isOrganizer ? (
-          <EventCancelButton eventId={event.id} />
+          <EventCancelButton eventId={event.id} hasMembers={hasMembers} />
         ) : (
           <>
             {participationError ? (
