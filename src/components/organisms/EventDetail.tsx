@@ -51,7 +51,7 @@ export function EventDetail({
 
   // 参加者一覧の取得（主催者のみ）
   const memberState = useEventMembers(isOrganizer ? event.id : null);
-  const hasMembers = (memberState.data?.totalCount ?? 0) > 0;
+  const hasMembers = memberState.data ? memberState.data.totalCount > 0 : true;
 
   // 参加者一覧モーダルの開閉状態（主催者のみ操作可能）
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
