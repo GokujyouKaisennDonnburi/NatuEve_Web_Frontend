@@ -3,9 +3,31 @@ import { HttpResponse, http } from "msw";
 
 import { MAX_TAG_LENGTH } from "@/constants/config";
 
-// メモリ内タグ管理：タグ名を保持し、重複作成（409 Conflict）の判定に使用する。
+// メモリ内タグ管理：タグ名→{ id, name } のマップ。重複作成（409 Conflict）の判定と
+// 一覧取得（GET /api/v1/tags）のデータソースとして使用する。
 // MSW はプロセス内状態のためリロードでリセットされる前提。
-const createdTags = new Set<string>();
+const SEED_TAGS: { id: string; name: string }[] = [
+  { id: "a1000000-0000-4000-8000-000000000001", name: "自然観察" },
+  { id: "a1000000-0000-4000-8000-000000000002", name: "ファミリー向け" },
+  { id: "a1000000-0000-4000-8000-000000000003", name: "生き物" },
+  { id: "a1000000-0000-4000-8000-000000000004", name: "屋外" },
+  { id: "a1000000-0000-4000-8000-000000000005", name: "ハイキング" },
+  { id: "a1000000-0000-4000-8000-000000000006", name: "初心者歓迎" },
+  { id: "a1000000-0000-4000-8000-000000000007", name: "野鳥" },
+  { id: "a1000000-0000-4000-8000-000000000008", name: "双眼鏡推奨" },
+  { id: "a1000000-0000-4000-8000-000000000009", name: "写真撮影" },
+  { id: "a1000000-0000-4000-8000-00000000000a", name: "ワークショップ" },
+  { id: "a1000000-0000-4000-8000-00000000000b", name: "雨天決行" },
+  { id: "a1000000-0000-4000-8000-00000000000c", name: "要予約" },
+  { id: "a1000000-0000-4000-8000-00000000000d", name: "環境保全" },
+  { id: "a1000000-0000-4000-8000-00000000000e", name: "外来生物" },
+  { id: "a1000000-0000-4000-8000-00000000000f", name: "子ども同伴可" },
+];
+const tagStore = new Map<string, { id: string; name: string }>(
+  SEED_TAGS.map((t) => [t.name, t]),
+);
+// イベントモックからタグ名解決のために利用できるよう export する。
+export { tagStore };
 
 export const tagHandlers = [
   // タグ作成モックエンドポイント（POST /api/v1/tags）。
@@ -64,7 +86,7 @@ export const tagHandlers = [
     }
 
     // 重複作成は 409 で返す（バックエンドの ErrTagAlreadyExists 相当）。
-    if (createdTags.has(trimmed)) {
+    if (tagStore.has(trimmed)) {
       return HttpResponse.json(
         {
           error: {
@@ -76,11 +98,16 @@ export const tagHandlers = [
       );
     }
 
-    createdTags.add(trimmed);
+    const id = crypto.randomUUID();
+    tagStore.set(trimmed, { id, name: trimmed });
 
-    return HttpResponse.json(
-      { id: crypto.randomUUID(), name: trimmed },
-      { status: 201 },
-    );
+    return HttpResponse.json({ id, name: trimmed }, { status: 201 });
+  }),
+
+  // タグ一覧取得モックエンドポイント（GET /api/v1/tags）。
+  // 認証不要。全タグを配列で返す。
+  http.get("/api/v1/tags", () => {
+    const tags = Array.from(tagStore.values());
+    return HttpResponse.json({ tags });
   }),
 ];

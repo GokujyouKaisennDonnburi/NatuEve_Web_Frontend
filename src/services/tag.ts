@@ -3,6 +3,7 @@ import type {
   CreateTagRequest,
   CreateTagResponse,
   TagErrorBody,
+  TagListResponse,
 } from "@/types/tag";
 import { TagError } from "@/types/tag";
 
@@ -43,4 +44,22 @@ export async function createTag(
   }
 
   return (await response.json()) as CreateTagResponse;
+}
+
+// タグ一覧取得 API（GET /api/v1/tags）を呼ぶ（認証不要）。
+//
+// タグ入力欄の候補表示のために呼び出される。
+// 取得失敗時は呼び出し側で適宜フォールバックする。
+export async function getTags(): Promise<TagListResponse> {
+  const response = await apiFetch("/api/v1/tags", {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `タグ一覧の取得に失敗しました (Status: ${response.status})`,
+    );
+  }
+
+  return (await response.json()) as TagListResponse;
 }

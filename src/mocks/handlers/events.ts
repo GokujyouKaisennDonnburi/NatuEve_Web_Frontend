@@ -3,6 +3,7 @@ import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import { HttpResponse, http } from "msw";
 
 import { MAX_TAG_COUNT } from "@/constants/config";
+import { tagStore } from "@/mocks/handlers/tags";
 
 // MockProfile型は、イベントのプロフィール情報を表す型です。
 type MockProfile = {
@@ -84,11 +85,6 @@ const SAMPLE_TAG_POOL: Array<Array<{ id: string; name: string }>> = [
     { id: toUuid(1008), name: "双眼鏡推奨" },
   ],
 ];
-
-// サンプルタグの ID→名前解決マップ。POST ハンドラで tagIds から { id, name } を復元するために使う。
-const MOCK_TAG_NAME_MAP: ReadonlyMap<string, string> = new Map(
-  SAMPLE_TAG_POOL.flat().map((tag) => [tag.id, tag.name]),
-);
 
 // ダミーイベントデータの初期値を生成
 const createInitialDummyEvents = (): MockEvent[] => {
@@ -671,9 +667,9 @@ export const eventHandlers = [
       );
     }
 
-    // タグ ID のサーバー側バリデーション(任意項目)。本番仕様に合わせて
-    // 配列・UUID 形式・件数をここで検証する。
-    let normalizedTags: Array<{ id: string; name: string }> | undefined;
+    // タグIDのサーバー側バリデーション(任意項目)。本番仕様に合わせて
+    // 配列・UUID形式・件数をここで検証する。
+    let resolvedTags: Array<{ id: string; name: string }> | undefined;
     if (body.tagIds !== undefined && body.tagIds !== null) {
       if (!Array.isArray(body.tagIds)) {
         return HttpResponse.json(
@@ -687,6 +683,8 @@ export const eventHandlers = [
         );
       }
 
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const candidateTagIds: string[] = [];
       for (const value of body.tagIds) {
         if (typeof value !== "string") {
@@ -701,23 +699,7 @@ export const eventHandlers = [
           );
         }
         const trimmed = value.trim();
-        if (trimmed.length === 0) {
-          return HttpResponse.json(
-            {
-              error: {
-                code: "invalid_request",
-                message: "タグIDに空文字は指定できません。",
-              },
-            },
-            { status: 400 },
-          );
-        }
-        // UUID 簡易形式チェック (8-4-4-4-12 のパターン)
-        if (
-          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-            trimmed,
-          )
-        ) {
+        if (!uuidRegex.test(trimmed)) {
           return HttpResponse.json(
             {
               error: {
@@ -743,34 +725,23 @@ export const eventHandlers = [
         );
       }
 
-      // 重複チェック
-      const idSet = new Set<string>();
-      for (const tagId of candidateTagIds) {
-        if (idSet.has(tagId)) {
-          return HttpResponse.json(
-            {
-              error: {
-                code: "invalid_request",
-                message: "同じタグが重複しています",
-              },
-            },
-            { status: 400 },
-          );
-        }
-        idSet.add(tagId);
-      }
-
-      // 空配列は「未指定」と同じ扱いとして undefined に正規化する。
-      // API 契約上 tags は任意項目であり、[] と undefined で挙動がブレないようにする。
-      if (candidateTagIds.length === 0) {
-        normalizedTags = undefined;
-      } else {
-        // タグ名を解決する。未知のIDは仮の名前で補完する。
-        normalizedTags = candidateTagIds.map((tagId) => {
-          const known = MOCK_TAG_NAME_MAP.get(tagId);
-          return { id: tagId, name: known ?? "不明なタグ" };
-        });
-      }
+      resolvedTags =
+        candidateTagIds.length > 0
+          ? candidateTagIds
+              .map((id) => {
+                // tagStore から一致するタグを検索（id で検索）
+                for (const entry of tagStore.values()) {
+                  if (entry.id === id) {
+                    return { id: entry.id, name: entry.name };
+                  }
+                }
+                return null;
+              })
+              .filter(
+                (entry): entry is { id: string; name: string } =>
+                  entry !== null,
+              )
+          : undefined;
     }
 
     // 新しいイベントを構築してメモリに追加する
@@ -856,7 +827,7 @@ export const eventHandlers = [
             (value): value is string => typeof value === "string",
           )
         : [],
-      tags: normalizedTags,
+      tags: resolvedTags,
     });
 
     // 主催者画面（参加者一覧）の動作確認用に、新規イベントに参加者モックをシードする。
