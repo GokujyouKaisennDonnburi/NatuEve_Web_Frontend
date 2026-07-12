@@ -51,7 +51,11 @@ export function EventCancelButton({
               }
             : {},
         );
-        toast.success("イベントを削除し、参加者へ通知を送信しました。");
+        toast.success(
+           hasMembers
+             ? "イベントを削除し、参加者へ通知を送信しました。"
+             : "イベントを削除しました。",
+         );
         setIsConfirmOpen(false);
         router.push(ROUTES.EVENT_LIST);
       } catch (error) {
