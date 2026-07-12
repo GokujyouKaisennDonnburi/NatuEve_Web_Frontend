@@ -136,7 +136,7 @@ export function EventMemberListModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed left-0 top-0 w-screen h-screen z-[100] flex items-center justify-center px-4">
       {/* 背景オーバーレイ：ボタンとして振るわせ、クリックで閉じる */}
       <button
         type="button"
