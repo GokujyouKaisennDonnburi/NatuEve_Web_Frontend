@@ -79,7 +79,7 @@ export function EventNotifyButton({
     <>
       <Button
         size="sm"
-        className="cursor-pointer border border-transparent hover:border-slate-300 disabled:opacity-40"
+        className="cursor-pointer border border-transparent hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent"
         onClick={() => setIsModalOpen(true)}
         disabled={isSending || disabled}
       >

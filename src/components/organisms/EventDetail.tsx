@@ -49,8 +49,9 @@ export function EventDetail({
     session?.userId && organizerId && session.userId === organizerId,
   );
 
-  // 参加者一覧を取得（主催者のみ）
-  const { data: memberData } = useEventMembers(event.id);
+  // 参加者一覧の取得（主催者のみ）
+  const memberState = useEventMembers(isOrganizer ? event.id : null);
+  const hasMembers = (memberState.data?.totalCount ?? 0) > 0;
 
   // 参加者一覧モーダルの開閉状態（主催者のみ操作可能）
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
@@ -81,10 +82,7 @@ export function EventDetail({
         {/* 主催者向けのボタン群（全体連絡ボタン、レポート作成ボタン） */}
         {isOrganizer ? (
           <div className="flex items-center gap-2">
-            <EventNotifyButton
-              eventId={event.id}
-              disabled={!memberData || memberData.totalCount === 0}
-            />
+            <EventNotifyButton eventId={event.id} disabled={!hasMembers} />
             <Button
               asChild
               size="sm"
@@ -177,7 +175,7 @@ export function EventDetail({
       {/* 参加者一覧モーダル（主催者のみ。右側固定ボタンから開く） */}
       {isOrganizer ? (
         <EventMemberListModal
-          eventId={event.id}
+          memberState={memberState}
           isOpen={isMemberListOpen}
           onClose={() => setIsMemberListOpen(false)}
         />
@@ -212,7 +210,8 @@ export function EventDetail({
         <button
           type="button"
           onClick={() => setIsMemberListOpen(true)}
-          className="fixed right-4 top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 px-3 py-4 text-white shadow-lg shadow-teal-500/25 transition hover:-translate-y-[calc(50%+2px)] hover:shadow-xl hover:shadow-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/30 cursor-pointer"
+          disabled={!hasMembers}
+          className="fixed right-4 top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 px-3 py-4 text-white shadow-lg shadow-teal-500/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/30 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="参加者一覧を開く"
         >
           <Users className="h-5 w-5" />
