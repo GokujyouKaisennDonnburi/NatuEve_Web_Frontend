@@ -117,6 +117,8 @@ export function EventMemberListModal({
   useEffect(() => {
     if (!isOpen) return;
 
+    document.body.style.overflow = "hidden";
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
