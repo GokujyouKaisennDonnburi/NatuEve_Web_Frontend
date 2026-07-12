@@ -100,7 +100,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                         ))}
                       </ul>
                     ) : (
-                      ""
+                      "なし"
                     )}
                   </td>
                 </tr>
@@ -111,7 +111,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                     定員
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
-                    {event.capacity ?? ""}
+                    {event.capacity === 0 ? "定員なし" : event.capacity}
                   </td>
                 </tr>
               </tbody>
