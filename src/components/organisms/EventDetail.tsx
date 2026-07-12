@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
+import { useEventMembers } from "@/hooks/useEventMembers";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
 import { ChevronLeft, FileText, Users } from "lucide-react";
@@ -48,6 +49,9 @@ export function EventDetail({
     session?.userId && organizerId && session.userId === organizerId,
   );
 
+  // 参加者一覧を取得（主催者のみ）
+  const { data: memberData } = useEventMembers(event.id);
+
   // 参加者一覧モーダルの開閉状態（主催者のみ操作可能）
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
 
@@ -74,9 +78,13 @@ export function EventDetail({
           <ChevronLeft className="h-4 w-4 mr-2" /> 戻る
         </Button>
 
+        {/* 主催者向けのボタン群（全体連絡ボタン、レポート作成ボタン） */}
         {isOrganizer ? (
           <div className="flex items-center gap-2">
-            <EventNotifyButton eventId={event.id} />
+            <EventNotifyButton
+              eventId={event.id}
+              disabled={!memberData || memberData.totalCount === 0}
+            />
             <Button
               asChild
               size="sm"
