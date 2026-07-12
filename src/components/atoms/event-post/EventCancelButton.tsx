@@ -13,20 +13,25 @@ import { toast } from "sonner";
 
 type EventCancelButtonProps = {
   eventId: string;
+  hasMembers: boolean;
 };
 
 // 削除になってるけど、物理的に削除しているわけではなく、中止状態にしているだけで存在はする
-export function EventCancelButton({ eventId }: EventCancelButtonProps) {
+export function EventCancelButton({
+  eventId,
+  hasMembers,
+}: EventCancelButtonProps) {
   const router = useRouter();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [notifySubject, setNotifySubject] = useState("");
   const [notifyBody, setNotifyBody] = useState("");
 
-  const canCancel =
-    notifySubject.trim().length > 0 &&
-    notifyBody.trim().length > 0 &&
-    !isCancelling;
+  const canCancel = hasMembers
+    ? notifySubject.trim().length > 0 &&
+      notifyBody.trim().length > 0 &&
+      !isCancelling
+    : !isCancelling;
 
   const handleCancel = () => {
     if (!canCancel) return;
@@ -35,13 +40,22 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
 
     void (async () => {
       // キャンセルAPIは非冪等: キャンセル確定と通知予約(outbox)を同一トランザクションで行う。
-      // 件名・本文は必須。既にキャンセル済みの場合は 409 を返す。
+      // 件名・本文は任意。既にキャンセル済みの場合は 409 を返す。
       try {
-        await cancelEvent(eventId, {
-          subject: notifySubject.trim(),
-          body: notifyBody.trim(),
-        });
-        toast.success("イベントを削除し、参加者へ通知を送信しました。");
+        await cancelEvent(
+          eventId,
+          hasMembers
+            ? {
+                subject: notifySubject.trim(),
+                body: notifyBody.trim(),
+              }
+            : {},
+        );
+        toast.success(
+           hasMembers
+             ? "イベントを削除し、参加者へ通知を送信しました。"
+             : "イベントを削除しました。",
+         );
         setIsConfirmOpen(false);
         router.push(ROUTES.EVENT_LIST);
       } catch (error) {
@@ -112,47 +126,52 @@ export function EventCancelButton({ eventId }: EventCancelButtonProps) {
                   <p className="text-sm text-slate-600">
                     この操作は取り消せません。
                     <br />
-                    イベントを削除し、参加者へ中止通知を送信した上でイベント一覧へ移動します。
+                    {hasMembers
+                      ? "イベントを削除し、参加者へ中止通知を送信した上でイベント一覧へ移動します。"
+                      : "イベントを削除し、イベント一覧へ移動します。"}
                   </p>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`cancel-notify-subject-${eventId}`}>
-                      件名
-                      <span className="ml-1 text-red-600">(必須)</span>
-                    </Label>
-                    <Input
-                      id={`cancel-notify-subject-${eventId}`}
-                      type="text"
-                      value={notifySubject}
-                      onChange={(e) => setNotifySubject(e.target.value)}
-                      placeholder="例:【重要】イベント開催中止のお知らせ"
-                      disabled={isCancelling}
-                      maxLength={255}
-                      required
-                    />
+                {/* 参加者がいる場合は、通知の件名と本文を入力させる */}
+                {hasMembers ? (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`cancel-notify-subject-${eventId}`}>
+                        件名
+                        <span className="ml-1 text-red-600">(必須)</span>
+                      </Label>
+                      <Input
+                        id={`cancel-notify-subject-${eventId}`}
+                        type="text"
+                        value={notifySubject}
+                        onChange={(e) => setNotifySubject(e.target.value)}
+                        placeholder="例:【重要】イベント開催中止のお知らせ"
+                        disabled={isCancelling}
+                        maxLength={255}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`cancel-notify-body-${eventId}`}>
+                        本文
+                        <span className="ml-1 text-red-600">(必須)</span>
+                      </Label>
+                      <Textarea
+                        id={`cancel-notify-body-${eventId}`}
+                        value={notifyBody}
+                        onChange={(e) => setNotifyBody(e.target.value)}
+                        placeholder="例:台風接近に伴い、安全のため本イベントは中止とさせていただきます。"
+                        disabled={isCancelling}
+                        rows={3}
+                        required
+                        className="field-sizing-fixed h-[4.5rem] resize-none overflow-y-auto"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      入力した内容はイベント参加者へメールで一斉送信されます。
+                    </p>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`cancel-notify-body-${eventId}`}>
-                      本文
-                      <span className="ml-1 text-red-600">(必須)</span>
-                    </Label>
-                    <Textarea
-                      id={`cancel-notify-body-${eventId}`}
-                      value={notifyBody}
-                      onChange={(e) => setNotifyBody(e.target.value)}
-                      placeholder="例:台風接近に伴い、安全のため本イベントは中止とさせていただきます。"
-                      disabled={isCancelling}
-                      rows={3}
-                      required
-                      className="field-sizing-fixed h-[4.5rem] resize-none overflow-y-auto"
-                    />
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    入力した内容はイベント参加者へメールで一斉送信されます。
-                  </p>
-                </div>
+                ) : null}
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button

@@ -2,12 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useEventMembers } from "@/hooks/useEventMembers";
+import type { UseEventMembersResult } from "@/hooks/useEventMembers";
 import { Users, X } from "lucide-react";
 import { useEffect } from "react";
 
 type EventMemberListModalProps = {
-  eventId: string;
+  memberState: UseEventMembersResult;
   isOpen: boolean;
   onClose: () => void;
 };
@@ -23,10 +23,15 @@ const formatCreatedAt = (iso: string): string =>
     timeZone: "Asia/Tokyo",
   });
 
-// 参加者一覧本体。モーダルが開いた時にだけマウントして API を取得する。
+// 参加者一覧本体。
+// 親コンポーネントから受け取った参加者一覧の取得結果を表示する。
 // ローディング・エラー・空データそれぞれの表示状態を持つ。
-function EventMemberListBody({ eventId }: { eventId: string }) {
-  const { data, isLoading, error } = useEventMembers(eventId);
+function EventMemberListBody({
+  memberState,
+}: {
+  memberState: UseEventMembersResult;
+}) {
+  const { data, isLoading, error } = memberState;
 
   if (isLoading) {
     return <div className="text-sm text-slate-500">読み込み中…</div>;
@@ -100,10 +105,10 @@ function EventMemberListBody({ eventId }: { eventId: string }) {
 }
 
 // イベント参加者一覧モーダルコンポーネント。
-// 主催者向けに GET /api/v1/events/{id}/members の結果をモーダルで表示する。
-// isOpen が true の時だけ本体をマウントし、API 取得はモーダル表示時に限定する。
+// 主催者向けに取得済みの参加者一覧をモーダルで表示する。
+// isOpen が true の時だけ本体をマウントする。
 export function EventMemberListModal({
-  eventId,
+  memberState,
   isOpen,
   onClose,
 }: Readonly<EventMemberListModalProps>) {
@@ -131,7 +136,7 @@ export function EventMemberListModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed left-0 top-0 w-screen h-screen z-[100] flex items-center justify-center px-4">
       {/* 背景オーバーレイ：ボタンとして振るわせ、クリックで閉じる */}
       <button
         type="button"
@@ -171,7 +176,7 @@ export function EventMemberListModal({
 
             {/* 本文：参加者が多い場合にスクロールする */}
             <div className="min-h-0 overflow-y-auto pr-1">
-              <EventMemberListBody eventId={eventId} />
+              <EventMemberListBody memberState={memberState} />
             </div>
           </CardContent>
         </Card>

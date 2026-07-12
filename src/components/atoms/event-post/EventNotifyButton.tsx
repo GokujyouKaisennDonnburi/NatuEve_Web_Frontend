@@ -12,9 +12,13 @@ import { toast } from "sonner";
 
 type EventNotifyButtonProps = {
   eventId: string;
+  disabled?: boolean;
 };
 
-export function EventNotifyButton({ eventId }: EventNotifyButtonProps) {
+export function EventNotifyButton({
+  eventId,
+  disabled = false,
+}: EventNotifyButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [notifySubject, setNotifySubject] = useState("");
@@ -75,9 +79,9 @@ export function EventNotifyButton({ eventId }: EventNotifyButtonProps) {
     <>
       <Button
         size="sm"
-        className="cursor-pointer border border-transparent hover:border-slate-300"
+        className="cursor-pointer border border-transparent hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent"
         onClick={() => setIsModalOpen(true)}
-        disabled={isSending}
+        disabled={isSending || disabled}
       >
         <Megaphone className="h-4 w-4 mr-2" />
         全体連絡
