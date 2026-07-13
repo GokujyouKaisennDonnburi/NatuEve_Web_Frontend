@@ -12,6 +12,12 @@ import {
   participationLogs,
 } from "./participation";
 import { mockEventDetails } from "./data";
+import {
+  TOKEN_TO_PROFILE_ID,
+  getBearerToken,
+  hasBearerToken,
+  unauthorizedResponse,
+} from "./auth";
 
 export const eventJoinHandler = http.post(
   "/api/v1/events/:id/join",
