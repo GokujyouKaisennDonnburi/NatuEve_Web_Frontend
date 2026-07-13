@@ -20,7 +20,7 @@ export type MockEventMember = {
   createdAt: string;
 };
 
-// メモリ内参加者管理：eventId ごとに参加者キー（profileId or mailAddress）を保持
+// メモリ内参加者管理：eventId ごとに参加者キー（ログイン時は token、匿名時は anon:mailAddress）を保持
 // 重複参加チェック（409 Conflict）のために使用
 export const eventParticipants = new Map<string, Set<string>>();
 
