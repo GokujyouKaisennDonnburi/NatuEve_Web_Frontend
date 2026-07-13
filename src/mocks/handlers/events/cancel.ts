@@ -5,7 +5,12 @@ import { HttpResponse, http } from "msw";
 
 import { cancelledEventIds } from "./participation";
 import { mockEventDetails, mockEvents } from "./data";
-import { unauthorizedResponse } from "./auth";
+import {
+  TOKEN_TO_PROFILE_ID,
+  getBearerToken,
+  hasBearerToken,
+  unauthorizedResponse,
+} from "./auth";
 
 export const eventCancelHandler = http.post(
   "/api/v1/events/:id/cancel",
@@ -14,7 +19,12 @@ export const eventCancelHandler = http.post(
     const authorizationHeader = request.headers.get("authorization");
 
     // 認証トークンが無効な場合は401エラーを返す
-    if (!authorizationHeader?.startsWith("Bearer ")) {
+    if (!hasBearerToken(authorizationHeader)) {
+      return unauthorizedResponse();
+    }
+
+    const token = getBearerToken(authorizationHeader);
+    if (!TOKEN_TO_PROFILE_ID[token]) {
       return unauthorizedResponse();
     }
 
