@@ -52,10 +52,10 @@ export function EventCancelButton({
             : {},
         );
         toast.success(
-           hasMembers
-             ? "イベントを削除し、参加者へ通知を送信しました。"
-             : "イベントを削除しました。",
-         );
+          hasMembers
+            ? "イベントを削除し、参加者へ通知を送信しました。"
+            : "イベントを削除しました。",
+        );
         setIsConfirmOpen(false);
         router.push(ROUTES.EVENT_LIST);
       } catch (error) {
