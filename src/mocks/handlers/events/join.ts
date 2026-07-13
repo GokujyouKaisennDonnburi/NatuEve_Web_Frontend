@@ -95,13 +95,17 @@ export const eventJoinHandler = http.post(
     // ヘッダなし → 匿名参加（profileId = null）
     // ヘッダあり（Bearer） → トークンを profileId として流用（モック限定ハック）
     const authorizationHeader = request.headers.get("authorization");
-    const hasBearer = Boolean(authorizationHeader?.startsWith("Bearer "));
-    const profileId = hasBearer
-      ? (authorizationHeader?.split(" ")[1]?.trim() ?? null)
-      : null;
+    const hasBearer = hasBearerToken(authorizationHeader);
+    const token = hasBearer ? getBearerToken(authorizationHeader) : "";
 
-    // 重複参加チェック：ログイン時は profileId、匿名時は mailAddress で識別
-    const participantKey = profileId ?? `anon:${mailAddress}`;
+    // Authorization ヘッダが Bearer 形式でも既知トークンでない場合は 401。
+    const profileId = hasBearer ? (TOKEN_TO_PROFILE_ID[token] ?? null) : null;
+    if (hasBearer && !profileId) {
+      return unauthorizedResponse();
+    }
+
+    // 重複参加チェック：ログイン時は token、匿名時は mailAddress で識別
+    const participantKey = hasBearer ? token : `anon:${mailAddress}`;
     const participants = eventParticipants.get(id) ?? new Set<string>();
     if (participants.has(participantKey)) {
       return HttpResponse.json(
