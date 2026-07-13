@@ -3,7 +3,12 @@
 import { HttpResponse, http } from "msw";
 
 import { mockEventDetails } from "./data";
-import { unauthorizedResponse } from "./auth";
+import {
+  TOKEN_TO_PROFILE_ID,
+  getBearerToken,
+  hasBearerToken,
+  unauthorizedResponse,
+} from "./auth";
 
 export const eventNotificationHandler = http.post(
   "/api/v1/events/:id/notifications",
@@ -11,7 +16,12 @@ export const eventNotificationHandler = http.post(
     const id = String(params?.id ?? "");
     const authorizationHeader = request.headers.get("authorization");
 
-    if (!authorizationHeader?.startsWith("Bearer ")) {
+    if (!hasBearerToken(authorizationHeader)) {
+      return unauthorizedResponse();
+    }
+
+    const token = getBearerToken(authorizationHeader);
+    if (!TOKEN_TO_PROFILE_ID[token]) {
       return unauthorizedResponse();
     }
 
