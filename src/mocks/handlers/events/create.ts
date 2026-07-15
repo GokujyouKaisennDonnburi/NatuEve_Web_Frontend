@@ -1,19 +1,20 @@
 // このファイルは、新しいイベント作成モックエンドポイントを定義する。
-// POST /api/v1/events。要認証。本番のサーバー側バリデーションを模す。
+// POST /api/v1/events。要認証。
+// 本番のサーバー側バリデーションを模す。
 import { HttpResponse, http } from "msw";
 
 import { MAX_TAG_COUNT } from "@/constants/config";
 import { tagStore } from "@/mocks/handlers/tags";
 
-import type { MockEvent } from "./data";
-import { mockEventDetails, mockEvents } from "./data";
-import { seedMembersForNewEvent } from "./participation";
 import {
   TOKEN_TO_PROFILE_ID,
   getBearerToken,
   hasBearerToken,
   unauthorizedResponse,
 } from "./auth";
+import type { MockEvent } from "./data";
+import { mockEventDetails, mockEvents } from "./data";
+import { seedMembersForNewEvent } from "./participation";
 
 export const eventCreateHandler = http.post(
   "/api/v1/events",
