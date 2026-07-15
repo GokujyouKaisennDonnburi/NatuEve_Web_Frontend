@@ -1,16 +1,16 @@
 // このファイルは、イベント取りやめ（キャンセル）モックエンドポイントを定義する。
-// POST /api/v1/events/:id/cancel。要認証。非冪等: 既にキャンセル済みのイベントに
-// 対する呼び出しは 409 を返す。
+// POST /api/v1/events/:id/cancel。要認証。
+// すでにキャンセル済みのイベントを再度キャンセルすると呼び出しは 409 を返す。
 import { HttpResponse, http } from "msw";
 
-import { cancelledEventIds } from "./participation";
-import { mockEventDetails, mockEvents } from "./data";
 import {
   TOKEN_TO_PROFILE_ID,
   getBearerToken,
   hasBearerToken,
   unauthorizedResponse,
 } from "./auth";
+import { mockEventDetails, mockEvents } from "./data";
+import { cancelledEventIds } from "./participation";
 
 export const eventCancelHandler = http.post(
   "/api/v1/events/:id/cancel",
@@ -41,7 +41,7 @@ export const eventCancelHandler = http.post(
       );
     }
 
-    // 非冪等: 既にキャンセル済みのイベントに対する呼び出しは 409 を返す。
+    // 既にキャンセル済みのイベントに対する呼び出しは 409 を返す。
     if (cancelledEventIds.has(id)) {
       return HttpResponse.json(
         {
