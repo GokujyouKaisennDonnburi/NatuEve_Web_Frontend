@@ -26,8 +26,10 @@ type MeApiResponse = {
 };
 
 export function SiteHeader() {
+  // 認証状態の取得
   const { session, isLoading: isSessionLoading } = useAuth();
 
+  // ユーザー情報の状態管理
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
@@ -35,9 +37,11 @@ export function SiteHeader() {
   useEffect(() => {
     let cancelled = false;
 
+    // session がロード中の場合は何もしない
     const fetchMe = async () => {
       if (isSessionLoading) return;
 
+      // 未ログインの場合は null をセットして終了
       if (!session?.token) {
         if (!cancelled) {
           setUser(null);
@@ -46,22 +50,32 @@ export function SiteHeader() {
         return;
       }
 
+      // ログイン済みで、かつセッションが有効な場合にプロフィールを取得
+      if (!cancelled) {
+        setIsProfileLoading(true);
+      }
+
+      // /api/v1/me からユーザー情報を取得
       try {
+        // 認証ヘッダーを付与して /api/v1/me を呼び出す
         const res = await fetch("/api/v1/me", {
           headers: {
             Authorization: `Bearer ${session.token}`,
           },
         });
 
+        // 401 Unauthorized の場合はユーザー情報を null にセットして終了
         if (res.status === 401) {
           if (!cancelled) setUser(null);
           return;
         }
 
+        // それ以外のエラーの場合は例外を投げる
         if (!res.ok) {
           throw new Error(`プロフィール取得エラー (Status: ${res.status})`);
         }
 
+        // レスポンスを JSON としてパースし、ユーザー情報をセット
         const data = (await res.json()) as MeApiResponse;
         if (!cancelled) {
           setUser({
@@ -78,12 +92,14 @@ export function SiteHeader() {
       }
     };
 
+    // 非同期関数を呼び出す
     void fetchMe();
     return () => {
       cancelled = true;
     };
   }, [session, isSessionLoading]);
 
+  // 認証状態またはプロフィール取得中の場合はローディング状態とする
   const isLoading = isSessionLoading || isProfileLoading;
 
   return (
