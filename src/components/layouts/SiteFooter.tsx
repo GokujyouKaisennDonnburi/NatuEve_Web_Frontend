@@ -8,7 +8,7 @@ export function SiteFooter() {
     <footer className="w-full border-t border-slate-200/80 bg-[#FAFCF7]">
       <div className="mx-auto max-w-6xl px-8 py-8">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-6">
-          {/* ブランド */}
+          {/* サイト名 */}
           <div className="col-span-2 flex flex-col gap-2">
             <Link
               href={ROUTES.HOME}
@@ -23,6 +23,7 @@ export function SiteFooter() {
                 </span>
               </div>
             </Link>
+            {/* キャッチコピー */}
             <p className="text-[13px] leading-relaxed text-slate-600">
               散らばっていた自然観察イベントを一箇所に。
               <br />
