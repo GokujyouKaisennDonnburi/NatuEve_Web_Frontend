@@ -93,10 +93,9 @@ export default function EventDetailPage() {
     };
   }, [id]);
 
-  // ローディング中の表示
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-16">
         <div>読み込み中…</div>
       </div>
     );
@@ -104,17 +103,15 @@ export default function EventDetailPage() {
   // イベントが見つからない場合の表示
   if (!event)
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-16">
         <div>イベントが見つかりません。</div>
       </div>
     );
 
   return (
     // イベント詳細ページのメインコンテンツ
-    <div className="min-h-screen bg-emerald-50 text-slate-900 antialiased">
-      <main className="mx-auto max-w-4xl px-6 pt-8 pb-20">
-        <EventDetail event={event} report={report} />
-      </main>
+    <div className="mx-auto max-w-4xl">
+      <EventDetail event={event} report={report} />
     </div>
   );
 }

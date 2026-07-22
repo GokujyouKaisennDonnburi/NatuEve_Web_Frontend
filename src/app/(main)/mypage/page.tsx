@@ -5,7 +5,6 @@ import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
 import { useAuth } from "@/hooks/useAuth";
 import { apiFetch } from "@/services/apiClient";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -151,7 +150,7 @@ export default function MyPage() {
 
   if (isSessionLoading || isDataLoading) {
     return (
-      <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
+      <div className="flex items-center justify-center py-16">
         <div className="w-8 h-8 rounded-full bg-slate-300 animate-pulse" />
       </div>
     );
@@ -159,7 +158,7 @@ export default function MyPage() {
 
   if (isNotFound || !profile) {
     return (
-      <div className="min-h-screen bg-slate-50/60 flex flex-col items-center justify-center gap-4">
+      <div className="flex flex-col items-center justify-center gap-4 py-16">
         <p className="text-slate-500">
           ユーザー情報が取得できませんでした。ログインし直してください。
         </p>
@@ -199,34 +198,20 @@ export default function MyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased">
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-xl items-center px-4">
-          <Link
-            href="/"
-            className="flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            戻る
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-xl px-4 pt-6 pb-16 space-y-8">
-        <ProfileHeader
-          name={profile.displayName}
-          avatarUrl={profile.avatarUrl}
-          description={profile.description}
-          isOwnProfile={true}
-          onUpdateName={handleUpdateName}
-          onUpdateDescription={handleUpdateDescription}
-        />
-        {/* APIから取得できない間は、「まだイベントがありません」等の初期UIが安全に表示されます */}
-        <UserEventTabs
-          hostedEvents={hostedEvents}
-          participatedEvents={participatedEvents}
-        />
-      </main>
+    <div className="mx-auto max-w-xl pt-2 space-y-8">
+      <ProfileHeader
+        name={profile.displayName}
+        avatarUrl={profile.avatarUrl}
+        description={profile.description}
+        isOwnProfile={true}
+        onUpdateName={handleUpdateName}
+        onUpdateDescription={handleUpdateDescription}
+      />
+      {/* APIから取得できない間は、「まだイベントがありません」等の初期UIが安全に表示されます */}
+      <UserEventTabs
+        hostedEvents={hostedEvents}
+        participatedEvents={participatedEvents}
+      />
     </div>
   );
 }

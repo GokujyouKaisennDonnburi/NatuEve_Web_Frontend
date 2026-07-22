@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -7,33 +6,24 @@ import { ROUTES } from "@/constants/routes";
 export function SiteFooter() {
   return (
     <footer className="w-full border-t border-slate-200/80 bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-12">
+      <div className="mx-auto max-w-6xl px-8 py-8">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-6">
           {/* ブランド */}
-          <div className="col-span-2 space-y-4">
+          <div className="col-span-2 flex flex-col gap-2">
             <Link
               href={ROUTES.HOME}
               className="inline-flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded-md"
             >
-              <div className="relative h-8 w-8 shrink-0">
-                <Image
-                  src="/images/NatuEve_logo.png"
-                  alt=""
-                  fill
-                  sizes="32px"
-                  className="object-contain"
-                />
-              </div>
-              <div className="flex flex-col leading-none">
-                <span className="text-lg font-bold tracking-tight text-emerald-700">
+              <div className="flex items-end gap-2">
+                <span className="text-lg font-bold text-emerald-700">
                   なちゅいべ
                 </span>
-                <span className="text-[10px] text-slate-500">
+                <span className="text-[11px] text-slate-500">
                   by NatuPortal
                 </span>
               </div>
             </Link>
-            <p className="text-sm leading-relaxed text-slate-600">
+            <p className="text-[13px] leading-relaxed text-slate-600">
               散らばっていた自然観察イベントを一箇所に。
               <br />
               生態系を守り、未来へ繋ぐ活動を応援します。
@@ -53,19 +43,19 @@ export function SiteFooter() {
 
           {/* さがす */}
           <div className="space-y-3">
-            <p className="text-sm font-bold text-slate-900">さがす</p>
-            <ul className="space-y-2">
+            <p className="text-xs font-semibold text-slate-900">さがす</p>
+            <ul className="space-y-1">
               <li>
                 <Link
                   href={ROUTES.EVENT_LIST}
-                  className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   イベントを探す
                 </Link>
               </li>
               <li>
                 <span
-                  className="text-sm font-medium text-slate-400 cursor-default"
+                  className="text-xs font-medium text-slate-400 cursor-default"
                   aria-disabled="true"
                 >
                   カテゴリ一覧
@@ -76,11 +66,11 @@ export function SiteFooter() {
 
           {/* 主催者の方へ */}
           <div className="space-y-3">
-            <p className="text-sm font-bold text-slate-900">主催者の方へ</p>
-            <ul className="space-y-2">
+            <p className="text-xs font-semibold text-slate-900">主催者の方へ</p>
+            <ul className="space-y-1">
               <li>
                 <span
-                  className="text-sm font-medium text-slate-400 cursor-default"
+                  className="text-xs font-medium text-slate-400 cursor-default"
                   aria-disabled="true"
                 >
                   イベントを掲載する
@@ -88,7 +78,7 @@ export function SiteFooter() {
               </li>
               <li>
                 <span
-                  className="text-sm font-medium text-slate-400 cursor-default"
+                  className="text-xs font-medium text-slate-400 cursor-default"
                   aria-disabled="true"
                 >
                   掲載ガイドライン
@@ -99,11 +89,11 @@ export function SiteFooter() {
 
           {/* 質問 */}
           <div className="space-y-3">
-            <p className="text-sm font-bold text-slate-900">質問</p>
-            <ul className="space-y-2">
+            <p className="text-xs font-semibold text-slate-900">質問</p>
+            <ul className="space-y-1">
               <li>
                 <span
-                  className="text-sm font-medium text-slate-400 cursor-default"
+                  className="text-xs font-medium text-slate-400 cursor-default"
                   aria-disabled="true"
                 >
                   よくある質問
@@ -111,7 +101,7 @@ export function SiteFooter() {
               </li>
               <li>
                 <span
-                  className="text-sm font-medium text-slate-400 cursor-default"
+                  className="text-xs font-medium text-slate-400 cursor-default"
                   aria-disabled="true"
                 >
                   お問い合わせ
@@ -122,11 +112,11 @@ export function SiteFooter() {
 
           {/* 運営 */}
           <div className="space-y-3">
-            <p className="text-sm font-bold text-slate-900">運営</p>
-            <ul className="space-y-2">
+            <p className="text-xs font-semibold text-slate-900">運営</p>
+            <ul className="space-y-1">
               <li>
                 <span
-                  className="text-sm font-medium text-slate-400 cursor-default"
+                  className="text-xs font-medium text-slate-400 cursor-default"
                   aria-disabled="true"
                 >
                   なちゅぽーたるへ
@@ -134,7 +124,7 @@ export function SiteFooter() {
               </li>
               <li>
                 <span
-                  className="text-sm font-medium text-slate-400 cursor-default"
+                  className="text-xs font-medium text-slate-400 cursor-default"
                   aria-disabled="true"
                 >
                   運営団体について
