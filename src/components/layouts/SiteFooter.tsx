@@ -5,7 +5,7 @@ import { ROUTES } from "@/constants/routes";
 
 export function SiteFooter() {
   return (
-    <footer className="w-full border-t border-slate-200/80 bg-white">
+    <footer className="w-full border-t border-slate-200/80 bg-[#FAFCF7]">
       <div className="mx-auto max-w-6xl px-8 py-8">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-6">
           {/* ブランド */}
