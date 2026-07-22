@@ -3,6 +3,7 @@
 import { CreateEventButton } from "@/components/atoms/CreateEventButton";
 import { EventCard, type EventItem } from "@/components/EventCard";
 import { EventSearchBar } from "@/components/molecules/EventSearchBar";
+import { SiteFooter } from "@/components/layouts/SiteFooter";
 import { SiteHeader } from "@/components/layouts/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
@@ -407,6 +408,7 @@ export default function EventListPage() {
           </div>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 }
