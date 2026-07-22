@@ -25,7 +25,7 @@ import type { CreateReportRequest } from "@/types/report";
 import { findUploadValidationError } from "@/utils/upload";
 import { FileText, Image as ImageIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 // レポート投稿フォームの入力状態を管理する型定義
@@ -38,6 +38,16 @@ type ReportPostFormState = {
 };
 
 export default function ReportPostPage() {
+  // useSearchParams() を静的プリレンダリング可能にするため
+  // Suspense 境界で囲む必要がある（Next.js 15 の要件）。
+  return (
+    <Suspense fallback={null}>
+      <ReportPostPageContent />
+    </Suspense>
+  );
+}
+
+function ReportPostPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, isLoading } = useAuth();
