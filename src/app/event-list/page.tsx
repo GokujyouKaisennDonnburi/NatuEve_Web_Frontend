@@ -1,7 +1,9 @@
 "use client";
 
+import { CreateEventButton } from "@/components/atoms/CreateEventButton";
 import { EventCard, type EventItem } from "@/components/EventCard";
-import { TimelineHeader } from "@/components/organisms/TimelineHeader";
+import { EventSearchBar } from "@/components/molecules/EventSearchBar";
+import { SiteHeader } from "@/components/layouts/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
@@ -292,17 +294,31 @@ export default function EventListPage() {
 
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-900 antialiased selection:bg-emerald-100">
-      <TimelineHeader
-        eventCount={totalCount}
-        // セッション取得とプロフィール取得の両方が終わるまでローディング状態とする
-        isUserLoading={isSessionLoading || isProfileLoading}
-        onCreateEvent={handleCreateEvent}
-        onSearch={handleSearch}
-        searchQuery={searchQuery}
+      <SiteHeader
         user={mappedUserForHeader}
+        isLoading={isSessionLoading || isProfileLoading}
       />
 
       <main className="mx-auto max-w-xl px-4 pt-4 pb-16">
+        {/* 検索・投稿・件数 */}
+        <div className="mb-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+              {totalCount} 件のイベント
+            </span>
+            <CreateEventButton
+              type="button"
+              onClick={handleCreateEvent}
+              aria-label="イベントを投稿"
+            />
+          </div>
+          <EventSearchBar
+            onSearch={handleSearch}
+            initialValue={searchQuery}
+            placeholder="タイトル・詳細・主催者・地域・持ち物で検索"
+          />
+        </div>
+
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mb-4">
           <p className="text-xs text-slate-500 px-1">
             これから開催されるイベントを縦にスクロールして確認できます。
