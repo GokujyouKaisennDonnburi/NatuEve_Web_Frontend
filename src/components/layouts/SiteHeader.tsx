@@ -66,7 +66,7 @@ export function SiteHeader() {
         if (!cancelled) {
           setUser({
             id: data.id,
-            name: data.displayName ?? data.display_name ?? "",
+            name: data.displayName ?? data.display_name ?? "ユーザー",
             avatarUrl: data.avatarUrl ?? data.avatar_url ?? "",
           });
         }
