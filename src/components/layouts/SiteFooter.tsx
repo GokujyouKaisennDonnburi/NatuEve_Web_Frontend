@@ -55,12 +55,12 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <span
-                  className="text-xs font-medium text-slate-400 cursor-default"
-                  aria-disabled="true"
+                <Link
+                  href={ROUTES.COMING_SOON}
+                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   カテゴリ一覧
-                </span>
+                </Link>
               </li>
             </ul>
           </div>
@@ -78,12 +78,12 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <span
-                  className="text-xs font-medium text-slate-400 cursor-default"
-                  aria-disabled="true"
+                <Link
+                  href={ROUTES.COMING_SOON}
+                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   掲載ガイドライン
-                </span>
+                </Link>
               </li>
             </ul>
           </div>
@@ -93,20 +93,20 @@ export function SiteFooter() {
             <p className="text-xs font-semibold text-slate-900">質問</p>
             <ul className="space-y-1">
               <li>
-                <span
-                  className="text-xs font-medium text-slate-400 cursor-default"
-                  aria-disabled="true"
+                <Link
+                  href={ROUTES.COMING_SOON}
+                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   よくある質問
-                </span>
+                </Link>
               </li>
               <li>
-                <span
-                  className="text-xs font-medium text-slate-400 cursor-default"
-                  aria-disabled="true"
+                <Link
+                  href={ROUTES.COMING_SOON}
+                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   お問い合わせ
-                </span>
+                </Link>
               </li>
             </ul>
           </div>
@@ -116,20 +116,20 @@ export function SiteFooter() {
             <p className="text-xs font-semibold text-slate-900">運営</p>
             <ul className="space-y-1">
               <li>
-                <span
-                  className="text-xs font-medium text-slate-400 cursor-default"
-                  aria-disabled="true"
+                <Link
+                  href={ROUTES.COMING_SOON}
+                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   なちゅぽーたるへ
-                </span>
+                </Link>
               </li>
               <li>
-                <span
-                  className="text-xs font-medium text-slate-400 cursor-default"
-                  aria-disabled="true"
+                <Link
+                  href={ROUTES.COMING_SOON}
+                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   運営団体について
-                </span>
+                </Link>
               </li>
             </ul>
           </div>
