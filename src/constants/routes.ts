@@ -10,6 +10,8 @@ export const ROUTES = {
   REPORT_POST: "/report-post",
   AUTH_CALLBACK: "/auth/callback",
   MYPAGE: "/mypage",
+
+  COMING_SOON: "/coming-soon", // ダミーページ（開発中）
 } as const;
 
 // 公開ルートと保護されたルートを定義
@@ -20,6 +22,7 @@ export const PUBLIC_ROUTES = [
   ROUTES.AUTH_CALLBACK,
   ROUTES.USERS,
   ROUTES.DOCS,
+  ROUTES.COMING_SOON,
 ] as const;
 
 // 保護されたルートを定義
