@@ -133,18 +133,18 @@ export function SiteHeader() {
           >
             イベントを探す
           </Link>
-          <span
-            className="text-sm font-medium text-slate-400 cursor-default"
-            aria-disabled="true"
+          <Link
+            href={ROUTES.COMING_SOON}
+            className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
           >
             主催者の方へ
-          </span>
-          <span
-            className="text-sm font-medium text-slate-400 cursor-default"
-            aria-disabled="true"
+          </Link>
+          <Link
+            href={ROUTES.COMING_SOON}
+            className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
           >
             なちゅいべとは
-          </span>
+          </Link>
         </nav>
 
         {/* 認証UI */}
