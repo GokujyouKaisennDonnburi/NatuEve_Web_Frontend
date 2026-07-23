@@ -70,12 +70,12 @@ export function SiteFooter() {
             <p className="text-xs font-semibold text-slate-900">主催者の方へ</p>
             <ul className="space-y-1">
               <li>
-                <span
-                  className="text-xs font-medium text-slate-400 cursor-default"
-                  aria-disabled="true"
+                <Link
+                  href={ROUTES.EVENT_POST}
+                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   イベントを掲載する
-                </span>
+                </Link>
               </li>
               <li>
                 <span
