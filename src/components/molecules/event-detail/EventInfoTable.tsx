@@ -93,15 +93,16 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
                     {event.items && event.items.length > 0 ? (
-                      <div className="space-y-4">
+                      <ul className="space-y-4">
                         {event.items.map((item) => (
-                          <EventItemBadge
-                            key={item.item}
-                            item={item.item}
-                            isRequired={item.isRequired}
-                          />
+                          <li key={item.item}>
+                            <EventItemBadge
+                              item={item.item}
+                              isRequired={item.isRequired}
+                            />
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     ) : (
                       "なし"
                     )}
