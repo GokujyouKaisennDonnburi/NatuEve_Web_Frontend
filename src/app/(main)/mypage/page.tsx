@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventItem } from "@/components/EventCard";
+import type { EventItem } from "@/components/organisms/EventCard";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
 import { useAuth } from "@/hooks/useAuth";

@@ -1,7 +1,7 @@
 "use client";
 
 import { CreateEventButton } from "@/components/atoms/CreateEventButton";
-import { EventCard, type EventItem } from "@/components/EventCard";
+import { EventCard, type EventItem } from "@/components/organisms/EventCard";
 import { EventSearchBar } from "@/components/molecules/EventSearchBar";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
@@ -221,20 +221,14 @@ export default function EventListPage() {
               id: apiEvent.id,
               title: apiEvent.title,
               location: apiEvent.location,
-              createdAt: apiEvent.createdAt,
               eventDate: apiEvent.eventDate,
               profileId: apiEvent.profileId,
               hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
               hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
-              dateLabel: new Date(apiEvent.eventDate).toLocaleDateString(
-                "ja-JP",
-                {
-                  month: "short",
-                  day: "numeric",
-                  timeZone: "Asia/Tokyo",
-                },
-              ),
               tags: apiEvent.tags,
+              status: new Date(apiEvent.eventDate) < new Date()
+                ? "closed"
+                : "open",
             }),
           );
 
