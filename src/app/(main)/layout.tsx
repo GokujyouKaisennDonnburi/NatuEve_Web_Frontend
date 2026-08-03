@@ -9,7 +9,15 @@ export default function MainLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50/60 text-slate-900 antialiased">
+    <div
+      className="flex min-h-screen flex-col
+      bg-[url('/images/bg_common_01.png')]
+      bg-repeat
+      bg-size-[900px_auto]
+      bg-slate-50/60
+      text-slate-900
+    antialiased"
+    >
       <SiteHeader />
       <main className="flex-1 px-4 pt-4 pb-16">{children}</main>
       <SiteFooter />
