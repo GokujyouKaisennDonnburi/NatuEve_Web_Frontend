@@ -101,6 +101,7 @@ export function EventCard({ event }: EventCardProps) {
                   <FilterTag
                     key={tag.id}
                     label={tag.name}
+                    title={tag.name}
                     className="max-w-[6rem] truncate text-[10px] px-1.5 py-0.5 leading-none h-5"
                   />
                 ))}
