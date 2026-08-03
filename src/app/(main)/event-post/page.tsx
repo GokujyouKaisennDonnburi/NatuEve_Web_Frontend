@@ -399,14 +399,14 @@ export default function EventPostPage() {
   return (
     <section className="mx-auto w-full max-w-3xl space-y-6">
       <div className="grid gap-6">
-        {/* マイイベント一覧へ戻るリンク */}
+        {/* 一覧画面に戻るリンク */}
         <Button
           variant="link"
           onClick={() => router.push(ROUTES.EVENT_LIST)}
           className="h-auto w-fit cursor-pointer gap-1 p-0 text-sm font-normal text-slate-500 hover:text-sky-600 hover:no-underline"
         >
           <ChevronLeft className="h-4 w-4" />
-          マイイベントにもどる
+          一覧画面にもどる
         </Button>
 
         <Card className="border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/60 backdrop-blur">
