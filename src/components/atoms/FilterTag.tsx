@@ -15,7 +15,7 @@ export function FilterTag({
 }: Readonly<FilterTagProps>) {
   const commonClasses = cn(
     "inline-flex items-center justify-center rounded-full border px-3 text-xs font-medium leading-none text-[#4F584B]",
-    "h-6 bg-white border-[#97C459]",
+    "h-6 bg-white border-[#97C459] border-[1.5px]",
     selected && "bg-[#97C459] text-white",
     className,
   );
