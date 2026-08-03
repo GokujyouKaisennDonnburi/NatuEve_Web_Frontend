@@ -1,12 +1,12 @@
 "use client";
 
 import { CreateEventButton } from "@/components/atoms/CreateEventButton";
+import { SortButton } from "@/components/atoms/SortButton";
+import { SearchBar } from "@/components/molecules/SearchBar";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
-import { EventSearchBar } from "@/components/molecules/EventSearchBar";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -265,9 +265,14 @@ export default function EventListPage() {
     return numbers;
   }, [currentPage, totalPages]);
 
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: "event_date", label: "開催日が近い順" },
+    { value: "created_at", label: "投稿が新しい順" },
+  ];
+
   // ソートオプションの変更を処理する関数
-  const handleSortChange = (value: SortOption) => {
-    setSortBy(value);
+  const handleSortChange = (value: string) => {
+    setSortBy(value as SortOption);
     setCurrentPage(1);
   };
 
@@ -278,44 +283,43 @@ export default function EventListPage() {
   };
 
   return (
-    <div className="mx-auto max-w-xl">
-      {/* 検索・投稿・件数 */}
-      <div className="mb-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-            {totalCount} 件のイベント
-          </span>
-          <CreateEventButton
-            type="button"
-            onClick={handleCreateEvent}
-            aria-label="イベントを投稿"
+    <div className="mx-auto max-w-[1280px] px-8 py-8">
+      {/* Title */}
+      <h1 className="text-[40px] leading-[58px] text-black font-normal mb-8">
+        イベントを探す
+      </h1>
+
+      {/* Search + Sort row */}
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex-1 max-w-[1126px]">
+          <SearchBar
+            onSearch={handleSearch}
+            initialValue={searchQuery}
           />
         </div>
-        <EventSearchBar
-          onSearch={handleSearch}
-          initialValue={searchQuery}
-          placeholder="タイトル・詳細・主催者・地域・持ち物で検索"
+        <div className="shrink-0 pt-[23px]">
+          <SortButton
+            label="並び替え"
+            options={sortOptions}
+            value={sortBy}
+            onChange={handleSortChange}
+          />
+        </div>
+      </div>
+
+      {/* Event count + Create button */}
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+          {totalCount} 件のイベント
+        </span>
+        <CreateEventButton
+          type="button"
+          onClick={handleCreateEvent}
+          aria-label="イベントを投稿"
         />
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mb-4">
-        <p className="text-xs text-slate-500 px-1">
-          これから開催されるイベントを縦にスクロールして確認できます。
-        </p>
-
-        <div className="flex items-center gap-1.5 self-end shrink-0 bg-white border border-slate-200 rounded-md px-2 py-1 shadow-sm">
-          <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
-          <select
-            value={sortBy}
-            onChange={(e) => handleSortChange(e.target.value as SortOption)}
-            className="text-xs font-medium text-slate-600 bg-transparent outline-none cursor-pointer"
-          >
-            <option value="created_at">投稿が新しい順</option>
-            <option value="event_date">開催日が近い順</option>
-          </select>
-        </div>
-      </div>
-
+      {/* Event cards */}
       <div className="space-y-4">
         {events.map((event) => (
           <EventCard key={event.id} event={event} />
