@@ -13,7 +13,7 @@ export interface Region {
 }
 
 // イベント一覧の地域フィルターで利用する地域・都道府県・市（東京都は特別区）のデータ
-export const regions: readonly Region[] = [
+export const REGIONS: readonly Region[] = [
   // 北海道
   {
     name: "北海道",
