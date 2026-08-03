@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/atoms/Badge";
+import { FilterTag } from "@/components/atoms/FilterTag";
 import { Card, CardContent } from "@/components/ui/card";
 import type { TagItem } from "@/types/tag";
 import { Calendar, MapPin, User } from "lucide-react";
@@ -98,14 +98,12 @@ export function EventCard({ event }: EventCardProps) {
             {event.tags && event.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 justify-end ml-2">
                 {event.tags.map((tag) => (
-                  <Badge
+                  <FilterTag
                     key={tag.id}
-                    tone="subtle"
-                    className="max-w-[6rem] truncate text-[10px] px-1.5 py-0.5 leading-none"
+                    label={tag.name}
                     title={tag.name}
-                  >
-                    {tag.name}
-                  </Badge>
+                    className="max-w-[6rem] truncate text-[10px] px-1.5 py-0.5 leading-none h-5"
+                  />
                 ))}
               </div>
             )}
