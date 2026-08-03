@@ -63,13 +63,11 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       }}
       className="group relative flex w-full h-[132px] bg-white border border-[#E3E8DF] shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
     >
-      {/* Left section: Date + Status (x: 0-155) */}
+      {/* Left section: Date + Status */}
       <div className="relative flex flex-col items-center shrink-0 w-[155px]">
-        {/* Vertical divider at x: 129, y: 11, h: 108 */}
         <div className="absolute left-[129px] top-[11px] w-px h-[108px] bg-black" />
 
-        {/* Date box at x: 29, y: 19, w: 78, h: 73 */}
-        <div className="mt-[19px] w-[78px] h-[73px] bg-white rounded-xl flex flex-col items-center pt-[3px]">
+        <div className="mt-[18px] w-[78px] h-[73px] bg-white rounded-xl flex flex-col items-center pt-[3px]">
           <span className="font-bold text-[32px] leading-[24px] text-[#171C15] text-center">
             {monthDay}
           </span>
@@ -78,48 +76,35 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </span>
         </div>
 
-        {/* Status label at x: 29, y: 95 */}
         <div className="w-[78px] flex justify-center mt-[3px]">
           <EventStatusLabel status={event.status} />
         </div>
       </div>
 
-      {/* Right section: Content (x: 155-) */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Row 1: Categories at y: 23 + Detail button */}
-        <div className="flex items-center justify-between pt-[23px] pr-[25px]">
+      {/* Right section: Content */}
+      <div className="flex-1 flex flex-col min-w-0 relative">
+        {/* Categories at y: 23 */}
+        <div className="pt-[23px]">
           <div className="flex flex-wrap gap-1">
             {event.tags?.map((tag) => (
               <FilterTag key={tag.id} label={tag.name} title={tag.name} />
             ))}
           </div>
-          <Button
-            type="button"
-            className="shrink-0 w-[114px] h-10 bg-[#97C459] hover:bg-[#97C459]/90 rounded-full text-sm font-bold leading-5 text-[#1E2C10]"
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/event/${event.id}`);
-            }}
-          >
-            詳細を見る
-          </Button>
         </div>
 
-        {/* Row 2: Title at y: 52 */}
-        <h3 className="mt-[5px] font-bold text-[19px] leading-[28px] text-[#272E24] line-clamp-1">
+        {/* Title at y: 52 */}
+        <h3 className="mt-[5px] pr-[160px] font-bold text-[19px] leading-[28px] text-[#272E24] line-clamp-1">
           {event.title}
         </h3>
 
-        {/* Row 3: Location + Organizer at y: 90 */}
+        {/* Location + Organizer at y: 87 */}
         <div className="flex items-center mt-[8px]">
-          {/* MapPin at x: 158, text at x: 177 */}
           <div className="flex items-center ml-[3px]">
             <MapPin className="h-[13px] w-[13px] text-[#5F8530] shrink-0" />
             <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061]">
               {event.location}
             </span>
           </div>
-          {/* Avatar at x: 290, text at x: 312 */}
           <div className="flex items-center ml-[113px]">
             {event.hostAvatarUrl ? (
               <Image
@@ -139,6 +124,18 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
             </span>
           </div>
         </div>
+
+        {/* Detail button - absolute positioned at y: 46 */}
+        <Button
+          type="button"
+          className="absolute right-[25px] top-[46px] w-[114px] h-10 bg-[#97C459] hover:bg-[#97C459]/90 rounded-full text-sm font-bold leading-5 text-[#1E2C10]"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/event/${event.id}`);
+          }}
+        >
+          詳細を見る
+        </Button>
       </div>
     </div>
   );
