@@ -63,9 +63,10 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       }}
       className="group relative flex w-full h-[132px] bg-white border border-[#E3E8DF] shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
     >
-      {/* Left section: Date + Status (area before divider: 0-129px) */}
+      {/* Left column: Date + Status */}
       <div className="flex flex-col items-center shrink-0 w-[129px]">
-        <div className="mt-[18px] w-[78px] h-[73px] bg-white rounded-xl flex flex-col items-center pt-[3px]">
+        {/* Date box: "8/11" + "火" */}
+        <div className="mt-[21px] w-[78px] bg-white rounded-xl flex flex-col items-center pt-[2px] pb-[2px]">
           <span className="font-bold text-[32px] leading-[24px] text-[#171C15] text-center">
             {monthDay}
           </span>
@@ -74,18 +75,19 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </span>
         </div>
 
-        <div className="w-[78px] flex justify-center mt-[3px]">
+        {/* Status with equal gap */}
+        <div className="w-[78px] flex justify-center mt-[9px]">
           <EventStatusLabel status={event.status} />
         </div>
       </div>
 
-      {/* Vertical divider */}
-      <div className="w-px h-[108px] bg-black mt-[11px] shrink-0" />
+      {/* Vertical divider spans content area */}
+      <div className="w-px h-[88px] bg-black mt-[21px] shrink-0" />
 
-      {/* Right section: Content */}
+      {/* Right column: Tags / Title+Button / Location+Organizer */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Categories at y: 23 */}
-        <div className="pt-[23px]">
+        {/* Tags centered in upper space (y=0-66) */}
+        <div className="pt-[21px]">
           <div className="flex flex-wrap gap-1">
             {event.tags?.map((tag) => (
               <FilterTag key={tag.id} label={tag.name} title={tag.name} />
@@ -93,13 +95,13 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </div>
         </div>
 
-        {/* Title at y: 52 */}
-        <h3 className="mt-[5px] pr-[160px] font-bold text-[19px] leading-[28px] text-[#272E24] line-clamp-1">
+        {/* Title at card center y=66 */}
+        <h3 className="mt-[7px] pr-[160px] font-bold text-[19px] leading-[28px] text-[#272E24] line-clamp-1">
           {event.title}
         </h3>
 
-        {/* Location + Organizer at y: 87 */}
-        <div className="flex items-center mt-[8px]">
+        {/* Location + Organizer centered in lower space (y=66-132) */}
+        <div className="flex items-center mt-[10px]">
           <div className="flex items-center ml-[3px]">
             <MapPin className="h-[13px] w-[13px] text-[#5F8530] shrink-0" />
             <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061]">
@@ -126,7 +128,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </div>
         </div>
 
-        {/* Detail button - absolute positioned at y: 46 */}
+        {/* Detail button at y: 46 (center at 66) */}
         <Button
           type="button"
           className="absolute right-[25px] top-[46px] w-[114px] h-10 bg-[#97C459] hover:bg-[#97C459]/90 rounded-full text-sm font-bold leading-5 text-[#1E2C10]"
