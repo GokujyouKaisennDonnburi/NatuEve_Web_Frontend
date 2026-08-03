@@ -88,7 +88,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Tags centered in upper space (y=0-66) */}
         <div className="pt-[21px]">
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1 ml-[26px]">
             {event.tags?.map((tag) => (
               <FilterTag key={tag.id} label={tag.name} title={tag.name} />
             ))}
@@ -96,13 +96,13 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
         </div>
 
         {/* Title at card center y=66 */}
-        <h3 className="mt-[7px] pr-[160px] font-bold text-[19px] leading-[28px] text-[#272E24] line-clamp-1">
+        <h3 className="mt-[7px] ml-[26px] pr-[186px] font-bold text-[19px] leading-[28px] text-[#272E24] line-clamp-1">
           {event.title}
         </h3>
 
         {/* Location + Organizer centered in lower space (y=66-132) */}
-        <div className="flex items-center mt-[10px]">
-          <div className="flex items-center ml-[3px]">
+        <div className="flex items-center mt-[10px] ml-[26px]">
+          <div className="flex items-center">
             <MapPin className="h-[13px] w-[13px] text-[#5F8530] shrink-0" />
             <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061]">
               {event.location}
