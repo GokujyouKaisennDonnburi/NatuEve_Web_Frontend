@@ -1,3 +1,5 @@
+"use client";
+
 import { FilterTag } from "@/components/atoms/FilterTag";
 import type { TagItem } from "@/types/tag";
 
