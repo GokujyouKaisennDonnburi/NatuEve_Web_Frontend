@@ -1,3 +1,4 @@
+import { EventItemBadge } from "@/components/molecules/EventItemBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { EventDetailType } from "./types";
 
@@ -92,13 +93,15 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
                     {event.items && event.items.length > 0 ? (
-                      <ul className="list-disc list-outside space-y-1 pl-5">
+                      <div className="space-y-4">
                         {event.items.map((item) => (
-                          <li key={item.item} className="text-sm">
-                            {item.item} {item.isRequired ? "(必須)" : "(任意)"}
-                          </li>
+                          <EventItemBadge
+                            key={item.item}
+                            item={item.item}
+                            isRequired={item.isRequired}
+                          />
                         ))}
-                      </ul>
+                      </div>
                     ) : (
                       "なし"
                     )}
