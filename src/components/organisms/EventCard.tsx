@@ -40,7 +40,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
 
   const start = new Date(event.eventDate);
   const monthDay = start.toLocaleDateString("ja-JP", {
-    month: "short",
+    month: "numeric",
     day: "numeric",
     timeZone: "Asia/Tokyo",
   });
@@ -65,20 +65,20 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
     >
       {/* Left section: Date + Status (x: 0-155) */}
       <div className="relative flex flex-col items-start shrink-0 w-[155px]">
-        {/* Vertical divider at x: 129 */}
+        {/* Vertical divider at x: 129, y: 11, h: 108 */}
         <div className="absolute left-[129px] top-[11px] w-px h-[108px] bg-black" />
 
-        {/* Date box at x: 29, y: 14 */}
-        <div className="ml-[29px] mt-[14px] w-[78px] h-[73px] bg-white rounded-xl flex flex-col items-center justify-center">
+        {/* Date box at x: 29, y: 14, w: 78, h: 73 */}
+        <div className="ml-[29px] mt-[14px] w-[78px] h-[73px] bg-white rounded-xl flex flex-col items-center pt-[3px]">
           <span className="font-bold text-[32px] leading-[24px] text-[#171C15] text-center">
             {monthDay}
           </span>
-          <span className="text-base leading-[23px] text-black text-center">
+          <span className="mt-[9px] text-base leading-[23px] text-black text-center">
             {weekday}
           </span>
         </div>
 
-        {/* Status label at x: 29, y: 90 (date ends at 87) */}
+        {/* Status label at x: 29, y: 90 */}
         <div className="ml-[29px] mt-[3px]">
           <EventStatusLabel status={event.status} />
         </div>
@@ -86,7 +86,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
 
       {/* Right section: Content (x: 155-) */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Row 1: Categories at x: 155, y: 23 + Detail button at x: 917 */}
+        {/* Row 1: Categories at y: 23 + Detail button at x: 917 */}
         <div className="flex items-center justify-between pt-[23px] pr-[25px]">
           <div className="flex flex-wrap gap-1">
             {event.tags?.map((tag) => (
@@ -105,14 +105,14 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </Button>
         </div>
 
-        {/* Row 2: Title at x: 155, y: 55 */}
+        {/* Row 2: Title at y: 55 */}
         <h3 className="mt-[8px] font-bold text-[19px] leading-[28px] text-[#272E24] line-clamp-1">
           {event.title}
         </h3>
 
         {/* Row 3: Location + Organizer at y: 90 */}
         <div className="flex items-center mt-[8px]">
-          {/* MapPin at x: 158 (3px from right col start), text at x: 177 */}
+          {/* MapPin at x: 158, text at x: 177 */}
           <div className="flex items-center ml-[3px]">
             <MapPin className="h-[13px] w-[13px] text-[#5F8530] shrink-0" />
             <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061]">

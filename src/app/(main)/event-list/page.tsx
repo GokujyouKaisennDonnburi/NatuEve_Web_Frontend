@@ -320,7 +320,7 @@ export default function EventListPage() {
       </div>
 
       {/* Event cards */}
-      <div className="space-y-4">
+      <div className="space-y-[48px]">
         {events.map((event) => (
           <EventCard key={event.id} event={event} />
         ))}
