@@ -38,5 +38,9 @@ export function FilterTag({
     );
   }
 
-  return <span title={props.title} className={commonClasses}>{label}</span>;
+  return (
+    <span title={props.title} className={commonClasses}>
+      {label}
+    </span>
+  );
 }
