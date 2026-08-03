@@ -1,5 +1,6 @@
 "use client";
 
+import { EventPostCancelButton } from "@/components/atoms/event-post/EventPostCancelButton";
 import { EventPostSubmitButton } from "@/components/atoms/event-post/EventPostSubmitButton";
 import { SectionHeading } from "@/components/atoms/event-post/SectionHeading";
 import { FileField } from "@/components/molecules/event-post/FileField";
@@ -33,7 +34,14 @@ import { uploadFile, uploadFiles } from "@/services/upload";
 import type { CreateEventRequest } from "@/types/event";
 import type { TagItem } from "@/types/tag";
 import { findUploadValidationError } from "@/utils/upload";
-import { FileText, MapPinned, Megaphone, Sparkles, X } from "lucide-react";
+import {
+  ChevronLeft,
+  FileText,
+  MapPinned,
+  Megaphone,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
@@ -391,6 +399,16 @@ export default function EventPostPage() {
   return (
     <section className="mx-auto w-full max-w-3xl space-y-6">
       <div className="grid gap-6">
+        {/* マイイベント一覧へ戻るリンク */}
+        <Button
+          variant="link"
+          onClick={() => router.push(ROUTES.EVENT_LIST)}
+          className="h-auto w-fit cursor-pointer gap-1 p-0 text-sm font-normal text-slate-500 hover:text-sky-600 hover:no-underline"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          マイイベントにもどる
+        </Button>
+
         <Card className="border-slate-200/80 bg-white/95 shadow-xl shadow-slate-200/60 backdrop-blur">
           <CardHeader className="space-y-5 border-b border-slate-200/80 bg-linear-to-br from-teal-50 via-white to-emerald-50 pb-6">
             <SectionHeading
@@ -691,9 +709,11 @@ export default function EventPostPage() {
             </CardContent>
 
             {/* フォームの送信ボタンと注意書きを含むフッター */}
-            <CardFooter className="flex flex-col gap-4 border-t border-slate-100 bg-slate-50/60 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1 text-sm text-slate-600">
-                <p>公開前に必須項目の入力内容を確認してください。</p>
+            <CardFooter className="flex flex-col gap-4 border-t border-slate-100 bg-slate-50/60 px-6 py-5 sm:items-end sm:justify-between">
+              <div className="w-full space-y-3">
+                <p className="text-sm text-slate-600">
+                  公開前に必須項目の入力内容を確認してください。
+                </p>
               </div>
               <EventPostSubmitButton type="submit">
                 イベント情報を登録
@@ -701,6 +721,12 @@ export default function EventPostPage() {
             </CardFooter>
           </form>
         </Card>
+
+        <div className="flex justify-start pt-4">
+          <EventPostCancelButton onClick={() => router.back()}>
+            キャンセル
+          </EventPostCancelButton>
+        </div>
       </div>
     </section>
   );
