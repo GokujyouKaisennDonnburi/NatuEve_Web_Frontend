@@ -64,12 +64,12 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       className="group relative flex w-full h-[132px] bg-white border border-[#E3E8DF] shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
     >
       {/* Left section: Date + Status (x: 0-155) */}
-      <div className="relative flex flex-col items-start shrink-0 w-[155px]">
+      <div className="relative flex flex-col items-center shrink-0 w-[155px]">
         {/* Vertical divider at x: 129, y: 11, h: 108 */}
         <div className="absolute left-[129px] top-[11px] w-px h-[108px] bg-black" />
 
-        {/* Date box at x: 29, y: 14, w: 78, h: 73 */}
-        <div className="ml-[29px] mt-[14px] w-[78px] h-[73px] bg-white rounded-xl flex flex-col items-center pt-[3px]">
+        {/* Date box at x: 29, y: 19, w: 78, h: 73 */}
+        <div className="mt-[19px] w-[78px] h-[73px] bg-white rounded-xl flex flex-col items-center pt-[3px]">
           <span className="font-bold text-[32px] leading-[24px] text-[#171C15] text-center">
             {monthDay}
           </span>
@@ -78,15 +78,15 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </span>
         </div>
 
-        {/* Status label at x: 29, y: 90 */}
-        <div className="ml-[29px] mt-[3px]">
+        {/* Status label at x: 29, y: 95 */}
+        <div className="w-[78px] flex justify-center mt-[3px]">
           <EventStatusLabel status={event.status} />
         </div>
       </div>
 
       {/* Right section: Content (x: 155-) */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Row 1: Categories at y: 23 + Detail button at x: 917 */}
+        {/* Row 1: Categories at y: 23 + Detail button */}
         <div className="flex items-center justify-between pt-[23px] pr-[25px]">
           <div className="flex flex-wrap gap-1">
             {event.tags?.map((tag) => (
@@ -105,8 +105,8 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </Button>
         </div>
 
-        {/* Row 2: Title at y: 55 */}
-        <h3 className="mt-[8px] font-bold text-[19px] leading-[28px] text-[#272E24] line-clamp-1">
+        {/* Row 2: Title at y: 52 */}
+        <h3 className="mt-[5px] font-bold text-[19px] leading-[28px] text-[#272E24] line-clamp-1">
           {event.title}
         </h3>
 
