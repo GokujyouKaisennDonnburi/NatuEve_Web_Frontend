@@ -63,10 +63,8 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       }}
       className="group relative flex w-full h-[132px] bg-white border border-[#E3E8DF] shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
     >
-      {/* Left section: Date + Status */}
-      <div className="relative flex flex-col items-center shrink-0 w-[155px]">
-        <div className="absolute left-[129px] top-[11px] w-px h-[108px] bg-black" />
-
+      {/* Left section: Date + Status (area before divider: 0-129px) */}
+      <div className="flex flex-col items-center shrink-0 w-[129px]">
         <div className="mt-[18px] w-[78px] h-[73px] bg-white rounded-xl flex flex-col items-center pt-[3px]">
           <span className="font-bold text-[32px] leading-[24px] text-[#171C15] text-center">
             {monthDay}
@@ -80,6 +78,9 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           <EventStatusLabel status={event.status} />
         </div>
       </div>
+
+      {/* Vertical divider */}
+      <div className="w-px h-[108px] bg-black mt-[11px] shrink-0" />
 
       {/* Right section: Content */}
       <div className="flex-1 flex flex-col min-w-0 relative">
