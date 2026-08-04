@@ -3,7 +3,7 @@
 import { EventCancelButton } from "@/components/atoms/event-post/EventCancelButton";
 import { EventImageCarousel } from "@/components/molecules/event-detail/EventImageCarousel";
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
-import { EventMemberListModal } from "@/components/molecules/event-detail/EventMemberList";
+import { EventMemberListModal } from "@/components/molecules/event-detail/EventMemberListModal";
 import { EventPdfList } from "@/components/molecules/event-detail/EventPdfList";
 import { EventReportList } from "@/components/molecules/event-detail/EventReportList";
 import { EventTagList } from "@/components/molecules/event-detail/EventTagList";
@@ -17,7 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEventMembers } from "@/hooks/useEventMembers";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
-import { ChevronLeft, FileText, Users } from "lucide-react";
+import { ChevronLeft, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -176,13 +176,11 @@ export function EventDetail({
       <EventReportList report={report} />
 
       {/* 参加者一覧モーダル（主催者のみ。右側固定ボタンから開く） */}
-      {isOrganizer ? (
-        <EventMemberListModal
-          memberState={memberState}
-          isOpen={isMemberListOpen}
-          onClose={() => setIsMemberListOpen(false)}
-        />
-      ) : null}
+      <EventMemberListModal
+        memberState={memberState}
+        isOpen={isMemberListOpen}
+        onOpenChange={setIsMemberListOpen}
+      />
 
       {/* 全体連絡 */}
       <EventNotifyModal
@@ -229,24 +227,6 @@ export function EventDetail({
           </>
         )}
       </div>
-
-      {/* 参加者一覧ボタン：主催者のみ、画面右側に固定で表示する */}
-      {isOrganizer ? (
-        <button
-          type="button"
-          onClick={() => setIsMemberListOpen(true)}
-          disabled={!hasMembers}
-          className="fixed right-4 top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 px-3 py-4 text-white shadow-lg shadow-teal-500/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/30 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-          aria-label="参加者一覧を開く"
-        >
-          <Users className="h-5 w-5" />
-          <span className="text-xs font-semibold leading-tight tracking-tight">
-            参加者
-            <br />
-            一覧
-          </span>
-        </button>
-      ) : null}
     </div>
   );
 }
