@@ -22,7 +22,7 @@ export function EventOrganizerToolbar({
 }: Readonly<EventOrganizerToolbarProps>) {
   return (
     <aside className="fixed right-6 top-1/2 z-40 -translate-y-1/2">
-      <div className="rounded-3xl border border-amber-100 bg-white/95 px-2 py-3 shadow-xl backdrop-blur">
+      <div className="rounded-3xl border border-amber-100 bg-white/95 px-0.5 py-3 shadow-xl backdrop-blur">
         <p className="mb-3 text-center text-[10px] font-semibold tracking-wide text-slate-400">
           主催者
         </p>

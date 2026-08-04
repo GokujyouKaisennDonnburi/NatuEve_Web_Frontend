@@ -158,21 +158,21 @@ export function EventDetail({
       {/* レポート */}
       <EventReportList report={report} />
 
-      {/* 参加者一覧モーダル（主催者のみ。右側固定ボタンから開く） */}
+      {/* 参加者一覧モーダル */}
       <EventMemberListModal
         memberState={memberState}
         isOpen={isMemberListOpen}
         onOpenChange={setIsMemberListOpen}
       />
 
-      {/* 全体連絡 */}
+      {/* 全体連絡モーダル */}
       <EventNotifyModal
         isOpen={isNotifyOpen}
         onOpenChange={setIsNotifyOpen}
         eventId={event.id}
       />
 
-      {/* イベント削除 */}
+      {/* イベント削除モーダル */}
       <EventCancelModal
         isOpen={isCancelOpen}
         onOpenChange={setIsCancelOpen}
