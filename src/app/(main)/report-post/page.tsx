@@ -93,7 +93,7 @@ function ReportPostPageContent() {
     let cancelled = false;
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`/api/v1/events/${eventId}`);
+        const res = await fetch(`/api/v1/events/${encodeURIComponent(eventId)}`);
         if (!res.ok) {
           throw new Error(`status:${res.status}`);
         }
@@ -264,8 +264,8 @@ function ReportPostPageContent() {
       {/* イベント情報表示 */}
       {event && (
         <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardContent className="px-5 ">
-            <p className = "text-sm font-semibold text-blue-600">
+          <CardContent className="px-5">
+            <p className="text-sm font-semibold text-blue-600">
               対象イベント
             </p>
 
