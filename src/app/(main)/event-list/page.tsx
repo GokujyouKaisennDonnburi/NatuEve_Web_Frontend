@@ -3,12 +3,12 @@
 import { CreateEventButton } from "@/components/atoms/CreateEventButton";
 import { SortButton } from "@/components/atoms/SortButton";
 import { SearchBar } from "@/components/molecules/SearchBar";
+import { Pagination } from "@/components/molecules/Pagination";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
-import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type SortOption = "created_at" | "event_date";
@@ -255,16 +255,6 @@ export default function EventListPage() {
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  const pageNumbers = useMemo(() => {
-    const numbers: number[] = [];
-    for (let i = currentPage - 2; i <= currentPage + 2; i++) {
-      if (i >= 1 && i <= totalPages) {
-        numbers.push(i);
-      }
-    }
-    return numbers;
-  }, [currentPage, totalPages]);
-
   const sortOptions: { value: SortOption; label: string }[] = [
     { value: "event_date", label: "開催日が近い順" },
     { value: "created_at", label: "投稿が新しい順" },
@@ -332,61 +322,12 @@ export default function EventListPage() {
       </div>
 
       {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-1 px-2">
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
-          >
-            先頭
-          </Button>
-
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
-          >
-            前
-          </Button>
-
-          {pageNumbers.map((page) => (
-            <Button
-              key={page}
-              size="xs"
-              onClick={() => setCurrentPage(page)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer shadow-none ${
-                currentPage === page
-                  ? "bg-slate-950 text-white border-slate-950 hover:bg-slate-900"
-                  : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-              }`}
-            >
-              {page}
-            </Button>
-          ))}
-
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
-          >
-            次
-          </Button>
-
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
-          >
-            末尾
-          </Button>
+        <div className="mt-8">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
       )}
     </div>
