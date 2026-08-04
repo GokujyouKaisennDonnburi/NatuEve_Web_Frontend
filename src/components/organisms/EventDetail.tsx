@@ -17,7 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEventMembers } from "@/hooks/useEventMembers";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
-import { ChevronLeft, FileText } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -72,7 +72,7 @@ export function EventDetail({
 
   return (
     <div className="space-y-6">
-      {/* 一覧画面に戻るボタン ＆ 投稿者向けレポート作成ボタン */}
+      {/* 一覧画面に戻るボタン */}
       <div className="flex items-center justify-between">
         {/* 一覧画面に戻るリンク */}
         <Button
@@ -83,24 +83,6 @@ export function EventDetail({
           <ChevronLeft className="h-4 w-4" />
           イベント一覧にもどる
         </Button>
-
-        {/* 主催者向けのボタン群（全体連絡ボタン、レポート作成ボタン） */}
-        {isOrganizer ? (
-          <div className="flex items-center gap-2">
-            <Button
-              asChild
-              size="sm"
-              className="cursor-pointer border border-transparent hover:border-slate-300"
-            >
-              <Link
-                href={`${ROUTES.REPORT_POST}?eventId=${encodeURIComponent(event.id)}`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                レポート作成
-              </Link>
-            </Button>
-          </div>
-        ) : null}
       </div>
 
       {/* タイトル */}
