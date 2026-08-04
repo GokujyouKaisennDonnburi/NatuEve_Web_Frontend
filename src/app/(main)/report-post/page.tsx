@@ -2,6 +2,7 @@
 
 import { FieldNote } from "@/components/atoms/event-post/FieldNote";
 
+import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { OptionalUrlField } from "@/components/molecules/event-post/OptionalUrlField";
 import {
   MultiFileField,
@@ -61,6 +62,8 @@ function ReportPostPageContent() {
     reportPdfs: [],
   });
 
+  const [event, setEvent] = useState<EventDetailType | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
@@ -83,6 +86,31 @@ function ReportPostPageContent() {
       router.push(ROUTES.EVENT_LIST);
     }
   }, [eventId, router]);
+
+  // イベント詳細取得
+  useEffect(() => {
+    if (!eventId) return;
+    let cancelled = false;
+    const fetchEvent = async () => {
+      try {
+        const res = await fetch(`/api/v1/events/${eventId}`);
+        if (!res.ok) {
+          throw new Error(`status:${res.status}`);
+        }
+        const data = (await res.json()) as EventDetailType;
+        if (!cancelled) {
+          setEvent(data);
+        }
+      } catch (error) {
+        console.error("イベント取得エラー", error);
+        toast.error("イベント情報の取得に失敗しました");
+      }
+    };
+    void fetchEvent();
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
 
   // バリデーション
   const validateForm = (): boolean => {
@@ -232,6 +260,50 @@ function ReportPostPageContent() {
           イベント参加時の活動内容を記録しましょう
         </p>
       </div>
+
+      {/* イベント情報表示 */}
+      {event && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardContent className="px-5 ">
+            <p className = "text-sm font-semibold text-blue-600">
+              対象イベント
+            </p>
+
+            <h2 className="text-lg font-bold text-slate-900">
+              {event.title}
+            </h2>
+
+            <div className="mt-2 text-sm text-slate-600">
+              {event.eventDate && (
+                <span>
+                  {new Date(event.eventDate).toLocaleDateString("ja-JP", {
+                    month: "short",
+                    day: "numeric",
+                    weekday: "short",
+                    timeZone: "Asia/Tokyo",
+                  })}
+
+                  {" "}
+
+                  {new Date(event.eventDate).toLocaleTimeString("ja-JP", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "Asia/Tokyo",
+                  })}
+                  〜
+                </span>
+              )}
+
+              {event.location && (
+                <>
+                  <span className="mx-2">｜</span>
+                  <span>{event.location}</span>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* メインカード */}
       <Card className="border-slate-200 shadow-sm">
