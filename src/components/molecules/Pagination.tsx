@@ -62,7 +62,7 @@ export function Pagination({
         onClick={() => handlePageChange(1)}
         className={cn(
           "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
-          currentPage === 1 && "font-bold text-[#272E24]",
+          currentPage === 1 && "bg-[#85B7EB] text-white font-bold rounded-full px-3 py-1",
         )}
       >
         1
@@ -81,7 +81,7 @@ export function Pagination({
           onClick={() => handlePageChange(page)}
           className={cn(
             "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
-            currentPage === page && "font-bold text-[#272E24]",
+            currentPage === page && "bg-[#85B7EB] text-white font-bold rounded-full px-3 py-1",
           )}
         >
           {page}
@@ -101,7 +101,7 @@ export function Pagination({
           onClick={() => handlePageChange(totalPages)}
           className={cn(
             "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
-            currentPage === totalPages && "font-bold text-[#272E24]",
+            currentPage === totalPages && "bg-[#85B7EB] text-white font-bold rounded-full px-3 py-1",
           )}
         >
           {totalPages}
