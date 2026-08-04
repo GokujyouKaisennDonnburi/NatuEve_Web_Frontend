@@ -21,6 +21,7 @@ import { ChevronLeft, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { EventCancelModal } from "../molecules/event-detail/EventCancelModal";
 import { EventNotifyModal } from "../molecules/event-detail/EventNotifyModal";
 import { EventOrganizerToolbar } from "../molecules/event-detail/EventOrganizerToolbar";
 
@@ -57,7 +58,7 @@ export function EventDetail({
   // モーダルの開閉状態
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
   const [isNotifyOpen, setIsNotifyOpen] = useState(false);
-  const [_isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   // 参加状態取得（主催者以外のログインユーザーのみ）
   // 未ログイン時は取得をスキップし、participating=false として扱う。
@@ -187,6 +188,14 @@ export function EventDetail({
         isOpen={isNotifyOpen}
         onOpenChange={setIsNotifyOpen}
         eventId={event.id}
+      />
+
+      {/* イベント削除 */}
+      <EventCancelModal
+        isOpen={isCancelOpen}
+        onOpenChange={setIsCancelOpen}
+        eventId={event.id}
+        hasMembers={hasMembers}
       />
 
       {/* 主催者用のツールバー（画面右側に固定表示） */}
