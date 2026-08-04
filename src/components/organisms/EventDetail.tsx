@@ -22,6 +22,7 @@ import { ChevronLeft, FileText, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { EventOrganizerToolbar } from "../molecules/event-detail/EventOrganizerToolbar";
 
 // イベント詳細コンポーネント
 export function EventDetail({
@@ -53,8 +54,10 @@ export function EventDetail({
   const memberState = useEventMembers(isOrganizer ? event.id : null);
   const hasMembers = memberState.data ? memberState.data.totalCount > 0 : true;
 
-  // 参加者一覧モーダルの開閉状態（主催者のみ操作可能）
+  // モーダルの開閉状態
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
+  const [_isNotifyOpen, setIsNotifyOpen] = useState(false);
+  const [_isCancelOpen, setIsCancelOpen] = useState(false);
 
   // 参加状態取得（主催者以外のログインユーザーのみ）
   // 未ログイン時は取得をスキップし、participating=false として扱う。
@@ -179,6 +182,21 @@ export function EventDetail({
           memberState={memberState}
           isOpen={isMemberListOpen}
           onClose={() => setIsMemberListOpen(false)}
+        />
+      ) : null}
+
+      {/* 主催者用のツールバー（画面右側に固定表示） */}
+      {isOrganizer ? (
+        <EventOrganizerToolbar
+          hasMembers={hasMembers}
+          onMemberList={() => setIsMemberListOpen(true)}
+          onNotify={() => setIsNotifyOpen(true)}
+          onDelete={() => setIsCancelOpen(true)}
+          onReport={() =>
+            router.push(
+              `${ROUTES.REPORT_POST}?eventId=${encodeURIComponent(event.id)}`,
+            )
+          }
         />
       ) : null}
 
