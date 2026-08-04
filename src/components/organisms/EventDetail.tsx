@@ -77,7 +77,7 @@ export function EventDetail({
           className="h-auto w-fit cursor-pointer gap-1 p-0 has-[>svg]:px-0 text-sm font-normal text-slate-500 hover:text-sky-600 hover:no-underline"
         >
           <ChevronLeft className="h-4 w-4" />
-          一覧画面にもどる
+          イベント一覧にもどる
         </Button>
 
         {/* 主催者向けのボタン群（全体連絡ボタン、レポート作成ボタン） */}
