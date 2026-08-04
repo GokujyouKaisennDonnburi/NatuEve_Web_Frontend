@@ -1,14 +1,16 @@
 "use client";
 
-import { CreateEventButton } from "@/components/atoms/CreateEventButton";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { cn } from "@/lib/utils";
+import { Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { toast } from "sonner";
 
 // UI表示に必要な最小限のユーザー情報
@@ -16,6 +18,21 @@ type HeaderUser = {
   id?: string;
   name: string;
   avatarUrl: string;
+};
+
+// イベント投稿ページへの導線ボタンコンポーネントのprops型
+type CreateEventButtonProps = ComponentPropsWithoutRef<typeof Button> & {
+  children?: ReactNode;
+};
+
+// /api/v1/me のレスポンス型（snake_case / camelCase 両対応）
+type MeApiResponse = {
+  id: string;
+  email?: string;
+  display_name?: string;
+  avatar_url?: string;
+  displayName?: string;
+  avatarUrl?: string;
 };
 
 export function SiteHeader() {
@@ -140,5 +157,25 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+// イベント投稿ページへの導線ボタンのコンポーネント（用途が増えた場合、関数名などは適宜変更）
+export function CreateEventButton({
+  className,
+  children = "投稿",
+  ...props
+}: Readonly<CreateEventButtonProps>) {
+  return (
+    <Button
+      {...props}
+      className={cn(
+        "h-7 rounded-full border-2 border-transparent bg-[#9ABD5A] px-5 text-sm font-bold text-[#173315] shadow-sm transition-colors hover:border-[#173315] hover:bg-[#A5C869] hover:text-[#173315] cursor-pointer",
+        className,
+      )}
+    >
+      <Plus className="size-5" strokeWidth={2} />
+      <span>{children}</span>
+    </Button>
   );
 }

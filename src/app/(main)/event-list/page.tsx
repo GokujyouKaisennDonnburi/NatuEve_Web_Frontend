@@ -2,10 +2,11 @@
 
 import { FilterIconButton } from "@/components/atoms/FilterIconButton";
 import { SortButton } from "@/components/atoms/SortButton";
-import { SearchBar } from "@/components/molecules/SearchBar";
 import { Pagination } from "@/components/molecules/Pagination";
+import { SearchBar } from "@/components/molecules/SearchBar";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
+import { useAuth } from "@/hooks/useAuth";
 import { fetchEventList } from "@/services/event";
 import type { TagItem } from "@/types/tag";
 import { useEffect, useMemo, useState } from "react";
@@ -46,9 +47,6 @@ export default function EventListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const ITEMS_PER_PAGE = 15;
 
-  // Supabaseのセッション状態を取得
-  const { session, isLoading: isSessionLoading } = useAuth();
-
   // 絞り込みフィルターの状態
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagSearchQuery, setTagSearchQuery] = useState("");
@@ -77,6 +75,8 @@ export default function EventListPage() {
       .map(([id]) => tagMap.get(id))
       .filter((t): t is TagItem => t != null);
   }, [events]);
+  // Supabaseのセッション状態を取得
+  const { session, isLoading: isSessionLoading } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -236,13 +236,6 @@ export default function EventListPage() {
             initialValue={searchQuery}
             className="w-full"
           />
-    <div className="mx-auto max-w-xl">
-      {/* 検索・件数 */}
-      <div className="mb-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-            {totalCount} 件のイベント
-          </span>
         </div>
         <div className="shrink-0 flex items-center gap-3">
           <SortButton

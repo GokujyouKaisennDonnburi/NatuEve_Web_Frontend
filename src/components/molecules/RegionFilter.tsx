@@ -293,7 +293,7 @@ export function RegionFilter({
                               )}
                             />
                           </button>
-                          </div>
+                        </div>
 
                         {isPrefExpanded && (
                           <div className="ml-[22px] mt-[2px] flex flex-wrap gap-[2px]">
