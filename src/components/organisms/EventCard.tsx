@@ -86,8 +86,8 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
 
       {/* Right column: Tags / Title+Button / Location+Organizer */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Tags area with fixed height (24px = FilterTag height), empty when no tags */}
-        <div className="pt-[21px] h-[24px] ml-[26px]">
+        {/* Tags area with fixed height, empty space when no tags */}
+        <div className="mt-[21px] h-[24px] ml-[26px] flex items-center">
           {event.tags && event.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {event.tags.map((tag) => (
