@@ -68,15 +68,16 @@ export function EventDetail({
 
   return (
     <div className="space-y-6">
-      {/* 戻るボタン ＆ 投稿者向けレポート作成ボタン */}
+      {/* 一覧画面に戻るボタン ＆ 投稿者向けレポート作成ボタン */}
       <div className="flex items-center justify-between">
+        {/* 一覧画面に戻るリンク */}
         <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.back()}
-          className="cursor-pointer bg-transparent hover:bg-transparent"
+          variant="link"
+          onClick={() => router.push(ROUTES.EVENT_LIST)}
+          className="h-auto w-fit cursor-pointer gap-1 p-0 has-[>svg]:px-0 text-sm font-normal tracking-[2px] text-slate-500 hover:text-sky-600 hover:no-underline"
         >
-          <ChevronLeft className="h-4 w-4 mr-2" /> 戻る
+          <ChevronLeft className="h-4 w-4" />
+          イベント一覧にもどる
         </Button>
 
         {/* 主催者向けのボタン群（全体連絡ボタン、レポート作成ボタン） */}
