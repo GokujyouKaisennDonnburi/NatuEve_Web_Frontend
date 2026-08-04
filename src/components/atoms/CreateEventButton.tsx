@@ -23,7 +23,7 @@ export function CreateEventButton({
       )}
     >
       <Plus className="h-3.5 w-3.5" />
-      <span className="hidden sm:inline">{children}</span>
+      <span>{children}</span>
     </Button>
   );
 }
