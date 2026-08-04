@@ -170,7 +170,7 @@ export function CreateEventButton({
     <Button
       {...props}
       className={cn(
-        "h-7 rounded-full border-2 border-transparent bg-[#9ABD5A] px-5 text-sm font-bold text-[#173315] shadow-sm transition-colors hover:border-[#173315] hover:bg-[#A5C869] hover:text-[#173315] cursor-pointer",
+        "h-7 rounded-full border-2 border-transparent bg-[#9ABD5A] px-5 text-sm font-bold text-[#173315] shadow-sm transition-colors hover:border-[#173315] hover:bg-[#A5C869] hover:text-[#173315] py-0",
         className,
       )}
     >
