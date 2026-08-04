@@ -27,6 +27,11 @@ export function Pagination({
 }: Readonly<PaginationProps>) {
   if (totalPages <= 1) return null;
 
+  const handlePageChange = (page: number) => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    onPageChange(page);
+  };
+
   const visiblePages = getVisiblePages(currentPage, totalPages);
 
   return (
@@ -39,7 +44,7 @@ export function Pagination({
       {/* Previous */}
       <button
         type="button"
-        onClick={() => onPageChange(currentPage - 1)}
+        onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
         className={cn(
           "px-2 py-1 cursor-pointer transition-colors",
@@ -48,13 +53,13 @@ export function Pagination({
             : "hover:text-[#272E24]",
         )}
       >
-        &lt;&lt;
+        &lt;
       </button>
 
       {/* First page */}
       <button
         type="button"
-        onClick={() => onPageChange(1)}
+        onClick={() => handlePageChange(1)}
         className={cn(
           "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
           currentPage === 1 && "font-bold text-[#272E24]",
@@ -73,7 +78,7 @@ export function Pagination({
         <button
           key={page}
           type="button"
-          onClick={() => onPageChange(page)}
+          onClick={() => handlePageChange(page)}
           className={cn(
             "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
             currentPage === page && "font-bold text-[#272E24]",
@@ -93,7 +98,7 @@ export function Pagination({
       {totalPages > 1 && (
         <button
           type="button"
-          onClick={() => onPageChange(totalPages)}
+          onClick={() => handlePageChange(totalPages)}
           className={cn(
             "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
             currentPage === totalPages && "font-bold text-[#272E24]",
@@ -106,7 +111,7 @@ export function Pagination({
       {/* Next */}
       <button
         type="button"
-        onClick={() => onPageChange(currentPage + 1)}
+        onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         className={cn(
           "px-2 py-1 cursor-pointer transition-colors",
@@ -115,7 +120,7 @@ export function Pagination({
             : "hover:text-[#272E24]",
         )}
       >
-        &gt;&gt;
+        &gt;
       </button>
     </div>
   );
