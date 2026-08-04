@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
+/* グローバルスタイル */
 :root {
+  /* カラーパレット */
   color-scheme: light;
   --background: #f8fafc;
   --foreground: #0f172a;
@@ -10,7 +12,11 @@
   --accent: #0f766e;
   --accent-foreground: #ffffff;
 
-  /* Emerald palette used by EventDetail */
+  /* ブランドカラー */
+  --brand-green: #9aca4a;
+  --brand-orange: #f8c568;
+
+  /* EventDetailで使用するエメラルド系カラーパレット */
   --emerald-50: #ecfdf5;
   --emerald-100: #d1fae5;
   --emerald-400: #34d399;
