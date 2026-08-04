@@ -46,6 +46,7 @@ export function Pagination({
         type="button"
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
+        aria-label="前のページ"
         className={cn(
           "px-2 py-1 cursor-pointer transition-colors",
           currentPage === 1
@@ -60,6 +61,7 @@ export function Pagination({
       <button
         type="button"
         onClick={() => handlePageChange(1)}
+        aria-label="1ページ目"
         className={cn(
           "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
           currentPage === 1 && "bg-[#97C459] text-white font-bold rounded-full px-3 py-1",
@@ -70,7 +72,7 @@ export function Pagination({
 
       {/* Left ellipsis */}
       {visiblePages.length > 0 && visiblePages[0] > 2 && (
-        <span className="px-2 py-1 select-none">......</span>
+        <span className="px-2 py-1 select-none" aria-hidden="true">......</span>
       )}
 
       {/* Visible pages */}
@@ -79,6 +81,8 @@ export function Pagination({
           key={page}
           type="button"
           onClick={() => handlePageChange(page)}
+          aria-label={`${page}ページ目`}
+          aria-current={currentPage === page ? "page" : undefined}
           className={cn(
             "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
             currentPage === page && "bg-[#97C459] text-white font-bold rounded-full px-3 py-1",
@@ -91,7 +95,7 @@ export function Pagination({
       {/* Right ellipsis */}
       {visiblePages.length > 0 &&
         visiblePages[visiblePages.length - 1] < totalPages - 1 && (
-          <span className="px-2 py-1 select-none">......</span>
+          <span className="px-2 py-1 select-none" aria-hidden="true">......</span>
         )}
 
       {/* Last page */}
@@ -99,6 +103,7 @@ export function Pagination({
         <button
           type="button"
           onClick={() => handlePageChange(totalPages)}
+          aria-label={`${totalPages}ページ目`}
           className={cn(
             "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
             currentPage === totalPages && "bg-[#97C459] text-white font-bold rounded-full px-3 py-1",
@@ -113,6 +118,7 @@ export function Pagination({
         type="button"
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
+        aria-label="次のページ"
         className={cn(
           "px-2 py-1 cursor-pointer transition-colors",
           currentPage === totalPages

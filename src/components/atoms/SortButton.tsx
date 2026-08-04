@@ -40,6 +40,7 @@ export function SortButton({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          aria-label={label ?? "並び替え"}
           className="bg-transparent outline-none cursor-pointer text-sm font-bold leading-5 text-[#3A4237]"
         >
           {options.map((option) => (

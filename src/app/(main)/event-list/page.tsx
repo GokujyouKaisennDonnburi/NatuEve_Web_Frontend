@@ -262,6 +262,8 @@ export default function EventListPage() {
 
   // ソートオプションの変更を処理する関数
   const handleSortChange = (value: string) => {
+    const validSortOptions = ["event_date", "created_at"] as const;
+    if (!validSortOptions.includes(value as typeof validSortOptions[number])) return;
     setSortBy(value as SortOption);
     setCurrentPage(1);
   };

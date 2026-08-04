@@ -56,6 +56,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       aria-label={`${event.title} の詳細へ移動`}
       onClick={() => router.push(`/event/${event.id}`)}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           router.push(`/event/${event.id}`);
@@ -114,7 +115,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
             {event.hostAvatarUrl ? (
               <Image
                 src={event.hostAvatarUrl}
-                alt=""
+                alt={`${event.hostName} のアバター`}
                 width={18}
                 height={16}
                 className="h-4 w-[18px] rounded-full object-cover"
