@@ -1,7 +1,6 @@
 "use client";
 
 import { EventCancelButton } from "@/components/atoms/event-post/EventCancelButton";
-import { EventNotifyButton } from "@/components/atoms/event-post/EventNotifyButton";
 import { EventImageCarousel } from "@/components/molecules/event-detail/EventImageCarousel";
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
 import { EventMemberListModal } from "@/components/molecules/event-detail/EventMemberList";
@@ -22,6 +21,7 @@ import { ChevronLeft, FileText, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { EventNotifyModal } from "../molecules/event-detail/EventNotifyModal";
 import { EventOrganizerToolbar } from "../molecules/event-detail/EventOrganizerToolbar";
 
 // イベント詳細コンポーネント
@@ -56,7 +56,7 @@ export function EventDetail({
 
   // モーダルの開閉状態
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
-  const [_isNotifyOpen, setIsNotifyOpen] = useState(false);
+  const [isNotifyOpen, setIsNotifyOpen] = useState(false);
   const [_isCancelOpen, setIsCancelOpen] = useState(false);
 
   // 参加状態取得（主催者以外のログインユーザーのみ）
@@ -86,7 +86,6 @@ export function EventDetail({
         {/* 主催者向けのボタン群（全体連絡ボタン、レポート作成ボタン） */}
         {isOrganizer ? (
           <div className="flex items-center gap-2">
-            <EventNotifyButton eventId={event.id} disabled={!hasMembers} />
             <Button
               asChild
               size="sm"
@@ -184,6 +183,13 @@ export function EventDetail({
           onClose={() => setIsMemberListOpen(false)}
         />
       ) : null}
+
+      {/* 全体連絡 */}
+      <EventNotifyModal
+        isOpen={isNotifyOpen}
+        onOpenChange={setIsNotifyOpen}
+        eventId={event.id}
+      />
 
       {/* 主催者用のツールバー（画面右側に固定表示） */}
       {isOrganizer ? (
