@@ -22,7 +22,7 @@ export function EventOrganizerToolbar({
 }: Readonly<EventOrganizerToolbarProps>) {
   return (
     <aside className="fixed right-6 top-1/2 z-40 -translate-y-1/2">
-      <div className="rounded-3xl border border-amber-100 bg-white/95 px-0.5 py-3 shadow-xl backdrop-blur">
+      <div className="rounded-3xl border border-slate-200 bg-white/95 px-0.5 py-3 shadow-xl backdrop-blur">
         <p className="mb-3 text-center text-[10px] font-semibold tracking-wide text-slate-400">
           主催者
         </p>
@@ -35,6 +35,7 @@ export function EventOrganizerToolbar({
             label="参加者一覧"
             onClick={onMemberList}
             disabled={!hasMembers}
+            color="green"
           />
 
           {/* 全体連絡ボタン */}
@@ -43,6 +44,7 @@ export function EventOrganizerToolbar({
             label="全体連絡"
             onClick={onNotify}
             disabled={!hasMembers}
+            color="blue"
           />
 
           <div className="my-2 h-px w-8 bg-slate-200" />
@@ -70,6 +72,7 @@ export function EventOrganizerToolbar({
             icon={FilePlus2}
             label="レポート作成"
             onClick={onReport}
+            color="orange"
           />
         </div>
       </div>

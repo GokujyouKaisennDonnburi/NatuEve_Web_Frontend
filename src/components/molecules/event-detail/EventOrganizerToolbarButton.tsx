@@ -9,6 +9,7 @@ type EventOrganizerToolbarButtonProps = {
   onClick?: () => void;
   disabled?: boolean;
   danger?: boolean;
+  color?: "green" | "blue" | "orange";
 };
 
 // 主催者用のツールバーのボタンコンポーネント
@@ -18,7 +19,18 @@ export function EventOrganizerToolbarButton({
   onClick,
   disabled = false,
   danger = false,
+  color,
 }: Readonly<EventOrganizerToolbarButtonProps>) {
+  const colorClass = danger
+    ? "text-red-500 hover:bg-red-50"
+    : color === "green"
+      ? "text-emerald-600 hover:bg-emerald-50"
+      : color === "blue"
+        ? "text-sky-600 hover:bg-sky-50"
+        : color === "orange"
+          ? "text-amber-600 hover:bg-amber-50"
+          : "text-slate-600 hover:bg-slate-100";
+
   return (
     <AppTooltip label={label}>
       <Button
@@ -29,13 +41,10 @@ export function EventOrganizerToolbarButton({
         disabled={disabled}
         className={`
           h-12 w-12 rounded-xl cursor-pointer
+          transition-colors duration-200
           disabled:cursor-not-allowed
           disabled:opacity-40
-          ${
-            danger
-              ? "text-red-500 hover:text-red-600"
-              : "text-slate-600 hover:text-emerald-600"
-          }
+          ${colorClass}
         `}
         aria-label={label}
       >
