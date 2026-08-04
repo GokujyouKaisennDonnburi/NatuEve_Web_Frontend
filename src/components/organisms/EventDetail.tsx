@@ -1,9 +1,12 @@
 "use client";
 
 import { EventCancelButton } from "@/components/atoms/event-post/EventCancelButton";
+import { EventCancelModal } from "@/components/molecules/event-detail/EventCancelModal";
 import { EventImageCarousel } from "@/components/molecules/event-detail/EventImageCarousel";
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
 import { EventMemberListModal } from "@/components/molecules/event-detail/EventMemberListModal";
+import { EventNotifyModal } from "@/components/molecules/event-detail/EventNotifyModal";
+import { EventOrganizerToolbar } from "@/components/molecules/event-detail/EventOrganizerToolbar";
 import { EventPdfList } from "@/components/molecules/event-detail/EventPdfList";
 import { EventReportList } from "@/components/molecules/event-detail/EventReportList";
 import { EventTagList } from "@/components/molecules/event-detail/EventTagList";
@@ -21,9 +24,6 @@ import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { EventCancelModal } from "../molecules/event-detail/EventCancelModal";
-import { EventNotifyModal } from "../molecules/event-detail/EventNotifyModal";
-import { EventOrganizerToolbar } from "../molecules/event-detail/EventOrganizerToolbar";
 
 // イベント詳細コンポーネント
 export function EventDetail({
