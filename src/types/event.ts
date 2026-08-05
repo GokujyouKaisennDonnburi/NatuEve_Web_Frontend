@@ -86,6 +86,45 @@ export type EventDetailReport = {
   pdfUrls?: string[];
 };
 
+// イベント一覧取得 API のプロフィール DTO。
+export type EventListItemProfile = {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+};
+
+// イベント一覧取得 API のイベント DTO。
+export type EventListItem = {
+  createdAt: string;
+  eventDate: string;
+  id: string;
+  location: string;
+  profileId: string;
+  title: string;
+  profile: EventListItemProfile;
+  tags?: TagItem[];
+  // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
+  cancelledAt?: string | null;
+};
+
+// イベント一覧取得 API のレスポンス DTO。
+export type EventListResponse = {
+  events: EventListItem[];
+  limit: number;
+  offset: number;
+  totalCount: number;
+};
+
+// イベント一覧取得 API のリクエストパラメータ DTO。
+export type EventListRequest = {
+  sort?: "created_at" | "event_date";
+  order?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
+  // 検索キーワードの配列（AND 検索・最大10語）。
+  keywords?: string[];
+};
+
 // イベント詳細取得 API のレスポンス DTO。
 export type EventDetailResponse = {
   capacity: number;

@@ -4,9 +4,78 @@ import type {
   CancelEventResponse,
   CreateEventRequest,
   CreateEventResponse,
+  EventDetailResponse,
+  EventListRequest,
+  EventListResponse,
   NotifyEventParticipantsRequest,
   NotifyEventParticipantsResponse,
 } from "@/types/event";
+
+// イベント詳細取得 API（GET /api/v1/events/{id}）を呼ぶ（認証不要）。
+//
+// 失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
+export async function getEventDetail(
+  eventId: string,
+): Promise<EventDetailResponse> {
+  const response = await apiFetch(
+    `/api/v1/events/${encodeURIComponent(eventId)}`,
+    { auth: false },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `イベント詳細の取得に失敗しました (Status: ${response.status})`,
+    );
+  }
+
+  return (await response.json()) as EventDetailResponse;
+}
+
+// URLSearchParams に変換するヘルパー。
+const buildEventListParams = (request: EventListRequest): URLSearchParams => {
+  const params = new URLSearchParams();
+
+  if (request.sort) {
+    params.set("sort", request.sort);
+  }
+  if (request.order) {
+    params.set("order", request.order);
+  }
+  if (request.limit != null) {
+    params.set("limit", request.limit.toString());
+  }
+  if (request.offset != null) {
+    params.set("offset", request.offset.toString());
+  }
+  if (request.keywords) {
+    for (const keyword of request.keywords) {
+      params.append("q", keyword);
+    }
+  }
+
+  return params;
+};
+
+// イベント一覧取得 API（GET /api/v1/events）を呼ぶ（認証任意）。
+//
+// 未ログインでも取得可能だが、ログイン済みの場合はAuthorizationヘッダーを付与する。
+// 失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
+export async function fetchEventList(
+  request: EventListRequest,
+): Promise<EventListResponse> {
+  const params = buildEventListParams(request);
+  const response = await apiFetch(`/api/v1/events?${params.toString()}`, {
+    auth: false,
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `イベント一覧の取得に失敗しました (Status: ${response.status})`,
+    );
+  }
+
+  return (await response.json()) as EventListResponse;
+}
 
 // イベント作成 API（POST /api/v1/events）を呼ぶ（要認証）。
 //
