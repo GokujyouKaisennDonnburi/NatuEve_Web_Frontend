@@ -1,10 +1,12 @@
 "use client";
 
 import { EventCancelButton } from "@/components/atoms/event-post/EventCancelButton";
-import { EventNotifyButton } from "@/components/atoms/event-post/EventNotifyButton";
+import { EventCancelModal } from "@/components/molecules/event-detail/EventCancelModal";
 import { EventImageCarousel } from "@/components/molecules/event-detail/EventImageCarousel";
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
-import { EventMemberListModal } from "@/components/molecules/event-detail/EventMemberList";
+import { EventMemberListModal } from "@/components/molecules/event-detail/EventMemberListModal";
+import { EventNotifyModal } from "@/components/molecules/event-detail/EventNotifyModal";
+import { EventOrganizerToolbar } from "@/components/molecules/event-detail/EventOrganizerToolbar";
 import { EventPdfList } from "@/components/molecules/event-detail/EventPdfList";
 import { EventReportList } from "@/components/molecules/event-detail/EventReportList";
 import { EventTagList } from "@/components/molecules/event-detail/EventTagList";
@@ -18,7 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEventMembers } from "@/hooks/useEventMembers";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
-import { ChevronLeft, FileText, Users } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -53,8 +55,10 @@ export function EventDetail({
   const memberState = useEventMembers(isOrganizer ? event.id : null);
   const hasMembers = memberState.data ? memberState.data.totalCount > 0 : true;
 
-  // 参加者一覧モーダルの開閉状態（主催者のみ操作可能）
+  // モーダルの開閉状態
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
+  const [isNotifyOpen, setIsNotifyOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   // 参加状態取得（主催者以外のログインユーザーのみ）
   // 未ログイン時は取得をスキップし、participating=false として扱う。
@@ -68,7 +72,7 @@ export function EventDetail({
 
   return (
     <div className="space-y-6">
-      {/* 一覧画面に戻るボタン ＆ 投稿者向けレポート作成ボタン */}
+      {/* 一覧画面に戻るボタン */}
       <div className="flex items-center justify-between">
         {/* 一覧画面に戻るリンク */}
         <Button
@@ -79,25 +83,6 @@ export function EventDetail({
           <ChevronLeft className="h-4 w-4" />
           イベント一覧にもどる
         </Button>
-
-        {/* 主催者向けのボタン群（全体連絡ボタン、レポート作成ボタン） */}
-        {isOrganizer ? (
-          <div className="flex items-center gap-2">
-            <EventNotifyButton eventId={event.id} disabled={!hasMembers} />
-            <Button
-              asChild
-              size="sm"
-              className="cursor-pointer border border-transparent hover:border-slate-300"
-            >
-              <Link
-                href={`${ROUTES.REPORT_POST}?eventId=${encodeURIComponent(event.id)}`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                レポート作成
-              </Link>
-            </Button>
-          </div>
-        ) : null}
       </div>
 
       {/* タイトル */}
@@ -173,12 +158,40 @@ export function EventDetail({
       {/* レポート */}
       <EventReportList report={report} />
 
-      {/* 参加者一覧モーダル（主催者のみ。右側固定ボタンから開く） */}
+      {/* 参加者一覧モーダル */}
+      <EventMemberListModal
+        memberState={memberState}
+        isOpen={isMemberListOpen}
+        onOpenChange={setIsMemberListOpen}
+      />
+
+      {/* 全体連絡モーダル */}
+      <EventNotifyModal
+        isOpen={isNotifyOpen}
+        onOpenChange={setIsNotifyOpen}
+        eventId={event.id}
+      />
+
+      {/* イベント削除モーダル */}
+      <EventCancelModal
+        isOpen={isCancelOpen}
+        onOpenChange={setIsCancelOpen}
+        eventId={event.id}
+        hasMembers={hasMembers}
+      />
+
+      {/* 主催者用のツールバー（画面右側に固定表示） */}
       {isOrganizer ? (
-        <EventMemberListModal
-          memberState={memberState}
-          isOpen={isMemberListOpen}
-          onClose={() => setIsMemberListOpen(false)}
+        <EventOrganizerToolbar
+          hasMembers={hasMembers}
+          onMemberList={() => setIsMemberListOpen(true)}
+          onNotify={() => setIsNotifyOpen(true)}
+          onDelete={() => setIsCancelOpen(true)}
+          onReport={() =>
+            router.push(
+              `${ROUTES.REPORT_POST}?eventId=${encodeURIComponent(event.id)}`,
+            )
+          }
         />
       ) : null}
 
@@ -205,24 +218,6 @@ export function EventDetail({
           </>
         )}
       </div>
-
-      {/* 参加者一覧ボタン：主催者のみ、画面右側に固定で表示する */}
-      {isOrganizer ? (
-        <button
-          type="button"
-          onClick={() => setIsMemberListOpen(true)}
-          disabled={!hasMembers}
-          className="fixed right-4 top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-1 rounded-full bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 px-3 py-4 text-white shadow-lg shadow-teal-500/25 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/30 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-          aria-label="参加者一覧を開く"
-        >
-          <Users className="h-5 w-5" />
-          <span className="text-xs font-semibold leading-tight tracking-tight">
-            参加者
-            <br />
-            一覧
-          </span>
-        </button>
-      ) : null}
     </div>
   );
 }

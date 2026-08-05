@@ -4,15 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { UseEventMembersResult } from "@/hooks/useEventMembers";
 import { Users, X } from "lucide-react";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
+// 参加者一覧モーダルのプロパティ
 type EventMemberListModalProps = {
   memberState: UseEventMembersResult;
   isOpen: boolean;
-  onClose: () => void;
+  onOpenChange: (isOpen: boolean) => void;
 };
 
-// 申込日時を日本語表記へ整形する（EventReportList と同じフォーマット）。
+// 申込日時を日本語表記へ整形
 const formatCreatedAt = (iso: string): string =>
   new Date(iso).toLocaleString("ja-JP", {
     year: "numeric",
@@ -23,14 +24,12 @@ const formatCreatedAt = (iso: string): string =>
     timeZone: "Asia/Tokyo",
   });
 
-// 参加者一覧本体。
-// 親コンポーネントから受け取った参加者一覧の取得結果を表示する。
-// ローディング・エラー・空データそれぞれの表示状態を持つ。
+// 参加者一覧本体
 function EventMemberListBody({
   memberState,
-}: {
+}: Readonly<{
   memberState: UseEventMembersResult;
-}) {
+}>) {
   const { data, isLoading, error } = memberState;
 
   if (isLoading) {
@@ -51,17 +50,18 @@ function EventMemberListBody({
 
   return (
     <div className="space-y-4">
-      {/* 参加組数・合計参加人数サマリー */}
+      {/* サマリー */}
       <div className="flex flex-wrap gap-3 text-sm">
         <span className="rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-700">
           参加組数: {data.totalCount}
         </span>
+
         <span className="rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-700">
           合計参加人数: {data.totalMembers}
         </span>
       </div>
 
-      {/* 参加者テーブル */}
+      {/* 参加者一覧 */}
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="sticky top-0 z-10 bg-slate-50 text-xs text-slate-500 shadow-[0_-1px_0_0_#e2e8f0_inset,0_1px_0_0_#e2e8f0]">
@@ -72,6 +72,7 @@ function EventMemberListBody({
               <th className="px-4 py-3 font-medium">申込日時</th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-slate-100">
             {data.members.map((member) => (
               <tr
@@ -81,6 +82,7 @@ function EventMemberListBody({
                 <td className="px-4 py-3 text-slate-800">
                   <div className="flex flex-col gap-0.5">
                     <span className="font-medium">{member.username}</span>
+
                     {member.profileId === null ? (
                       <span className="text-[11px] text-slate-400">
                         匿名参加
@@ -88,11 +90,14 @@ function EventMemberListBody({
                     ) : null}
                   </div>
                 </td>
-                <td className="px-4 py-3 break-all text-slate-700">
+
+                <td className="break-all px-4 py-3 text-slate-700">
                   {member.mailAddress}
                 </td>
+
                 <td className="px-4 py-3 text-slate-700">{member.partySize}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-slate-700">
+
+                <td className="whitespace-nowrap px-4 py-3 text-slate-700">
                   {formatCreatedAt(member.createdAt)}
                 </td>
               </tr>
@@ -104,16 +109,18 @@ function EventMemberListBody({
   );
 }
 
-// イベント参加者一覧モーダルコンポーネント。
-// 主催者向けに取得済みの参加者一覧をモーダルで表示する。
-// isOpen が true の時だけ本体をマウントする。
+// 参加者一覧モーダル
 export function EventMemberListModal({
   memberState,
   isOpen,
-  onClose,
+  onOpenChange,
 }: Readonly<EventMemberListModalProps>) {
-  // Escape キーでモーダルを閉じる＆背景スクロールを抑止する。
-  // 既存モーダル（GuestParticipationModal / EventCancelButton）と同じ振る舞いに合わせる。
+  // モーダルを閉じる
+  const handleClose = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
+
+  // モーダル表示中は背景スクロールをロックし、Escapeで閉じる
   useEffect(() => {
     if (!isOpen) return;
 
@@ -121,7 +128,7 @@ export function EventMemberListModal({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        handleClose();
       }
     };
 
@@ -131,20 +138,22 @@ export function EventMemberListModal({
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
+  // モーダルが閉じている場合は何も表示しない
   if (!isOpen) return null;
 
   return (
-    <div className="fixed left-0 top-0 w-screen h-screen z-[100] flex items-center justify-center px-4">
-      {/* 背景オーバーレイ：ボタンとして振るわせ、クリックで閉じる */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      {/* 背景 */}
       <button
         type="button"
-        aria-label="参加者一覧を閉じる"
-        className="absolute inset-0 cursor-default bg-black/50"
-        onClick={onClose}
+        aria-label="参加者一覧モーダルを閉じる"
+        className="absolute inset-0 bg-black/50"
+        onClick={handleClose}
         tabIndex={-1}
       />
+
       <div
         className="relative flex max-h-[85vh] w-full max-w-2xl flex-col"
         role="dialog"
@@ -153,8 +162,8 @@ export function EventMemberListModal({
       >
         <Card className="flex max-h-[85vh] flex-col overflow-hidden border-slate-200/80 bg-white/95 shadow-xl backdrop-blur">
           <CardContent className="flex flex-col gap-5 overflow-hidden pt-6">
-            {/* ヘッダー：スクロールしないよう固定 */}
-            <div className="flex shrink-0 items-center justify-between gap-3">
+            {/* ヘッダー */}
+            <div className="flex shrink-0 items-center justify-between">
               <h2
                 id="member-list-modal-title"
                 className="flex items-center gap-2 text-lg font-bold text-slate-900"
@@ -162,19 +171,20 @@ export function EventMemberListModal({
                 <Users className="h-5 w-5 text-emerald-500" />
                 参加者一覧
               </h2>
+
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={onClose}
                 className="cursor-pointer"
+                onClick={handleClose}
                 aria-label="閉じる"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
 
-            {/* 本文：参加者が多い場合にスクロールする */}
+            {/* 本文 */}
             <div className="min-h-0 overflow-y-auto pr-1">
               <EventMemberListBody memberState={memberState} />
             </div>
