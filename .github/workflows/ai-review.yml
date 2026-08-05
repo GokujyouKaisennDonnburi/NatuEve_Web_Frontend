@@ -43,11 +43,14 @@ jobs:
 
       - name: Load review prompt
         id: prompt
+        shell: bash
         run: |
+          delimiter=$(openssl rand -hex 16)
+
           {
-            echo 'body<<EOF'
+            echo "body<<$delimiter"
             cat .ai/prompts/code-review.md
-            echo 'EOF'
+            echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
       - name: Run OpenCode review
