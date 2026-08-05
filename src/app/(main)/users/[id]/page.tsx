@@ -3,26 +3,10 @@
 import type { EventItem } from "@/components/organisms/EventCard";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
-import { apiFetch } from "@/services/apiClient";
+import { fetchUserProfile } from "@/services/user";
+import type { UserProfileResponse } from "@/types/user";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
-
-// GET /api/v1/profiles/{id} のレスポンス型
-type UserProfileResponse = {
-  id: string;
-  displayName: string;
-  avatarUrl: string;
-  description?: string;
-};
-
-type ApiStatusError = Error & {
-  status: number;
-};
-
-const isApiStatusError = (error: unknown): error is ApiStatusError =>
-  error instanceof Error &&
-  "status" in error &&
-  typeof error.status === "number";
 
 export default function UserProfilePage({
   params,
@@ -47,17 +31,8 @@ export default function UserProfilePage({
 
     const fetchData = async () => {
       try {
-        // 対象ユーザーのプロフィールを取得
-        const res = await apiFetch(`/api/v1/profiles/${id}`);
-
-        if (!res.ok) {
-          throw Object.assign(
-            new Error(`Failed to fetch profile (Status: ${res.status})`),
-            { status: res.status },
-          );
-        }
-
-        const profileData = (await res.json()) as UserProfileResponse;
+        // Service を経由して対象ユーザーのプロフィールを取得
+        const profileData = await fetchUserProfile(id);
 
         if (!cancelled) {
           setProfile(profileData);
@@ -66,8 +41,8 @@ export default function UserProfilePage({
           // 今後、ユーザーのイベント取得APIが実装されたらここに追加
           // ==========================================
           // const [hostedRes, participatedRes] = await Promise.all([
-          //   apiFetch(`/api/v1/users/${id}/events/hosted`),
-          //   apiFetch(`/api/v1/users/${id}/events/participated`),
+          //   fetchHostedEvents(id),
+          //   fetchParticipatedEvents(id),
           // ]);
           // ==========================================
 
@@ -75,13 +50,9 @@ export default function UserProfilePage({
           setParticipatedEvents([]);
         }
       } catch (err) {
-        if (
-          isApiStatusError(err) &&
-          (err.status === 401 || err.status === 404)
-        ) {
-          if (!cancelled) setIsNotFound(true);
-        }
+        // 取得失敗時（404含む）は Not Found 扱いとする
         console.error(err);
+        if (!cancelled) setIsNotFound(true);
       } finally {
         if (!cancelled) setIsDataLoading(false);
       }
