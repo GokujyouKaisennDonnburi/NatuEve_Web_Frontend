@@ -80,7 +80,7 @@ export function FilterSidebar({
         </button>
       </div>
 
-      <div className="px-5 py-5 space-y-6">
+      <div className="px-[21px] py-5 space-y-6">
         <TagFilter
           tags={tags}
           selectedIds={selectedTagIds}

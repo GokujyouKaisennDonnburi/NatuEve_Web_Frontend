@@ -227,15 +227,15 @@ export default function EventListPage() {
     maxPrice !== undefined;
 
   return (
-    <div className="mx-auto max-w-[1280px] px-8 py-8">
+    <div className="mx-auto max-w-[1728px] px-[max(16px,3%)] py-8">
       {/* Title */}
       <h1 className="text-[40px] leading-[58px] text-black font-normal mb-8">
         イベントを探す
       </h1>
 
-      <div className="flex items-start gap-8">
+      <div className="flex items-start gap-[36px]">
         {/* Filter sidebar */}
-        <aside className="w-[340px] shrink-0 sticky top-8">
+        <aside className="w-[342px] shrink-0 sticky top-8">
           <FilterSidebar
             tags={frequentTags}
             selectedTagIds={selectedTagIds}

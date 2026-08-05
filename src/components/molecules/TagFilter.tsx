@@ -82,6 +82,7 @@ export function TagFilter({
               <FilterTag
                 key={tag.id}
                 label={tag.name}
+                size="md"
                 selected={selectedIds.includes(tag.id)}
                 onClick={
                   onTagSelect ? () => onTagSelect(tag.id) : undefined
