@@ -2,6 +2,7 @@
 
 import { EventPostCancelButton } from "@/components/atoms/event-post/EventPostCancelButton";
 import { EventPostSubmitButton } from "@/components/atoms/event-post/EventPostSubmitButton";
+import { PaymentAlertNote } from "@/components/atoms/event-post/PaymentAlertNote";
 import { SectionHeading } from "@/components/atoms/event-post/SectionHeading";
 import { FileField } from "@/components/molecules/event-post/FileField";
 import { FormField } from "@/components/molecules/event-post/FormField";
@@ -620,6 +621,9 @@ export default function EventPostPage() {
                         : undefined
                     }
                   >
+                    {/* 参加費用欄の補足として、当サイトでは決済を仲介しない旨を注意喚起する */}
+                    <PaymentAlertNote />
+
                     {/* 参加費用のカテゴリと金額を入力するカスタムコンポーネント */}
                     <PriceCategoryField
                       items={formState.feeCategoryGroups}
