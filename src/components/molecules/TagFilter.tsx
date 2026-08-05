@@ -35,7 +35,7 @@ export function TagFilter({
         タグ
       </label>
 
-      <div className="flex items-center h-[42px] bg-[#F8FAF6] border border-[#E3E8DF] rounded-[10px] overflow-scroll mb-4">
+      <div className="flex items-center h-[42px] bg-[#F8FAF6] border border-[#E3E8DF] rounded-[10px] overflow-hidden mb-4">
         <svg
           width="15"
           height="15"

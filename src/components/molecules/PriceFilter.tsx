@@ -74,7 +74,7 @@ export function PriceFilter({
         </span>
       </button>
 
-      <div className="flex items-center h-[42px] bg-[#F8FAF6] border border-[#E3E8DF] rounded-[10px] overflow-scroll px-[13px]">
+      <div className="flex items-center h-[42px] bg-[#F8FAF6] border border-[#E3E8DF] rounded-[10px] overflow-hidden px-[13px]">
         <div className="flex-1 flex items-center gap-1">
           <input
             type="number"
