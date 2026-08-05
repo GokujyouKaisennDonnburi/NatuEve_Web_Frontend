@@ -12,12 +12,12 @@ type FilterSidebarProps = {
   onTagSelect: (id: string) => void;
   onTagSearch: (query: string) => void;
   tagSearchQuery: string;
-  selectedRegion: string | null;
-  selectedPrefecture: string | null;
-  selectedCity: string | null;
-  onRegionChange: (region: string | null) => void;
-  onPrefectureChange: (prefecture: string | null) => void;
-  onCityChange: (city: string | null) => void;
+  selectedRegions: string[];
+  selectedPrefectures: string[];
+  selectedCities: string[];
+  onRegionsChange: (regions: string[]) => void;
+  onPrefecturesChange: (prefectures: string[]) => void;
+  onCitiesChange: (cities: string[]) => void;
   expandedRegions: string[];
   expandedPrefectures: string[];
   onToggleRegion: (region: string) => void;
@@ -42,12 +42,12 @@ export function FilterSidebar({
   onTagSelect,
   onTagSearch,
   tagSearchQuery,
-  selectedRegion,
-  selectedPrefecture,
-  selectedCity,
-  onRegionChange,
-  onPrefectureChange,
-  onCityChange,
+  selectedRegions,
+  selectedPrefectures,
+  selectedCities,
+  onRegionsChange,
+  onPrefecturesChange,
+  onCitiesChange,
   expandedRegions,
   expandedPrefectures,
   onToggleRegion,
@@ -90,12 +90,12 @@ export function FilterSidebar({
         />
 
         <RegionFilter
-          selectedRegion={selectedRegion}
-          selectedPrefecture={selectedPrefecture}
-          selectedCity={selectedCity}
-          onRegionChange={onRegionChange}
-          onPrefectureChange={onPrefectureChange}
-          onCityChange={onCityChange}
+          selectedRegions={selectedRegions}
+          selectedPrefectures={selectedPrefectures}
+          selectedCities={selectedCities}
+          onRegionsChange={onRegionsChange}
+          onPrefecturesChange={onPrefecturesChange}
+          onCitiesChange={onCitiesChange}
           expandedRegions={expandedRegions}
           expandedPrefectures={expandedPrefectures}
           onToggleRegion={onToggleRegion}

@@ -38,11 +38,9 @@ export default function EventListPage() {
   // 絞り込みフィルターの状態
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagSearchQuery, setTagSearchQuery] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(
-    null,
-  );
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [expandedRegions, setExpandedRegions] = useState<string[]>(["近畿"]);
   const [expandedPrefectures, setExpandedPrefectures] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -189,9 +187,9 @@ export default function EventListPage() {
   const resetFilters = () => {
     setSelectedTagIds([]);
     setTagSearchQuery("");
-    setSelectedRegion(null);
-    setSelectedPrefecture(null);
-    setSelectedCity(null);
+    setSelectedRegions([]);
+    setSelectedPrefectures([]);
+    setSelectedCities([]);
     setExpandedRegions(["近畿"]);
     setExpandedPrefectures([]);
     setSelectedStatuses([]);
@@ -218,9 +216,9 @@ export default function EventListPage() {
 
   const hasActiveFilters =
     selectedTagIds.length > 0 ||
-    selectedRegion !== null ||
-    selectedPrefecture !== null ||
-    selectedCity !== null ||
+    selectedRegions.length > 0 ||
+    selectedPrefectures.length > 0 ||
+    selectedCities.length > 0 ||
     selectedStatuses.length > 0 ||
     freeOnly ||
     minPrice !== undefined ||
@@ -273,19 +271,12 @@ export default function EventListPage() {
             onTagSelect={handleTagSelect}
             onTagSearch={setTagSearchQuery}
             tagSearchQuery={tagSearchQuery}
-            selectedRegion={selectedRegion}
-            selectedPrefecture={selectedPrefecture}
-            selectedCity={selectedCity}
-            onRegionChange={(region) => {
-              setSelectedRegion(region);
-              setSelectedPrefecture(null);
-              setSelectedCity(null);
-            }}
-            onPrefectureChange={(prefecture) => {
-              setSelectedPrefecture(prefecture);
-              setSelectedCity(null);
-            }}
-            onCityChange={setSelectedCity}
+            selectedRegions={selectedRegions}
+            selectedPrefectures={selectedPrefectures}
+            selectedCities={selectedCities}
+            onRegionsChange={setSelectedRegions}
+            onPrefecturesChange={setSelectedPrefectures}
+            onCitiesChange={setSelectedCities}
             expandedRegions={expandedRegions}
             expandedPrefectures={expandedPrefectures}
             onToggleRegion={(region) =>
