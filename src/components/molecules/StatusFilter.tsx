@@ -17,6 +17,37 @@ const CHILD_OPTIONS = [
   { id: "hasReport", label: "レポートあり", parentId: "closed" },
 ] as const;
 
+function Checkbox({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center w-4 h-4 rounded-[3px] border shrink-0",
+        checked
+          ? "bg-[#97C459] border-[#97C459]"
+          : "bg-white border-[#CDD4C8]",
+      )}
+    >
+      {checked && (
+        <svg
+          width="10"
+          height="8"
+          viewBox="0 0 10 8"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M1 4L3.5 6.5L9 1"
+            stroke="white"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </span>
+  );
+}
+
 export function StatusFilter({
   selectedStatuses = [],
   onStatusChange,
@@ -46,16 +77,15 @@ export function StatusFilter({
             <button
               type="button"
               onClick={() => toggleStatus(option.id)}
-              className={cn(
-                "flex items-center w-full h-[22px] bg-white border border-[#CDD4C8] rounded-[6px] px-[12px] text-left",
-                selectedStatuses.includes(option.id) &&
-                  "border-[#97C459] bg-[#97C459]/10",
-              )}
+              className="flex items-center w-full h-[22px] bg-transparent px-[8px] text-left"
             >
+              <Checkbox checked={selectedStatuses.includes(option.id)} />
               <span
                 className={cn(
-                  "text-sm leading-5 text-[#3A4237] font-normal",
-                  selectedStatuses.includes(option.id) && "font-bold",
+                  "ml-[6px] text-sm leading-5 text-[#3A4237]",
+                  selectedStatuses.includes(option.id)
+                    ? "font-bold"
+                    : "font-normal",
                 )}
               >
                 {option.label}
@@ -68,17 +98,17 @@ export function StatusFilter({
                   key={child.id}
                   type="button"
                   onClick={() => toggleStatus(child.id)}
-                  className={cn(
-                    "flex items-center w-full h-[22px] bg-white border border-[#CDD4C8] rounded-[6px] px-[12px] text-left ml-[32px] mt-[2px]",
-                    selectedStatuses.includes(child.id) &&
-                      "border-[#97C459] bg-[#97C459]/10",
-                  )}
+                  className="flex items-center w-full h-[22px] bg-transparent px-[8px] text-left ml-[32px]"
                 >
+                  <Checkbox
+                    checked={selectedStatuses.includes(child.id)}
+                  />
                   <span
                     className={cn(
-                      "text-sm leading-5 text-[#3A4237] font-normal",
-                      selectedStatuses.includes(child.id) &&
-                        "font-bold",
+                      "ml-[6px] text-sm leading-5 text-[#3A4237]",
+                      selectedStatuses.includes(child.id)
+                        ? "font-bold"
+                        : "font-normal",
                     )}
                   >
                     {child.label}

@@ -12,6 +12,37 @@ type PriceFilterProps = {
   className?: string;
 };
 
+function Checkbox({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center w-4 h-4 rounded-[3px] border shrink-0",
+        checked
+          ? "bg-[#97C459] border-[#97C459]"
+          : "bg-white border-[#CDD4C8]",
+      )}
+    >
+      {checked && (
+        <svg
+          width="10"
+          height="8"
+          viewBox="0 0 10 8"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M1 4L3.5 6.5L9 1"
+            stroke="white"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </span>
+  );
+}
+
 export function PriceFilter({
   freeOnly = false,
   onFreeOnlyChange,
@@ -30,15 +61,13 @@ export function PriceFilter({
       <button
         type="button"
         onClick={() => onFreeOnlyChange?.(!freeOnly)}
-        className={cn(
-          "flex items-center w-full h-[22px] bg-white border border-[#CDD4C8] rounded-[6px] px-[12px] text-left mb-2",
-          freeOnly && "border-[#97C459] bg-[#97C459]/10",
-        )}
+        className="flex items-center w-full h-[22px] bg-transparent px-[8px] text-left mb-2"
       >
+        <Checkbox checked={freeOnly} />
         <span
           className={cn(
-            "text-sm leading-5 text-[#3A4237] font-normal",
-            freeOnly && "font-bold",
+            "ml-[6px] text-sm leading-5 text-[#3A4237]",
+            freeOnly ? "font-bold" : "font-normal",
           )}
         >
           無料のみ
