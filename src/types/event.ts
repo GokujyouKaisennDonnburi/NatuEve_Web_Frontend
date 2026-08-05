@@ -26,6 +26,9 @@ export type CreateEventRequest = {
   location: string;
   // 開催日時(RFC3339)（必須）。
   eventDate: string;
+  // 終了日時(RFC3339)（API 上は任意・省略時は eventDate と同値が補完される）。
+  // フォーム側では UX 補助として必須入力にしている。
+  endDate?: string;
   // 定員（任意・0=未設定・正数=定員）。
   capacity?: number;
   // 関連URL（任意・255文字以内・http/https）。

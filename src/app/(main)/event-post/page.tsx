@@ -54,6 +54,7 @@ type EventPostFormState = {
   eventDocuments: File[]; // イベント資料ファイルの配列
   location: string; // 開催場所
   eventDateTime: string; // 開催日時
+  endDateTime: string; // 終了日時
   feeCategoryGroups: PriceCategory[]; // 参加費用のカテゴリと金額の配列
   capacity: string; // 定員数
   applicationUrlEnabled: boolean; // 外部URLの有効化状態
@@ -68,6 +69,7 @@ type EventPostFormErrors = {
   eventContent?: string;
   location?: string;
   eventDateTime?: string;
+  endDateTime?: string;
   feeCategoryGroups?: Record<number, string>;
   capacity?: string;
   applicationUrl?: string;
@@ -92,6 +94,7 @@ const INITIAL_STATE: EventPostFormState = {
   eventDocuments: [],
   location: "",
   eventDateTime: "",
+  endDateTime: "",
   feeCategoryGroups: [{ category: "一般", amount: "0" }],
   capacity: "",
   applicationUrlEnabled: false,
@@ -201,6 +204,20 @@ export default function EventPostPage() {
       nextErrors.eventDateTime = "開催日時は必須です。";
     } else if (!isValidLocalDateTime(formState.eventDateTime.trim())) {
       nextErrors.eventDateTime = "開催日時の形式が正しくありません。";
+    }
+
+    if (!formState.endDateTime.trim()) {
+      nextErrors.endDateTime = "終了日時は必須です。";
+    } else if (!isValidLocalDateTime(formState.endDateTime.trim())) {
+      nextErrors.endDateTime = "終了日時の形式が正しくありません。";
+    } else if (
+      // 開催日時が不正なときは比較できないため、開催日時が妥当な場合のみ前後関係を検証する。
+      !nextErrors.eventDateTime &&
+      new Date(formState.endDateTime.trim()).getTime() <=
+        new Date(formState.eventDateTime.trim()).getTime()
+    ) {
+      nextErrors.endDateTime =
+        "終了日時は開催日時より後の日時を指定してください。";
     }
 
     // 参加費用の検証（カテゴリと金額が揃っているか）
@@ -349,6 +366,7 @@ export default function EventPostPage() {
         description: formState.eventContent.trim(),
         location: formState.location.trim(),
         eventDate: toRfc3339(formState.eventDateTime),
+        endDate: toRfc3339(formState.endDateTime),
         costs: formState.feeCategoryGroups.map((group) => ({
           category: group.category.trim(),
           cost: Number(group.amount),
@@ -418,7 +436,7 @@ export default function EventPostPage() {
               icon={<Megaphone className="h-4 w-4" />}
             />
             <CardDescription className="text-sm text-slate-600">
-              必須項目はイベント名、イベント内容、開催場所、開催日時、参加費用です。
+              必須項目はイベント名、イベント内容、開催場所、開催日時、終了日時、参加費用です。
             </CardDescription>
           </CardHeader>
 
@@ -561,7 +579,7 @@ export default function EventPostPage() {
                 <SectionHeading
                   eyebrow="Event Details"
                   title="開催条件を整理"
-                  description="開催場所、開催日時、参加費用、持ち物、定員数をまとめて管理します。"
+                  description="開催場所、開催日時、終了日時、参加費用、持ち物、定員数をまとめて管理します。"
                   icon={<MapPinned className="h-4 w-4" />}
                 />
 
@@ -604,6 +622,25 @@ export default function EventPostPage() {
                       )
                     }
                     aria-invalid={Boolean(errors.eventDateTime)}
+                  />
+                </FormField>
+
+                {/* 終了日時の入力フィールド */}
+                <FormField
+                  id={getFieldId("endDateTime")}
+                  label="終了日時"
+                  required
+                  hint="終了予定日時を入力してください。"
+                  error={errors.endDateTime}
+                >
+                  <Input
+                    id={getFieldId("endDateTime")}
+                    type="datetime-local"
+                    value={formState.endDateTime}
+                    onChange={(event) =>
+                      setField("endDateTime", clampDateYear(event.target.value))
+                    }
+                    aria-invalid={Boolean(errors.endDateTime)}
                   />
                 </FormField>
 
