@@ -87,7 +87,7 @@ export function PriceFilter({
               )
             }
             placeholder="下限"
-            className="w-[50px] h-[22px] bg-transparent border-none outline-none text-sm leading-5 text-[#757575] placeholder:text-[#757575] p-0"
+            className="w-[50px] h-[22px] bg-transparent border-none outline-none text-sm leading-5 text-[#757575] placeholder:text-[#757575] p-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
           />
           <span className="text-sm leading-5 text-[#757575]">〜</span>
           <input
@@ -101,7 +101,7 @@ export function PriceFilter({
               )
             }
             placeholder="上限なし"
-            className="w-[70px] h-[22px] bg-transparent border-none outline-none text-sm leading-5 text-[#757575] placeholder:text-[#757575] p-0"
+            className="w-[70px] h-[22px] bg-transparent border-none outline-none text-sm leading-5 text-[#757575] placeholder:text-[#757575] p-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
           />
         </div>
         <span className="text-[13px] leading-[19px] text-[#838C7D] shrink-0">
