@@ -190,8 +190,7 @@ export function RegionFilter({
                 type="button"
                 onClick={() => toggleRegion(region.name)}
                 className={cn(
-                  "flex items-center w-full h-[22px] bg-white border border-[#CDD4C8] rounded-[6px] px-[8px] text-left",
-                  regionStatus !== "unchecked" && "border-[#97C459]",
+                  "flex items-center w-full h-[22px] bg-transparent px-[8px] text-left",
                 )}
               >
                 <Checkbox
@@ -228,9 +227,7 @@ export function RegionFilter({
                             togglePrefecture(region.name, pref.name)
                           }
                           className={cn(
-                            "flex items-center w-full h-[22px] bg-white border border-[#CDD4C8] rounded-[6px] px-[8px] text-left",
-                            prefStatus !== "unchecked" &&
-                              "border-[#97C459]",
+                            "flex items-center w-full h-[22px] bg-transparent px-[8px] text-left",
                           )}
                         >
                           <Checkbox
@@ -268,9 +265,8 @@ export function RegionFilter({
                                   type="button"
                                   onClick={() => toggleCity(city)}
                                   className={cn(
-                                    "flex items-center h-[22px] bg-white border border-[#CDD4C8] rounded-[6px] px-[8px] text-sm leading-5 text-[#3A4237] font-normal",
-                                    isCitySelected &&
-                                      "border-[#97C459] bg-[#97C459]/10 font-bold",
+                                    "flex items-center h-[22px] bg-transparent px-[8px] text-sm leading-5 text-[#3A4237] font-normal",
+                                    isCitySelected && "font-bold",
                                   )}
                                 >
                                   <Checkbox checked={isCitySelected} />
