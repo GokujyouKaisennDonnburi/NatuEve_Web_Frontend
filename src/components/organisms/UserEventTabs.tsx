@@ -1,5 +1,5 @@
 import { EmptyMessage } from "@/components/atoms/EmptyMessage";
-import { EventCard, type EventItem } from "@/components/EventCard";
+import { EventCard, type EventItem } from "@/components/organisms/EventCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type UserEventTabsProps = {

@@ -1,14 +1,14 @@
 "use client";
 
 import { CreateEventButton } from "@/components/atoms/CreateEventButton";
-import { EventCard, type EventItem } from "@/components/EventCard";
-import { EventSearchBar } from "@/components/molecules/EventSearchBar";
-import { Button } from "@/components/ui/button";
+import { SortButton } from "@/components/atoms/SortButton";
+import { SearchBar } from "@/components/molecules/SearchBar";
+import { Pagination } from "@/components/molecules/Pagination";
+import { EventCard, type EventItem } from "@/components/organisms/EventCard";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type SortOption = "created_at" | "event_date";
@@ -221,20 +221,14 @@ export default function EventListPage() {
               id: apiEvent.id,
               title: apiEvent.title,
               location: apiEvent.location,
-              createdAt: apiEvent.createdAt,
               eventDate: apiEvent.eventDate,
               profileId: apiEvent.profileId,
               hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
               hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
-              dateLabel: new Date(apiEvent.eventDate).toLocaleDateString(
-                "ja-JP",
-                {
-                  month: "short",
-                  day: "numeric",
-                  timeZone: "Asia/Tokyo",
-                },
-              ),
               tags: apiEvent.tags,
+              status: new Date(apiEvent.eventDate) < new Date()
+                ? "closed"
+                : "open",
             }),
           );
 
@@ -261,19 +255,16 @@ export default function EventListPage() {
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  const pageNumbers = useMemo(() => {
-    const numbers: number[] = [];
-    for (let i = currentPage - 2; i <= currentPage + 2; i++) {
-      if (i >= 1 && i <= totalPages) {
-        numbers.push(i);
-      }
-    }
-    return numbers;
-  }, [currentPage, totalPages]);
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: "event_date", label: "開催日が近い順" },
+    { value: "created_at", label: "投稿が新しい順" },
+  ];
 
   // ソートオプションの変更を処理する関数
-  const handleSortChange = (value: SortOption) => {
-    setSortBy(value);
+  const handleSortChange = (value: string) => {
+    const validSortOptions = ["event_date", "created_at"] as const;
+    if (!validSortOptions.includes(value as typeof validSortOptions[number])) return;
+    setSortBy(value as SortOption);
     setCurrentPage(1);
   };
 
@@ -284,45 +275,44 @@ export default function EventListPage() {
   };
 
   return (
-    <div className="mx-auto max-w-xl">
-      {/* 検索・投稿・件数 */}
-      <div className="mb-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-            {totalCount} 件のイベント
-          </span>
-          <CreateEventButton
-            type="button"
-            onClick={handleCreateEvent}
-            aria-label="イベントを投稿"
+    <div className="mx-auto max-w-[1280px] px-8 py-8">
+      {/* Title */}
+      <h1 className="text-[40px] leading-[58px] text-black font-normal mb-8">
+        イベントを探す
+      </h1>
+
+      {/* Search + Sort row */}
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex-1 max-w-[1126px]">
+          <SearchBar
+            onSearch={handleSearch}
+            initialValue={searchQuery}
           />
         </div>
-        <EventSearchBar
-          onSearch={handleSearch}
-          initialValue={searchQuery}
-          placeholder="タイトル・詳細・主催者・地域・持ち物で検索"
+        <div className="shrink-0 pt-[23px]">
+          <SortButton
+            label="並び替え"
+            options={sortOptions}
+            value={sortBy}
+            onChange={handleSortChange}
+          />
+        </div>
+      </div>
+
+      {/* Event count + Create button */}
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+          {totalCount} 件のイベント
+        </span>
+        <CreateEventButton
+          type="button"
+          onClick={handleCreateEvent}
+          aria-label="イベントを投稿"
         />
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mb-4">
-        <p className="text-xs text-slate-500 px-1">
-          これから開催されるイベントを縦にスクロールして確認できます。
-        </p>
-
-        <div className="flex items-center gap-1.5 self-end shrink-0 bg-white border border-slate-200 rounded-md px-2 py-1 shadow-sm">
-          <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
-          <select
-            value={sortBy}
-            onChange={(e) => handleSortChange(e.target.value as SortOption)}
-            className="text-xs font-medium text-slate-600 bg-transparent outline-none cursor-pointer"
-          >
-            <option value="created_at">投稿が新しい順</option>
-            <option value="event_date">開催日が近い順</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="space-y-4">
+      {/* Event cards */}
+      <div className="space-y-[48px]">
         {events.map((event) => (
           <EventCard key={event.id} event={event} />
         ))}
@@ -334,61 +324,12 @@ export default function EventListPage() {
       </div>
 
       {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-1 px-2">
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
-          >
-            先頭
-          </Button>
-
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
-          >
-            前
-          </Button>
-
-          {pageNumbers.map((page) => (
-            <Button
-              key={page}
-              size="xs"
-              onClick={() => setCurrentPage(page)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors cursor-pointer shadow-none ${
-                currentPage === page
-                  ? "bg-slate-950 text-white border-slate-950 hover:bg-slate-900"
-                  : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-              }`}
-            >
-              {page}
-            </Button>
-          ))}
-
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
-          >
-            次
-          </Button>
-
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
-            className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-none"
-          >
-            末尾
-          </Button>
+        <div className="mt-8">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
       )}
     </div>
