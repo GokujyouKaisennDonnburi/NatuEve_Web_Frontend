@@ -58,7 +58,7 @@
 
 ### 7. セキュリティ
 - XSS: `dangerouslySetInnerHTML` / ユーザ入力の直接描画
-- 認証情報・シークレットのフロントエンド露出（`.env.*` の誤用 / `NEXT_PUBLIC_` 过不足）
+- 認証情報・シークレットのフロントエンド露出（`.env.*` の誤用 / `NEXT_PUBLIC_` 過不足）
 - Supabase RLS / クライアント側権限の過信
 - 外部 URL遷移の `rel="noopener noreferrer"` 漏れ
 - `localStorage` / Cookie に保存する機密性
