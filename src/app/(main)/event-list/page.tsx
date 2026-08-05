@@ -227,12 +227,43 @@ export default function EventListPage() {
     maxPrice !== undefined;
 
   return (
-    <div className="mx-auto max-w-[1728px] px-[max(16px,3%)] py-8">
+    <div className="mx-auto max-w-[1728px] px-[max(16px,3%)] pt-[59px]">
       {/* Title */}
-      <h1 className="text-[40px] leading-[58px] text-black font-normal mb-8">
+      <h1 className="text-[40px] leading-[58px] text-black font-normal mb-[60px]">
         イベントを探す
       </h1>
 
+      {/* Search + Sort row */}
+      <div className="flex items-start gap-4 mb-[23px]">
+        <div className="flex-1">
+          <SearchBar
+            onSearch={handleSearch}
+            initialValue={searchQuery}
+            className="w-full"
+          />
+        </div>
+        <div className="shrink-0 flex items-center gap-3">
+          <SortButton
+            label="並び替え"
+            options={sortOptions}
+            value={sortBy}
+            onChange={handleSortChange}
+          />
+        </div>
+      </div>
+
+      {/* Filter button row */}
+      <div className="mb-[45px]">
+        <FilterIconButton
+          onClick={() => {
+            setIsFiltersApplied(!isFiltersApplied);
+            setCurrentPage(1);
+          }}
+          isActive={hasActiveFilters || isFiltersApplied}
+        />
+      </div>
+
+      {/* Two-column: Filter sidebar + Event list */}
       <div className="flex items-start gap-[36px]">
         {/* Filter sidebar */}
         <aside className="w-[342px] shrink-0 sticky top-8">
@@ -288,31 +319,6 @@ export default function EventListPage() {
 
         {/* Main content */}
         <div className="flex-1 min-w-0">
-          {/* Search + Sort + Filter button row */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1">
-              <SearchBar
-                onSearch={handleSearch}
-                initialValue={searchQuery}
-              />
-            </div>
-            <div className="shrink-0 flex items-center gap-3">
-              <SortButton
-                label="並び替え"
-                options={sortOptions}
-                value={sortBy}
-                onChange={handleSortChange}
-              />
-              <FilterIconButton
-                onClick={() => {
-                  setIsFiltersApplied(!isFiltersApplied);
-                  setCurrentPage(1);
-                }}
-                isActive={hasActiveFilters || isFiltersApplied}
-              />
-            </div>
-          </div>
-
           {/* Event count + Create button */}
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
@@ -326,7 +332,7 @@ export default function EventListPage() {
           </div>
 
           {/* Event cards */}
-          <div className="space-y-[48px]">
+          <div className="space-y-[61px]">
             {events.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
