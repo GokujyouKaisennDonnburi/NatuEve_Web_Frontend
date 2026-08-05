@@ -68,7 +68,7 @@ export function FilterSidebar({
   return (
     <div className="bg-white border border-[#E3E8DF] rounded-[16px] shadow-[0px_2px_6px_rgba(39,46,36,0.08),0px_12px_28px_rgba(39,46,36,0.1)]">
       <div className="flex items-center justify-between h-[62px] px-5 border-b border-[#F1F4EE]">
-        <h2 className="text-[17px] font-bold leading-[25px] text-[#272E24] font-[family-name:var(--font-zen-maru-gothic)]">
+        <h2 className="text-[17px] font-bold leading-[25px] text-[#272E24]">
           絞り込み
         </h2>
         <button

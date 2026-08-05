@@ -1,16 +1,19 @@
 "use client";
 
 import { CreateEventButton } from "@/components/atoms/CreateEventButton";
+import { FilterIconButton } from "@/components/atoms/FilterIconButton";
 import { SortButton } from "@/components/atoms/SortButton";
 import { SearchBar } from "@/components/molecules/SearchBar";
 import { Pagination } from "@/components/molecules/Pagination";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
+import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchEventList } from "@/services/event";
+import type { TagItem } from "@/types/tag";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type SortOption = "created_at" | "event_date";
@@ -28,9 +31,40 @@ export default function EventListPage() {
   // Supabaseのセッション状態を取得
   const { session, isLoading: isSessionLoading } = useAuth();
 
-  // 現在のユーザー情報を取得（Service経由）
+// 現在のユーザー情報を取得（Service経由）
   const { user: currentUser, isLoading: isProfileLoading } =
     useCurrentUser(session);
+
+  // 絞り込みフィルターの状態
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagSearchQuery, setTagSearchQuery] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(
+    null,
+  );
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [expandedRegions, setExpandedRegions] = useState<string[]>(["近畿"]);
+  const [expandedPrefectures, setExpandedPrefectures] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [freeOnly, setFreeOnly] = useState(false);
+  const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
+  const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
+  const [isFiltersApplied, setIsFiltersApplied] = useState(false);
+
+  // 現在表示中のイベントから使用頻度の高いタグ順に算出する
+  const frequentTags = useMemo(() => {
+    const countMap = new Map<string, number>();
+    const tagMap = new Map<string, TagItem>();
+    for (const event of events) {
+      for (const tag of event.tags ?? []) {
+        countMap.set(tag.id, (countMap.get(tag.id) ?? 0) + 1);
+        tagMap.set(tag.id, tag);
+      }
+    }
+    return Array.from(countMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => tagMap.get(id)!);
+  }, [events]);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,6 +178,54 @@ export default function EventListPage() {
     setCurrentPage(1);
   };
 
+  // タグの選択/解除を処理する関数
+  const handleTagSelect = (id: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
+    );
+  };
+
+  // 全フィルターをリセットする関数
+  const resetFilters = () => {
+    setSelectedTagIds([]);
+    setTagSearchQuery("");
+    setSelectedRegion(null);
+    setSelectedPrefecture(null);
+    setSelectedCity(null);
+    setExpandedRegions(["近畿"]);
+    setExpandedPrefectures([]);
+    setSelectedStatuses([]);
+    setFreeOnly(false);
+    setMinPrice(undefined);
+    setMaxPrice(undefined);
+    setCurrentPage(1);
+  };
+
+  const handleClearAll = () => {
+    setIsFiltersApplied(false);
+    resetFilters();
+  };
+
+  const handleClear = () => {
+    setIsFiltersApplied(false);
+    resetFilters();
+  };
+
+  const handleApply = () => {
+    setIsFiltersApplied(true);
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters =
+    selectedTagIds.length > 0 ||
+    selectedRegion !== null ||
+    selectedPrefecture !== null ||
+    selectedCity !== null ||
+    selectedStatuses.length > 0 ||
+    freeOnly ||
+    minPrice !== undefined ||
+    maxPrice !== undefined;
+
   return (
     <div className="mx-auto max-w-[1280px] px-8 py-8">
       {/* Title */}
@@ -151,54 +233,121 @@ export default function EventListPage() {
         イベントを探す
       </h1>
 
-      {/* Search + Sort row */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div className="flex-1 max-w-[1126px]">
-          <SearchBar onSearch={handleSearch} initialValue={searchQuery} />
-        </div>
-        <div className="shrink-0 pt-[23px]">
-          <SortButton
-            label="並び替え"
-            options={sortOptions}
-            value={sortBy}
-            onChange={handleSortChange}
+      <div className="flex items-start gap-8">
+        {/* Filter sidebar */}
+        <aside className="w-[340px] shrink-0 sticky top-8">
+          <FilterSidebar
+            tags={frequentTags}
+            selectedTagIds={selectedTagIds}
+            onTagSelect={handleTagSelect}
+            onTagSearch={setTagSearchQuery}
+            tagSearchQuery={tagSearchQuery}
+            selectedRegion={selectedRegion}
+            selectedPrefecture={selectedPrefecture}
+            selectedCity={selectedCity}
+            onRegionChange={(region) => {
+              setSelectedRegion(region);
+              setSelectedPrefecture(null);
+              setSelectedCity(null);
+            }}
+            onPrefectureChange={(prefecture) => {
+              setSelectedPrefecture(prefecture);
+              setSelectedCity(null);
+            }}
+            onCityChange={setSelectedCity}
+            expandedRegions={expandedRegions}
+            expandedPrefectures={expandedPrefectures}
+            onToggleRegion={(region) =>
+              setExpandedRegions((prev) =>
+                prev.includes(region)
+                  ? prev.filter((r) => r !== region)
+                  : [...prev, region],
+              )
+            }
+            onTogglePrefecture={(prefecture) =>
+              setExpandedPrefectures((prev) =>
+                prev.includes(prefecture)
+                  ? prev.filter((p) => p !== prefecture)
+                  : [...prev, prefecture],
+              )
+            }
+            selectedStatuses={selectedStatuses}
+            onStatusChange={setSelectedStatuses}
+            freeOnly={freeOnly}
+            onFreeOnlyChange={setFreeOnly}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            onMinPriceChange={setMinPrice}
+            onMaxPriceChange={setMaxPrice}
+            resultCount={totalCount}
+            onClearAll={handleClearAll}
+            onClear={handleClear}
+            onApply={handleApply}
           />
+        </aside>
+
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          {/* Search + Sort + Filter button row */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex-1">
+              <SearchBar
+                onSearch={handleSearch}
+                initialValue={searchQuery}
+              />
+            </div>
+            <div className="shrink-0 flex items-center gap-3">
+              <SortButton
+                label="並び替え"
+                options={sortOptions}
+                value={sortBy}
+                onChange={handleSortChange}
+              />
+              <FilterIconButton
+                onClick={() => {
+                  setIsFiltersApplied(!isFiltersApplied);
+                  setCurrentPage(1);
+                }}
+                isActive={hasActiveFilters || isFiltersApplied}
+              />
+            </div>
+          </div>
+
+          {/* Event count + Create button */}
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+              {totalCount} 件のイベント
+            </span>
+            <CreateEventButton
+              type="button"
+              onClick={handleCreateEvent}
+              aria-label="イベントを投稿"
+            />
+          </div>
+
+          {/* Event cards */}
+          <div className="space-y-[48px]">
+            {events.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+            {events.length === 0 && (
+              <p className="text-center text-sm text-slate-400 py-8">
+                表示するイベントがありません。
+              </p>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Event count + Create button */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-          {totalCount} 件のイベント
-        </span>
-        <CreateEventButton
-          type="button"
-          onClick={handleCreateEvent}
-          aria-label="イベントを投稿"
-        />
-      </div>
-
-      {/* Event cards */}
-      <div className="space-y-[48px]">
-        {events.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
-        {events.length === 0 && (
-          <p className="text-center text-sm text-slate-400 py-8">
-            表示するイベントがありません。
-          </p>
-        )}
-      </div>
-
-      {totalPages > 1 && (
-        <div className="mt-8">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        </div>
-      )}
     </div>
   );
 }
