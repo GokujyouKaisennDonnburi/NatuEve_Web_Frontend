@@ -48,7 +48,7 @@ export function EventOrganizerToolbarButton({
         `}
         aria-label={label}
       >
-        <Icon className="h-5 w-5" />
+        <Icon className="size-6" />
       </Button>
     </AppTooltip>
   );

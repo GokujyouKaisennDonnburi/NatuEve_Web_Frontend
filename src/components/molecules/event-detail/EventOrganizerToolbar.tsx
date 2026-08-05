@@ -22,8 +22,8 @@ export function EventOrganizerToolbar({
 }: Readonly<EventOrganizerToolbarProps>) {
   return (
     <aside className="fixed right-6 top-1/2 z-40 -translate-y-1/2">
-      <div className="rounded-3xl border border-slate-200 bg-white/95 px-0.5 py-3 shadow-xl backdrop-blur">
-        <p className="mb-3 text-center text-[10px] font-semibold tracking-wide text-slate-400">
+      <div className="rounded-3xl border border-slate-200 bg-white/95 px-1.5 py-7 shadow-xl backdrop-blur">
+        <p className="mb-4 text-center text-[13px] font-semibold tracking-wide text-slate-400">
           主催者
         </p>
 
@@ -47,7 +47,7 @@ export function EventOrganizerToolbar({
             color="blue"
           />
 
-          <div className="my-2 h-px w-8 bg-slate-200" />
+          <div className="my-3 h-px w-12 bg-slate-200" />
 
           {/* 編集ボタン(別PBIのため、コメントアウト) */}
           {/*
@@ -65,7 +65,7 @@ export function EventOrganizerToolbar({
             danger
           />
 
-          <div className="my-2 h-px w-8 bg-slate-200" />
+          <div className="my-3 h-px w-12 bg-slate-200" />
 
           {/* レポート作成ボタン */}
           <EventOrganizerToolbarButton
