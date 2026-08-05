@@ -64,9 +64,7 @@ export async function fetchEventList(
   request: EventListRequest,
 ): Promise<EventListResponse> {
   const params = buildEventListParams(request);
-  const response = await apiFetch(`/api/v1/events?${params.toString()}`, {
-    auth: false,
-  });
+  const response = await apiFetch(`/api/v1/events?${params.toString()}`);
 
   if (!response.ok) {
     throw new Error(
