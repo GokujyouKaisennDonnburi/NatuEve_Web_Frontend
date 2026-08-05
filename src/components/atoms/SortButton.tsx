@@ -24,12 +24,7 @@ export function SortButton({
   className,
 }: Readonly<SortButtonProps>) {
   return (
-    <div
-      className={cn(
-        "inline-flex items-center gap-2",
-        className,
-      )}
-    >
+    <div className={cn("inline-flex items-center gap-2", className)}>
       {label && (
         <span className="text-[13px] leading-[19px] text-[#838C7D] font-normal">
           {label}
