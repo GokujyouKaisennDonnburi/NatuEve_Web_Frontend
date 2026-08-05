@@ -4,9 +4,9 @@ import type {
   MeResponse,
   UpdateMyProfileRequest,
   UpdateMyProfileResponse,
-  UserProfileResponse,
   User,
   UserListResponse,
+  UserProfileResponse,
 } from "@/types/user";
 
 // ユーザー一覧を取得する関数
@@ -61,8 +61,11 @@ export async function updateMyProfile(
   });
 
   if (!response.ok) {
-    throw new Error(
-      `プロフィールの更新に失敗しました (Status: ${response.status})`,
+    throw Object.assign(
+      new Error(
+        `プロフィールの更新に失敗しました (Status: ${response.status})`,
+      ),
+      { status: response.status },
     );
   }
 
