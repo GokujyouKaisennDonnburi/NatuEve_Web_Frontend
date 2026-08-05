@@ -4,9 +4,9 @@ import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 // UI表示に必要な最小限のユーザー情報
 type HeaderUser = {
@@ -15,89 +15,22 @@ type HeaderUser = {
   avatarUrl: string;
 };
 
-// /api/v1/me のレスポンス型（snake_case / camelCase 両対応）
-type MeApiResponse = {
-  id: string;
-  email?: string;
-  display_name?: string;
-  avatar_url?: string;
-  displayName?: string;
-  avatarUrl?: string;
-};
-
 export function SiteHeader() {
   // 認証状態の取得
   const { session, isLoading: isSessionLoading } = useAuth();
 
-  // ユーザー情報の状態管理
-  const [user, setUser] = useState<HeaderUser | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  // 現在のユーザー情報を取得（Service経由）
+  const { user: currentUser, isLoading: isProfileLoading } =
+    useCurrentUser(session);
 
-  // session に応じて /api/v1/me を取得（未ログイン・401 は null 扱い）
-  useEffect(() => {
-    let cancelled = false;
-
-    // session がロード中の場合は何もしない
-    const fetchMe = async () => {
-      if (isSessionLoading) return;
-
-      // 未ログインの場合は null をセットして終了
-      if (!session?.token) {
-        if (!cancelled) {
-          setUser(null);
-          setIsProfileLoading(false);
-        }
-        return;
+  // session に応じてヘッダ表示用ユーザー情報を生成
+  const user: HeaderUser | null = currentUser
+    ? {
+        id: currentUser.id,
+        name: currentUser.displayName || "ユーザー",
+        avatarUrl: currentUser.avatarUrl,
       }
-
-      // ログイン済みで、かつセッションが有効な場合にプロフィールを取得
-      if (!cancelled) {
-        setIsProfileLoading(true);
-      }
-
-      // /api/v1/me からユーザー情報を取得
-      try {
-        // 認証ヘッダーを付与して /api/v1/me を呼び出す
-        const res = await fetch("/api/v1/me", {
-          headers: {
-            Authorization: `Bearer ${session.token}`,
-          },
-        });
-
-        // 401 Unauthorized の場合はユーザー情報を null にセットして終了
-        if (res.status === 401) {
-          if (!cancelled) setUser(null);
-          return;
-        }
-
-        // それ以外のエラーの場合は例外を投げる
-        if (!res.ok) {
-          throw new Error(`プロフィール取得エラー (Status: ${res.status})`);
-        }
-
-        // レスポンスを JSON としてパースし、ユーザー情報をセット
-        const data = (await res.json()) as MeApiResponse;
-        if (!cancelled) {
-          setUser({
-            id: data.id,
-            name: data.displayName ?? data.display_name ?? "ユーザー",
-            avatarUrl: data.avatarUrl ?? data.avatar_url ?? "",
-          });
-        }
-      } catch (err) {
-        console.error("Me取得エラー:", err);
-        if (!cancelled) setUser(null);
-      } finally {
-        if (!cancelled) setIsProfileLoading(false);
-      }
-    };
-
-    // 非同期関数を呼び出す
-    void fetchMe();
-    return () => {
-      cancelled = true;
-    };
-  }, [session, isSessionLoading]);
+    : null;
 
   // 認証状態またはプロフィール取得中の場合はローディング状態とする
   const isLoading = isSessionLoading || isProfileLoading;
