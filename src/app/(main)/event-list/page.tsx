@@ -226,9 +226,8 @@ export default function EventListPage() {
               hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
               hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
               tags: apiEvent.tags,
-              status: new Date(apiEvent.eventDate) < new Date()
-                ? "closed"
-                : "open",
+              status:
+                new Date(apiEvent.eventDate) < new Date() ? "closed" : "open",
             }),
           );
 
@@ -263,7 +262,8 @@ export default function EventListPage() {
   // ソートオプションの変更を処理する関数
   const handleSortChange = (value: string) => {
     const validSortOptions = ["event_date", "created_at"] as const;
-    if (!validSortOptions.includes(value as typeof validSortOptions[number])) return;
+    if (!validSortOptions.includes(value as (typeof validSortOptions)[number]))
+      return;
     setSortBy(value as SortOption);
     setCurrentPage(1);
   };
@@ -284,10 +284,7 @@ export default function EventListPage() {
       {/* Search + Sort row */}
       <div className="flex items-start justify-between gap-4 mb-6">
         <div className="flex-1 max-w-[1126px]">
-          <SearchBar
-            onSearch={handleSearch}
-            initialValue={searchQuery}
-          />
+          <SearchBar onSearch={handleSearch} initialValue={searchQuery} />
         </div>
         <div className="shrink-0 pt-[23px]">
           <SortButton
