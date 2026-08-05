@@ -52,7 +52,7 @@
 ### 6. アクセシビリティ
 - `alt` / `aria-label` / `aria-*` の欠如・誤用
 - フォーカス管理（モーダル・メニューの trap / restore）
-- キーボード操作可能性（`role` / `tabindex` / `onKeyDown`）
+- キーボード操作可能性（`role` / `tabIndex` / `onKeyDown`）
 - フォームの `label` 紐付け
 - 色コントラスト・フォーカス表示
 
