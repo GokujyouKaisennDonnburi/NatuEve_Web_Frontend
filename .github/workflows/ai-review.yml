@@ -54,7 +54,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Run OpenCode review
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@a105350812f05f914c768e468559dbd6bd508d8e
         env:
           # AIプロバイダ変更時はここを差し替え（例: ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY）。
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
