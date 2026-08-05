@@ -16,6 +16,8 @@ export type MeResponse = {
   email: string;
   display_name: string;
   avatar_url: string;
+  // 自己紹介文（任意）
+  description?: string;
   created_at: string;
   updated_at: string;
 };
@@ -26,6 +28,27 @@ export type CurrentUser = {
   email: string;
   displayName: string;
   avatarUrl: string;
+  // 自己紹介文（任意）
+  description?: string;
   createdAt: string;
   updatedAt: string;
+};
+
+// 本人プロフィール更新 API（PATCH /api/v1/me）のリクエスト DTO。
+// バックエンドが snake_case を受け取るため、プロパティ名も snake_case とする。
+export type UpdateMyProfileRequest = {
+  display_name?: string;
+  description?: string;
+};
+
+// 本人プロフィール更新 API のレスポンス DTO。
+// 更新後のプロフィール全体を返すため MeResponse と同じ形。
+export type UpdateMyProfileResponse = MeResponse;
+
+// 他人のプロフィール取得 API（GET /api/v1/profiles/{id}）のレスポンス DTO。
+export type UserProfileResponse = {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+  description?: string;
 };
