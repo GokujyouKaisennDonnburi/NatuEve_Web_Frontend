@@ -7,7 +7,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import { Send, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect } from "react";
-import { CardContent } from "../../ui/card";
+import { CardContent } from "@/components/ui/card";
 
 // ==============================
 // Props
@@ -279,6 +279,7 @@ export function EventMemberListModal({
         className="absolute inset-0"
         onClick={handleClose}
         aria-label="閉じる"
+        tabIndex={-1}
       />
 
       <div
