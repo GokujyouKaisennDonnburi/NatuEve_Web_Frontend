@@ -24,6 +24,12 @@
   --brand-green-text: #55731f;
   --brand-orange-hover: #f0b447;
 
+  /* 入力欄の枠線。青みのある slate ではなく、ブランドに合わせた緑寄りのグレー。
+     色相は #cdd4c8 のまま、視認性のために暗さだけを上げている。
+     白背景に対するコントラスト比の目安:
+       #cdd4c8 → 1.5  #b4bfad → 1.9  #9caa94 → 2.4  #8e9c86 → 2.9  #7e8c76 → 3.6 */
+  --form-border: #8e9c86;
+
   /* EventDetailで使用するエメラルド系カラーパレット */
   --emerald-50: #ecfdf5;
   --emerald-100: #d1fae5;

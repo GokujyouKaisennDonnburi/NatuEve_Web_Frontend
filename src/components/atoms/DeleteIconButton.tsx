@@ -28,7 +28,7 @@ export function DeleteIconButton({
       title={label}
       aria-label={label}
       className={cn(
-        "h-10 w-10 shrink-0 cursor-pointer rounded-xl border border-slate-300 bg-white text-slate-400 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600",
+        "h-10 w-10 shrink-0 cursor-pointer rounded-xl border border-(--form-border) bg-white text-slate-400 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600",
         className,
       )}
     >
