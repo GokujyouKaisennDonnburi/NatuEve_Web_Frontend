@@ -95,9 +95,14 @@ function ReportPostPageContent() {
     const fetchEvent = async () => {
       try {
         const data = await getEventDetail(eventId);
-        setEvent(data);
+        if (!cancelled) {
+          setEvent(data);
+        }
       } catch (error) {
-        console.error("イベント取得エラー", error);
+        if (!cancelled) {
+          console.error("イベント取得エラー", error);
+          toast.error("イベント情報の取得に失敗しました");
+        }
       }
     };
     void fetchEvent();
@@ -259,38 +264,31 @@ function ReportPostPageContent() {
       {event && (
         <Card className="mb-6 border-blue-200 bg-blue-50">
           <CardContent className="px-5">
-            <p className="text-sm font-semibold text-blue-600">
-              対象イベント
-            </p>
+            <p className="text-sm font-semibold text-blue-600">対象イベント</p>
 
-            <h2 className="text-lg font-bold text-slate-900">
-              {event.title}
-            </h2>
+            <h2 className="text-lg font-bold text-slate-900">{event.title}</h2>
 
             <div className="mt-2 text-sm text-slate-600">
-              {event.eventDate && (
+              {event.eventDate && event.endDate && (
                 <span>
                   {new Date(event.eventDate).toLocaleDateString("ja-JP", {
                     month: "short",
                     day: "numeric",
                     weekday: "short",
                     timeZone: "Asia/Tokyo",
-                  })}
-                  {" "}
+                  })}{" "}
                   {new Date(event.eventDate).toLocaleTimeString("ja-JP", {
                     hour: "2-digit",
                     minute: "2-digit",
                     timeZone: "Asia/Tokyo",
                   })}
                   〜
-
                   {new Date(event.endDate).toLocaleDateString("ja-JP", {
                     month: "short",
                     day: "numeric",
                     weekday: "short",
                     timeZone: "Asia/Tokyo",
-                  })}
-                  {" "}
+                  })}{" "}
                   {new Date(event.endDate).toLocaleTimeString("ja-JP", {
                     hour: "2-digit",
                     minute: "2-digit",
