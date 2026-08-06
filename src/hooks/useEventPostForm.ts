@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { showCompletionToast } from "@/components/molecules/CompletionToast";
 import type { PriceCategory } from "@/components/molecules/event-post/PriceCategoryField";
 import type { RequiredItem } from "@/components/molecules/event-post/RequiredItemField";
 import {
@@ -343,7 +344,7 @@ export function useEventPostForm() {
 
       await createEvent(payload);
 
-      toast.success("イベントを投稿しました。");
+      showCompletionToast("イベントを投稿しました");
       router.push(ROUTES.EVENT_LIST);
     } catch (error) {
       console.error("イベント情報の登録に失敗しました。", error);
