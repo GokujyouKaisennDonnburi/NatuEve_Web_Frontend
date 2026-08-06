@@ -3,7 +3,7 @@
 import { FilterTag } from "@/components/atoms/FilterTag";
 import { cn } from "@/lib/utils";
 import type { TagItem } from "@/types/tag";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type TagFilterProps = {
   tags: TagItem[];
@@ -11,7 +11,6 @@ type TagFilterProps = {
   onTagSelect?: (id: string) => void;
   onSearch?: (query: string) => void;
   searchQuery?: string;
-  maxVisible?: number;
   className?: string;
 };
 
@@ -21,13 +20,18 @@ export function TagFilter({
   onTagSelect,
   onSearch,
   searchQuery = "",
-  maxVisible = 6,
   className,
 }: Readonly<TagFilterProps>) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const visibleTags = isExpanded ? tags : tags.slice(0, maxVisible);
-  const hiddenCount = tags.length - maxVisible;
+  useEffect(() => {
+    const el = containerRef.current;
+    if (el) {
+      setHasMore(el.scrollHeight > el.clientHeight);
+    }
+  }, [tags]);
 
   return (
     <div className={cn("", className)}>
@@ -77,8 +81,14 @@ export function TagFilter({
             よく使うタグ
           </span>
 
-          <div className="flex flex-wrap gap-2 mb-1">
-            {visibleTags.map((tag) => (
+          <div
+            ref={containerRef}
+            className={cn(
+              "flex flex-wrap gap-2 mb-1 overflow-hidden",
+              !isExpanded && "max-h-[76px]",
+            )}
+          >
+            {tags.map((tag) => (
               <FilterTag
                 key={tag.id}
                 label={tag.name}
@@ -91,15 +101,13 @@ export function TagFilter({
             ))}
           </div>
 
-          {tags.length > maxVisible && (
+          {(hasMore || isExpanded) && (
             <button
               type="button"
               onClick={() => setIsExpanded((prev) => !prev)}
               className="text-[13px] font-bold leading-[19px] text-[#3868A3] hover:underline bg-transparent border-none p-0 cursor-pointer"
             >
-              {isExpanded
-                ? "− 閉じる"
-                : `＋ もっと見る（残り${hiddenCount}個）`}
+              {isExpanded ? "− 閉じる" : "＋ もっと見る"}
             </button>
           )}
         </>
