@@ -57,7 +57,7 @@ export function TagInputField({
     latestTagsRef.current = tags;
   }, [tags]);
 
-  const { rowIds } = useRowIds(tags.length);
+  const { rowIds, removeRowId } = useRowIds(tags.length);
 
   const suggestions = normalizedDraft
     ? allTags.filter(
@@ -204,6 +204,9 @@ export function TagInputField({
   }, [handleClickOutside]);
 
   const handleRemove = (index: number) => {
+    // 削除した位置の ID も落とす。件数の変化だけに任せると末尾が切り詰められ、
+    // 中間を削除したときに以降のタグと ID の対応がずれる。
+    removeRowId(index);
     onTagsChange(tags.filter((_, currentIndex) => currentIndex !== index));
   };
 
