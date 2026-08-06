@@ -52,6 +52,7 @@ export function EventOrganizerToolbar({
   return (
     <aside
       className="fixed top-1/2 z-40 -translate-y-1/2"
+      // body の padding-right に追従して右端位置を補正する(ツールバーのみズレをなくすため)
       style={{
         right: `calc(1.5rem + ${bodyPaddingRight - 1}px)`,
       }}
