@@ -12,6 +12,8 @@ export type MockProfile = {
 export type MockEvent = {
   createdAt: string;
   eventDate: string;
+  // 終了日時(RFC3339)。作成時に省略された場合は eventDate と同値が入る。
+  endDate?: string;
   id: string;
   location: string;
   profile: MockProfile;

@@ -2,6 +2,7 @@
 
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import EventDetail from "@/components/organisms/EventDetail";
+import { getEventDetail } from "@/services/event";
 import { getReport } from "@/services/report";
 import type { ReportDetail } from "@/types/report";
 import { useParams } from "next/navigation";
@@ -29,25 +30,9 @@ export default function EventDetailPage() {
       setLoading(true);
       let shouldKeepLoading = false;
 
-      // fetch APIを使用してイベント詳細データを取得
       try {
-        // APIエンドポイントにリクエストを送信
-        const res = await fetch(`/api/v1/events/${id}`);
-        if (!res.ok) {
-          if (!cancelled && attempt < 5) {
-            shouldKeepLoading = true;
-            setTimeout(
-              () => void fetchDetail(attempt + 1),
-              200 * (attempt + 1),
-            );
-            return;
-          }
-
-          throw new Error(`status:${res.status}`);
-        }
-
-        // レスポンスをJSONとしてパースし、イベント詳細データを取得
-        const data = (await res.json()) as EventDetailType;
+        // Service を経由してイベント詳細データを取得
+        const data = await getEventDetail(id);
         if (!cancelled) setEvent(data);
       } catch (err) {
         if (!cancelled && attempt < 5) {

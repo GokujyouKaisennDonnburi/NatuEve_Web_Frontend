@@ -26,6 +26,9 @@ export type CreateEventRequest = {
   location: string;
   // 開催日時(RFC3339)（必須）。
   eventDate: string;
+  // 終了日時(RFC3339)（API 上は任意・省略時は eventDate と同値が補完される）。
+  // フォーム側では UX 補助として必須入力にしている。
+  endDate?: string;
   // 定員（任意・0=未設定・正数=定員）。
   capacity?: number;
   // 関連URL（任意・255文字以内・http/https）。
@@ -84,6 +87,45 @@ export type EventDetailReport = {
   imageUrls?: string[];
   pdfObjectKeys?: string[];
   pdfUrls?: string[];
+};
+
+// イベント一覧取得 API のプロフィール DTO。
+export type EventListItemProfile = {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+};
+
+// イベント一覧取得 API のイベント DTO。
+export type EventListItem = {
+  createdAt: string;
+  eventDate: string;
+  id: string;
+  location: string;
+  profileId: string;
+  title: string;
+  profile: EventListItemProfile;
+  tags?: TagItem[];
+  // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
+  cancelledAt?: string | null;
+};
+
+// イベント一覧取得 API のレスポンス DTO。
+export type EventListResponse = {
+  events: EventListItem[];
+  limit: number;
+  offset: number;
+  totalCount: number;
+};
+
+// イベント一覧取得 API のリクエストパラメータ DTO。
+export type EventListRequest = {
+  sort?: "created_at" | "event_date";
+  order?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
+  // 検索キーワードの配列（AND 検索・最大10語）。
+  keywords?: string[];
 };
 
 // イベント詳細取得 API のレスポンス DTO。
