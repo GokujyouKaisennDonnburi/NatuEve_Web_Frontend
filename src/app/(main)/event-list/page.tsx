@@ -309,9 +309,9 @@ export default function EventListPage() {
         </aside>
 
         {/* Main content */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col">
           {/* Event count + Create button */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 shrink-0">
             <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
               {totalCount} 件のイベント
             </span>
@@ -322,27 +322,30 @@ export default function EventListPage() {
             />
           </div>
 
-          {/* Event cards */}
-          <div className="space-y-[61px]">
-            {events.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-            {events.length === 0 && (
-              <p className="text-center text-sm text-slate-400 py-8">
-                表示するイベントがありません。
-              </p>
+          {/* Scrollable event cards + pagination */}
+          <div className="flex-1 overflow-y-auto overscroll-contain max-h-[calc(100vh-16rem)]">
+            {/* Event cards */}
+            <div className="space-y-[61px]">
+              {events.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+              {events.length === 0 && (
+                <p className="text-center text-sm text-slate-400 py-8">
+                  表示するイベントがありません。
+                </p>
+              )}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-8">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
             )}
           </div>
-
-          {totalPages > 1 && (
-            <div className="mt-8">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-            </div>
-          )}
         </div>
       </div>
     </div>
