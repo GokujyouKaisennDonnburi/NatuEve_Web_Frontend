@@ -5,6 +5,11 @@ import { useEffect } from "react";
 // 参照カウント: 複数モーダルが同時に開く場合にロック解除を誤って行わないようにする
 let scrollLockCount = 0;
 
+// 最初のロック適用前のインラインスタイル（最後のロック解除時に復元する）
+// 空文字への上書きで既存のインラインスタイルを消さないため
+let originalOverflow: string | null = null;
+let originalPaddingRight: string | null = null;
+
 // スクロールバー幅のキャッシュ
 // html が overflow: visible の環境では window.innerWidth - clientWidth では
 // スクロールバー幅を取得できないため、プローブ要素方式で計測してキャッシュする。
@@ -53,15 +58,10 @@ function applyScrollLock(): void {
   // 3. html に overflow:hidden を設定して背景スクロールを禁止
   document.documentElement.style.overflow = "hidden";
 
-  // 4. スクロールバーが存在した場合のみ、消えた分を body の padding-right で補償
-  if (hadScrollbar && scrollbarWidth > 0) {
-    document.body.style.paddingRight = `${scrollbarWidth}px`;
-  }
-}
-
-function releaseScrollLock(): void {
-  document.documentElement.style.overflow = "";
-  document.body.style.paddingRight = "";
+  // 4. スクロールバー有無に応じて padding-right を設定/解除する
+  //    （リサイズ等でスクロールバーが消えた場合も古い padding が残らないよう両分岐で設定する）
+  document.body.style.paddingRight =
+    hadScrollbar && scrollbarWidth > 0 ? `${scrollbarWidth}px` : "";
 }
 
 // モーダル表示中に背景のスクロールを無効化するカスタムフック
@@ -73,17 +73,29 @@ export function useScrollLock(isLocked: boolean): void {
     if (!isLocked) return;
 
     scrollLockCount += 1;
-    applyScrollLock();
 
-    window.addEventListener("resize", applyScrollLock);
+    if (scrollLockCount === 1) {
+      // 最初のロック時のみ: 元のインラインスタイルを保持してから適用する。
+      // resize リスナーも 0→1 の遷移時のみ登録する
+      // （同じハンドラは addEventListener で重複登録されないため、
+      //   参照カウントで管理しないと途中解除で残りのロックのリスナーまで消える）。
+      originalOverflow = document.documentElement.style.overflow;
+      originalPaddingRight = document.body.style.paddingRight;
+      applyScrollLock();
+      window.addEventListener("resize", applyScrollLock);
+    }
 
     return () => {
       scrollLockCount -= 1;
-      window.removeEventListener("resize", applyScrollLock);
 
       if (scrollLockCount <= 0) {
         scrollLockCount = 0;
-        releaseScrollLock();
+        // 最後のロック解除時のみ: リスナーを解除し、元のインラインスタイルへ復元する
+        window.removeEventListener("resize", applyScrollLock);
+        document.documentElement.style.overflow = originalOverflow ?? "";
+        document.body.style.paddingRight = originalPaddingRight ?? "";
+        originalOverflow = null;
+        originalPaddingRight = null;
       }
     };
   }, [isLocked]);
