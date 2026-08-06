@@ -102,7 +102,7 @@ export function EventNotifyModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 flex h-screen items-center justify-center px-4">
       {/* モーダルの背景をクリックしたらモーダルを閉じる */}
       <button
         type="button"

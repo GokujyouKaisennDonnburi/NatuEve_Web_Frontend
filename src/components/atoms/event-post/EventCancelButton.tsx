@@ -100,7 +100,7 @@ export function EventCancelButton({
       </Button>
 
       {isConfirmOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-50 flex h-screen items-center justify-center px-4">
           <button
             type="button"
             aria-label="削除確認を閉じる"

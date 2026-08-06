@@ -378,7 +378,7 @@ const GuestParticipationModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 flex h-screen items-center justify-center px-4">
       {/* 背景オーバーレイ：ボタンとして振るわせ、クリックで閉じる */}
       <button
         type="button"
@@ -549,7 +549,7 @@ const CancelParticipationModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 flex h-screen items-center justify-center px-4">
       {/* 背景オーバーレイ */}
       <button
         type="button"
