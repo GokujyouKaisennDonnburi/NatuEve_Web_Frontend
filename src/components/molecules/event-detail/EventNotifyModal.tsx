@@ -10,7 +10,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import { Send } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Card, CardContent } from "../../ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 // 全体連絡モーダルのプロパティ
 type EventNotifyModalProps = {
