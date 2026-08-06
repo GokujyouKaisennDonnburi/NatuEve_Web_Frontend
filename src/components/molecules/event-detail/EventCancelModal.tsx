@@ -1,5 +1,6 @@
 "use client";
 
+import { RequiredBadge } from "@/components/atoms/RequiredBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -187,9 +188,7 @@ export function EventCancelModal({
                         連絡の件名
                       </Label>
 
-                      <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-slate-800">
-                        必須
-                      </span>
+                      <RequiredBadge isRequired size="sm" />
                     </div>
 
                     <Input
@@ -213,9 +212,7 @@ export function EventCancelModal({
                         連絡本文
                       </Label>
 
-                      <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-slate-800">
-                        必須
-                      </span>
+                      <RequiredBadge isRequired size="sm" />
                     </div>
 
                     <Textarea

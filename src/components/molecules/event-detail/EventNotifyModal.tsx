@@ -1,5 +1,6 @@
 "use client";
 
+import { RequiredBadge } from "@/components/atoms/RequiredBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -157,9 +158,7 @@ export function EventNotifyModal({
                     件名
                   </Label>
 
-                  <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-slate-800">
-                    必須
-                  </span>
+                  <RequiredBadge isRequired size="sm" />
                 </div>
 
                 <Input
@@ -183,9 +182,7 @@ export function EventNotifyModal({
                     連絡内容
                   </Label>
 
-                  <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-slate-800">
-                    必須
-                  </span>
+                  <RequiredBadge isRequired size="sm" />
                 </div>
 
                 <Textarea
