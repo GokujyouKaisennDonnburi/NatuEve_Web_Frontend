@@ -2,7 +2,7 @@ import { useId } from "react";
 
 import { AddItemButton } from "@/components/atoms/AddItemButton";
 import { DeleteIconButton } from "@/components/atoms/DeleteIconButton";
-import { EmptyMessage } from "@/components/atoms/EmptyMessage";
+import { FormEmptyBox } from "@/components/atoms/FormEmptyBox";
 import { FormInput } from "@/components/atoms/FormInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -103,9 +103,9 @@ export function RequiredItemField({
       </div>
 
       {items.length === 0 ? (
-        <EmptyMessage variant="compact">
+        <FormEmptyBox>
           持ち物は未設定です。必要な場合は下のボタンから追加してください。
-        </EmptyMessage>
+        </FormEmptyBox>
       ) : null}
 
       <AddItemButton onClick={handleAddItem}>持ち物を追加</AddItemButton>
