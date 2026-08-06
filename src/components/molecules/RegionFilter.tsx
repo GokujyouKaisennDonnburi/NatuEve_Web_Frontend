@@ -121,6 +121,24 @@ export function RegionFilter({
   const toggleCity = (cityName: string) => {
     if (selectedCities.includes(cityName)) {
       onCitiesChange?.(selectedCities.filter((c) => c !== cityName));
+
+      for (const region of REGIONS) {
+        for (const pref of region.prefectures) {
+          if (pref.cities.includes(cityName)) {
+            if (selectedPrefectures.includes(pref.name)) {
+              onPrefecturesChange?.(
+                selectedPrefectures.filter((p) => p !== pref.name),
+              );
+            }
+            if (selectedRegions.includes(region.name)) {
+              onRegionsChange?.(
+                selectedRegions.filter((r) => r !== region.name),
+              );
+            }
+            return;
+          }
+        }
+      }
     } else {
       onCitiesChange?.([...selectedCities, cityName]);
     }

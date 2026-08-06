@@ -32,7 +32,6 @@ export default function EventListPage() {
   const [freeOnly, setFreeOnly] = useState(false);
   const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
   const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
-  const [isFiltersApplied, setIsFiltersApplied] = useState(false);
 
   // 現在表示中のイベントから使用頻度の高いタグ順に算出する
   const frequentTags = useMemo(() => {
@@ -172,17 +171,14 @@ export default function EventListPage() {
   };
 
   const handleClearAll = () => {
-    setIsFiltersApplied(false);
     resetFilters();
   };
 
   const handleClear = () => {
-    setIsFiltersApplied(false);
     resetFilters();
   };
 
   const handleApply = () => {
-    setIsFiltersApplied(true);
     setCurrentPage(1);
   };
 
@@ -224,13 +220,7 @@ export default function EventListPage() {
 
       {/* Filter button row */}
       <div className="mb-[45px]">
-        <FilterIconButton
-          onClick={() => {
-            setIsFiltersApplied(!isFiltersApplied);
-            setCurrentPage(1);
-          }}
-          isActive={hasActiveFilters || isFiltersApplied}
-        />
+        <FilterIconButton onClick={() => {}} isActive={hasActiveFilters} />
       </div>
 
       {/* Two-column: Filter sidebar + Event list */}

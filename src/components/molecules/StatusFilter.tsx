@@ -52,15 +52,22 @@ export function StatusFilter({
   className,
 }: Readonly<StatusFilterProps>) {
   const toggleStatus = (id: string) => {
-    const next = selectedStatuses.includes(id)
-      ? selectedStatuses.filter((s) => s !== id)
-      : [...selectedStatuses, id];
+    const isSelected = selectedStatuses.includes(id);
+    let next: string[];
 
-    if (id === "closed" && !next.includes("closed")) {
-      onStatusChange?.(next.filter((s) => s !== "hasReport"));
+    if (isSelected) {
+      next = selectedStatuses.filter((s) => s !== id);
+      if (id === "closed") {
+        next = next.filter((s) => s !== "hasReport");
+      }
     } else {
-      onStatusChange?.(next);
+      next = [...selectedStatuses, id];
+      if (id === "hasReport" && !next.includes("closed")) {
+        next.push("closed");
+      }
     }
+
+    onStatusChange?.(next);
   };
 
   return (
