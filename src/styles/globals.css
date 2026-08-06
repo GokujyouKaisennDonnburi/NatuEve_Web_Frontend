@@ -19,9 +19,9 @@
   /* フォーム系画面で使うブランドカラーの派生色。
      --brand-green はそのままでは背景に濃く、文字色には薄いため、
      背景・枠線・文字それぞれに使える明度違いを用意する。 */
-  --brand-green-soft: #f0f6e4;
-  --brand-green-line: #d9e8bb;
-  --brand-green-text: #55731f;
+  --brand-green-soft: #f6faee;
+  --brand-green-line: #c0dc92;
+  --brand-green-text: #5f8530;
   --brand-orange-hover: #f0b447;
 
   /* 入力欄の枠線。青みのある slate ではなく、ブランドに合わせた緑寄りのグレー。

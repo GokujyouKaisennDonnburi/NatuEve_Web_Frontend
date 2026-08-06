@@ -22,7 +22,7 @@ export function AddItemButton({
       variant="ghost"
       size="sm"
       className={cn(
-        "h-9 w-fit cursor-pointer gap-1 rounded-full border border-(--brand-green-line) bg-(--brand-green-soft) px-4 text-sm font-semibold text-(--brand-green-text) transition hover:bg-(--brand-green-line) hover:text-(--brand-green-text) disabled:opacity-50",
+        "h-10 w-fit cursor-pointer gap-2 rounded-xl border border-(--brand-green-line) bg-(--brand-green-soft) px-5 text-sm font-bold text-(--brand-green-text) transition hover:bg-(--brand-green-line)/40 hover:text-(--brand-green-text) disabled:opacity-50",
         className,
       )}
     >
