@@ -156,7 +156,7 @@ function EventMemberListBody({
               {data.members.map((member) => (
                 <tr
                   key={`${member.mailAddress}-${member.createdAt}`}
-                  className="border-b border-slate-200 hover:bg-slate-50 last:border-0"
+                  className="border-b border-slate-200 last:border-0"
                 >
                   {/* ユーザー */}
                   <td className="w-[35%] px-6 py-5">
