@@ -65,7 +65,9 @@ const INITIAL_STATE: EventPostFormState = {
   location: "",
   eventDateTime: "",
   endDateTime: "",
-  feeCategoryGroups: [{ category: "一般", amount: "0" }],
+  // 1行だけ空の状態で用意する。初期値を入れると、そのまま送信されて
+  // 意図しない費用区分が登録されるため、入力は利用者に委ねる。
+  feeCategoryGroups: [{ category: "", amount: "" }],
   capacity: "",
   applicationUrl: "",
   requiredItems: [],
