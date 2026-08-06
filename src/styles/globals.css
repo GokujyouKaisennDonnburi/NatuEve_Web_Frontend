@@ -16,6 +16,14 @@
   --brand-green: #9aca4a;
   --brand-orange: #f8c568;
 
+  /* フォーム系画面で使うブランドカラーの派生色。
+     --brand-green はそのままでは背景に濃く、文字色には薄いため、
+     背景・枠線・文字それぞれに使える明度違いを用意する。 */
+  --brand-green-soft: #f0f6e4;
+  --brand-green-line: #d9e8bb;
+  --brand-green-text: #55731f;
+  --brand-orange-hover: #f0b447;
+
   /* EventDetailで使用するエメラルド系カラーパレット */
   --emerald-50: #ecfdf5;
   --emerald-100: #d1fae5;
