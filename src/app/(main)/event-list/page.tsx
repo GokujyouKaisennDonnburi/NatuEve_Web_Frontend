@@ -7,59 +7,13 @@ import { Pagination } from "@/components/molecules/Pagination";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { fetchEventList } from "@/services/event";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type SortOption = "created_at" | "event_date";
-
-type ApiResponseProfile = {
-  id: string;
-  displayName: string;
-  avatarUrl: string;
-};
-
-type ApiResponseEvent = {
-  createdAt: string;
-  eventDate: string;
-  id: string;
-  location: string;
-  profileId: string;
-  title: string;
-  profile: ApiResponseProfile;
-  tags?: Array<{ id: string; name: string }>;
-  // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
-  cancelledAt?: string | null;
-};
-
-type EventsApiResponse = {
-  events: ApiResponseEvent[];
-  limit: number;
-  offset: number;
-  totalCount: number;
-};
-
-type MeApiResponse = {
-  id: string;
-  email: string;
-  display_name?: string;
-  avatar_url?: string;
-  created_at?: string;
-  updated_at?: string;
-  displayName?: string;
-  avatarUrl?: string;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-type CurrentUser = {
-  id: string;
-  email: string;
-  displayName: string;
-  avatarUrl: string;
-  createdAt: string;
-  updatedAt: string;
-};
 
 export default function EventListPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -74,82 +28,9 @@ export default function EventListPage() {
   // Supabaseのセッション状態を取得
   const { session, isLoading: isSessionLoading } = useAuth();
 
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
-
-  // sessionのトークンを使って /api/v1/me を叩く
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchMe = async () => {
-      // セッション自体がロード中の場合は待機
-      if (isSessionLoading) return;
-
-      // セッションがない（未ログイン）場合はAPIを叩かず終了
-      if (!session?.token) {
-        if (!cancelled) {
-          setCurrentUser(null);
-          setIsProfileLoading(false);
-        }
-        return;
-      }
-
-      try {
-        // Authorization ヘッダーに Bearer トークンを付与
-        const res = await fetch("/api/v1/me", {
-          headers: {
-            Authorization: `Bearer ${session.token}`,
-          },
-        });
-
-        if (res.status === 401) {
-          if (!cancelled) setCurrentUser(null);
-          return;
-        }
-
-        if (!res.ok) {
-          throw new Error(`プロフィール取得エラー (Status: ${res.status})`);
-        }
-
-        const data = (await res.json()) as MeApiResponse;
-        if (!cancelled) {
-          setCurrentUser({
-            id: data.id,
-            email: data.email,
-            displayName: data.displayName ?? data.display_name ?? "",
-            avatarUrl: data.avatarUrl ?? data.avatar_url ?? "",
-            createdAt: data.createdAt ?? data.created_at ?? "",
-            updatedAt: data.updatedAt ?? data.updated_at ?? "",
-          });
-        }
-      } catch (err) {
-        console.error("Me取得エラー:", err);
-        if (!cancelled) {
-          setCurrentUser(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsProfileLoading(false);
-        }
-      }
-    };
-
-    void fetchMe();
-    return () => {
-      cancelled = true;
-    };
-  }, [session, isSessionLoading]); // 依存配列に session と isSessionLoading を追加
-
-  const handleCreateEvent = () => {
-    if (isSessionLoading || isProfileLoading) {
-      return;
-    }
-    if (!currentUser) {
-      toast.error("イベントを投稿するにはログインしてください。");
-      return;
-    }
-    router.push(ROUTES.EVENT_POST);
-  };
+  // 現在のユーザー情報を取得（Service経由）
+  const { user: currentUser, isLoading: isProfileLoading } =
+    useCurrentUser(session);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,53 +41,31 @@ export default function EventListPage() {
       // セッションがロード中の場合は待機
       if (isSessionLoading) return;
 
-      // セッションの有無で Authorization ヘッダーを切り替える（未ログインでも一覧取得は行う）
       try {
         const offset = (currentPage - 1) * ITEMS_PER_PAGE;
         const order = sortBy === "event_date" ? "asc" : "desc";
-        const params = new URLSearchParams({
-          sort: sortBy,
-          order,
-          limit: ITEMS_PER_PAGE.toString(),
-          offset: offset.toString(),
-        });
 
         // 検索クエリがある場合は半角/全角スペースで分割し、
         // 各キーワードを q パラメータとして多重送信する（AND 検索）
         // swagger 仕様に基づき最大10語までとする
+        let keywords: string[] | undefined;
         if (searchQuery) {
-          const keywords = searchQuery
+          keywords = searchQuery
             .split(/[\s\u3000]+/)
             .map((keyword) => keyword.trim())
             .filter((keyword) => keyword.length > 0)
             .slice(0, 10);
-          for (const keyword of keywords) {
-            params.append("q", keyword);
-          }
+          if (keywords.length === 0) keywords = undefined;
         }
 
-        // 念のためイベント取得APIにもトークンがあれば渡すよう設定（不要な場合はheadersを外してもOKです）
-        const headers: Record<string, string> = {};
-        if (session?.token) {
-          headers.Authorization = `Bearer ${session.token}`;
-        }
-
-        const res = await fetch(`/api/v1/events?${params.toString()}`, {
-          headers,
+        // Service を経由してイベント一覧を取得
+        const data = await fetchEventList({
+          sort: sortBy,
+          order,
+          limit: ITEMS_PER_PAGE,
+          offset,
+          keywords,
         });
-
-        if (!res.ok) {
-          if (!cancelled && attempt < 5) {
-            setTimeout(
-              () => void fetchEvents(attempt + 1),
-              200 * (attempt + 1),
-            );
-            return;
-          }
-          throw new Error(`データの取得に失敗しました (Status: ${res.status})`);
-        }
-
-        const data = (await res.json()) as EventsApiResponse;
 
         if (!cancelled) {
           // キャンセル済みイベント(cancelledAt が設定済み)は一覧から除外する。
@@ -250,7 +109,18 @@ export default function EventListPage() {
     return () => {
       cancelled = true;
     };
-  }, [currentPage, sortBy, searchQuery, session, isSessionLoading]); // 依存配列に session と loading 状態を追加
+  }, [currentPage, sortBy, searchQuery, isSessionLoading]); // 依存配列に loading 状態を追加
+
+  const handleCreateEvent = () => {
+    if (isSessionLoading || isProfileLoading) {
+      return;
+    }
+    if (!currentUser) {
+      toast.error("イベントを投稿するにはログインしてください。");
+      return;
+    }
+    router.push(ROUTES.EVENT_POST);
+  };
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
