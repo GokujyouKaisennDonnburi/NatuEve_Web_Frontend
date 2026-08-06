@@ -3,6 +3,7 @@
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import type { UseEventMembersResult } from "@/hooks/useEventMembers";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { Send, X } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { CardContent } from "../../ui/card";
@@ -223,10 +224,10 @@ export function EventMemberListModal({
   }, [onOpenChange]);
 
   // モーダル表示中は背景スクロールをロックし、Escapeで閉じる
+  useScrollLock(isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
-
-    document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -237,7 +238,6 @@ export function EventMemberListModal({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, handleClose]);

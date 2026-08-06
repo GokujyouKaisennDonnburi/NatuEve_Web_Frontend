@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
 import { cancelEvent } from "@/services/event";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -69,10 +70,10 @@ export function EventCancelButton({
     })();
   };
 
+  useScrollLock(isConfirmOpen);
+
   useEffect(() => {
     if (!isConfirmOpen) return;
-
-    document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -83,7 +84,6 @@ export function EventCancelButton({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isConfirmOpen]);

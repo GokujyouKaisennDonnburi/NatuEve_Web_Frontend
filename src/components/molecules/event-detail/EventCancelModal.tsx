@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
 import { cancelEvent } from "@/services/event";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -96,10 +97,10 @@ export function EventCancelModal({
   };
 
   // モーダル表示中は背景スクロールをロックし、Escapeで閉じる
+  useScrollLock(isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
-
-    document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -110,7 +111,6 @@ export function EventCancelModal({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, handleClose]);

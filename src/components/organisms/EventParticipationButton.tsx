@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { MOCK_AUTH_SESSION, isMockAuthEnabled } from "@/services/mockAuth";
 import { leaveEvent, participateEvent } from "@/services/participate";
 import {
@@ -317,10 +318,12 @@ const GuestParticipationModal = ({
   // 未ログイン時のメールアドレス入力欄の参照を保持する
   const emailRef = useRef<HTMLInputElement>(null);
 
+  // 背景スクロールをロックする
+  useScrollLock(true);
+
   // Escape キーでモーダルを閉じる
   useEffect(() => {
     emailRef.current?.focus(); // メールアドレス入力欄にフォーカスする
-    document.body.style.overflow = "hidden"; // 背景のスクロールを無効化する
 
     // Escape キーでモーダルを閉じる処理
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -334,7 +337,6 @@ const GuestParticipationModal = ({
 
     // クリーンアップ関数でイベントリスナーを削除
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isSubmitting, onClose]);
@@ -510,10 +512,11 @@ const CancelParticipationModal = ({
   setIsSubmitting,
   onSuccess,
 }: CancelParticipationModalProps) => {
-  // Escape キーでモーダルを閉じる & 背景スクロール抑止
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
+  // 背景スクロールをロックする
+  useScrollLock(true);
 
+  // Escape キーでモーダルを閉じる
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isSubmitting) {
         onClose();
@@ -523,7 +526,6 @@ const CancelParticipationModal = ({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isSubmitting, onClose]);

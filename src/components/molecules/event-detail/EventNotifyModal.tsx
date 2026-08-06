@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { notifyEventParticipants } from "@/services/event";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { Send } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -79,10 +80,10 @@ export function EventNotifyModal({
   };
 
   // モーダル表示中は背景スクロールをロックし、Escapeで閉じる
+  useScrollLock(isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
-
-    document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -93,7 +94,6 @@ export function EventNotifyModal({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, handleClose]);
