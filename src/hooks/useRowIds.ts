@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 
 // 行ごとに安定したIDを管理するフック。配列のインデックスをそのまま key に使うと、
