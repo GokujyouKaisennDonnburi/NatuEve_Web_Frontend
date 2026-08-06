@@ -77,7 +77,7 @@ export function RequiredItemField({
               ) : null}
             </div>
 
-            <div className="flex h-11 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
+            <div className="flex h-11 shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3">
               <Checkbox
                 id={`${fieldId}-required-${index}`}
                 checked={item.isRequired}

@@ -12,7 +12,7 @@ export function FormInput({ className, ...props }: Readonly<FormInputProps>) {
     <Input
       {...props}
       className={cn(
-        "h-11 rounded-xl border-slate-200 bg-white text-sm text-slate-900 shadow-none placeholder:text-slate-400",
+        "h-11 rounded-xl border-slate-300 bg-white text-sm text-slate-900 shadow-none placeholder:text-slate-400",
         "focus-visible:border-(--brand-green) focus-visible:ring-2 focus-visible:ring-(--brand-green)/30",
         "aria-invalid:border-rose-300 aria-invalid:ring-2 aria-invalid:ring-rose-100",
         className,
