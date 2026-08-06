@@ -212,12 +212,22 @@ export function RegionFilter({
                 >
                   {region.name}
                 </span>
-                <ChevronDown
-                  className={cn(
-                    "h-[10px] w-[10px] text-[#A8B1A2] shrink-0 transition-transform",
-                    isRegionExpanded && "rotate-180",
-                  )}
-                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleRegion?.(region.name);
+                  }}
+                  aria-label={`${region.name} を展開`}
+                  className="flex items-center justify-center bg-transparent border-none p-0 cursor-pointer"
+                >
+                  <ChevronDown
+                    className={cn(
+                      "h-[10px] w-[10px] text-[#A8B1A2] shrink-0 transition-transform",
+                      isRegionExpanded && "rotate-180",
+                    )}
+                  />
+                </button>
               </button>
 
               {isRegionExpanded && (
@@ -253,12 +263,22 @@ export function RegionFilter({
                           >
                             {pref.name}
                           </span>
-                          <ChevronDown
-                            className={cn(
-                              "h-[10px] w-[10px] text-[#A8B1A2] shrink-0 transition-transform",
-                              isPrefExpanded && "rotate-180",
-                            )}
-                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onTogglePrefecture?.(pref.name);
+                            }}
+                            aria-label={`${pref.name} を展開`}
+                            className="flex items-center justify-center bg-transparent border-none p-0 cursor-pointer"
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "h-[10px] w-[10px] text-[#A8B1A2] shrink-0 transition-transform",
+                                isPrefExpanded && "rotate-180",
+                              )}
+                            />
+                          </button>
                         </button>
 
                         {isPrefExpanded && (
