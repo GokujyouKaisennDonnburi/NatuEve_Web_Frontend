@@ -65,7 +65,7 @@ export function RegionFilter({
   onRegionsChange,
   onPrefecturesChange,
   onCitiesChange,
-  expandedRegions = ["近畿"],
+  expandedRegions = [],
   expandedPrefectures = [],
   onToggleRegion,
   onTogglePrefecture,

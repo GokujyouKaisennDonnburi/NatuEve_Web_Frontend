@@ -26,7 +26,7 @@ export default function EventListPage() {
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
-  const [expandedRegions, setExpandedRegions] = useState<string[]>(["近畿"]);
+  const [expandedRegions, setExpandedRegions] = useState<string[]>([]);
   const [expandedPrefectures, setExpandedPrefectures] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [freeOnly, setFreeOnly] = useState(false);
@@ -161,7 +161,7 @@ export default function EventListPage() {
     setSelectedRegions([]);
     setSelectedPrefectures([]);
     setSelectedCities([]);
-    setExpandedRegions(["近畿"]);
+    setExpandedRegions([]);
     setExpandedPrefectures([]);
     setSelectedStatuses([]);
     setFreeOnly(false);
