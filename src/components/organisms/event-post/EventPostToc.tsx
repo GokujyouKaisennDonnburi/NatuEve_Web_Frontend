@@ -28,6 +28,8 @@ export function EventPostToc() {
     // 画面上部付近の帯（-96px 〜 上から30%の位置）に入っているセクションを
     // 現在地とみなす。複数該当した場合は目次の並び順で一番上のものを採用する。
     const visibleIds = new Set<string>();
+    const lastSectionId =
+      EVENT_POST_TOC_SECTIONS[EVENT_POST_TOC_SECTIONS.length - 1].id;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -52,7 +54,33 @@ export function EventPostToc() {
     sectionElements.forEach((element) => {
       observer.observe(element);
     });
-    return () => observer.disconnect();
+
+    // 直前のセクションが背が高いと、最後のセクションが短い場合に上の帯へ
+    // 一度も入らないままページ最下部に到達することがある。その場合は
+    // 帯の判定によらず最後のセクションを強制的にアクティブとみなす。
+    let ticking = false;
+    const handleScroll = () => {
+      if (ticking) {
+        return;
+      }
+      ticking = true;
+      requestAnimationFrame(() => {
+        const isAtBottom =
+          window.innerHeight + window.scrollY >=
+          document.documentElement.scrollHeight - 2;
+        if (isAtBottom) {
+          setActiveId(lastSectionId);
+        }
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   return (
