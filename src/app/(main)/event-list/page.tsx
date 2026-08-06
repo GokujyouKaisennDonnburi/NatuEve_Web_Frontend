@@ -26,7 +26,7 @@ export default function EventListPage() {
   // Supabaseのセッション状態を取得
   const { session, isLoading: isSessionLoading } = useAuth();
 
-// 現在のユーザー情報を取得（Service経由）
+  // 現在のユーザー情報を取得（Service経由）
   const { user: currentUser, isLoading: isProfileLoading } =
     useCurrentUser(session);
 
@@ -59,7 +59,6 @@ export default function EventListPage() {
       .map(([id]) => tagMap.get(id)!);
   }, [events]);
 
-}, [events]);
   useEffect(() => {
     let cancelled = false;
 

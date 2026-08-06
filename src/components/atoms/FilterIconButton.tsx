@@ -19,9 +19,7 @@ export function FilterIconButton({
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-2 h-[38px] bg-white border rounded-full px-[19px]",
-        isActive
-          ? "border-[#97C459]"
-          : "border-[#CDD4C8]",
+        isActive ? "border-[#97C459]" : "border-[#CDD4C8]",
         className,
       )}
     >

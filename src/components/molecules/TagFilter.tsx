@@ -100,9 +100,7 @@ export function TagFilter({
                 label={tag.name}
                 size="md"
                 selected={selectedIds.includes(tag.id)}
-                onClick={
-                  onTagSelect ? () => onTagSelect(tag.id) : undefined
-                }
+                onClick={onTagSelect ? () => onTagSelect(tag.id) : undefined}
               />
             ))}
           </div>

@@ -17,9 +17,7 @@ function Checkbox({ checked }: { checked: boolean }) {
     <span
       className={cn(
         "inline-flex items-center justify-center w-4 h-4 rounded-[3px] border shrink-0",
-        checked
-          ? "bg-[#97C459] border-[#97C459]"
-          : "bg-white border-[#CDD4C8]",
+        checked ? "bg-[#97C459] border-[#97C459]" : "bg-white border-[#CDD4C8]",
       )}
     >
       {checked && (
@@ -81,9 +79,7 @@ export function PriceFilter({
             value={minPrice ?? ""}
             onChange={(e) =>
               onMinPriceChange?.(
-                e.target.value === ""
-                  ? undefined
-                  : Number(e.target.value),
+                e.target.value === "" ? undefined : Number(e.target.value),
               )
             }
             placeholder="下限"
@@ -95,9 +91,7 @@ export function PriceFilter({
             value={maxPrice ?? ""}
             onChange={(e) =>
               onMaxPriceChange?.(
-                e.target.value === ""
-                  ? undefined
-                  : Number(e.target.value),
+                e.target.value === "" ? undefined : Number(e.target.value),
               )
             }
             placeholder="上限なし"

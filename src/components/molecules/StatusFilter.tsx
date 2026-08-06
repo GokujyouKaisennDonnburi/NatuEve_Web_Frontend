@@ -22,9 +22,7 @@ function Checkbox({ checked }: { checked: boolean }) {
     <span
       className={cn(
         "inline-flex items-center justify-center w-4 h-4 rounded-[3px] border shrink-0",
-        checked
-          ? "bg-[#97C459] border-[#97C459]"
-          : "bg-white border-[#CDD4C8]",
+        checked ? "bg-[#97C459] border-[#97C459]" : "bg-white border-[#CDD4C8]",
       )}
     >
       {checked && (
@@ -100,9 +98,7 @@ export function StatusFilter({
                   onClick={() => toggleStatus(child.id)}
                   className="flex items-center w-full h-[22px] bg-transparent px-[8px] text-left ml-[32px]"
                 >
-                  <Checkbox
-                    checked={selectedStatuses.includes(child.id)}
-                  />
+                  <Checkbox checked={selectedStatuses.includes(child.id)} />
                   <span
                     className={cn(
                       "ml-[6px] text-sm leading-5 text-[#3A4237]",

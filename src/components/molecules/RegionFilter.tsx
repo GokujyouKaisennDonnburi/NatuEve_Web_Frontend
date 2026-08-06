@@ -22,7 +22,10 @@ type RegionFilterProps = {
 function Checkbox({
   checked,
   indeterminate,
-}: { checked: boolean; indeterminate?: boolean }) {
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+}) {
   return (
     <span
       className={cn(
@@ -77,15 +80,11 @@ export function RegionFilter({
     if (isCurrentlySelected) {
       const allPrefs = region.prefectures.map((p) => p.name);
       const allCities = region.prefectures.flatMap((p) => p.cities);
-      onRegionsChange?.(
-        selectedRegions.filter((r) => r !== regionName),
-      );
+      onRegionsChange?.(selectedRegions.filter((r) => r !== regionName));
       onPrefecturesChange?.(
         selectedPrefectures.filter((p) => !allPrefs.includes(p)),
       );
-      onCitiesChange?.(
-        selectedCities.filter((c) => !allCities.includes(c)),
-      );
+      onCitiesChange?.(selectedCities.filter((c) => !allCities.includes(c)));
     } else {
       const newPrefs = region.prefectures
         .map((p) => p.name)
@@ -109,16 +108,10 @@ export function RegionFilter({
     const isCurrentlySelected = selectedPrefectures.includes(prefName);
 
     if (isCurrentlySelected) {
-      onPrefecturesChange?.(
-        selectedPrefectures.filter((p) => p !== prefName),
-      );
-      onCitiesChange?.(
-        selectedCities.filter((c) => !pref.cities.includes(c)),
-      );
+      onPrefecturesChange?.(selectedPrefectures.filter((p) => p !== prefName));
+      onCitiesChange?.(selectedCities.filter((c) => !pref.cities.includes(c)));
     } else {
-      const newCities = pref.cities.filter(
-        (c) => !selectedCities.includes(c),
-      );
+      const newCities = pref.cities.filter((c) => !selectedCities.includes(c));
       onPrefecturesChange?.([...selectedPrefectures, prefName]);
       onCitiesChange?.([...selectedCities, ...newCities]);
     }
@@ -166,9 +159,7 @@ export function RegionFilter({
     const pref = region.prefectures.find((p) => p.name === prefName);
     if (!pref) return "unchecked";
 
-    const hasCitySelected = pref.cities.some((c) =>
-      selectedCities.includes(c),
-    );
+    const hasCitySelected = pref.cities.some((c) => selectedCities.includes(c));
     if (hasCitySelected) return "indeterminate";
     return "unchecked";
   };
@@ -216,8 +207,9 @@ export function RegionFilter({
                 <div className="ml-[22px] mt-[2px] space-y-[2px]">
                   {region.prefectures.map((pref) => {
                     const prefStatus = getPrefStatus(pref.name);
-                    const isPrefExpanded =
-                      expandedPrefectures.includes(pref.name);
+                    const isPrefExpanded = expandedPrefectures.includes(
+                      pref.name,
+                    );
 
                     return (
                       <div key={pref.name}>
@@ -232,9 +224,7 @@ export function RegionFilter({
                         >
                           <Checkbox
                             checked={prefStatus === "checked"}
-                            indeterminate={
-                              prefStatus === "indeterminate"
-                            }
+                            indeterminate={prefStatus === "indeterminate"}
                           />
                           <span
                             className={cn(
@@ -270,9 +260,7 @@ export function RegionFilter({
                                   )}
                                 >
                                   <Checkbox checked={isCitySelected} />
-                                  <span className="ml-[6px]">
-                                    {city}
-                                  </span>
+                                  <span className="ml-[6px]">{city}</span>
                                 </button>
                               );
                             })}
