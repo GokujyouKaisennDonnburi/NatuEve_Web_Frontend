@@ -1,19 +1,22 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { notifyEventParticipants } from "@/services/event";
+import { Send } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Card, CardContent } from "../../ui/card";
 
 // 全体連絡モーダルのプロパティ
 type EventNotifyModalProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   eventId: string;
+  totalCount: number;
+  totalMembers: number;
 };
 
 // 全体連絡モーダルのコンポーネント
@@ -21,6 +24,8 @@ export function EventNotifyModal({
   isOpen,
   onOpenChange,
   eventId,
+  totalCount,
+  totalMembers,
 }: Readonly<EventNotifyModalProps>) {
   // モーダルの状態管理
   const [isSending, setIsSending] = useState(false);
@@ -108,76 +113,95 @@ export function EventNotifyModal({
       />
 
       <div
-        className="relative w-full max-w-md"
+        className="relative w-full max-w-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby={`event-notify-modal-title-${eventId}`}
       >
-        <Card className="border-slate-200/80 bg-white/95 shadow-xl backdrop-blur">
-          <CardContent className="space-y-5 pt-6">
-            <div className="space-y-1">
-              <h2
-                id={`event-notify-modal-title-${eventId}`}
-                className="text-lg font-bold text-slate-900"
-              >
-                イベント参加者へ全体連絡
-              </h2>
+        <Card className="border-slate-200 bg-white shadow-xl">
+          <CardContent className="space-y-6 px-8 py-2">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
+                <Send className="h-6 w-6" />
+              </div>
 
-              <p className="text-sm text-slate-600">
-                入力した内容はイベント参加者へ一斉送信されます。
-              </p>
+              <div className="space-y-0.5">
+                <h2
+                  id={`event-notify-modal-title-${eventId}`}
+                  className="text-lg font-bold text-slate-900"
+                >
+                  イベント参加者へ全体連絡
+                </h2>
+
+                <p className="text-sm text-slate-500">
+                  参加者 {totalCount}組（{totalMembers}
+                  名）全員に、登録メールアドレス宛でお知らせを送信します。
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {/* 件名の入力欄 */}
-              <div className="space-y-1.5">
-                <Label htmlFor={`notify-subject-${eventId}`}>
-                  件名
-                  <span className="ml-1 text-red-600">(必須)</span>
-                </Label>
+            <div className="space-y-6">
+              {/* 件名 */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor={`notify-subject-${eventId}`}
+                    className="text-sm font-semibold text-slate-800"
+                  >
+                    件名
+                  </Label>
+
+                  <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-slate-800">
+                    必須
+                  </span>
+                </div>
 
                 <Input
                   id={`notify-subject-${eventId}`}
-                  type="text"
                   value={notifySubject}
                   onChange={(e) => setNotifySubject(e.target.value)}
-                  placeholder="例:【お知らせ】集合場所の変更について"
                   disabled={isSending}
                   maxLength={255}
+                  placeholder="例:【当日連絡】集合場所のご案内"
+                  className="h-11 rounded-xl border-slate-300"
                 />
               </div>
 
-              {/* 連絡内容の入力欄 */}
-              <div className="space-y-1.5">
-                <Label htmlFor={`notify-body-${eventId}`}>
-                  連絡内容
-                  <span className="ml-1 text-red-600">(必須)</span>
-                </Label>
+              {/* 連絡内容 */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor={`notify-body-${eventId}`}
+                    className="text-sm font-semibold text-slate-800"
+                  >
+                    連絡内容
+                  </Label>
+
+                  <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-slate-800">
+                    必須
+                  </span>
+                </div>
 
                 <Textarea
                   id={`notify-body-${eventId}`}
                   value={notifyBody}
                   onChange={(e) => setNotifyBody(e.target.value)}
-                  placeholder="例:当日の集合場所をA公園からB公園に変更しました。ご注意ください。"
                   disabled={isSending}
-                  rows={4}
-                  className="field-sizing-fixed h-24 resize-none overflow-y-auto"
+                  rows={7}
+                  placeholder="参加者へのメッセージを入力してください"
+                  className="field-sizing-fixed h-40 resize-none rounded-xl border-slate-300"
                 />
-
-                <p className="text-xs text-slate-500">
-                  入力した内容はイベント参加者へメールで一斉送信されます。
-                </p>
               </div>
             </div>
 
-            {/* キャンセルボタンと送信ボタン */}
-            <div className="flex justify-end gap-2 pt-2">
+            {/* ボタン */}
+            <div className="flex justify-end gap-3 pt-2">
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 disabled={isSending}
                 onClick={handleClose}
-                className="cursor-pointer"
+                className="h-11 rounded-full border-slate-300 px-8 font-semibold text-slate-700"
               >
                 キャンセル
               </Button>
@@ -186,9 +210,10 @@ export function EventNotifyModal({
                 type="button"
                 disabled={!canSend}
                 onClick={handleSend}
-                className="cursor-pointer bg-teal-600 text-white hover:bg-teal-700"
+                className="h-11 gap-2 rounded-full bg-sky-500 px-8 font-semibold text-white hover:bg-sky-600 disabled:bg-sky-300 disabled:text-white"
               >
-                {isSending ? "送信中…" : "送信する"}
+                <Send className="h-4 w-4 text-white" />
+                {isSending ? "送信中..." : "送信する"}
               </Button>
             </div>
           </CardContent>

@@ -172,6 +172,8 @@ export function EventDetail({
         isOpen={isNotifyOpen}
         onOpenChange={setIsNotifyOpen}
         eventId={event.id}
+        totalCount={memberState.data?.totalCount ?? 0}
+        totalMembers={memberState.data?.totalMembers ?? 0}
       />
 
       {/* イベント削除モーダル */}
