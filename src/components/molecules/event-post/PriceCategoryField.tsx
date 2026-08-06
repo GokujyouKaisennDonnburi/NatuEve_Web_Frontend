@@ -2,6 +2,7 @@ import { useId } from "react";
 
 import { AddItemButton } from "@/components/atoms/AddItemButton";
 import { DeleteIconButton } from "@/components/atoms/DeleteIconButton";
+import { FieldNote } from "@/components/atoms/FieldNote";
 import { FormInput } from "@/components/atoms/FormInput";
 import { UnitInput } from "@/components/molecules/UnitInput";
 import { Label } from "@/components/ui/label";
@@ -67,7 +68,7 @@ export function PriceCategoryField({
         {items.map((item, index) => (
           <div
             key={rowIds[index] ?? `${fieldId}-item-${index}`}
-            className="space-y-1"
+            className="space-y-2"
           >
             <div className="flex items-start gap-3">
               {/* カテゴリの入力欄を表示する部分。 */}
@@ -83,6 +84,7 @@ export function PriceCategoryField({
                   value={item.category}
                   onChange={(e) => handleCategoryChange(index, e.target.value)}
                   placeholder="例: 高校生"
+                  aria-invalid={Boolean(errors?.[index])}
                 />
               </div>
 
@@ -105,6 +107,7 @@ export function PriceCategoryField({
                   onChange={(e) => handleAmountChange(index, e.target.value)}
                   placeholder="0"
                   className="text-right"
+                  aria-invalid={Boolean(errors?.[index])}
                 />
               </div>
 
@@ -117,7 +120,7 @@ export function PriceCategoryField({
             </div>
 
             {errors?.[index] ? (
-              <p className="text-xs text-rose-600">{errors[index]}</p>
+              <FieldNote tone="error">{errors[index]}</FieldNote>
             ) : null}
           </div>
         ))}

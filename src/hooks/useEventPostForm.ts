@@ -165,11 +165,11 @@ export function useEventPostForm() {
       const hasAmount = Boolean(group.amount.trim());
 
       if (!hasCategory && !hasAmount) {
-        feeErrors[index] = "カテゴリと金額を入力してください。";
+        feeErrors[index] = "カテゴリと金額は必須です。";
       } else if (!hasCategory) {
-        feeErrors[index] = "カテゴリを入力してください。";
+        feeErrors[index] = "カテゴリは必須です。";
       } else if (!hasAmount) {
-        feeErrors[index] = "金額を入力してください。";
+        feeErrors[index] = "金額は必須です。";
       } else if (!/^\d+$/.test(group.amount.trim())) {
         feeErrors[index] = "金額は数字で入力してください。";
       }

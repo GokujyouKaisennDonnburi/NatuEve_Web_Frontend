@@ -2,6 +2,7 @@ import { useId } from "react";
 
 import { AddItemButton } from "@/components/atoms/AddItemButton";
 import { DeleteIconButton } from "@/components/atoms/DeleteIconButton";
+import { FieldNote } from "@/components/atoms/FieldNote";
 import { FormEmptyBox } from "@/components/atoms/FormEmptyBox";
 import { FormInput } from "@/components/atoms/FormInput";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -59,7 +60,7 @@ export function RequiredItemField({
             key={rowIds[index] ?? `${fieldId}-item-${index}`}
             className="flex items-start gap-3"
           >
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 space-y-2">
               <Label htmlFor={`${fieldId}-name-${index}`} className="sr-only">
                 持ち物名
               </Label>
@@ -71,9 +72,10 @@ export function RequiredItemField({
                 }
                 placeholder="例: 飲み物"
                 maxLength={MAX_TEXT_LENGTH}
+                aria-invalid={Boolean(errors?.[index])}
               />
               {errors?.[index] ? (
-                <p className="mt-1 text-xs text-rose-600">{errors[index]}</p>
+                <FieldNote tone="error">{errors[index]}</FieldNote>
               ) : null}
             </div>
 
