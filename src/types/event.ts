@@ -135,6 +135,7 @@ export type EventDetailResponse = {
   createdAt: string;
   description: string;
   eventDate: string;
+  endDate: string;
   externalUrl?: string;
   id: string;
   imageObjectKeys: string[];
