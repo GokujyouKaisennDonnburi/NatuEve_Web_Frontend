@@ -227,7 +227,7 @@ export function EventPostForm() {
         >
           <FormTextarea
             id={getFieldId("eventContent")}
-            rows={6}
+            rows={5}
             className="max-h-60 resize-y overflow-y-auto"
             value={formState.eventContent}
             onChange={(event) => setField("eventContent", event.target.value)}
