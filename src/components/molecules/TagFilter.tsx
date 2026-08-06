@@ -23,15 +23,21 @@ export function TagFilter({
   className,
 }: Readonly<TagFilterProps>) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
+  const [hiddenCount, setHiddenCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = containerRef.current;
-    if (el) {
-      setHasMore(el.scrollHeight > el.clientHeight);
+    if (!el || isExpanded) return;
+    let count = 0;
+    for (let i = 0; i < el.children.length; i++) {
+      const child = el.children[i] as HTMLElement;
+      if (child.offsetTop >= 76) {
+        count++;
+      }
     }
-  }, [tags]);
+    setHiddenCount(count);
+  }, [tags, isExpanded]);
 
   return (
     <div className={cn("", className)}>
@@ -101,13 +107,15 @@ export function TagFilter({
             ))}
           </div>
 
-          {(hasMore || isExpanded) && (
+          {(hiddenCount > 0 || isExpanded) && (
             <button
               type="button"
               onClick={() => setIsExpanded((prev) => !prev)}
               className="text-[13px] font-bold leading-[19px] text-[#3868A3] hover:underline bg-transparent border-none p-0 cursor-pointer"
             >
-              {isExpanded ? "− 閉じる" : "＋ もっと見る"}
+              {isExpanded
+                ? "− 閉じる"
+                : `＋ もっと見る（残り${hiddenCount}個）`}
             </button>
           )}
         </>
