@@ -65,6 +65,13 @@ export function EventPostToc() {
             <li key={section.id}>
               <a
                 href={`#${section.id}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  document.getElementById(section.id)?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                }}
                 aria-current={isActive ? "location" : undefined}
                 className={cn(
                   "flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-slate-800 transition-colors",
