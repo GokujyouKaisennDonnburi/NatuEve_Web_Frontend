@@ -237,7 +237,11 @@ export function EventCancelModal({
                 onClick={handleCancel}
                 className="h-11 rounded-full bg-red-500 px-8 font-semibold text-white hover:bg-red-600 disabled:bg-red-300 disabled:text-white"
               >
-                {isCancelling ? "送信中…" : "連絡して削除"}
+                {isCancelling
+                  ? "送信中…"
+                  : hasMembers
+                    ? "連絡して削除"
+                    : "削除する"}
               </Button>
 
               <Button
