@@ -3,7 +3,7 @@
 import { FilterTag } from "@/components/atoms/FilterTag";
 import { cn } from "@/lib/utils";
 import type { TagItem } from "@/types/tag";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 type TagFilterProps = {
   tags: TagItem[];
@@ -26,17 +26,17 @@ export function TagFilter({
   const [hiddenCount, setHiddenCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el || isExpanded) return;
-    let count = 0;
+    let visibleCount = 0;
     for (let i = 0; i < el.children.length; i++) {
       const child = el.children[i] as HTMLElement;
-      if (child.offsetTop >= 76) {
-        count++;
+      if (child.offsetTop < 76) {
+        visibleCount++;
       }
     }
-    setHiddenCount(count);
+    setHiddenCount(tags.length - visibleCount);
   }, [tags, isExpanded]);
 
   return (
