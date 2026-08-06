@@ -264,7 +264,7 @@ export default function EventListPage() {
       {/* Two-column: Filter sidebar + Event list */}
       <div className="flex items-start gap-[36px]">
         {/* Filter sidebar */}
-        <aside className="w-[342px] shrink-0 sticky top-8 max-h-[calc(100vh-16rem)] overflow-y-auto overscroll-contain">
+        <aside className="w-[342px] shrink-0 sticky top-8">
           <FilterSidebar
             tags={frequentTags}
             selectedTagIds={selectedTagIds}
@@ -309,9 +309,9 @@ export default function EventListPage() {
         </aside>
 
         {/* Main content */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col">
           {/* Event count + Create button */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 shrink-0">
             <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
               {totalCount} 件のイベント
             </span>
@@ -323,7 +323,7 @@ export default function EventListPage() {
           </div>
 
           {/* Scrollable event cards + pagination */}
-          <div className="overflow-y-auto overscroll-contain max-h-[calc(100vh-23.5rem)]">
+          <div className="flex-1 overflow-y-auto overscroll-contain max-h-[calc(100vh-16rem)]">
             {/* Event cards */}
             <div className="space-y-[61px]">
               {events.map((event) => (
