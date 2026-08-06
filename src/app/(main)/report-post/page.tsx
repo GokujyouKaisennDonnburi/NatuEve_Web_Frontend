@@ -20,6 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
+import { getEventDetail } from "@/services/event";
 import { createReport } from "@/services/report";
 import { uploadFile } from "@/services/upload";
 import type { CreateReportRequest } from "@/types/report";
@@ -93,17 +94,10 @@ function ReportPostPageContent() {
     let cancelled = false;
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`/api/v1/events/${encodeURIComponent(eventId)}`);
-        if (!res.ok) {
-          throw new Error(`status:${res.status}`);
-        }
-        const data = (await res.json()) as EventDetailType;
-        if (!cancelled) {
-          setEvent(data);
-        }
+        const data = await getEventDetail(eventId);
+        setEvent(data);
       } catch (error) {
         console.error("イベント取得エラー", error);
-        toast.error("イベント情報の取得に失敗しました");
       }
     };
     void fetchEvent();
@@ -282,15 +276,26 @@ function ReportPostPageContent() {
                     weekday: "short",
                     timeZone: "Asia/Tokyo",
                   })}
-
                   {" "}
-
                   {new Date(event.eventDate).toLocaleTimeString("ja-JP", {
                     hour: "2-digit",
                     minute: "2-digit",
                     timeZone: "Asia/Tokyo",
                   })}
                   〜
+
+                  {new Date(event.endDate).toLocaleDateString("ja-JP", {
+                    month: "short",
+                    day: "numeric",
+                    weekday: "short",
+                    timeZone: "Asia/Tokyo",
+                  })}
+                  {" "}
+                  {new Date(event.endDate).toLocaleTimeString("ja-JP", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "Asia/Tokyo",
+                  })}
                 </span>
               )}
 
