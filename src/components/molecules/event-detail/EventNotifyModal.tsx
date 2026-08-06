@@ -85,6 +85,12 @@ export function EventNotifyModal({
   useEffect(() => {
     if (!isOpen) return;
 
+    // モーダル表示中に背景のツールバーボタンへフォーカスが残ると、
+    // ブラウザ最小化→復元時の focus イベントで Tooltip が開きっぱなしになるため blur する
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         handleClose();

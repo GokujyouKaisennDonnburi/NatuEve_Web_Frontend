@@ -323,6 +323,12 @@ const GuestParticipationModal = ({
 
   // Escape キーでモーダルを閉じる
   useEffect(() => {
+    // モーダル表示中に背景のツールバーボタンへフォーカスが残ると、
+    // ブラウザ最小化→復元時の focus イベントで Tooltip が開きっぱなしになるため blur する
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     emailRef.current?.focus(); // メールアドレス入力欄にフォーカスする
 
     // Escape キーでモーダルを閉じる処理
@@ -517,6 +523,12 @@ const CancelParticipationModal = ({
 
   // Escape キーでモーダルを閉じる
   useEffect(() => {
+    // モーダル表示中に背景のツールバーボタンへフォーカスが残ると、
+    // ブラウザ最小化→復元時の focus イベントで Tooltip が開きっぱなしになるため blur する
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isSubmitting) {
         onClose();
