@@ -32,7 +32,7 @@ export function GlobalUserAvatar({
       {shouldShowImage && iconUrl ? (
         <Image
           key={imageSrc}
-          src={imageSrc}
+          src={iconUrl}
           alt={name ?? "ユーザーアバター"}
           width={32}
           height={32}

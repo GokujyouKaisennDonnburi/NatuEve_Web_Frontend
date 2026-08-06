@@ -161,8 +161,10 @@ export function EventDetail({
       {/* 参加者一覧モーダル */}
       <EventMemberListModal
         memberState={memberState}
+        eventTitle={event.title}
         isOpen={isMemberListOpen}
         onOpenChange={setIsMemberListOpen}
+        onNotify={() => setIsNotifyOpen(true)}
       />
 
       {/* 全体連絡モーダル */}
