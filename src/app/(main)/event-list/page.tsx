@@ -1,18 +1,15 @@
 "use client";
 
-import { CreateEventButton } from "@/components/atoms/CreateEventButton";
 import { FilterIconButton } from "@/components/atoms/FilterIconButton";
 import { SortButton } from "@/components/atoms/SortButton";
 import { SearchBar } from "@/components/molecules/SearchBar";
 import { Pagination } from "@/components/molecules/Pagination";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
-import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchEventList } from "@/services/event";
 import type { TagItem } from "@/types/tag";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -25,8 +22,6 @@ export default function EventListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const ITEMS_PER_PAGE = 15;
-
-  const router = useRouter();
 
   // Supabaseのセッション状態を取得
   const { session, isLoading: isSessionLoading } = useAuth();
@@ -64,6 +59,7 @@ export default function EventListPage() {
       .map(([id]) => tagMap.get(id)!);
   }, [events]);
 
+}, [events]);
   useEffect(() => {
     let cancelled = false;
 
@@ -142,17 +138,6 @@ export default function EventListPage() {
       cancelled = true;
     };
   }, [currentPage, sortBy, searchQuery, isSessionLoading]); // 依存配列に loading 状態を追加
-
-  const handleCreateEvent = () => {
-    if (isSessionLoading || isProfileLoading) {
-      return;
-    }
-    if (!currentUser) {
-      toast.error("イベントを投稿するにはログインしてください。");
-      return;
-    }
-    router.push(ROUTES.EVENT_POST);
-  };
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -309,17 +294,12 @@ export default function EventListPage() {
         </aside>
 
         {/* Main content */}
-        <div className="flex-1 min-w-0 flex flex-col">
-          {/* Event count + Create button */}
-          <div className="flex items-center justify-between mb-4 shrink-0">
+        <div className="flex-1 min-w-0">
+          {/* Event count */}
+          <div className="mb-4">
             <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
               {totalCount} 件のイベント
             </span>
-            <CreateEventButton
-              type="button"
-              onClick={handleCreateEvent}
-              aria-label="イベントを投稿"
-            />
           </div>
 
           {/* Event cards */}
