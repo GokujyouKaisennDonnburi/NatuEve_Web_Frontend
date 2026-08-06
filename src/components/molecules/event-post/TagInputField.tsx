@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";
 import { useCreateTag } from "@/hooks/useCreateTag";
+import { useRowIds } from "@/hooks/useRowIds";
 import { useTags } from "@/hooks/useTags";
 import { TagError, TagErrorCode, type TagItem } from "@/types/tag";
 
@@ -53,26 +54,7 @@ export function TagInputField({
     latestTagsRef.current = tags;
   }, [tags]);
 
-  const [rowIds, setRowIds] = useState<string[]>(() =>
-    tags.map(() => crypto.randomUUID()),
-  );
-
-  useEffect(() => {
-    setRowIds((current) => {
-      if (current.length === tags.length) {
-        return current;
-      }
-      if (current.length < tags.length) {
-        return [
-          ...current,
-          ...Array.from({ length: tags.length - current.length }, () =>
-            crypto.randomUUID(),
-          ),
-        ];
-      }
-      return current.slice(0, tags.length);
-    });
-  }, [tags.length]);
+  const { rowIds } = useRowIds(tags.length);
 
   const existingNames = new Set(tags.map((t) => t.name));
   const normalizedDraft = normalize(trimmedDraft);

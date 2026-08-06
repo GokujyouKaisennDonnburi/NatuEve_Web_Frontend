@@ -1,9 +1,10 @@
 import { Plus, X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useId } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useRowIds } from "@/hooks/useRowIds";
 
 // 価格カテゴリの入力欄を表示するコンポーネントのプロパティを定義
 export type PriceCategory = {
@@ -26,45 +27,18 @@ export function PriceCategoryField({
 }: Readonly<PriceCategoryFieldProps>) {
   const fieldId = useId(); // コンポーネントの一意なIDを生成するためのフック
 
-  // 各行のIDを管理する状態。行の追加や削除に対応するため、items の長さに応じて動的に更新される。
-  const [rowIds, setRowIds] = useState<string[]>(() =>
-    items.map(() => crypto.randomUUID()),
-  );
-
-  // items の長さが変わったときに rowIds を更新するエフェクト。行の追加や削除に対応するため、items の長さに応じて rowIds を動的に更新する。
-  useEffect(() => {
-    // items の長さに応じて rowIds を更新する。
-    setRowIds((current) => {
-      // items の長さと現在の rowIds の長さが同じ場合はそのまま返す。
-      if (current.length === items.length) {
-        return current;
-      }
-
-      // items の長さより rowIds の長さが短い場合は、足りない分のIDを生成して追加する。items の長さより rowIds の長さが長い場合は、余分なIDを削除する。
-      if (current.length < items.length) {
-        return [
-          ...current,
-          ...Array.from({ length: items.length - current.length }, () =>
-            crypto.randomUUID(),
-          ),
-        ];
-      }
-
-      return current.slice(0, items.length);
-    });
-  }, [items.length]);
+  // 各行のIDを管理する。行の追加や削除に対応するため、items の長さに応じて動的に更新される。
+  const { rowIds, addRowId, removeRowId } = useRowIds(items.length);
 
   // 行を追加する処理。新しい行を追加するときに、rowIds に新しいIDを追加し、items に新しい価格カテゴリを追加する。
   const handleAddItem = () => {
-    setRowIds((current) => [...current, crypto.randomUUID()]);
+    addRowId();
     onItemsChange([...items, { category: "", amount: "" }]);
   };
 
   // 行を削除する処理。行を削除するときに、rowIds から該当するIDを削除し、items から該当する価格カテゴリを削除する。
   const handleRemoveItem = (index: number) => {
-    setRowIds((current) =>
-      current.filter((_, currentIndex) => currentIndex !== index),
-    );
+    removeRowId(index);
     onItemsChange(items.filter((_, i) => i !== index));
   };
 

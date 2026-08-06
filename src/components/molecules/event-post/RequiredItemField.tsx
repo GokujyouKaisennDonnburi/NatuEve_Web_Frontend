@@ -1,10 +1,11 @@
 import { Plus, X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useId } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useRowIds } from "@/hooks/useRowIds";
 
 export type RequiredItem = {
   itemName: string;
@@ -24,38 +25,15 @@ export function RequiredItemField({
 }: Readonly<RequiredItemFieldProps>) {
   const fieldId = useId();
 
-  const [rowIds, setRowIds] = useState<string[]>(() =>
-    items.map(() => crypto.randomUUID()),
-  );
-
-  useEffect(() => {
-    setRowIds((current) => {
-      if (current.length === items.length) {
-        return current;
-      }
-
-      if (current.length < items.length) {
-        return [
-          ...current,
-          ...Array.from({ length: items.length - current.length }, () =>
-            crypto.randomUUID(),
-          ),
-        ];
-      }
-
-      return current.slice(0, items.length);
-    });
-  }, [items.length]);
+  const { rowIds, addRowId, removeRowId } = useRowIds(items.length);
 
   const handleAddItem = () => {
-    setRowIds((current) => [...current, crypto.randomUUID()]);
+    addRowId();
     onItemsChange([...items, { itemName: "", isRequired: true }]);
   };
 
   const handleRemoveItem = (index: number) => {
-    setRowIds((current) =>
-      current.filter((_, currentIndex) => currentIndex !== index),
-    );
+    removeRowId(index);
     onItemsChange(items.filter((_, currentIndex) => currentIndex !== index));
   };
 
