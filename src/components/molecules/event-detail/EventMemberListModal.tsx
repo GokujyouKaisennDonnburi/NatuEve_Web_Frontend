@@ -107,7 +107,7 @@ function EventMemberListBody({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-hidden">
+    <div className="flex flex-auto flex-col gap-4 overflow-hidden">
       {/* サマリー */}
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
@@ -137,7 +137,7 @@ function EventMemberListBody({
       </div>
 
       {/* 参加者一覧 */}
-      <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="flex flex-auto flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
         {/* ヘッダー */}
         <table className="w-full table-fixed">
           <thead className="bg-slate-100">
@@ -151,7 +151,7 @@ function EventMemberListBody({
         </table>
 
         {/* tbodyだけスクロール */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-auto overflow-y-auto">
           <table className="w-full table-fixed">
             <tbody>
               {data.members.map((member) => {
@@ -283,7 +283,7 @@ export function EventMemberListModal({
       />
 
       <div
-        className="relative z-10 flex h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-[32px] bg-white shadow-2xl"
+        className="relative z-10 flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-[32px] bg-white shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="member-list-modal-title"
@@ -312,7 +312,7 @@ export function EventMemberListModal({
         </div>
 
         {/* ================= Body ================= */}
-        <CardContent className="flex flex-1 flex-col bg-white px-8 py-6 overflow-hidden">
+        <CardContent className="flex flex-auto flex-col bg-white px-8 py-6 overflow-hidden">
           <EventMemberListBody memberState={memberState} onNotify={onNotify} />
         </CardContent>
       </div>
