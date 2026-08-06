@@ -1,6 +1,6 @@
 "use client";
 
-import { FieldNote } from "@/components/atoms/event-post/FieldNote";
+import { FieldNote } from "@/components/atoms/FieldNote";
 
 import { OptionalUrlField } from "@/components/molecules/event-post/OptionalUrlField";
 import {

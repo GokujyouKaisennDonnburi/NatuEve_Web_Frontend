@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { FieldNote } from "@/components/atoms/event-post/FieldNote";
-import { RequiredBadge } from "@/components/atoms/event-post/RequiredBadge";
+import { FieldNote } from "@/components/atoms/FieldNote";
+import { RequiredBadge } from "@/components/atoms/RequiredBadge";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 

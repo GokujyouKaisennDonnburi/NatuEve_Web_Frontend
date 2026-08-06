@@ -10,9 +10,9 @@ import {
 } from "react";
 import { toast } from "sonner";
 
-import { FieldNote } from "@/components/atoms/event-post/FieldNote";
+import { FieldNote } from "@/components/atoms/FieldNote";
 import { TagChip } from "@/components/atoms/event-post/TagChip";
-import { FormField } from "@/components/molecules/event-post/FormField";
+import { FormField } from "@/components/molecules/FormField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";

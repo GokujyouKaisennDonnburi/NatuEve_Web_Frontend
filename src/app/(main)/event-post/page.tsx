@@ -5,7 +5,7 @@ import { EventPostSubmitButton } from "@/components/atoms/event-post/EventPostSu
 import { PaymentAlertNote } from "@/components/atoms/event-post/PaymentAlertNote";
 import { SectionHeading } from "@/components/atoms/event-post/SectionHeading";
 import { FileField } from "@/components/molecules/event-post/FileField";
-import { FormField } from "@/components/molecules/event-post/FormField";
+import { FormField } from "@/components/molecules/FormField";
 import { OptionalUrlField } from "@/components/molecules/event-post/OptionalUrlField";
 import {
   type PriceCategory,
