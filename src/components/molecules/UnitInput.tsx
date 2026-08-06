@@ -1,9 +1,9 @@
 import type { ComponentPropsWithoutRef } from "react";
 
-import { Input } from "@/components/ui/input";
+import { FormInput } from "@/components/atoms/FormInput";
 import { cn } from "@/lib/utils";
 
-type UnitInputProps = ComponentPropsWithoutRef<typeof Input> & {
+type UnitInputProps = ComponentPropsWithoutRef<typeof FormInput> & {
   // 「円」「名」など入力欄の右端に添える単位
   unit: string;
 };
@@ -17,7 +17,7 @@ export function UnitInput({
 }: Readonly<UnitInputProps>) {
   return (
     <div className="relative">
-      <Input {...props} className={cn("pr-10", className)} />
+      <FormInput {...props} className={cn("pr-10", className)} />
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-slate-500"

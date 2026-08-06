@@ -1,10 +1,12 @@
-import { Plus, X } from "lucide-react";
 import { useId } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { AddItemButton } from "@/components/atoms/AddItemButton";
+import { DeleteIconButton } from "@/components/atoms/DeleteIconButton";
+import { FormInput } from "@/components/atoms/FormInput";
+import { UnitInput } from "@/components/molecules/UnitInput";
 import { Label } from "@/components/ui/label";
 import { useRowIds } from "@/hooks/useRowIds";
+import { normalizeHalfWidthDigits } from "@/utils/format";
 
 // 価格カテゴリの入力欄を表示するコンポーネントのプロパティを定義
 export type PriceCategory = {
@@ -51,14 +53,11 @@ export function PriceCategoryField({
 
   // 金額の値が変更されたときの処理。入力された値を全角数字から半角数字に変換し、items の該当する価格カテゴリの amount プロパティを更新する。
   const handleAmountChange = (index: number, value: string) => {
-    const normalizedValue = value
-      .replace(/[０-９]/g, (character) =>
-        String.fromCharCode(character.charCodeAt(0) - 0xfee0),
-      )
-      .replace(/[^0-9]/g, "");
-
     const updated = [...items];
-    updated[index] = { ...updated[index], amount: normalizedValue };
+    updated[index] = {
+      ...updated[index],
+      amount: normalizeHalfWidthDigits(value),
+    };
     onItemsChange(updated);
   };
 
@@ -72,77 +71,59 @@ export function PriceCategoryField({
           >
             <div className="flex items-start gap-3">
               {/* カテゴリの入力欄を表示する部分。 */}
-              <div className="flex-1">
+              <div className="min-w-0 flex-[3]">
                 <Label
                   htmlFor={`${fieldId}-category-${index}`}
                   className="sr-only"
                 >
                   カテゴリ
                 </Label>
-                <Input
+                <FormInput
                   id={`${fieldId}-category-${index}`}
                   value={item.category}
                   onChange={(e) => handleCategoryChange(index, e.target.value)}
                   placeholder="例: 高校生"
-                  className="text-sm"
                 />
               </div>
 
               {/* 金額の入力欄を表示する部分。全角数字を半角数字に変換して入力を受け付ける。 */}
-              <div className="flex-1">
+              <div className="min-w-0 flex-[2]">
+                {/* 単位「円」は装飾のため、読み上げ用のラベル側に単位を含める */}
                 <Label
                   htmlFor={`${fieldId}-amount-${index}`}
                   className="sr-only"
                 >
-                  金額
+                  金額（円）
                 </Label>
-                <Input
+                <UnitInput
                   id={`${fieldId}-amount-${index}`}
+                  unit="円"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={item.amount}
                   onChange={(e) => handleAmountChange(index, e.target.value)}
-                  placeholder="例: 1000"
-                  className="text-sm"
+                  placeholder="0"
+                  className="text-right"
                 />
               </div>
 
-              {/* 行を削除するボタンを表示する部分 */}
-              <div className="flex items-center self-center">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => handleRemoveItem(index)}
-                  disabled={items.length <= 1}
-                  aria-label={`行${index + 1}を削除`}
-                  className={`text-red-600 hover:bg-transparent hover:text-red-700 ${
-                    items.length <= 1 ? "invisible" : "cursor-pointer"
-                  }`}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              {/* 行を削除するボタンを表示する部分。参加費用は1件以上必須のため、1件のときは無効にする */}
+              <DeleteIconButton
+                onClick={() => handleRemoveItem(index)}
+                label={`${index + 1}行目の参加費用を削除`}
+                disabled={items.length <= 1}
+              />
             </div>
 
             {errors?.[index] ? (
-              <p className="text-xs text-red-600">{errors[index]}</p>
+              <p className="text-xs text-rose-600">{errors[index]}</p>
             ) : null}
           </div>
         ))}
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleAddItem}
-        className="w-full text-sm"
-      >
-        <Plus className="h-4 w-4" />
-        カテゴリを追加
-      </Button>
+      <AddItemButton onClick={handleAddItem}>項目を追加</AddItemButton>
     </div>
   );
 }

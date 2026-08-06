@@ -1,10 +1,12 @@
-import { Plus, X } from "lucide-react";
 import { useId } from "react";
 
-import { Button } from "@/components/ui/button";
+import { AddItemButton } from "@/components/atoms/AddItemButton";
+import { DeleteIconButton } from "@/components/atoms/DeleteIconButton";
+import { EmptyMessage } from "@/components/atoms/EmptyMessage";
+import { FormInput } from "@/components/atoms/FormInput";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MAX_TEXT_LENGTH } from "@/constants/config";
 import { useRowIds } from "@/hooks/useRowIds";
 
 export type RequiredItem = {
@@ -57,73 +59,56 @@ export function RequiredItemField({
             key={rowIds[index] ?? `${fieldId}-item-${index}`}
             className="flex items-start gap-3"
           >
-            <div className="flex-1 space-y-1">
+            <div className="min-w-0 flex-1">
               <Label htmlFor={`${fieldId}-name-${index}`} className="sr-only">
                 持ち物名
               </Label>
-              <Input
+              <FormInput
                 id={`${fieldId}-name-${index}`}
                 value={item.itemName}
                 onChange={(event) =>
                   handleItemNameChange(index, event.target.value)
                 }
                 placeholder="例: 飲み物"
-                maxLength={255}
-                className="text-sm"
+                maxLength={MAX_TEXT_LENGTH}
               />
               {errors?.[index] ? (
-                <p className="mt-1 text-xs text-red-600">{errors[index]}</p>
+                <p className="mt-1 text-xs text-rose-600">{errors[index]}</p>
               ) : null}
             </div>
 
-            <div className="flex items-center gap-2 self-center rounded-md border border-slate-200 bg-white px-3 py-2">
+            <div className="flex h-11 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
               <Checkbox
                 id={`${fieldId}-required-${index}`}
                 checked={item.isRequired}
                 onCheckedChange={(checked) =>
                   handleRequiredChange(index, checked === true)
                 }
+                className="cursor-pointer data-[state=checked]:border-(--brand-green) data-[state=checked]:bg-(--brand-green) data-[state=checked]:text-white"
               />
               <Label
                 htmlFor={`${fieldId}-required-${index}`}
-                className="cursor-pointer text-sm text-slate-700"
+                className="cursor-pointer text-sm text-slate-600"
               >
                 必須
               </Label>
             </div>
 
-            <div className="flex items-center self-center">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                onClick={() => handleRemoveItem(index)}
-                aria-label={`行${index + 1}を削除`}
-                className="cursor-pointer text-red-600 hover:bg-transparent hover:text-red-700"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <DeleteIconButton
+              onClick={() => handleRemoveItem(index)}
+              label={`${index + 1}行目の持ち物を削除`}
+            />
           </div>
         ))}
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+        <EmptyMessage variant="compact">
           持ち物は未設定です。必要な場合は下のボタンから追加してください。
-        </div>
+        </EmptyMessage>
       ) : null}
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleAddItem}
-        className="w-full text-sm"
-      >
-        <Plus className="h-4 w-4" />
-        持ち物を追加
-      </Button>
+      <AddItemButton onClick={handleAddItem}>持ち物を追加</AddItemButton>
     </div>
   );
 }

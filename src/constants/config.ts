@@ -7,3 +7,9 @@ export const API_BASE_URL = "/api";
 // バックエンド(MSW)のサーバー側バリデーションと一致させる。
 export const MAX_TAG_COUNT = 10;
 export const MAX_TAG_LENGTH = 30;
+
+// テキスト入力の共通上限。バックエンドの255文字制限に合わせる。
+export const MAX_TEXT_LENGTH = 255;
+
+// 1イベントに添付できるPDFの上限。
+export const MAX_EVENT_PDF_COUNT = 3;
