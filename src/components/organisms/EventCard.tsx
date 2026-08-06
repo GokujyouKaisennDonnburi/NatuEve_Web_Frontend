@@ -50,11 +50,12 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
   });
 
   return (
-    <div
-      role="link"
-      tabIndex={0}
-      aria-label={`${event.title} の詳細へ移動`}
-      onClick={() => router.push(`/event/${event.id}`)}
+    <a
+      href={`/event/${event.id}`}
+      onClick={(e) => {
+        e.preventDefault();
+        router.push(`/event/${event.id}`);
+      }}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
@@ -143,6 +144,6 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           詳細を見る
         </Button>
       </div>
-    </div>
+    </a>
   );
 }

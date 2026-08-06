@@ -41,9 +41,9 @@ export function TagFilter({
 
   return (
     <div className={cn("", className)}>
-      <label className="block text-xs font-bold leading-[17px] text-[#838C7D] mb-2">
+      <span className="block text-xs font-bold leading-[17px] text-[#838C7D] mb-2">
         タグ
-      </label>
+      </span>
 
       <div className="flex items-center h-[42px] bg-[#F8FAF6] border border-[#E3E8DF] rounded-[10px] overflow-hidden mb-4">
         <svg

@@ -6,12 +6,9 @@ import { SearchBar } from "@/components/molecules/SearchBar";
 import { Pagination } from "@/components/molecules/Pagination";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
-import { useAuth } from "@/hooks/useAuth";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchEventList } from "@/services/event";
 import type { TagItem } from "@/types/tag";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 
 type SortOption = "created_at" | "event_date";
 
@@ -22,13 +19,6 @@ export default function EventListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const ITEMS_PER_PAGE = 15;
-
-  // Supabaseのセッション状態を取得
-  const { session, isLoading: isSessionLoading } = useAuth();
-
-  // 現在のユーザー情報を取得（Service経由）
-  const { user: currentUser, isLoading: isProfileLoading } =
-    useCurrentUser(session);
 
   // 絞り込みフィルターの状態
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -56,7 +46,8 @@ export default function EventListPage() {
     }
     return Array.from(countMap.entries())
       .sort((a, b) => b[1] - a[1])
-      .map(([id]) => tagMap.get(id)!);
+      .map(([id]) => tagMap.get(id))
+      .filter((t): t is TagItem => t != null);
   }, [events]);
 
   useEffect(() => {
@@ -64,9 +55,6 @@ export default function EventListPage() {
 
     const fetchEvents = async (attempt = 0): Promise<void> => {
       if (cancelled) return;
-
-      // セッションがロード中の場合は待機
-      if (isSessionLoading) return;
 
       try {
         const offset = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -136,7 +124,7 @@ export default function EventListPage() {
     return () => {
       cancelled = true;
     };
-  }, [currentPage, sortBy, searchQuery, isSessionLoading]); // 依存配列に loading 状態を追加
+  }, [currentPage, sortBy, searchQuery]);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 

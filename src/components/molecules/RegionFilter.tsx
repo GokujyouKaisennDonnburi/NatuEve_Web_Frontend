@@ -134,7 +134,6 @@ export function RegionFilter({
     const allPrefs = region.prefectures.map((p) => p.name);
     const allCities = region.prefectures.flatMap((p) => p.cities);
 
-    const totalItems = allPrefs.length + allCities.length;
     let selectedCount = 0;
     for (const p of allPrefs) {
       if (selectedPrefectures.includes(p)) selectedCount++;
