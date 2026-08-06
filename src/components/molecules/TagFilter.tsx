@@ -90,7 +90,7 @@ export function TagFilter({
           <div
             ref={containerRef}
             className={cn(
-              "flex flex-wrap gap-2 mb-1 overflow-hidden",
+              "relative flex flex-wrap gap-2 mb-1 overflow-hidden",
               !isExpanded && "max-h-[76px]",
             )}
           >
