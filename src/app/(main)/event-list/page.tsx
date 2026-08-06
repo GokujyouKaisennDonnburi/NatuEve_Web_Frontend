@@ -322,30 +322,27 @@ export default function EventListPage() {
             />
           </div>
 
-          {/* Scrollable event cards + pagination */}
-          <div className="flex-1 overflow-y-auto overscroll-contain max-h-[calc(100vh-16rem)]">
-            {/* Event cards */}
-            <div className="space-y-[61px]">
-              {events.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-              {events.length === 0 && (
-                <p className="text-center text-sm text-slate-400 py-8">
-                  表示するイベントがありません。
-                </p>
-              )}
-            </div>
-
-            {totalPages > 1 && (
-              <div className="mt-8">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
-              </div>
+          {/* Event cards */}
+          <div className="space-y-[61px]">
+            {events.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+            {events.length === 0 && (
+              <p className="text-center text-sm text-slate-400 py-8">
+                表示するイベントがありません。
+              </p>
             )}
           </div>
+
+          {totalPages > 1 && (
+            <div className="mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
