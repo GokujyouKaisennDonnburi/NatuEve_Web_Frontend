@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { UseEventMembersResult } from "@/hooks/useEventMembers";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { Send, X } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect } from "react";
 import { CardContent } from "../../ui/card";
 
@@ -153,55 +154,74 @@ function EventMemberListBody({
         <div className="flex-1 overflow-y-auto">
           <table className="w-full table-fixed">
             <tbody>
-              {data.members.map((member) => (
-                <tr
-                  key={`${member.mailAddress}-${member.createdAt}`}
-                  className="border-b border-slate-200 last:border-0"
-                >
-                  {/* ユーザー */}
-                  <td className="w-[35%] px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <GlobalUserAvatar
-                        name={member.username}
-                        iconUrl={undefined}
-                        className="h-10 w-10"
-                      />
+              {data.members.map((member) => {
+                // アバターとユーザー名のセット（ログイン参加者はプロフィールへ遷移できるようにする）
+                const userBlock = (
+                  <>
+                    <GlobalUserAvatar
+                      name={member.username}
+                      iconUrl={undefined}
+                      className="h-10 w-10 transition-all group-hover:ring-2 group-hover:ring-emerald-100"
+                    />
 
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-slate-900">
-                            {member.username}
-                          </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-slate-900 transition-colors group-hover:text-emerald-600">
+                          {member.username}
+                        </p>
 
-                          {member.profileId === null && (
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                              匿名参加
-                            </span>
-                          )}
-                        </div>
+                        {member.profileId === null && (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                            匿名参加
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </td>
+                  </>
+                );
 
-                  {/* メール */}
-                  <td className="w-[30%] px-6 py-5 text-slate-500">
-                    {member.mailAddress}
-                  </td>
+                return (
+                  <tr
+                    key={`${member.mailAddress}-${member.createdAt}`}
+                    className="border-b border-slate-200 last:border-0"
+                  >
+                    {/* ユーザー */}
+                    <td className="w-[35%] px-6 py-5">
+                      {member.profileId ? (
+                        // 詳細画面上部と同じようにプロフィール画面へ遷移する
+                        <Link
+                          href={`/users/${member.profileId}`}
+                          className="group flex w-fit items-center gap-3 transition-opacity hover:opacity-80"
+                        >
+                          {userBlock}
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          {userBlock}
+                        </div>
+                      )}
+                    </td>
 
-                  {/* 参加人数 */}
-                  <td className="w-[15%] px-6 py-5 text-center">
-                    <span className="text-xl font-bold text-lime-700">
-                      {member.partySize}
-                    </span>
-                    <span className="ml-1 text-sm text-slate-500">名</span>
-                  </td>
+                    {/* メール */}
+                    <td className="w-[30%] px-6 py-5 text-slate-500">
+                      {member.mailAddress}
+                    </td>
 
-                  {/* 日時 */}
-                  <td className="w-[20%] px-6 py-5 text-right text-slate-500">
-                    {formatCreatedAt(member.createdAt)}
-                  </td>
-                </tr>
-              ))}
+                    {/* 参加人数 */}
+                    <td className="w-[15%] px-6 py-5 text-center">
+                      <span className="text-xl font-bold text-lime-700">
+                        {member.partySize}
+                      </span>
+                      <span className="ml-1 text-sm text-slate-500">名</span>
+                    </td>
+
+                    {/* 日時 */}
+                    <td className="w-[20%] px-6 py-5 text-right text-slate-500">
+                      {formatCreatedAt(member.createdAt)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
