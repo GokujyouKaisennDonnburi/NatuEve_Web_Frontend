@@ -37,6 +37,7 @@ export const eventCreateHandler = http.post(
       description?: unknown;
       location?: unknown;
       eventDate?: unknown;
+      endDate?: unknown;
       costs?: unknown;
       capacity?: unknown;
       externalUrl?: unknown;
@@ -162,6 +163,11 @@ export const eventCreateHandler = http.post(
       title: body.title as string,
       location: body.location as string,
       eventDate: body.eventDate as string,
+      // 本番仕様に合わせ、endDate 省略時は eventDate と同値を補完する。
+      endDate:
+        typeof body.endDate === "string" && body.endDate.length > 0
+          ? body.endDate
+          : (body.eventDate as string),
       profileId: "mock-user-1",
       profile: {
         id: "mock-user-1",
