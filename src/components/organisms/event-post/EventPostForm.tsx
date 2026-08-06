@@ -164,6 +164,7 @@ export function EventPostForm() {
 
       <FormCard
         title="参加費用"
+        required
         description="分類ごとに金額を設定できます。無料の場合は 0 円のままにしてください。"
       >
         {/* 当サイトでは決済を仲介しないため、支払い方法を概要へ書くよう促す */}

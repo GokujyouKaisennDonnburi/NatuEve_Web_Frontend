@@ -16,6 +16,7 @@ import { FormInput } from "@/components/atoms/FormInput";
 import { TagChip } from "@/components/atoms/event-post/TagChip";
 import { FormField } from "@/components/molecules/FormField";
 import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";
+import { MESSAGES } from "@/constants/messages";
 import { useCreateTag } from "@/hooks/useCreateTag";
 import { useRowIds } from "@/hooks/useRowIds";
 import { useTags } from "@/hooks/useTags";
@@ -41,12 +42,14 @@ export function TagInputField({
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const { isSubmitting, submit } = useCreateTag();
   const { tags: allTags, isLoading: isTagsLoading } = useTags();
-  const isLimitReached = tags.length >= MAX_TAG_COUNT;
   const trimmedDraft = draft.trim();
+  const normalizedDraft = normalize(trimmedDraft);
+  // 追加済みタグとの重複は、大文字小文字や全角半角の違いを無視して判定する
+  const normalizedTagNames = new Set(tags.map((t) => normalize(t.name)));
   const isDuplicate =
-    trimmedDraft.length > 0 && tags.some((t) => t.name === trimmedDraft);
-  const isAddDisabled =
-    !trimmedDraft || isLimitReached || isDuplicate || isSubmitting;
+    trimmedDraft.length > 0 && normalizedTagNames.has(normalizedDraft);
+  // 件数の上限はトーストで知らせるため、追加ボタンは無効化しない
+  const isAddDisabled = !trimmedDraft || isDuplicate || isSubmitting;
   const helperId = `${id}-helper`;
 
   const latestTagsRef = useRef(tags);
@@ -56,12 +59,10 @@ export function TagInputField({
 
   const { rowIds } = useRowIds(tags.length);
 
-  const existingNames = new Set(tags.map((t) => t.name));
-  const normalizedDraft = normalize(trimmedDraft);
   const suggestions = normalizedDraft
     ? allTags.filter(
         (t) =>
-          !existingNames.has(t.name) &&
+          !normalizedTagNames.has(normalize(t.name)) &&
           normalize(t.name).includes(normalizedDraft),
       )
     : [];
@@ -69,9 +70,18 @@ export function TagInputField({
   // 同名のタグが既にある場合は候補から選ばせたいので、新規作成の行は出さない
   const canCreate =
     trimmedDraft.length > 0 &&
-    !isLimitReached &&
     !isDuplicate &&
     !allTags.some((t) => normalize(t.name) === normalizedDraft);
+
+  // 件数の上限に達しているかを判定し、達していればトーストで知らせる。
+  // 同じ id を渡してトーストを積み上げず 1 件に保つ。
+  const rejectWhenCountExceeded = () => {
+    if (latestTagsRef.current.length >= MAX_TAG_COUNT) {
+      toast.error(MESSAGES.TAG_COUNT_EXCEEDED, { id: `${id}-tag-count` });
+      return true;
+    }
+    return false;
+  };
 
   // 候補の末尾に新規作成の行を足したものを、まとめて1つのリストとして扱う
   const createIndex = canCreate ? suggestions.length : -1;
@@ -79,7 +89,7 @@ export function TagInputField({
   const showDropdown = isOpen && optionCount > 0;
 
   const handleAdd = async () => {
-    if (isAddDisabled) {
+    if (isAddDisabled || rejectWhenCountExceeded()) {
       return;
     }
     const name = trimmedDraft;
@@ -97,7 +107,9 @@ export function TagInputField({
         caughtError instanceof TagError &&
         caughtError.code === TagErrorCode.DuplicateTag
       ) {
-        const existing = allTags.find((t) => t.name === name);
+        const existing = allTags.find(
+          (t) => normalize(t.name) === normalize(name),
+        );
         if (existing) {
           onTagsChange([...latestTagsRef.current, existing]);
           setDraft("");
@@ -116,6 +128,9 @@ export function TagInputField({
   };
 
   const handleSuggestionSelect = (tag: TagItem) => {
+    if (rejectWhenCountExceeded()) {
+      return;
+    }
     onTagsChange([...latestTagsRef.current, tag]);
     setDraft("");
     setIsOpen(false);
@@ -159,8 +174,14 @@ export function TagInputField({
   };
 
   const handleDraftChange = (value: string) => {
-    setDraft(value);
-    setIsOpen(value.trim().length > 0);
+    // maxLength で黙って切り詰めず、上限に触れた理由をトーストで伝える
+    if (value.length > MAX_TAG_LENGTH) {
+      toast.error(MESSAGES.TAG_LENGTH_EXCEEDED, { id: `${id}-tag-length` });
+    }
+
+    const nextDraft = value.slice(0, MAX_TAG_LENGTH);
+    setDraft(nextDraft);
+    setIsOpen(nextDraft.trim().length > 0);
     setHighlightIndex(-1);
   };
 
@@ -212,8 +233,7 @@ export function TagInputField({
                 }
               }}
               placeholder="タグを入力（例: 野鳥）"
-              maxLength={MAX_TAG_LENGTH}
-              disabled={isLimitReached || isSubmitting}
+              disabled={isSubmitting}
               aria-invalid={Boolean(error) || isDuplicate}
               aria-describedby={isDuplicate ? helperId : undefined}
               aria-expanded={showDropdown}
@@ -298,10 +318,6 @@ export function TagInputField({
         <FieldNote tone="error">
           <span id={helperId}>「{trimmedDraft}」は既に追加されています。</span>
         </FieldNote>
-      ) : null}
-
-      {isLimitReached ? (
-        <FieldNote>タグは最大{MAX_TAG_COUNT}件まで追加できます。</FieldNote>
       ) : null}
     </FormField>
   );

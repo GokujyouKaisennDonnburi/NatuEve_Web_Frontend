@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { RequiredBadge } from "@/components/atoms/RequiredBadge";
 import {
   Card,
   CardContent,
@@ -13,6 +14,8 @@ type FormCardProps = {
   // 見出しを持たず入力欄だけを載せるカードもあるため、title は任意
   title?: string;
   description?: string;
+  // カード内の項目全体が必須のとき、見出しの横に必須バッジを出す
+  required?: boolean;
   children: ReactNode;
   className?: string;
 };
@@ -22,6 +25,7 @@ type FormCardProps = {
 export function FormCard({
   title,
   description,
+  required = false,
   children,
   className,
 }: Readonly<FormCardProps>) {
@@ -34,8 +38,9 @@ export function FormCard({
     >
       {title ? (
         <CardHeader className="gap-1 px-6">
-          <CardTitle className="text-base font-bold text-slate-900">
+          <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
             {title}
+            {required ? <RequiredBadge /> : null}
           </CardTitle>
           {description ? (
             <CardDescription className="text-sm text-slate-500">
