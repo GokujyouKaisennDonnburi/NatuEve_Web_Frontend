@@ -194,11 +194,18 @@ export function RegionFilter({
 
           return (
             <div key={region.name}>
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => toggleRegion(region.name)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    toggleRegion(region.name);
+                  }
+                }}
                 className={cn(
-                  "flex items-center w-full h-[22px] bg-transparent px-[8px] text-left",
+                  "flex items-center w-full h-[22px] bg-transparent px-[8px] text-left cursor-pointer",
                 )}
               >
                 <Checkbox
@@ -228,7 +235,7 @@ export function RegionFilter({
                     )}
                   />
                 </button>
-              </button>
+              </div>
 
               {isRegionExpanded && (
                 <div className="ml-[22px] mt-[2px] space-y-[2px]">
@@ -240,13 +247,20 @@ export function RegionFilter({
 
                     return (
                       <div key={pref.name}>
-                        <button
-                          type="button"
+                        <div
+                          role="button"
+                          tabIndex={0}
                           onClick={() =>
                             togglePrefecture(region.name, pref.name)
                           }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              togglePrefecture(region.name, pref.name);
+                            }
+                          }}
                           className={cn(
-                            "flex items-center w-full h-[22px] bg-transparent px-[8px] text-left",
+                            "flex items-center w-full h-[22px] bg-transparent px-[8px] text-left cursor-pointer",
                           )}
                         >
                           <Checkbox
@@ -279,7 +293,7 @@ export function RegionFilter({
                               )}
                             />
                           </button>
-                        </button>
+                          </div>
 
                         {isPrefExpanded && (
                           <div className="ml-[22px] mt-[2px] flex flex-wrap gap-[2px]">
