@@ -35,6 +35,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEventMembers } from "@/hooks/useEventMembers";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
+import { resolveEventStatus } from "@/utils/eventStatus";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -92,9 +93,13 @@ export function EventDetail({
     [hasPdf],
   );
 
-  // 開催日時を過ぎていれば「開催終了」、それ以外は「受付中」とみなす。
-  // （イベント一覧のステータス判定と同じルール）
-  const status = new Date(event.eventDate) < new Date() ? "closed" : "open";
+  // 開催状況は共通ルールで判定する。詳細 API は endDate を必ず返すため、
+  // 開催中（開始済み・未終了）のイベントは「開催終了」にならない。
+  // イベント一覧は endDate を持たないため eventDate 基準のままで、表示が食い違う点に注意。
+  const status = resolveEventStatus({
+    eventDate: event.eventDate,
+    endDate: event.endDate,
+  });
 
   // ログイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(
