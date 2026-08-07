@@ -23,19 +23,6 @@ const sampleUsers = [
   },
 ];
 
-// ダミーの現在のユーザー情報（GET /api/v1/me で返すモックユーザープロフィール）
-// MeResponse 型（snake_case）に合わせる
-const _sampleCurrentUser = {
-  id: "user-1",
-  email: "aoi@example.com",
-  display_name: "Aoi Tanaka",
-  avatar_url: "https://example.com/avatar.jpg",
-  created_at: "2026-06-24T10:00:00Z",
-  updated_at: "2026-06-24T10:00:00Z",
-};
-
-// 認証トークンが有効かどうかをチェックする補助関数
-// （Bearer トークンが付与されているかを確認するのに使用）
 // プロフィール詳細用ダミーデータ (マイページ・他人のページ表示用)
 const sampleUserProfiles = [
   {
@@ -89,14 +76,14 @@ type UpdateUserProfileRequest = {
 };
 // ▼ マイページ用の初期モックデータ（メモリ上に保持）
 const myProfile = {
-  // MeResponse 契約（snake_case）に合わせる
-  avatar_url: "https://github.com/shadcn.png", // 代替アイコンのテスト用。空文字 "" にするとデフォルトの人型アイコンが出ます
-  created_at: "2026-06-22T12:00:00Z",
+  // MeResponse 契約（camelCase）に合わせる
+  avatarUrl: "https://github.com/shadcn.png", // 代替アイコンのテスト用。空文字 "" にするとデフォルトの人型アイコンが出ます
+  createdAt: "2026-06-22T12:00:00Z",
   description: "イベントを楽しむのが好きです。よろしくお願いします！",
-  display_name: "なちゅいべ太郎",
+  displayName: "なちゅいべ太郎",
   email: "user@example.com",
   id: "d290f1ee-6c54-4b01-90e6-d701748f0851",
-  updated_at: "2026-06-22T12:00:00Z",
+  updatedAt: "2026-06-22T12:00:00Z",
 };
 
 // 認証トークンが有効かどうかをチェックする関数
@@ -139,7 +126,8 @@ export const userHandlers = [
       );
     }
 
-    // 送られてきたJSONを受け取る (スネークケースで送られてくる想定)
+    // 送られてきたJSONを受け取る
+    // （リクエストのみ snake_case。レスポンスは camelCase なので実 API と揃える）
     const body = (await request.json()) as {
       display_name?: string;
       description?: string;
@@ -147,14 +135,14 @@ export const userHandlers = [
 
     // 更新処理: 値が存在すれば書き換える
     if (body.display_name !== undefined) {
-      myProfile.display_name = body.display_name;
+      myProfile.displayName = body.display_name;
     }
     if (body.description !== undefined) {
       myProfile.description = body.description;
     }
 
     // 更新日時を現在時刻に更新
-    myProfile.updated_at = new Date().toISOString();
+    myProfile.updatedAt = new Date().toISOString();
 
     // 更新後のプロフィールを返す
     return HttpResponse.json(myProfile);
