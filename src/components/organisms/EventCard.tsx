@@ -4,6 +4,7 @@ import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { FilterTag } from "@/components/atoms/FilterTag";
 import { Button } from "@/components/ui/button";
 import type { TagItem } from "@/types/tag";
+import { ROUTES } from "@/constants/routes";
 import { MapPin } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -49,6 +50,26 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
     weekday: "short",
     timeZone: "Asia/Tokyo",
   });
+
+  const handleOrganizerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`${ROUTES.USERS}/${event.profileId}`);
+  };
+
+  const handleOrganizerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.stopPropagation();
+      router.push(`${ROUTES.USERS}/${event.profileId}`);
+    }
+  };
+
+  const MAX_LOCATION_LENGTH = 12;
+  const displayLocation =
+    event.location.length > MAX_LOCATION_LENGTH
+      ? `${event.location.slice(0, MAX_LOCATION_LENGTH)}......`
+      : event.location;
 
   return (
     <a
@@ -106,14 +127,20 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
         </h3>
 
         {/* Location + Organizer centered in lower space (y=66-132) */}
-        <div className="flex items-center mt-[10px] ml-[26px]">
-          <div className="flex items-center">
+        <div className="relative flex items-center mt-[10px] ml-[26px]">
+          <div className="flex items-center max-w-[175px] min-w-0">
             <MapPin className="h-[13px] w-[13px] text-[#5F8530] shrink-0" />
-            <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061]">
-              {event.location}
+            <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061] truncate">
+              {displayLocation}
             </span>
           </div>
-          <div className="flex items-center ml-[113px]">
+          <button
+            type="button"
+            className="absolute left-[180px] flex items-center cursor-pointer hover:opacity-70 transition-opacity bg-transparent border-none p-0"
+            onClick={handleOrganizerClick}
+            onKeyDown={handleOrganizerKeyDown}
+            aria-label={`${event.hostName} のプロフィールへ移動`}
+          >
             {event.hostAvatarUrl ? (
               <Image
                 src={event.hostAvatarUrl}
@@ -130,7 +157,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
             <span className="ml-1 text-[13px] leading-[19px] text-[#667061]">
               {event.hostName}
             </span>
-          </div>
+          </button>
         </div>
 
         {/* Detail button at y: 46 (center at 66) */}

@@ -225,7 +225,7 @@ export default function EventListPage() {
           </div>
 
           {/* Event cards */}
-          <div className="space-y-[61px]">
+          <div className="space-y-[30px]">
             {!loading &&
               events.map((event) => <EventCard key={event.id} event={event} />)}
             {!loading && events.length === 0 && (
