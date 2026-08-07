@@ -56,7 +56,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
               <tbody>
                 {/* 主催者 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700">
                     主催者
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
@@ -68,7 +68,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 開催日時 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700">
                     開催日時
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
@@ -78,7 +78,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 終了日時 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700">
                     終了日時
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
@@ -88,7 +88,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 開催場所 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700">
                     開催場所
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
@@ -98,19 +98,28 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 参加費 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700">
                     参加費
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
-                    {event.costs.length > 0
-                      ? event.costs.map(formatCost).join(" / ")
-                      : "無料"}
+                    {event.costs.length > 0 ? (
+                      // 複数の参加費は1行ずつ縦に並べる
+                      <ul className="space-y-1">
+                        {event.costs.map((cost) => (
+                          <li key={`${cost.category}-${cost.cost}`}>
+                            {formatCost(cost)}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "無料"
+                    )}
                   </td>
                 </tr>
 
                 {/* 持ち物 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700">
                     持ち物
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
@@ -133,7 +142,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 定員 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700">
                     定員
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
