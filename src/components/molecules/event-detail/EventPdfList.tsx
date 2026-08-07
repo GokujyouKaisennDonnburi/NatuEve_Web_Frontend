@@ -1,4 +1,5 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { SurfaceCard } from "@/components/molecules/SurfaceCard";
+import { CardContent } from "@/components/ui/card";
 import { normalizeAssetUrl } from "@/utils/media";
 import { Download, FileText } from "lucide-react";
 
@@ -22,7 +23,7 @@ export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
   }
 
   return (
-    <Card>
+    <SurfaceCard>
       <CardContent>
         {/* セクションタイトル */}
         <h2 className="section-title">添付資料</h2>
@@ -56,6 +57,6 @@ export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
           ))}
         </div>
       </CardContent>
-    </Card>
+    </SurfaceCard>
   );
 }

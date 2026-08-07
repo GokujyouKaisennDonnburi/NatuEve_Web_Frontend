@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { SurfaceCard } from "@/components/molecules/SurfaceCard";
+import { CardContent } from "@/components/ui/card";
 import type { ReportDetail } from "@/types/report";
 import { normalizeAssetUrl } from "@/utils/media";
 
@@ -34,7 +35,7 @@ export function EventReportList({ report }: Readonly<EventReportListProps>) {
   const externalUrls = report.externalUrls ?? [];
 
   return (
-    <Card>
+    <SurfaceCard>
       <CardContent>
         <div className="section-title flex items-center gap-2">
           <FileText className="h-5 w-5 text-emerald-500" />
@@ -151,6 +152,6 @@ export function EventReportList({ report }: Readonly<EventReportListProps>) {
           </details>
         </div>
       </CardContent>
-    </Card>
+    </SurfaceCard>
   );
 }
