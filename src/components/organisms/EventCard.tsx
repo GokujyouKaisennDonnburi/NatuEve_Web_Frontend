@@ -51,19 +51,20 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
   });
 
   return (
-    <div
-      role="link"
-      tabIndex={0}
+    <a
+      href={`/event/${event.id}`}
       aria-label={`${event.title} の詳細へ移動`}
-      onClick={() => router.push(`/event/${event.id}`)}
+      onClick={(e) => {
+        e.preventDefault();
+        router.push(`/event/${event.id}`);
+      }}
       onKeyDown={(e) => {
-        if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           router.push(`/event/${event.id}`);
         }
       }}
-      className="group relative flex w-full h-[132px] bg-white border border-[#E3E8DF] shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
+      className="group relative flex w-full h-[132px] bg-white border border-[#E3E8DF] shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md no-underline"
     >
       {/* Left column: Date + Status */}
       <div className="flex flex-col items-center shrink-0 w-[129px]">
@@ -144,6 +145,6 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           詳細を見る
         </Button>
       </div>
-    </div>
+    </a>
   );
 }

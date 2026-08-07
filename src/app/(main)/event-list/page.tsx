@@ -5,7 +5,7 @@ import { SortButton } from "@/components/atoms/SortButton";
 import { Loading } from "@/components/atoms/Loading";
 import { SearchBar } from "@/components/molecules/SearchBar";
 import { Pagination } from "@/components/molecules/Pagination";
-import { EventCard, type EventItem } from "@/components/organisms/EventCard";
+import { EventCard } from "@/components/organisms/EventCard";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
 import type { TagItem } from "@/types/tag";
@@ -226,9 +226,8 @@ export default function EventListPage() {
 
           {/* Event cards */}
           <div className="space-y-[61px]">
-            {!loading && events.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
+            {!loading &&
+              events.map((event) => <EventCard key={event.id} event={event} />)}
             {!loading && events.length === 0 && (
               <p className="text-center text-sm text-slate-400 py-8">
                 表示するイベントがありません。
