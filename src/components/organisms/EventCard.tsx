@@ -127,7 +127,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
         </h3>
 
         {/* Location + Organizer centered in lower space (y=66-132) */}
-        <div className="flex items-center mt-[10px] ml-[26px]">
+        <div className="relative flex items-center mt-[10px] ml-[26px]">
           <div className="flex items-center max-w-[175px] min-w-0">
             <MapPin className="h-[13px] w-[13px] text-[#5F8530] shrink-0" />
             <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061] truncate">
@@ -136,7 +136,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </div>
           <button
             type="button"
-            className="flex items-center ml-[113px] shrink-0 cursor-pointer hover:opacity-70 transition-opacity bg-transparent border-none p-0"
+            className="absolute left-[288px] flex items-center cursor-pointer hover:opacity-70 transition-opacity bg-transparent border-none p-0"
             onClick={handleOrganizerClick}
             onKeyDown={handleOrganizerKeyDown}
             aria-label={`${event.hostName} のプロフィールへ移動`}
