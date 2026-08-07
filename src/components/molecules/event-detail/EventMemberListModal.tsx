@@ -160,7 +160,7 @@ function EventMemberListBody({
                   <>
                     <GlobalUserAvatar
                       name={member.username}
-                      iconUrl={undefined}
+                      iconUrl={member.profile?.avatarUrl}
                       className="h-10 w-10 transition-all group-hover:ring-2 group-hover:ring-emerald-100"
                     />
 
@@ -170,7 +170,7 @@ function EventMemberListBody({
                           {member.username}
                         </p>
 
-                        {member.profileId === null && (
+                        {member.profile === null && (
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
                             匿名参加
                           </span>
@@ -187,10 +187,10 @@ function EventMemberListBody({
                   >
                     {/* ユーザー */}
                     <td className="w-[35%] px-6 py-5">
-                      {member.profileId ? (
+                      {member.profile ? (
                         // 詳細画面上部と同じようにプロフィール画面へ遷移する
                         <Link
-                          href={`/users/${member.profileId}`}
+                          href={`/users/${member.profile.id}`}
                           className="group flex w-fit items-center gap-3 transition-opacity hover:opacity-80"
                         >
                           {userBlock}

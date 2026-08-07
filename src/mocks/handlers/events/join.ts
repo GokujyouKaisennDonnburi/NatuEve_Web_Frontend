@@ -13,6 +13,7 @@ import {
 } from "./participation";
 import { mockEventDetails } from "./data";
 import {
+  TOKEN_TO_PROFILE,
   TOKEN_TO_PROFILE_ID,
   getBearerToken,
   hasBearerToken,
@@ -133,12 +134,13 @@ export const eventJoinHandler = http.post(
     participationLogs.set(id, logs);
 
     // members エンドポイントで参加者一覧に反映されるよう、参加レコードを蓄積する。
+    // 参加者一覧はプロフィールサマリーを返す契約のため、匿名参加は null とする。
     const members = eventMembers.get(id) ?? [];
     members.push({
       username,
       mailAddress,
       partySize,
-      profileId,
+      profile: hasBearer ? (TOKEN_TO_PROFILE[token] ?? null) : null,
       createdAt,
     });
     eventMembers.set(id, members);

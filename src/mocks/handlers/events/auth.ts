@@ -6,10 +6,21 @@
 import { HttpResponse } from "msw";
 
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
+import type { EventMemberProfile } from "@/types/participate";
 
 // モック環境での「Bearer トークン → profileId」対応表。
 export const TOKEN_TO_PROFILE_ID: Readonly<Record<string, string>> = {
   [MOCK_AUTH_SESSION.token]: MOCK_AUTH_SESSION.userId,
+};
+
+// モック環境での「Bearer トークン → プロフィールサマリー」対応表。
+// 参加者一覧（GET /api/v1/events/:id/members）が返す profile の生成に使う。
+export const TOKEN_TO_PROFILE: Readonly<Record<string, EventMemberProfile>> = {
+  [MOCK_AUTH_SESSION.token]: {
+    id: MOCK_AUTH_SESSION.userId,
+    displayName: MOCK_AUTH_SESSION.name ?? "",
+    avatarUrl: MOCK_AUTH_SESSION.iconUrl ?? "",
+  },
 };
 
 // Authorization ヘッダが本番相当の Bearer 形式かを判定する。

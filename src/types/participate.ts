@@ -64,18 +64,29 @@ export class ParticipateError extends Error {
 // イベント参加者一覧取得 API（GET /api/v1/events/{id}/members）の DTO 群。
 // 主催者のみが閲覧できる。バックエンドの契約に合わせる。
 
-// 参加者1件分のDTO。匿名参加時は profileId が null となる。
+// 参加者のプロフィールサマリーDTO（swagger の ProfileSummary）。
+export type EventMemberProfile = {
+  // プロフィールID（ユーザーID）。
+  id: string;
+  // アカウントの表示名（未設定なら空文字）。
+  displayName: string;
+  // アバター画像URL（未設定なら空文字）。
+  avatarUrl: string;
+};
+
+// 参加者1件分のDTO。匿名参加時は profile が null となる。
 // swagger（GET /api/v1/events/{id}/members）のレスポンス定義に合わせ、
-// username / mailAddress / partySize / profileId / createdAt の5項目のみ。
+// username / mailAddress / partySize / profile / createdAt の5項目のみ。
 export type EventMember = {
-  // 参加者の表示名。
+  // 申込時にフォームへ入力された名前。匿名参加でも必ず値が入る。
+  // アカウントの表示名（profile.displayName）とは別物で、一致するとは限らない。
   username: string;
   // 参加者のメールアドレス。
   mailAddress: string;
   // 参加人数（代表者を含む）。
   partySize: number;
-  // プロフィールID（ログイン参加時はユーザーID・匿名参加時は null）。
-  profileId: string | null;
+  // 参加者のプロフィールサマリー（ログイン参加時のみ・匿名参加時は null）。
+  profile: EventMemberProfile | null;
   // 申込日時(RFC3339)。
   createdAt: string;
 };
