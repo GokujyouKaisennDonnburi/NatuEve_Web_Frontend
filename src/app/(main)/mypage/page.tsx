@@ -6,38 +6,14 @@ import { UserEventTabs } from "@/components/organisms/UserEventTabs";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchCurrentUser, updateMyProfile } from "@/services/user";
 import type { CurrentUser } from "@/types/user";
-import type { UpdateMyProfileResponse } from "@/types/user";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-// 取得したプロフィールを更新用に変換するヘルパー
-const toProfile = (data: CurrentUser) => ({
-  id: data.id,
-  displayName: data.displayName,
-  avatarUrl: data.avatarUrl,
-  description: data.description,
-  email: data.email,
-  createdAt: data.createdAt,
-  updatedAt: data.updatedAt,
-});
-
-type ProfileState = ReturnType<typeof toProfile> | null;
-
-// 更新後のプロフィール（MeResponse/snake_case）を画面表示用の形に変換
-const toProfileFromResponse = (data: UpdateMyProfileResponse) => ({
-  id: data.id,
-  displayName: data.display_name,
-  avatarUrl: data.avatar_url,
-  description: data.description,
-  email: data.email,
-  createdAt: data.created_at,
-  updatedAt: data.updated_at,
-});
 
 export default function MyPage() {
   const { session, isLoading: isSessionLoading } = useAuth();
 
-  const [profile, setProfile] = useState<ProfileState>(null);
+  // API の DTO 変換は services/user 側に集約しているため、そのまま保持する
+  const [profile, setProfile] = useState<CurrentUser | null>(null);
 
   // 今後のAPI実装時にそのまま使えるよう、Stateは残しておきます
   const [hostedEvents, setHostedEvents] = useState<EventItem[]>([]);
@@ -64,7 +40,7 @@ export default function MyPage() {
         const currentUser = await fetchCurrentUser();
 
         if (!cancelled) {
-          setProfile(toProfile(currentUser));
+          setProfile(currentUser);
 
           // ==========================================
           // イベント取得APIが実装されたらここを追加
@@ -121,23 +97,13 @@ export default function MyPage() {
   }
 
   const handleUpdateName = async (newName: string) => {
-    // Service を経由して名前を更新
-    const updated = await updateMyProfile({ display_name: newName });
-    setProfile((prev) => {
-      if (!prev) return null;
-      const next = toProfileFromResponse(updated);
-      return { ...prev, ...next };
-    });
+    // Service を経由して名前を更新（更新後のプロフィール全体が返る）
+    setProfile(await updateMyProfile({ display_name: newName }));
   };
 
   const handleUpdateDescription = async (newDescription: string) => {
-    // Service を経由して自己紹介を更新
-    const updated = await updateMyProfile({ description: newDescription });
-    setProfile((prev) => {
-      if (!prev) return null;
-      const next = toProfileFromResponse(updated);
-      return { ...prev, ...next };
-    });
+    // Service を経由して自己紹介を更新（更新後のプロフィール全体が返る）
+    setProfile(await updateMyProfile({ description: newDescription }));
   };
 
   return (

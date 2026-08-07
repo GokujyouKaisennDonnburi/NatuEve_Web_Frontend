@@ -22,6 +22,18 @@ export async function fetchUsers(): Promise<User[]> {
   return data.users;
 }
 
+// API の DTO（MeResponse）を画面表示用の CurrentUser に変換する。
+// GET / PATCH のどちらも同じ DTO を返すため、変換処理はここに集約する。
+const toCurrentUser = (data: MeResponse): CurrentUser => ({
+  id: data.id,
+  email: data.email,
+  displayName: data.displayName,
+  avatarUrl: data.avatarUrl,
+  description: data.description,
+  createdAt: data.createdAt,
+  updatedAt: data.updatedAt,
+});
+
 // 現在のユーザー情報を取得する関数
 export async function fetchCurrentUser(): Promise<CurrentUser> {
   const response = await apiFetch("/api/v1/me");
@@ -34,24 +46,16 @@ export async function fetchCurrentUser(): Promise<CurrentUser> {
   // レスポンスをMeResponse型としてパース
   const data = (await response.json()) as MeResponse;
 
-  return {
-    id: data.id,
-    email: data.email,
-    displayName: data.display_name,
-    avatarUrl: data.avatar_url,
-    description: data.description,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-  };
+  return toCurrentUser(data);
 }
 
 // 本人プロフィール更新 API（PATCH /api/v1/me）を呼ぶ（要認証）。
 //
-// 指定した項目のみ更新し、更新後のプロフィール全体を返す。
+// 指定した項目のみ更新し、更新後のプロフィール全体を CurrentUser で返す。
 // 失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
 export async function updateMyProfile(
   payload: UpdateMyProfileRequest,
-): Promise<UpdateMyProfileResponse> {
+): Promise<CurrentUser> {
   const response = await apiFetch("/api/v1/me", {
     method: "PATCH",
     headers: {
@@ -69,7 +73,7 @@ export async function updateMyProfile(
     );
   }
 
-  return (await response.json()) as UpdateMyProfileResponse;
+  return toCurrentUser((await response.json()) as UpdateMyProfileResponse);
 }
 
 // 他人のプロフィール取得 API（GET /api/v1/profiles/{id}）を呼ぶ（認証不要）。

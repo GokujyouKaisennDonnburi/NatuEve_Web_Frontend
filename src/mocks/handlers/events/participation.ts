@@ -1,6 +1,7 @@
 // このファイルは、参加・キャンセル・参加者一覧周りのハンドラー間で
 // 共有するメモリ内状態と、その生成・操作ロジックを定義する。
 // MSW はプロセス内状態のためリロードでリセットされる前提。
+import type { EventMemberProfile } from "@/types/participate";
 
 // participation-logs エンドポイントが返す参加履歴1件分の型。
 // 直近のアクション（join / leave）とその日時を保持する。
@@ -10,13 +11,13 @@ export type MockParticipationLog = {
 };
 
 // 参加者一覧取得 API（GET /api/v1/events/{id}/members）が返す参加者1件分の型。
-// 匿名参加時は profileId が null となる。swagger（GET .../members）の
+// 匿名参加時は profile が null となる。swagger（GET .../members）の
 // レスポンス定義に合わせ、id / eventId は含めない（兄弟エンドポイントと統一）。
 export type MockEventMember = {
   username: string;
   mailAddress: string;
   partySize: number;
-  profileId: string | null;
+  profile: EventMemberProfile | null;
   createdAt: string;
 };
 
@@ -40,8 +41,10 @@ export const eventMembers = new Map<string, MockEventMember[]>();
 export const cancelledEventIds = new Set<string>();
 
 // 新規作成イベントに参加者モックデータをシードする。
-// 主催者画面の動作確認用で、ログイン参加・匿名参加（profileId: null）を混在させることで
+// 主催者画面の動作確認用で、ログイン参加・匿名参加（profile: null）を混在させることで
 // 参加組数 / 合計参加人数 / 匿名表示の検証を網羅できるようにしている。
+// username（申込時の名前）と profile.displayName（アカウントの表示名）は
+// 別物であることを確認できるよう、あえて異なる値を入れている。
 export const seedMembersForNewEvent = (eventId: string): void => {
   const base = Date.now() - 1000 * 60 * 60 * 24 * 3;
   const members: MockEventMember[] = [
@@ -49,21 +52,30 @@ export const seedMembersForNewEvent = (eventId: string): void => {
       username: "Ren Sato",
       mailAddress: "ren@example.com",
       partySize: 2,
-      profileId: "profile-2",
+      profile: {
+        id: "profile-2",
+        displayName: "れんさん",
+        avatarUrl: "https://i.pravatar.cc/64?u=profile-2",
+      },
       createdAt: new Date(base).toISOString(),
     },
     {
       username: "Mina Suzuki",
       mailAddress: "mina@example.com",
       partySize: 1,
-      profileId: "profile-3",
+      profile: {
+        id: "profile-3",
+        displayName: "みなさん",
+        // アバター未設定（空文字）の表示を確認するためのケース
+        avatarUrl: "",
+      },
       createdAt: new Date(base + 1000 * 60 * 60 * 12).toISOString(),
     },
     {
       username: "ゲストさん",
       mailAddress: "guest@example.com",
       partySize: 3,
-      profileId: null,
+      profile: null,
       createdAt: new Date(base + 1000 * 60 * 60 * 24).toISOString(),
     },
   ];
