@@ -134,12 +134,11 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
               {displayLocation}
             </span>
           </div>
-          <div
-            className="flex items-center ml-[113px] shrink-0 cursor-pointer hover:opacity-70 transition-opacity"
+          <button
+            type="button"
+            className="flex items-center ml-[113px] shrink-0 cursor-pointer hover:opacity-70 transition-opacity bg-transparent border-none p-0"
             onClick={handleOrganizerClick}
             onKeyDown={handleOrganizerKeyDown}
-            role="link"
-            tabIndex={0}
             aria-label={`${event.hostName} のプロフィールへ移動`}
           >
             {event.hostAvatarUrl ? (
@@ -158,7 +157,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
             <span className="ml-1 text-[13px] leading-[19px] text-[#667061]">
               {event.hostName}
             </span>
-          </div>
+          </button>
         </div>
 
         {/* Detail button at y: 46 (center at 66) */}
