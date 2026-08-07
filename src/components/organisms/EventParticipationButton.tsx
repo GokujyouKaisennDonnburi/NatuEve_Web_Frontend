@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { MOCK_AUTH_SESSION, isMockAuthEnabled } from "@/services/mockAuth";
 import { leaveEvent, participateEvent } from "@/services/participate";
 import {
@@ -317,10 +318,18 @@ const GuestParticipationModal = ({
   // 未ログイン時のメールアドレス入力欄の参照を保持する
   const emailRef = useRef<HTMLInputElement>(null);
 
+  // 背景スクロールをロックする
+  useScrollLock(true);
+
   // Escape キーでモーダルを閉じる
   useEffect(() => {
+    // モーダル表示中に背景のツールバーボタンへフォーカスが残ると、
+    // ブラウザ最小化→復元時の focus イベントで Tooltip が開きっぱなしになるため blur する
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     emailRef.current?.focus(); // メールアドレス入力欄にフォーカスする
-    document.body.style.overflow = "hidden"; // 背景のスクロールを無効化する
 
     // Escape キーでモーダルを閉じる処理
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -334,7 +343,6 @@ const GuestParticipationModal = ({
 
     // クリーンアップ関数でイベントリスナーを削除
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isSubmitting, onClose]);
@@ -376,7 +384,7 @@ const GuestParticipationModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 flex h-screen items-center justify-center px-4">
       {/* 背景オーバーレイ：ボタンとして振るわせ、クリックで閉じる */}
       <button
         type="button"
@@ -510,9 +518,16 @@ const CancelParticipationModal = ({
   setIsSubmitting,
   onSuccess,
 }: CancelParticipationModalProps) => {
-  // Escape キーでモーダルを閉じる & 背景スクロール抑止
+  // 背景スクロールをロックする
+  useScrollLock(true);
+
+  // Escape キーでモーダルを閉じる
   useEffect(() => {
-    document.body.style.overflow = "hidden";
+    // モーダル表示中に背景のツールバーボタンへフォーカスが残ると、
+    // ブラウザ最小化→復元時の focus イベントで Tooltip が開きっぱなしになるため blur する
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isSubmitting) {
@@ -523,7 +538,6 @@ const CancelParticipationModal = ({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isSubmitting, onClose]);
@@ -547,7 +561,7 @@ const CancelParticipationModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 flex h-screen items-center justify-center px-4">
       {/* 背景オーバーレイ */}
       <button
         type="button"
