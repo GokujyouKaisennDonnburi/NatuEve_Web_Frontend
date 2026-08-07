@@ -65,6 +65,12 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
     }
   };
 
+  const MAX_LOCATION_LENGTH = 12;
+  const displayLocation =
+    event.location.length > MAX_LOCATION_LENGTH
+      ? `${event.location.slice(0, MAX_LOCATION_LENGTH)}......`
+      : event.location;
+
   return (
     <a
       href={`/event/${event.id}`}
@@ -122,10 +128,10 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
 
         {/* Location + Organizer centered in lower space (y=66-132) */}
         <div className="flex items-center mt-[10px] ml-[26px]">
-          <div className="flex items-center">
+          <div className="flex items-center max-w-[175px] min-w-0">
             <MapPin className="h-[13px] w-[13px] text-[#5F8530] shrink-0" />
-            <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061]">
-              {event.location}
+            <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061] truncate">
+              {displayLocation}
             </span>
           </div>
           <div
