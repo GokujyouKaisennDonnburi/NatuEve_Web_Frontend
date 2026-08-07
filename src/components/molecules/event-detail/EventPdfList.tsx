@@ -25,30 +25,33 @@ export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
     <Card>
       <CardContent>
         {/* セクションタイトル */}
-        <h2 className="section-title flex items-center gap-2">
-          <FileText className="h-5 w-5 text-emerald-500" /> 添付資料
-        </h2>
+        <h2 className="section-title">添付資料</h2>
 
         {/* PDFリストの表示 */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {pdfItems.map(({ source, filename }) => (
             <a
               key={source}
               href={normalizeAssetUrl(source)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between gap-3 rounded-md border border-slate-100 bg-white px-4 py-3 shadow-sm hover:shadow-md"
+              className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:shadow-md"
             >
               {/* PDFファイル名の表示（元ファイル名。無ければURL末尾にフォールバック） */}
-              <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-slate-700" />
-                <span className="text-sm text-slate-800">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50">
+                  <FileText className="h-5 w-5 text-red-400" />
+                </div>
+                <span className="truncate text-sm font-bold text-slate-800">
                   {filename || source.split("/").pop()}
                 </span>
               </div>
 
-              {/* ダウンロードアイコン */}
-              <Download className="h-4 w-4 text-emerald-600" />
+              {/* ダウンロードボタン（見た目のみ。実際のリンクは行全体の<a>が担う） */}
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">
+                <Download className="h-4 w-4" />
+                ダウンロード
+              </span>
             </a>
           ))}
         </div>

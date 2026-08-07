@@ -37,17 +37,17 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
   return (
     <Card>
       <CardContent>
-        <h2 className="section-title">イベント情報</h2>
+        <h2 className="section-title">イベント詳細</h2>
         <div className="overflow-x-auto">
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
             <table className="w-full border-separate border-spacing-0 text-sm">
               <tbody>
                 {/* 主催者 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-emerald-500 text-sm font-semibold text-white">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
                     主催者
                   </th>
-                  <td className="border-l  border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
+                  <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
                     <span className="text-sm font-medium text-slate-800">
                       {organizerName ?? "未設定"}
                     </span>
@@ -56,27 +56,27 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 開催日時 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-emerald-500 text-sm font-semibold text-white">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
                     開催日時
                   </th>
-                  <td className="border-l  border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
+                  <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
                     {formatDateTime(event.eventDate)}
                   </td>
                 </tr>
 
                 {/* 終了日時 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-emerald-500 text-sm font-semibold text-white">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
                     終了日時
                   </th>
-                  <td className="border-l  border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
+                  <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
                     {formatDateTime(event.endDate)}
                   </td>
                 </tr>
 
                 {/* 開催場所 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-emerald-500 text-sm font-semibold text-white">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
                     開催場所
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
@@ -86,7 +86,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 参加費 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-emerald-500 text-sm font-semibold text-white">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
                     参加費
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
@@ -97,18 +97,18 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                               `${cost.category}: ¥${cost.cost.toLocaleString()}`,
                           )
                           .join(" / ")
-                      : ""}
+                      : "無料"}
                   </td>
                 </tr>
 
                 {/* 持ち物 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-emerald-500 text-sm font-semibold text-white">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
                     持ち物
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
                     {event.items && event.items.length > 0 ? (
-                      <ul className="space-y-4">
+                      <ul className="space-y-2">
                         {event.items.map((item) => (
                           <li key={item.item}>
                             <EventItemBadge
@@ -126,11 +126,11 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 定員 */}
                 <tr>
-                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-emerald-500 text-sm font-semibold text-white">
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-slate-50 text-sm font-semibold text-slate-700">
                     定員
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
-                    {event.capacity === 0 ? "定員なし" : event.capacity}
+                    {event.capacity === 0 ? "定員なし" : `${event.capacity}名`}
                   </td>
                 </tr>
               </tbody>
