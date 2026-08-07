@@ -104,7 +104,22 @@ export function useEventList({
             };
           });
 
-          setEvents(mappedEvents);
+          const sortedEvents =
+            sortBy === "event_date"
+              ? [...mappedEvents].sort((a, b) => {
+                  const now = new Date();
+                  const aDate = new Date(a.eventDate);
+                  const bDate = new Date(b.eventDate);
+                  const aFuture = aDate >= now;
+                  const bFuture = bDate >= now;
+                  if (aFuture !== bFuture) {
+                    return aFuture ? -1 : 1;
+                  }
+                  return aDate.getTime() - bDate.getTime();
+                })
+              : mappedEvents;
+
+          setEvents(sortedEvents);
           setTotalCount(
             data.totalCount - (data.events.length - visibleApiEvents.length),
           );
