@@ -4,6 +4,7 @@ import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { FilterTag } from "@/components/atoms/FilterTag";
 import { Button } from "@/components/ui/button";
 import type { TagItem } from "@/types/tag";
+import { ROUTES } from "@/constants/routes";
 import { MapPin } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -49,6 +50,20 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
     weekday: "short",
     timeZone: "Asia/Tokyo",
   });
+
+  const handleOrganizerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`${ROUTES.USERS}/${event.profileId}`);
+  };
+
+  const handleOrganizerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.stopPropagation();
+      router.push(`${ROUTES.USERS}/${event.profileId}`);
+    }
+  };
 
   return (
     <a
@@ -113,7 +128,14 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
               {event.location}
             </span>
           </div>
-          <div className="flex items-center ml-[113px]">
+          <div
+            className="flex items-center ml-[113px] shrink-0 cursor-pointer hover:opacity-70 transition-opacity"
+            onClick={handleOrganizerClick}
+            onKeyDown={handleOrganizerKeyDown}
+            role="link"
+            tabIndex={0}
+            aria-label={`${event.hostName} のプロフィールへ移動`}
+          >
             {event.hostAvatarUrl ? (
               <Image
                 src={event.hostAvatarUrl}
