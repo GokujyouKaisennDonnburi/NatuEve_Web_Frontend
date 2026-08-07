@@ -94,13 +94,19 @@ export function useAuth() {
     }
 
     // 初期セッション確認
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSession(buildSession(session));
-      }
-
-      setIsLoading(false); // 認証状態のロードが完了したことを示す
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSession(session ? buildSession(session) : null);
+      })
+      .catch(() => {
+        // 取得に失敗した場合は未ログイン扱いで画面を進める。
+        // ここで握りつぶさないとローディングが解除されず、画面が固まる。
+        setSession(null);
+      })
+      .finally(() => {
+        setIsLoading(false); // 成否によらず認証状態のロードを完了させる
+      });
 
     // セッション変化を監視
     const {

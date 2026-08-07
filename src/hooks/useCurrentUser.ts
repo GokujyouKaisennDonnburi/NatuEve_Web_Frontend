@@ -21,12 +21,18 @@ export function useCurrentUser(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // セッションが変化したときにユーザー情報を取得する副作用を定義
+  // 依存はセッションオブジェクトではなくユーザーIDとする。
+  // useAuth の buildSession はセッション変化のたびに新しいオブジェクトを返すため、
+  // オブジェクトを依存にするとトークン更新のたびに再取得が走り、ヘッダーがちらつく。
+  // API へ付与するトークンは apiFetch が呼び出し時に取得するので依存に含めない。
+  const userId = session?.userId ?? null;
+
+  // ログインユーザーが変わったときにユーザー情報を取得する副作用を定義
   useEffect(() => {
     let cancelled = false;
 
-    // セッションが存在しない場合はユーザー情報をリセットして終了
-    if (!session) {
+    // 未ログインの場合はユーザー情報をリセットして終了
+    if (!userId) {
       setUser(null);
       setError(null);
       setIsLoading(false);
@@ -65,7 +71,7 @@ export function useCurrentUser(
     return () => {
       cancelled = true;
     };
-  }, [session]);
+  }, [userId]);
 
   return {
     user,
