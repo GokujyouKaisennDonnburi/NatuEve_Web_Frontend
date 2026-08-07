@@ -1,5 +1,6 @@
 import { EventItemBadge } from "@/components/molecules/EventItemBadge";
-import { Card, CardContent } from "@/components/ui/card";
+import { SurfaceCard } from "@/components/molecules/SurfaceCard";
+import { CardContent } from "@/components/ui/card";
 import type { EventDetailType } from "./types";
 
 // イベント情報表コンポーネントのプロパティ型定義
@@ -35,7 +36,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
   const organizerName = event.profile?.displayName ?? event.organizerName;
 
   return (
-    <Card>
+    <SurfaceCard>
       <CardContent>
         <h2 className="section-title">イベント詳細</h2>
         <div className="overflow-x-auto">
@@ -138,6 +139,6 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
           </div>
         </div>
       </CardContent>
-    </Card>
+    </SurfaceCard>
   );
 }

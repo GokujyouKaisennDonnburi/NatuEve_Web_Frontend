@@ -3,7 +3,6 @@
 import { BackLink } from "@/components/atoms/BackLink";
 import { EmptyMessage } from "@/components/atoms/EmptyMessage";
 import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
-import { EventCancelButton } from "@/components/atoms/event-post/EventCancelButton";
 import { EventCancelModal } from "@/components/molecules/event-detail/EventCancelModal";
 import {
   type EventDetailTab,
@@ -28,9 +27,10 @@ import {
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { PageToc } from "@/components/molecules/PageToc";
+import { SurfaceCard } from "@/components/molecules/SurfaceCard";
 import { EventParticipationButton } from "@/components/organisms/EventParticipationButton";
-import { Card, CardContent } from "@/components/ui/card";
 import { useAuthContext } from "@/components/layouts/AuthProvider";
+import { CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { useEventMembers } from "@/hooks/useEventMembers";
@@ -210,11 +210,11 @@ export function EventDetail({
           <div className="min-w-0 flex-1 space-y-6">
             {/* イベント画像（固定アスペクト） */}
             {images.length > 0 ? (
-              <Card>
+              <SurfaceCard>
                 <CardContent>
                   <EventImageCarousel images={images} />
                 </CardContent>
-              </Card>
+              </SurfaceCard>
             ) : null}
 
             {/* イベント概要 */}
@@ -222,14 +222,14 @@ export function EventDetail({
               id={EVENT_DETAIL_OVERVIEW_SECTION_ID}
               className="scroll-mt-24"
             >
-              <Card>
+              <SurfaceCard>
                 <CardContent>
                   <h2 className="section-title">イベント概要</h2>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
                     {event.description}
                   </p>
                 </CardContent>
-              </Card>
+              </SurfaceCard>
             </section>
 
             {/* イベント詳細（表形式） */}
@@ -306,29 +306,25 @@ export function EventDetail({
         />
       ) : null}
 
-      {/* イベント投稿者向けボタンと参加申し込みボタンの切り替え */}
-      {/* スクロール中も画面下部に固定で表示する */}
-      <div className="sticky bottom-4 z-40">
-        {isOrganizer ? (
-          <EventCancelButton eventId={event.id} hasMembers={hasMembers} />
-        ) : (
-          <>
-            {participationError ? (
-              <p className="text-center text-sm text-slate-500">
-                参加状態の取得に失敗しました。
-                参加申し込みは通常通りご利用いただけます。
-              </p>
-            ) : null}
-            <EventParticipationButton
-              eventId={event.id}
-              capacity={event.capacity}
-              participating={participating}
-              onParticipateSuccess={refetchParticipation}
-              onCancelSuccess={refetchParticipation}
-            />
-          </>
-        )}
-      </div>
+      {/* 参加申し込みボタン。スクロール中も画面下部に固定で表示する。 */}
+      {/* 主催者にはイベントの削除をツールバーの削除ボタンに一本化しているため何も出さない。 */}
+      {isOrganizer ? null : (
+        <div className="sticky bottom-4 z-40">
+          {participationError ? (
+            <p className="text-center text-sm text-slate-500">
+              参加状態の取得に失敗しました。
+              参加申し込みは通常通りご利用いただけます。
+            </p>
+          ) : null}
+          <EventParticipationButton
+            eventId={event.id}
+            capacity={event.capacity}
+            participating={participating}
+            onParticipateSuccess={refetchParticipation}
+            onCancelSuccess={refetchParticipation}
+          />
+        </div>
+      )}
     </div>
   );
 }
