@@ -43,21 +43,16 @@ export function CurrentUserProvider({
     setUser,
   } = useCurrentUser(session);
 
-  const value = useMemo<CurrentUserContextValue>(() => {
-    // セッション確定後、useCurrentUser の副作用が走るまでの1レンダーは
-    // isProfileLoading が false のままユーザー情報も無い状態になる。
-    // その隙間で未ログイン表示へ落ちないよう、結果が出ていない間は
-    // ローディング扱いとする。
-    const isResolving = session !== null && user === null && error === null;
-
-    return {
+  const value = useMemo<CurrentUserContextValue>(
+    () => ({
       session,
       user,
-      isLoading: isSessionLoading || isProfileLoading || isResolving,
+      isLoading: isSessionLoading || isProfileLoading,
       error,
       setUser,
-    };
-  }, [session, user, isSessionLoading, isProfileLoading, error, setUser]);
+    }),
+    [session, user, isSessionLoading, isProfileLoading, error, setUser],
+  );
 
   return (
     <CurrentUserContext.Provider value={value}>
