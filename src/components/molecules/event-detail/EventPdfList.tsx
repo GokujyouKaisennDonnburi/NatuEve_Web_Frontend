@@ -1,7 +1,7 @@
 import { SurfaceCard } from "@/components/molecules/SurfaceCard";
 import { CardContent } from "@/components/ui/card";
 import { normalizeAssetUrl } from "@/utils/media";
-import { Download, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 
 // 添付資料（PDF）1件分。source は表示/DL先（URL または objectKey）、
 // filename は表示ラベルに使う元ファイル名（空ならURLの末尾にフォールバック）。
@@ -48,10 +48,9 @@ export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
                 </span>
               </div>
 
-              {/* ダウンロードボタン（見た目のみ。実際のリンクは行全体の<a>が担う） */}
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">
-                <Download className="h-4 w-4" />
-                ダウンロード
+              {/* 「開く」ボタン（見た目のみ。実際のリンクは行全体の<a>が担う） */}
+              <span className="inline-flex shrink-0 items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">
+                開く
               </span>
             </a>
           ))}

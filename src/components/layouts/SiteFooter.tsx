@@ -82,7 +82,7 @@ export function SiteFooter() {
                   href={ROUTES.COMING_SOON}
                   className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
-                ガイドライン
+                  ガイドライン
                 </Link>
               </li>
             </ul>
@@ -121,7 +121,6 @@ export function SiteFooter() {
                   className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   なちゅぽーたるへ
-
                 </Link>
               </li>
               <li>
