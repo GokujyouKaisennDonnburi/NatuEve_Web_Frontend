@@ -3,7 +3,7 @@ import Image from "next/image";
 import type { ChangeEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
-import { FieldNote } from "@/components/atoms/event-post/FieldNote";
+import { FieldNote } from "@/components/atoms/FieldNote";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

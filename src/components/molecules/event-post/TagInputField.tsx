@@ -1,22 +1,24 @@
 "use client";
 
-import { Check, Loader2, Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import {
+  type KeyboardEvent,
   useCallback,
   useEffect,
   useRef,
   useState,
-  type KeyboardEvent,
 } from "react";
 import { toast } from "sonner";
 
-import { FieldNote } from "@/components/atoms/event-post/FieldNote";
+import { AddItemButton } from "@/components/atoms/AddItemButton";
+import { FieldNote } from "@/components/atoms/FieldNote";
+import { FormInput } from "@/components/atoms/FormInput";
 import { TagChip } from "@/components/atoms/event-post/TagChip";
-import { FormField } from "@/components/molecules/event-post/FormField";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/molecules/FormField";
 import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";
+import { MESSAGES } from "@/constants/messages";
 import { useCreateTag } from "@/hooks/useCreateTag";
+import { useRowIds } from "@/hooks/useRowIds";
 import { useTags } from "@/hooks/useTags";
 import { TagError, TagErrorCode, type TagItem } from "@/types/tag";
 
@@ -40,12 +42,14 @@ export function TagInputField({
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const { isSubmitting, submit } = useCreateTag();
   const { tags: allTags, isLoading: isTagsLoading } = useTags();
-  const isLimitReached = tags.length >= MAX_TAG_COUNT;
   const trimmedDraft = draft.trim();
+  const normalizedDraft = normalize(trimmedDraft);
+  // 追加済みタグとの重複は、大文字小文字や全角半角の違いを無視して判定する
+  const normalizedTagNames = new Set(tags.map((t) => normalize(t.name)));
   const isDuplicate =
-    trimmedDraft.length > 0 && tags.some((t) => t.name === trimmedDraft);
-  const isAddDisabled =
-    !trimmedDraft || isLimitReached || isDuplicate || isSubmitting;
+    trimmedDraft.length > 0 && normalizedTagNames.has(normalizedDraft);
+  // 件数の上限はトーストで知らせるため、追加ボタンは無効化しない
+  const isAddDisabled = !trimmedDraft || isDuplicate || isSubmitting;
   const helperId = `${id}-helper`;
 
   const latestTagsRef = useRef(tags);
@@ -53,41 +57,39 @@ export function TagInputField({
     latestTagsRef.current = tags;
   }, [tags]);
 
-  const [rowIds, setRowIds] = useState<string[]>(() =>
-    tags.map(() => crypto.randomUUID()),
-  );
+  const { rowIds, removeRowId } = useRowIds(tags.length);
 
-  useEffect(() => {
-    setRowIds((current) => {
-      if (current.length === tags.length) {
-        return current;
-      }
-      if (current.length < tags.length) {
-        return [
-          ...current,
-          ...Array.from({ length: tags.length - current.length }, () =>
-            crypto.randomUUID(),
-          ),
-        ];
-      }
-      return current.slice(0, tags.length);
-    });
-  }, [tags.length]);
-
-  const existingNames = new Set(tags.map((t) => t.name));
-  const normalizedDraft = normalize(trimmedDraft);
   const suggestions = normalizedDraft
     ? allTags.filter(
         (t) =>
-          !existingNames.has(t.name) &&
+          !normalizedTagNames.has(normalize(t.name)) &&
           normalize(t.name).includes(normalizedDraft),
       )
     : [];
 
-  const showDropdown = isOpen && suggestions.length > 0;
+  // 同名のタグが既にある場合は候補から選ばせたいので、新規作成の行は出さない
+  const canCreate =
+    trimmedDraft.length > 0 &&
+    !isDuplicate &&
+    !allTags.some((t) => normalize(t.name) === normalizedDraft);
+
+  // 件数の上限に達しているかを判定し、達していればトーストで知らせる。
+  // 同じ id を渡してトーストを積み上げず 1 件に保つ。
+  const rejectWhenCountExceeded = () => {
+    if (latestTagsRef.current.length >= MAX_TAG_COUNT) {
+      toast.error(MESSAGES.TAG_COUNT_EXCEEDED, { id: `${id}-tag-count` });
+      return true;
+    }
+    return false;
+  };
+
+  // 候補の末尾に新規作成の行を足したものを、まとめて1つのリストとして扱う
+  const createIndex = canCreate ? suggestions.length : -1;
+  const optionCount = suggestions.length + (canCreate ? 1 : 0);
+  const showDropdown = isOpen && optionCount > 0;
 
   const handleAdd = async () => {
-    if (isAddDisabled) {
+    if (isAddDisabled || rejectWhenCountExceeded()) {
       return;
     }
     const name = trimmedDraft;
@@ -99,16 +101,20 @@ export function TagInputField({
       ]);
       setDraft("");
       setIsOpen(false);
+      setHighlightIndex(-1);
     } catch (caughtError) {
       if (
         caughtError instanceof TagError &&
         caughtError.code === TagErrorCode.DuplicateTag
       ) {
-        const existing = allTags.find((t) => t.name === name);
+        const existing = allTags.find(
+          (t) => normalize(t.name) === normalize(name),
+        );
         if (existing) {
           onTagsChange([...latestTagsRef.current, existing]);
           setDraft("");
           setIsOpen(false);
+          setHighlightIndex(-1);
         }
         return;
       }
@@ -122,6 +128,9 @@ export function TagInputField({
   };
 
   const handleSuggestionSelect = (tag: TagItem) => {
+    if (rejectWhenCountExceeded()) {
+      return;
+    }
     onTagsChange([...latestTagsRef.current, tag]);
     setDraft("");
     setIsOpen(false);
@@ -134,8 +143,12 @@ export function TagInputField({
         return;
       }
       event.preventDefault();
-      if (showDropdown && highlightIndex >= 0) {
-        handleSuggestionSelect(suggestions[highlightIndex]);
+      if (showDropdown && highlightIndex >= 0 && highlightIndex < optionCount) {
+        if (highlightIndex === createIndex) {
+          void handleAdd();
+        } else {
+          handleSuggestionSelect(suggestions[highlightIndex]);
+        }
         return;
       }
       void handleAdd();
@@ -144,17 +157,13 @@ export function TagInputField({
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setHighlightIndex((prev) =>
-        prev < suggestions.length - 1 ? prev + 1 : 0,
-      );
+      setHighlightIndex((prev) => (prev < optionCount - 1 ? prev + 1 : 0));
       return;
     }
 
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      setHighlightIndex((prev) =>
-        prev > 0 ? prev - 1 : suggestions.length - 1,
-      );
+      setHighlightIndex((prev) => (prev > 0 ? prev - 1 : optionCount - 1));
       return;
     }
 
@@ -165,8 +174,14 @@ export function TagInputField({
   };
 
   const handleDraftChange = (value: string) => {
-    setDraft(value);
-    setIsOpen(value.trim().length > 0);
+    // maxLength で黙って切り詰めず、上限に触れた理由をトーストで伝える
+    if (value.length > MAX_TAG_LENGTH) {
+      toast.error(MESSAGES.TAG_LENGTH_EXCEEDED, { id: `${id}-tag-length` });
+    }
+
+    const nextDraft = value.slice(0, MAX_TAG_LENGTH);
+    setDraft(nextDraft);
+    setIsOpen(nextDraft.trim().length > 0);
     setHighlightIndex(-1);
   };
 
@@ -189,20 +204,28 @@ export function TagInputField({
   }, [handleClickOutside]);
 
   const handleRemove = (index: number) => {
+    // 削除した位置の ID も落とす。件数の変化だけに任せると末尾が切り詰められ、
+    // 中間を削除したときに以降のタグと ID の対応がずれる。
+    removeRowId(index);
     onTagsChange(tags.filter((_, currentIndex) => currentIndex !== index));
   };
 
   return (
-    <FormField
-      id={id}
-      label="タグ"
-      hint={`検索や絞り込みで使います。1タグ最大${MAX_TAG_LENGTH}文字・最大${MAX_TAG_COUNT}件まで。`}
-      error={error}
-    >
+    <FormField id={id} label="タグ" required error={error}>
+      {tags.length > 0 ? (
+        <ul className="flex flex-wrap gap-2" aria-label="追加済みのタグ">
+          {tags.map((tag, index) => (
+            <li key={rowIds[index] ?? `${id}-tag-${index}`}>
+              <TagChip label={tag.name} onRemove={() => handleRemove(index)} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
       <div ref={containerRef} className="relative">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Input
+            <FormInput
               id={id}
               value={draft}
               onChange={(event) => handleDraftChange(event.target.value)}
@@ -212,9 +235,8 @@ export function TagInputField({
                   setIsOpen(true);
                 }
               }}
-              placeholder="例: 自然観察"
-              maxLength={MAX_TAG_LENGTH}
-              disabled={isLimitReached || isSubmitting}
+              placeholder="タグを入力（例: 野鳥）"
+              disabled={isSubmitting}
               aria-invalid={Boolean(error) || isDuplicate}
               aria-describedby={isDuplicate ? helperId : undefined}
               aria-expanded={showDropdown}
@@ -223,12 +245,13 @@ export function TagInputField({
               role="combobox"
             />
 
+            {/* 候補は入力欄と同じ幅で下に開き、ウィンドウ幅の変化に追従させる */}
             {showDropdown ? (
               <div
                 id={`${id}-listbox`}
                 role="listbox"
                 aria-label="タグ候補"
-                className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+                className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
               >
                 {suggestions.map((suggestion, index) => (
                   <div
@@ -238,46 +261,59 @@ export function TagInputField({
                     tabIndex={-1}
                     className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm ${
                       index === highlightIndex
-                        ? "bg-teal-50 text-teal-700"
+                        ? "bg-(--brand-green-soft) text-(--brand-green-text)"
                         : "text-slate-700 hover:bg-slate-50"
                     }`}
                     onMouseDown={() => handleSuggestionSelect(suggestion)}
                     onMouseEnter={() => setHighlightIndex(index)}
                   >
-                    <span>{suggestion.name}</span>
+                    <span className="truncate">{suggestion.name}</span>
                     {index === highlightIndex ? (
                       <Check className="h-3.5 w-3.5 shrink-0" />
                     ) : null}
                   </div>
                 ))}
+
+                {canCreate ? (
+                  <div
+                    role="option"
+                    aria-selected={highlightIndex === createIndex}
+                    tabIndex={-1}
+                    className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm ${
+                      highlightIndex === createIndex
+                        ? "bg-(--brand-green-soft) text-(--brand-green-text)"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                    onMouseDown={() => {
+                      void handleAdd();
+                    }}
+                    onMouseEnter={() => setHighlightIndex(createIndex)}
+                  >
+                    <Plus className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">「{trimmedDraft}」を追加</span>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
             {isTagsLoading &&
             trimmedDraft.length > 0 &&
             suggestions.length === 0 ? (
-              <div className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
+              <div className="absolute z-10 mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
                 読み込み中…
               </div>
             ) : null}
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
+          <AddItemButton
             onClick={() => {
               void handleAdd();
             }}
             disabled={isAddDisabled}
-            className="shrink-0 cursor-pointer"
+            className="h-11 shrink-0"
           >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-            追加
-          </Button>
+            {isSubmitting ? "追加中…" : "追加"}
+          </AddItemButton>
         </div>
       </div>
 
@@ -285,24 +321,6 @@ export function TagInputField({
         <FieldNote tone="error">
           <span id={helperId}>「{trimmedDraft}」は既に追加されています。</span>
         </FieldNote>
-      ) : null}
-
-      {tags.length > 0 ? (
-        <ul className="flex flex-wrap gap-2" aria-label="追加済みのタグ">
-          {tags.map((tag, index) => (
-            <li key={rowIds[index] ?? `${id}-tag-${index}`}>
-              <TagChip label={tag.name} onRemove={() => handleRemove(index)} />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-          タグが未設定です。必要に応じて追加してください。
-        </div>
-      )}
-
-      {isLimitReached ? (
-        <FieldNote>タグは最大{MAX_TAG_COUNT}件まで追加できます。</FieldNote>
       ) : null}
     </FormField>
   );

@@ -1,34 +1,92 @@
 "use client";
 
+import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import type { UseEventMembersResult } from "@/hooks/useEventMembers";
-import { Users, X } from "lucide-react";
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { Send, X } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect } from "react";
+import { CardContent } from "@/components/ui/card";
 
-// 参加者一覧モーダルのプロパティ
+// ==============================
+// Props
+// ==============================
+
 type EventMemberListModalProps = {
   memberState: UseEventMembersResult;
+  eventTitle: string;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  onNotify: () => void;
 };
 
-// 申込日時を日本語表記へ整形
+// ==============================
+// 日付整形
+// ==============================
+
 const formatCreatedAt = (iso: string): string =>
   new Date(iso).toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Asia/Tokyo",
   });
 
+// ==============================
+// サマリーカード
+// ==============================
+
+function SummaryCard({
+  title,
+  value,
+  unit,
+  color,
+}: Readonly<{
+  title: string;
+  value: number;
+  unit: string;
+  color: "green" | "blue";
+}>) {
+  const styles =
+    color === "green"
+      ? {
+          bg: "bg-lime-50",
+          text: "text-lime-700",
+        }
+      : {
+          bg: "bg-sky-50",
+          text: "text-sky-700",
+        };
+
+  return (
+    <div
+      className={`
+        min-w-[120px]
+        rounded-2xl
+        ${styles.bg}
+        px-4
+        py-3
+      `}
+    >
+      <p className={`text-xs font-medium ${styles.text}`}>{title}</p>
+
+      <p className={`mt-1 text-3xl font-bold ${styles.text}`}>
+        {value}
+        <span className="ml-1 text-lg">{unit}</span>
+      </p>
+    </div>
+  );
+}
+
 // 参加者一覧本体
 function EventMemberListBody({
   memberState,
+  onNotify,
 }: Readonly<{
   memberState: UseEventMembersResult;
+  onNotify: () => void;
 }>) {
   const { data, isLoading, error } = memberState;
 
@@ -49,61 +107,124 @@ function EventMemberListBody({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-auto flex-col gap-4 overflow-hidden">
       {/* サマリー */}
-      <div className="flex flex-wrap gap-3 text-sm">
-        <span className="rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-700">
-          参加組数: {data.totalCount}
-        </span>
+      <div className="flex items-center justify-between">
+        <div className="flex gap-4">
+          <SummaryCard
+            title="参加組数"
+            value={data.totalCount}
+            unit="組"
+            color="green"
+          />
 
-        <span className="rounded-full bg-emerald-100 px-3 py-1 font-semibold text-emerald-700">
-          合計参加人数: {data.totalMembers}
-        </span>
+          <SummaryCard
+            title="合計人数"
+            value={data.totalMembers}
+            unit="名"
+            color="blue"
+          />
+        </div>
+
+        <Button
+          type="button"
+          onClick={onNotify}
+          className="h-11 gap-2 rounded-full bg-sky-500 px-6 font-semibold text-white hover:bg-sky-600"
+        >
+          <Send className="h-4 w-4 text-white" />
+          全体連絡
+        </Button>
       </div>
 
       {/* 参加者一覧 */}
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-slate-50 text-xs text-slate-500 shadow-[0_-1px_0_0_#e2e8f0_inset,0_1px_0_0_#e2e8f0]">
-            <tr>
-              <th className="px-4 py-3 font-medium">ユーザー名</th>
-              <th className="px-4 py-3 font-medium">メールアドレス</th>
-              <th className="px-4 py-3 font-medium">参加人数</th>
-              <th className="px-4 py-3 font-medium">申込日時</th>
+      <div className="flex flex-auto flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+        {/* ヘッダー */}
+        <table className="w-full table-fixed">
+          <thead className="bg-slate-100">
+            <tr className="border-b border-slate-200 text-left text-sm font-semibold text-slate-600">
+              <th className="w-[35%] px-6 py-3">ユーザー名</th>
+              <th className="w-[30%] px-6 py-3">メールアドレス</th>
+              <th className="w-[15%] px-6 py-3 text-center">参加人数</th>
+              <th className="w-[20%] px-6 py-3 text-right">申し込み日時</th>
             </tr>
           </thead>
-
-          <tbody className="divide-y divide-slate-100">
-            {data.members.map((member) => (
-              <tr
-                key={`${member.mailAddress}-${member.createdAt}`}
-                className="align-top"
-              >
-                <td className="px-4 py-3 text-slate-800">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-medium">{member.username}</span>
-
-                    {member.profileId === null ? (
-                      <span className="text-[11px] text-slate-400">
-                        匿名参加
-                      </span>
-                    ) : null}
-                  </div>
-                </td>
-
-                <td className="break-all px-4 py-3 text-slate-700">
-                  {member.mailAddress}
-                </td>
-
-                <td className="px-4 py-3 text-slate-700">{member.partySize}</td>
-
-                <td className="whitespace-nowrap px-4 py-3 text-slate-700">
-                  {formatCreatedAt(member.createdAt)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
         </table>
+
+        {/* tbodyだけスクロール */}
+        <div className="flex-auto overflow-y-auto">
+          <table className="w-full table-fixed">
+            <tbody>
+              {data.members.map((member) => {
+                // アバターとユーザー名のセット（ログイン参加者はプロフィールへ遷移できるようにする）
+                const userBlock = (
+                  <>
+                    <GlobalUserAvatar
+                      name={member.username}
+                      iconUrl={undefined}
+                      className="h-10 w-10 transition-all group-hover:ring-2 group-hover:ring-emerald-100"
+                    />
+
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-slate-900 transition-colors group-hover:text-emerald-600">
+                          {member.username}
+                        </p>
+
+                        {member.profileId === null && (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                            匿名参加
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                );
+
+                return (
+                  <tr
+                    key={`${member.mailAddress}-${member.createdAt}`}
+                    className="border-b border-slate-200 last:border-0"
+                  >
+                    {/* ユーザー */}
+                    <td className="w-[35%] px-6 py-5">
+                      {member.profileId ? (
+                        // 詳細画面上部と同じようにプロフィール画面へ遷移する
+                        <Link
+                          href={`/users/${member.profileId}`}
+                          className="group flex w-fit items-center gap-3 transition-opacity hover:opacity-80"
+                        >
+                          {userBlock}
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          {userBlock}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* メール */}
+                    <td className="w-[30%] px-6 py-5 text-slate-500">
+                      {member.mailAddress}
+                    </td>
+
+                    {/* 参加人数 */}
+                    <td className="w-[15%] px-6 py-5 text-center">
+                      <span className="text-xl font-bold text-lime-700">
+                        {member.partySize}
+                      </span>
+                      <span className="ml-1 text-sm text-slate-500">名</span>
+                    </td>
+
+                    {/* 日時 */}
+                    <td className="w-[20%] px-6 py-5 text-right text-slate-500">
+                      {formatCreatedAt(member.createdAt)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -112,8 +233,10 @@ function EventMemberListBody({
 // 参加者一覧モーダル
 export function EventMemberListModal({
   memberState,
+  eventTitle,
   isOpen,
   onOpenChange,
+  onNotify,
 }: Readonly<EventMemberListModalProps>) {
   // モーダルを閉じる
   const handleClose = useCallback(() => {
@@ -121,10 +244,16 @@ export function EventMemberListModal({
   }, [onOpenChange]);
 
   // モーダル表示中は背景スクロールをロックし、Escapeで閉じる
+  useScrollLock(isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
 
-    document.body.style.overflow = "hidden";
+    // モーダル表示中に背景のツールバーボタンへフォーカスが残ると、
+    // ブラウザ最小化→復元時の focus イベントで Tooltip が開きっぱなしになるため blur する
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -135,7 +264,6 @@ export function EventMemberListModal({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, handleClose]);
@@ -144,52 +272,49 @@ export function EventMemberListModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      {/* 背景 */}
+    <div className="fixed inset-0 z-50 flex h-screen items-center justify-center bg-black/50 p-6">
+      {/* 背景クリック */}
       <button
         type="button"
-        aria-label="参加者一覧モーダルを閉じる"
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0"
         onClick={handleClose}
+        aria-label="閉じる"
         tabIndex={-1}
       />
 
       <div
-        className="relative flex max-h-[85vh] w-full max-w-2xl flex-col"
+        className="relative z-10 flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-[32px] bg-white shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="member-list-modal-title"
       >
-        <Card className="flex max-h-[85vh] flex-col overflow-hidden border-slate-200/80 bg-white/95 shadow-xl backdrop-blur">
-          <CardContent className="flex flex-col gap-5 overflow-hidden pt-6">
-            {/* ヘッダー */}
-            <div className="flex shrink-0 items-center justify-between">
-              <h2
-                id="member-list-modal-title"
-                className="flex items-center gap-2 text-lg font-bold text-slate-900"
-              >
-                <Users className="h-5 w-5 text-emerald-500" />
-                参加者一覧
-              </h2>
+        {/* ================= Header ================= */}
+        <div className="flex items-start justify-between border-b border-slate-200 px-8 py-6">
+          <div>
+            <h2
+              id="member-list-modal-title"
+              className="text-2xl font-bold text-slate-900"
+            >
+              参加者一覧
+            </h2>
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="cursor-pointer"
-                onClick={handleClose}
-                aria-label="閉じる"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <p className="mt-2 text-slate-500">{eventTitle}</p>
+          </div>
 
-            {/* 本文 */}
-            <div className="min-h-0 overflow-y-auto pr-1">
-              <EventMemberListBody memberState={memberState} />
-            </div>
-          </CardContent>
-        </Card>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            onClick={handleClose}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* ================= Body ================= */}
+        <CardContent className="flex flex-auto flex-col bg-white px-8 py-6 overflow-hidden">
+          <EventMemberListBody memberState={memberState} onNotify={onNotify} />
+        </CardContent>
       </div>
     </div>
   );

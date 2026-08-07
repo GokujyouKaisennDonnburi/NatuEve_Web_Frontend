@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
 import { cancelEvent } from "@/services/event";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -69,10 +70,16 @@ export function EventCancelButton({
     })();
   };
 
+  useScrollLock(isConfirmOpen);
+
   useEffect(() => {
     if (!isConfirmOpen) return;
 
-    document.body.style.overflow = "hidden";
+    // モーダル表示中に背景のツールバーボタンへフォーカスが残ると、
+    // ブラウザ最小化→復元時の focus イベントで Tooltip が開きっぱなしになるため blur する
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -83,7 +90,6 @@ export function EventCancelButton({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isConfirmOpen]);
@@ -100,7 +106,7 @@ export function EventCancelButton({
       </Button>
 
       {isConfirmOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-50 flex h-screen items-center justify-center px-4">
           <button
             type="button"
             aria-label="削除確認を閉じる"

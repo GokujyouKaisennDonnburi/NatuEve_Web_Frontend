@@ -161,8 +161,10 @@ export function EventDetail({
       {/* 参加者一覧モーダル */}
       <EventMemberListModal
         memberState={memberState}
+        eventTitle={event.title}
         isOpen={isMemberListOpen}
         onOpenChange={setIsMemberListOpen}
+        onNotify={() => setIsNotifyOpen(true)}
       />
 
       {/* 全体連絡モーダル */}
@@ -170,6 +172,8 @@ export function EventDetail({
         isOpen={isNotifyOpen}
         onOpenChange={setIsNotifyOpen}
         eventId={event.id}
+        totalCount={memberState.data?.totalCount ?? 0}
+        totalMembers={memberState.data?.totalMembers ?? 0}
       />
 
       {/* イベント削除モーダル */}
@@ -177,7 +181,9 @@ export function EventDetail({
         isOpen={isCancelOpen}
         onOpenChange={setIsCancelOpen}
         eventId={event.id}
-        hasMembers={hasMembers}
+        eventTitle={event.title}
+        totalCount={memberState.data?.totalCount ?? 0}
+        totalMembers={memberState.data?.totalMembers ?? 0}
       />
 
       {/* 主催者用のツールバー（画面右側に固定表示） */}

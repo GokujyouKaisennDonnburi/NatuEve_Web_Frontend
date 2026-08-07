@@ -1,6 +1,6 @@
-import { FieldNote } from "@/components/atoms/event-post/FieldNote";
+import { FieldNote } from "@/components/atoms/FieldNote";
 import { TogglePill } from "@/components/atoms/event-post/TogglePill";
-import { FormField } from "@/components/molecules/event-post/FormField";
+import { FormField } from "@/components/molecules/FormField";
 import { Input } from "@/components/ui/input";
 
 // 外部URLの入力欄を表示するコンポーネントのプロパティを定義

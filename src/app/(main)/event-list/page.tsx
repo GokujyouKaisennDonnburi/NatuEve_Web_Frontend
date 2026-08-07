@@ -1,19 +1,43 @@
 "use client";
 
-import { CreateEventButton } from "@/components/atoms/CreateEventButton";
+import { FilterIconButton } from "@/components/atoms/FilterIconButton";
 import { SortButton } from "@/components/atoms/SortButton";
-import { SearchBar } from "@/components/molecules/SearchBar";
 import { Pagination } from "@/components/molecules/Pagination";
+import { SearchBar } from "@/components/molecules/SearchBar";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
-import { ROUTES } from "@/constants/routes";
+import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchEventList } from "@/services/event";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import type { TagItem } from "@/types/tag";
+import { useEffect, useMemo, useState } from "react";
 
 type SortOption = "created_at" | "event_date";
+
+type ApiResponseProfile = {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+};
+
+type ApiResponseEvent = {
+  createdAt: string;
+  eventDate: string;
+  id: string;
+  location: string;
+  profileId: string;
+  title: string;
+  profile: ApiResponseProfile;
+  tags?: Array<{ id: string; name: string }>;
+  // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
+  cancelledAt?: string | null;
+};
+
+type EventsApiResponse = {
+  events: ApiResponseEvent[];
+  limit: number;
+  offset: number;
+  totalCount: number;
+};
 
 export default function EventListPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -23,23 +47,42 @@ export default function EventListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const ITEMS_PER_PAGE = 15;
 
-  const router = useRouter();
+  // 絞り込みフィルターの状態
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagSearchQuery, setTagSearchQuery] = useState("");
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [expandedRegions, setExpandedRegions] = useState<string[]>([]);
+  const [expandedPrefectures, setExpandedPrefectures] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [freeOnly, setFreeOnly] = useState(false);
+  const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
+  const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
 
+  // 現在表示中のイベントから使用頻度の高いタグ順に算出する
+  const frequentTags = useMemo(() => {
+    const countMap = new Map<string, number>();
+    const tagMap = new Map<string, TagItem>();
+    for (const event of events) {
+      for (const tag of event.tags ?? []) {
+        countMap.set(tag.id, (countMap.get(tag.id) ?? 0) + 1);
+        tagMap.set(tag.id, tag);
+      }
+    }
+    return Array.from(countMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => tagMap.get(id))
+      .filter((t): t is TagItem => t != null);
+  }, [events]);
   // Supabaseのセッション状態を取得
   const { session, isLoading: isSessionLoading } = useAuth();
-
-  // 現在のユーザー情報を取得（Service経由）
-  const { user: currentUser, isLoading: isProfileLoading } =
-    useCurrentUser(session);
 
   useEffect(() => {
     let cancelled = false;
 
     const fetchEvents = async (attempt = 0): Promise<void> => {
       if (cancelled) return;
-
-      // セッションがロード中の場合は待機
-      if (isSessionLoading) return;
 
       try {
         const offset = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -109,18 +152,7 @@ export default function EventListPage() {
     return () => {
       cancelled = true;
     };
-  }, [currentPage, sortBy, searchQuery, isSessionLoading]); // 依存配列に loading 状態を追加
-
-  const handleCreateEvent = () => {
-    if (isSessionLoading || isProfileLoading) {
-      return;
-    }
-    if (!currentUser) {
-      toast.error("イベントを投稿するにはログインしてください。");
-      return;
-    }
-    router.push(ROUTES.EVENT_POST);
-  };
+  }, [currentPage, sortBy, searchQuery]);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -144,19 +176,68 @@ export default function EventListPage() {
     setCurrentPage(1);
   };
 
+  // タグの選択/解除を処理する関数
+  const handleTagSelect = (id: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
+    );
+  };
+
+  // 全フィルターをリセットする関数
+  const resetFilters = () => {
+    setSelectedTagIds([]);
+    setTagSearchQuery("");
+    setSelectedRegions([]);
+    setSelectedPrefectures([]);
+    setSelectedCities([]);
+    setExpandedRegions([]);
+    setExpandedPrefectures([]);
+    setSelectedStatuses([]);
+    setFreeOnly(false);
+    setMinPrice(undefined);
+    setMaxPrice(undefined);
+    setCurrentPage(1);
+  };
+
+  const handleClearAll = () => {
+    resetFilters();
+  };
+
+  const handleClear = () => {
+    resetFilters();
+  };
+
+  const handleApply = () => {
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters =
+    selectedTagIds.length > 0 ||
+    selectedRegions.length > 0 ||
+    selectedPrefectures.length > 0 ||
+    selectedCities.length > 0 ||
+    selectedStatuses.length > 0 ||
+    freeOnly ||
+    minPrice !== undefined ||
+    maxPrice !== undefined;
+
   return (
-    <div className="mx-auto max-w-[1280px] px-8 py-8">
+    <div className="mx-auto max-w-[1728px] px-[max(16px,3%)] pt-[59px]">
       {/* Title */}
-      <h1 className="text-[40px] leading-[58px] text-black font-normal mb-8">
+      <h1 className="text-[40px] leading-[58px] text-black font-normal mb-[60px]">
         イベントを探す
       </h1>
 
       {/* Search + Sort row */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div className="flex-1 max-w-[1126px]">
-          <SearchBar onSearch={handleSearch} initialValue={searchQuery} />
+      <div className="flex items-start gap-4 mb-[23px]">
+        <div className="flex-1">
+          <SearchBar
+            onSearch={handleSearch}
+            initialValue={searchQuery}
+            className="w-full"
+          />
         </div>
-        <div className="shrink-0 pt-[23px]">
+        <div className="shrink-0 flex items-center gap-3">
           <SortButton
             label="並び替え"
             options={sortOptions}
@@ -166,39 +247,90 @@ export default function EventListPage() {
         </div>
       </div>
 
-      {/* Event count + Create button */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-          {totalCount} 件のイベント
-        </span>
-        <CreateEventButton
-          type="button"
-          onClick={handleCreateEvent}
-          aria-label="イベントを投稿"
-        />
+      {/* Filter button row */}
+      <div className="mb-[45px]">
+        <FilterIconButton onClick={() => {}} isActive={hasActiveFilters} />
       </div>
 
-      {/* Event cards */}
-      <div className="space-y-[48px]">
-        {events.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
-        {events.length === 0 && (
-          <p className="text-center text-sm text-slate-400 py-8">
-            表示するイベントがありません。
-          </p>
-        )}
-      </div>
-
-      {totalPages > 1 && (
-        <div className="mt-8">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
+      {/* Two-column: Filter sidebar + Event list */}
+      <div className="flex items-start gap-[36px]">
+        {/* Filter sidebar */}
+        <aside className="w-[342px] shrink-0 sticky top-8">
+          <FilterSidebar
+            tags={frequentTags}
+            selectedTagIds={selectedTagIds}
+            onTagSelect={handleTagSelect}
+            onTagSearch={setTagSearchQuery}
+            tagSearchQuery={tagSearchQuery}
+            selectedRegions={selectedRegions}
+            selectedPrefectures={selectedPrefectures}
+            selectedCities={selectedCities}
+            onRegionsChange={setSelectedRegions}
+            onPrefecturesChange={setSelectedPrefectures}
+            onCitiesChange={setSelectedCities}
+            expandedRegions={expandedRegions}
+            expandedPrefectures={expandedPrefectures}
+            onToggleRegion={(region) =>
+              setExpandedRegions((prev) =>
+                prev.includes(region)
+                  ? prev.filter((r) => r !== region)
+                  : [...prev, region],
+              )
+            }
+            onTogglePrefecture={(prefecture) =>
+              setExpandedPrefectures((prev) =>
+                prev.includes(prefecture)
+                  ? prev.filter((p) => p !== prefecture)
+                  : [...prev, prefecture],
+              )
+            }
+            selectedStatuses={selectedStatuses}
+            onStatusChange={setSelectedStatuses}
+            freeOnly={freeOnly}
+            onFreeOnlyChange={setFreeOnly}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            onMinPriceChange={setMinPrice}
+            onMaxPriceChange={setMaxPrice}
+            resultCount={totalCount}
+            onClearAll={handleClearAll}
+            onClear={handleClear}
+            onApply={handleApply}
           />
+        </aside>
+
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          {/* Event count */}
+          <div className="mb-4">
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+              {totalCount} 件のイベント
+            </span>
+          </div>
+
+          {/* Event cards */}
+          <div className="space-y-[61px]">
+            {events.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+            {events.length === 0 && (
+              <p className="text-center text-sm text-slate-400 py-8">
+                表示するイベントがありません。
+              </p>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-8">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
