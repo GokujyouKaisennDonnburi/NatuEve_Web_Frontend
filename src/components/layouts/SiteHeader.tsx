@@ -1,6 +1,9 @@
 "use client";
 
-import { useCurrentUserContext } from "@/components/layouts/CurrentUserProvider";
+import {
+  useAuthContext,
+  useCurrentUserContext,
+} from "@/components/layouts/AuthProvider";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
@@ -27,8 +30,11 @@ type CreateEventButtonProps = ComponentPropsWithoutRef<typeof Button> & {
 export function SiteHeader() {
   const router = useRouter();
 
-  // 認証状態と現在のユーザー情報を Provider から取得
-  const { session, user: currentUser, isLoading } = useCurrentUserContext();
+  // 認証状態と現在のユーザー情報を Provider から取得。
+  // 表示名とアイコンを出すため、プロフィールの確定まで待つ isUserLoading を使う。
+  const { session } = useAuthContext();
+  const { user: currentUser, isUserLoading: isLoading } =
+    useCurrentUserContext();
 
   // ヘッダ表示用ユーザー情報を生成する。
   // /api/v1/me が失敗した場合は、セッション（Google の user_metadata 由来）の

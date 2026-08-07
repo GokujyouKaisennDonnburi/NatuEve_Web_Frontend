@@ -1,6 +1,6 @@
 "use client";
 
-import { useCurrentUserContext } from "@/components/layouts/CurrentUserProvider";
+import { useCurrentUserContext } from "@/components/layouts/AuthProvider";
 import type { EventItem } from "@/components/organisms/EventCard";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
@@ -13,7 +13,7 @@ export default function MyPage() {
   // setUser で更新すればヘッダーの表示名・アイコンにも即座に反映される。
   const {
     user: profile,
-    isLoading,
+    isUserLoading,
     setUser: setProfile,
   } = useCurrentUserContext();
 
@@ -29,7 +29,7 @@ export default function MyPage() {
   const [hostedEvents] = useState<EventItem[]>([]);
   const [participatedEvents] = useState<EventItem[]>([]);
 
-  if (isLoading) {
+  if (isUserLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-8 h-8 rounded-full bg-slate-300 animate-pulse" />
