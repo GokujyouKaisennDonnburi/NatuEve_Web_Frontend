@@ -69,42 +69,40 @@ export function useEventList({
             (apiEvent) => apiEvent.cancelledAt == null,
           );
 
-          const mappedEvents: EventItem[] = visibleApiEvents.map(
-            (apiEvent) => {
-              const now = new Date();
-              const eventDate = new Date(apiEvent.eventDate);
-              const endDate = apiEvent.endDate
-                ? new Date(apiEvent.endDate)
-                : null;
-              const threeDaysBefore = new Date(
-                eventDate.getTime() - 3 * 24 * 60 * 60 * 1000,
-              );
+          const mappedEvents: EventItem[] = visibleApiEvents.map((apiEvent) => {
+            const now = new Date();
+            const eventDate = new Date(apiEvent.eventDate);
+            const endDate = apiEvent.endDate
+              ? new Date(apiEvent.endDate)
+              : null;
+            const threeDaysBefore = new Date(
+              eventDate.getTime() - 3 * 24 * 60 * 60 * 1000,
+            );
 
-              let status: EventItem["status"];
-              if (endDate && now >= endDate) {
-                status = "closed";
-              } else if (now >= eventDate) {
-                status = "ended_registration";
-              } else if (now >= threeDaysBefore) {
-                status = "few_left";
-              } else {
-                status = "open";
-              }
+            let status: EventItem["status"];
+            if (endDate && now >= endDate) {
+              status = "closed";
+            } else if (now >= eventDate) {
+              status = "ended_registration";
+            } else if (now >= threeDaysBefore) {
+              status = "few_left";
+            } else {
+              status = "open";
+            }
 
-              return {
-                id: apiEvent.id,
-                title: apiEvent.title,
-                location: apiEvent.location,
-                eventDate: apiEvent.eventDate,
-                endDate: apiEvent.endDate,
-                profileId: apiEvent.profileId,
-                hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
-                hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
-                tags: apiEvent.tags,
-                status,
-              };
-            },
-          );
+            return {
+              id: apiEvent.id,
+              title: apiEvent.title,
+              location: apiEvent.location,
+              eventDate: apiEvent.eventDate,
+              endDate: apiEvent.endDate,
+              profileId: apiEvent.profileId,
+              hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
+              hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
+              tags: apiEvent.tags,
+              status,
+            };
+          });
 
           setEvents(mappedEvents);
           setTotalCount(
