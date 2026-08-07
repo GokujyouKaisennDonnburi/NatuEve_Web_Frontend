@@ -1,13 +1,14 @@
 // 「必須」または「任意」のバッジ
 type RequiredBadgeProps = {
-  isRequired: boolean;
+  // 省略時は必須扱い
+  isRequired?: boolean;
   // サイズ（省略時は md）。フォーム等では md、モーダル内のコンパクトな表示には sm を使う。
   size?: "sm" | "md";
 };
 
 // 「必須」または「任意」のバッジ
 export function RequiredBadge({
-  isRequired,
+  isRequired = true,
   size = "md",
 }: Readonly<RequiredBadgeProps>) {
   const sizeClass =

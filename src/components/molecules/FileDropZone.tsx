@@ -1,0 +1,209 @@
+"use client";
+
+import { FileText, Upload } from "lucide-react";
+import Image from "next/image";
+import type { ChangeEvent, DragEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import { DeleteIconButton } from "@/components/atoms/DeleteIconButton";
+import { cn } from "@/lib/utils";
+
+type FileDropZoneProps = {
+  id: string;
+  accept: string;
+  files: File[];
+  onFilesChange: (files: File[]) => void;
+  // クリック／ドロップ領域に表示する主文言
+  promptLabel: string;
+  // 主文言に添えるサイズ上限などの補足
+  hint?: string;
+  // 同時に保持できる件数。1 のときは選択のたびに置き換える
+  maxFiles?: number;
+  disabled?: boolean;
+  className?: string;
+};
+
+// プレビュー用の Blob URL は File 単位で作り直すと無駄なため、
+// File の同一性でひも付けて再利用する。
+type FileEntry = {
+  id: string;
+  file: File;
+  previewUrl: string | null;
+};
+
+// クリックとドラッグ&ドロップの両方でファイルを受け取る入力欄。
+// 画像1枚・PDF複数のどちらにも使えるよう maxFiles で振る舞いを変える。
+export function FileDropZone({
+  id,
+  accept,
+  files,
+  onFilesChange,
+  promptLabel,
+  hint,
+  maxFiles = 1,
+  disabled = false,
+  className,
+}: Readonly<FileDropZoneProps>) {
+  const isImage = accept.startsWith("image/");
+  const [entries, setEntries] = useState<FileEntry[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const entriesRef = useRef<FileEntry[]>([]);
+
+  useEffect(() => {
+    const current = entriesRef.current;
+    const next = files.map(
+      (file) =>
+        current.find((entry) => entry.file === file) ?? {
+          id: crypto.randomUUID(),
+          file,
+          previewUrl: isImage ? URL.createObjectURL(file) : null,
+        },
+    );
+
+    // 親が同じ内容の配列を作り直しただけのときは、更新せず再描画のループを止める
+    const isUnchanged =
+      next.length === current.length &&
+      next.every((entry, index) => entry === current[index]);
+    if (isUnchanged) {
+      return;
+    }
+
+    for (const entry of current) {
+      if (entry.previewUrl && !next.includes(entry)) {
+        URL.revokeObjectURL(entry.previewUrl);
+      }
+    }
+
+    entriesRef.current = next;
+    setEntries(next);
+  }, [files, isImage]);
+
+  useEffect(() => {
+    return () => {
+      for (const entry of entriesRef.current) {
+        if (entry.previewUrl) {
+          URL.revokeObjectURL(entry.previewUrl);
+        }
+      }
+      // 解放済みの URL を再マウント後に使い回さないよう、参照ごと空にする
+      entriesRef.current = [];
+    };
+  }, []);
+
+  const canAddMore = files.length < maxFiles;
+
+  const addFiles = (incoming: File[]) => {
+    if (disabled || incoming.length === 0) {
+      return;
+    }
+
+    // 1件しか持てない場合は「選び直し」として扱い、複数の場合は上限まで追加する
+    onFilesChange(
+      maxFiles === 1
+        ? incoming.slice(0, 1)
+        : [...files, ...incoming].slice(0, maxFiles),
+    );
+  };
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    addFiles(Array.from(event.target.files ?? []));
+    // 同じファイルを選び直せるように入力値をリセットする
+    event.target.value = "";
+  };
+
+  const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    addFiles(Array.from(event.dataTransfer.files));
+  };
+
+  const handleRemove = (targetId: string) => {
+    onFilesChange(
+      entries
+        .filter((entry) => entry.id !== targetId)
+        .map((entry) => entry.file),
+    );
+  };
+
+  return (
+    <div className={cn("space-y-3", className)}>
+      {/* label より前に置くことで、キーボードフォーカスを peer で領域側に伝える */}
+      <input
+        id={id}
+        type="file"
+        accept={accept}
+        multiple={maxFiles > 1}
+        disabled={disabled || !canAddMore}
+        onChange={handleInputChange}
+        className="peer sr-only"
+      />
+
+      {canAddMore ? (
+        <label
+          htmlFor={id}
+          onDragOver={(event) => {
+            event.preventDefault();
+            if (!disabled) {
+              setIsDragging(true);
+            }
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          className={cn(
+            "flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 py-10 text-center transition",
+            "peer-focus-visible:border-(--brand-green) peer-focus-visible:ring-2 peer-focus-visible:ring-(--brand-green)/40",
+            disabled
+              ? "cursor-not-allowed border-slate-200 bg-slate-50"
+              : "cursor-pointer border-slate-300 bg-white hover:border-(--brand-green) hover:bg-(--brand-green-soft)",
+            isDragging && !disabled
+              ? "border-(--brand-green) bg-(--brand-green-soft)"
+              : "",
+          )}
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-(--brand-green-soft) text-(--brand-green-text)">
+            <Upload className="h-5 w-5" />
+          </span>
+          <span className="text-sm font-semibold text-slate-700">
+            {promptLabel}
+          </span>
+          {hint ? <span className="text-xs text-slate-400">{hint}</span> : null}
+        </label>
+      ) : null}
+
+      {entries.length > 0 ? (
+        <ul className="space-y-2">
+          {entries.map((entry) => (
+            <li
+              key={entry.id}
+              className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-2"
+            >
+              {entry.previewUrl ? (
+                <Image
+                  src={entry.previewUrl}
+                  alt=""
+                  width={64}
+                  height={64}
+                  // Blob URL は Next.js の画像最適化を通せないため、そのまま表示する
+                  unoptimized
+                  className="h-16 w-16 shrink-0 rounded-lg bg-slate-50 object-cover"
+                />
+              ) : (
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400">
+                  <FileText className="h-6 w-6" />
+                </span>
+              )}
+              <span className="min-w-0 flex-1 truncate text-sm text-slate-700">
+                {entry.file.name}
+              </span>
+              <DeleteIconButton
+                onClick={() => handleRemove(entry.id)}
+                label={`${entry.file.name} を削除`}
+                disabled={disabled}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}

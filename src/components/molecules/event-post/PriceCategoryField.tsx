@@ -1,9 +1,15 @@
-import { Plus, X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+"use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useId } from "react";
+
+import { AddItemButton } from "@/components/atoms/AddItemButton";
+import { DeleteIconButton } from "@/components/atoms/DeleteIconButton";
+import { FieldNote } from "@/components/atoms/FieldNote";
+import { FormInput } from "@/components/atoms/FormInput";
+import { UnitInput } from "@/components/molecules/UnitInput";
 import { Label } from "@/components/ui/label";
+import { useRowIds } from "@/hooks/useRowIds";
+import { normalizeHalfWidthDigits } from "@/utils/format";
 
 // 価格カテゴリの入力欄を表示するコンポーネントのプロパティを定義
 export type PriceCategory = {
@@ -26,45 +32,18 @@ export function PriceCategoryField({
 }: Readonly<PriceCategoryFieldProps>) {
   const fieldId = useId(); // コンポーネントの一意なIDを生成するためのフック
 
-  // 各行のIDを管理する状態。行の追加や削除に対応するため、items の長さに応じて動的に更新される。
-  const [rowIds, setRowIds] = useState<string[]>(() =>
-    items.map(() => crypto.randomUUID()),
-  );
-
-  // items の長さが変わったときに rowIds を更新するエフェクト。行の追加や削除に対応するため、items の長さに応じて rowIds を動的に更新する。
-  useEffect(() => {
-    // items の長さに応じて rowIds を更新する。
-    setRowIds((current) => {
-      // items の長さと現在の rowIds の長さが同じ場合はそのまま返す。
-      if (current.length === items.length) {
-        return current;
-      }
-
-      // items の長さより rowIds の長さが短い場合は、足りない分のIDを生成して追加する。items の長さより rowIds の長さが長い場合は、余分なIDを削除する。
-      if (current.length < items.length) {
-        return [
-          ...current,
-          ...Array.from({ length: items.length - current.length }, () =>
-            crypto.randomUUID(),
-          ),
-        ];
-      }
-
-      return current.slice(0, items.length);
-    });
-  }, [items.length]);
+  // 各行のIDを管理する。行の追加や削除に対応するため、items の長さに応じて動的に更新される。
+  const { rowIds, addRowId, removeRowId } = useRowIds(items.length);
 
   // 行を追加する処理。新しい行を追加するときに、rowIds に新しいIDを追加し、items に新しい価格カテゴリを追加する。
   const handleAddItem = () => {
-    setRowIds((current) => [...current, crypto.randomUUID()]);
+    addRowId();
     onItemsChange([...items, { category: "", amount: "" }]);
   };
 
   // 行を削除する処理。行を削除するときに、rowIds から該当するIDを削除し、items から該当する価格カテゴリを削除する。
   const handleRemoveItem = (index: number) => {
-    setRowIds((current) =>
-      current.filter((_, currentIndex) => currentIndex !== index),
-    );
+    removeRowId(index);
     onItemsChange(items.filter((_, i) => i !== index));
   };
 
@@ -77,14 +56,11 @@ export function PriceCategoryField({
 
   // 金額の値が変更されたときの処理。入力された値を全角数字から半角数字に変換し、items の該当する価格カテゴリの amount プロパティを更新する。
   const handleAmountChange = (index: number, value: string) => {
-    const normalizedValue = value
-      .replace(/[０-９]/g, (character) =>
-        String.fromCharCode(character.charCodeAt(0) - 0xfee0),
-      )
-      .replace(/[^0-9]/g, "");
-
     const updated = [...items];
-    updated[index] = { ...updated[index], amount: normalizedValue };
+    updated[index] = {
+      ...updated[index],
+      amount: normalizeHalfWidthDigits(value),
+    };
     onItemsChange(updated);
   };
 
@@ -94,81 +70,65 @@ export function PriceCategoryField({
         {items.map((item, index) => (
           <div
             key={rowIds[index] ?? `${fieldId}-item-${index}`}
-            className="space-y-1"
+            className="space-y-2"
           >
             <div className="flex items-start gap-3">
               {/* カテゴリの入力欄を表示する部分。 */}
-              <div className="flex-1">
+              <div className="min-w-0 flex-[3]">
                 <Label
                   htmlFor={`${fieldId}-category-${index}`}
                   className="sr-only"
                 >
                   カテゴリ
                 </Label>
-                <Input
+                <FormInput
                   id={`${fieldId}-category-${index}`}
                   value={item.category}
                   onChange={(e) => handleCategoryChange(index, e.target.value)}
                   placeholder="例: 高校生"
-                  className="text-sm"
+                  aria-invalid={Boolean(errors?.[index])}
                 />
               </div>
 
               {/* 金額の入力欄を表示する部分。全角数字を半角数字に変換して入力を受け付ける。 */}
-              <div className="flex-1">
+              <div className="min-w-0 flex-[2]">
+                {/* 単位「円」は装飾のため、読み上げ用のラベル側に単位を含める */}
                 <Label
                   htmlFor={`${fieldId}-amount-${index}`}
                   className="sr-only"
                 >
-                  金額
+                  金額（円）
                 </Label>
-                <Input
+                <UnitInput
                   id={`${fieldId}-amount-${index}`}
+                  unit="円"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={item.amount}
                   onChange={(e) => handleAmountChange(index, e.target.value)}
-                  placeholder="例: 1000"
-                  className="text-sm"
+                  placeholder="0"
+                  className="text-right"
+                  aria-invalid={Boolean(errors?.[index])}
                 />
               </div>
 
-              {/* 行を削除するボタンを表示する部分 */}
-              <div className="flex items-center self-center">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => handleRemoveItem(index)}
-                  disabled={items.length <= 1}
-                  aria-label={`行${index + 1}を削除`}
-                  className={`text-red-600 hover:bg-transparent hover:text-red-700 ${
-                    items.length <= 1 ? "invisible" : "cursor-pointer"
-                  }`}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              {/* 行を削除するボタンを表示する部分。参加費用は1件以上必須のため、1件のときは無効にする */}
+              <DeleteIconButton
+                onClick={() => handleRemoveItem(index)}
+                label={`${index + 1}行目の参加費用を削除`}
+                disabled={items.length <= 1}
+              />
             </div>
 
             {errors?.[index] ? (
-              <p className="text-xs text-red-600">{errors[index]}</p>
+              <FieldNote tone="error">{errors[index]}</FieldNote>
             ) : null}
           </div>
         ))}
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleAddItem}
-        className="w-full text-sm"
-      >
-        <Plus className="h-4 w-4" />
-        カテゴリを追加
-      </Button>
+      <AddItemButton onClick={handleAddItem}>項目を追加</AddItemButton>
     </div>
   );
 }

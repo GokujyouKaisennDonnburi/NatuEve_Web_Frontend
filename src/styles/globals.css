@@ -16,6 +16,25 @@
   --brand-green: #9aca4a;
   --brand-orange: #f8c568;
 
+  /* フォーム系画面で使うブランドカラーの派生色。
+     --brand-green はそのままでは背景に濃く、文字色には薄いため、
+     背景・枠線・文字それぞれに使える明度違いを用意する。 */
+  --brand-green-soft: #f6faee;
+  --brand-green-line: #c0dc92;
+  --brand-green-text: #5f8530;
+  --brand-orange-hover: #f0b447;
+
+  /* 完了トースト（濃色のピル）の配色 */
+  --toast-dark: #272e24;
+  --toast-accent: #97c459;
+  --toast-check: #1e2c10;
+
+  /* 入力欄の枠線。青みのある slate ではなく、ブランドに合わせた緑寄りのグレー。
+     色相は #cdd4c8 のまま、視認性のために暗さだけを上げている。
+     白背景に対するコントラスト比の目安:
+       #cdd4c8 → 1.5  #b4bfad → 1.9  #9caa94 → 2.4  #8e9c86 → 2.9  #7e8c76 → 3.6 */
+  --form-border: #8e9c86;
+
   /* EventDetailで使用するエメラルド系カラーパレット */
   --emerald-50: #ecfdf5;
   --emerald-100: #d1fae5;
