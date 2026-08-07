@@ -7,13 +7,15 @@ import { PageHeader } from "@/components/molecules/PageHeader";
 import { EventPostForm } from "@/components/organisms/event-post/EventPostForm";
 import { EventPostToc } from "@/components/organisms/event-post/EventPostToc";
 import { ROUTES } from "@/constants/routes";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/components/layouts/AuthProvider";
 
 // イベント投稿ページ。認証ガードと画面の骨組みだけを持ち、
 // 入力フォームの実装は organisms/event-post/EventPostForm に委ねる。
 export default function EventPostPage() {
   const router = useRouter();
-  const { isLoading: isAuthLoading, isAuthenticated } = useAuth();
+  // リダイレクト判定に必要なのは認証状態だけなので、
+  // プロフィール取得を待たない isSessionLoading を使う。
+  const { isSessionLoading: isAuthLoading, isAuthenticated } = useAuthContext();
 
   // 認証状態がロードされ、かつ未認証の場合はサインインページにリダイレクト
   useEffect(() => {
