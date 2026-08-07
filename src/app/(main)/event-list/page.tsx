@@ -2,46 +2,18 @@
 
 import { FilterIconButton } from "@/components/atoms/FilterIconButton";
 import { SortButton } from "@/components/atoms/SortButton";
-import { Pagination } from "@/components/molecules/Pagination";
+import { Loading } from "@/components/atoms/Loading";
 import { SearchBar } from "@/components/molecules/SearchBar";
-import { EventCard, type EventItem } from "@/components/organisms/EventCard";
+import { Pagination } from "@/components/molecules/Pagination";
+import { EventCard } from "@/components/organisms/EventCard";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
-import { useAuth } from "@/hooks/useAuth";
-import { fetchEventList } from "@/services/event";
+import { useEventList } from "@/hooks/useEventList";
 import type { TagItem } from "@/types/tag";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type SortOption = "created_at" | "event_date";
 
-type ApiResponseProfile = {
-  id: string;
-  displayName: string;
-  avatarUrl: string;
-};
-
-type ApiResponseEvent = {
-  createdAt: string;
-  eventDate: string;
-  id: string;
-  location: string;
-  profileId: string;
-  title: string;
-  profile: ApiResponseProfile;
-  tags?: Array<{ id: string; name: string }>;
-  // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
-  cancelledAt?: string | null;
-};
-
-type EventsApiResponse = {
-  events: ApiResponseEvent[];
-  limit: number;
-  offset: number;
-  totalCount: number;
-};
-
 export default function EventListPage() {
-  const [events, setEvents] = useState<EventItem[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("created_at");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,6 +32,14 @@ export default function EventListPage() {
   const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
   const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
 
+  const { events, totalCount, loading, error } = useEventList({
+    currentPage,
+    sortBy,
+    searchQuery,
+    selectedTagIds,
+    itemsPerPage: ITEMS_PER_PAGE,
+  });
+
   // 現在表示中のイベントから使用頻度の高いタグ順に算出する
   const frequentTags = useMemo(() => {
     const countMap = new Map<string, number>();
@@ -75,84 +55,6 @@ export default function EventListPage() {
       .map(([id]) => tagMap.get(id))
       .filter((t): t is TagItem => t != null);
   }, [events]);
-  // Supabaseのセッション状態を取得
-  const { session, isLoading: isSessionLoading } = useAuth();
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchEvents = async (attempt = 0): Promise<void> => {
-      if (cancelled) return;
-
-      try {
-        const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-        const order = sortBy === "event_date" ? "asc" : "desc";
-
-        // 検索クエリがある場合は半角/全角スペースで分割し、
-        // 各キーワードを q パラメータとして多重送信する（AND 検索）
-        // swagger 仕様に基づき最大10語までとする
-        let keywords: string[] | undefined;
-        if (searchQuery) {
-          keywords = searchQuery
-            .split(/[\s\u3000]+/)
-            .map((keyword) => keyword.trim())
-            .filter((keyword) => keyword.length > 0)
-            .slice(0, 10);
-          if (keywords.length === 0) keywords = undefined;
-        }
-
-        // Service を経由してイベント一覧を取得
-        const data = await fetchEventList({
-          sort: sortBy,
-          order,
-          limit: ITEMS_PER_PAGE,
-          offset,
-          keywords,
-        });
-
-        if (!cancelled) {
-          // キャンセル済みイベント(cancelledAt が設定済み)は一覧から除外する。
-          // MSW は API 側で除外済みだが、実 API はキャンセル済みも返すため
-          // クライアント側で表示と件数を制御する。
-          const visibleApiEvents = data.events.filter(
-            (apiEvent) => apiEvent.cancelledAt == null,
-          );
-
-          const mappedEvents: EventItem[] = visibleApiEvents.map(
-            (apiEvent) => ({
-              id: apiEvent.id,
-              title: apiEvent.title,
-              location: apiEvent.location,
-              eventDate: apiEvent.eventDate,
-              profileId: apiEvent.profileId,
-              hostName: apiEvent.profile?.displayName ?? "名無しのゲンゴロウ",
-              hostAvatarUrl: apiEvent.profile?.avatarUrl ?? "",
-              tags: apiEvent.tags,
-              status:
-                new Date(apiEvent.eventDate) < new Date() ? "closed" : "open",
-            }),
-          );
-
-          setEvents(mappedEvents);
-          // 件数は API の totalCount から当ページに含まれるキャンセル済み件数を引く
-          setTotalCount(
-            data.totalCount - (data.events.length - visibleApiEvents.length),
-          );
-        }
-      } catch (err) {
-        if (!cancelled && attempt < 5) {
-          setTimeout(() => void fetchEvents(attempt + 1), 200 * (attempt + 1));
-          return;
-        }
-        console.error("Fetchエラー:", err);
-      }
-    };
-
-    void fetchEvents();
-    return () => {
-      cancelled = true;
-    };
-  }, [currentPage, sortBy, searchQuery]);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -301,6 +203,20 @@ export default function EventListPage() {
 
         {/* Main content */}
         <div className="flex-1 min-w-0">
+          {/* Loading indicator */}
+          {loading && (
+            <div className="mb-4">
+              <Loading label="イベントを読み込み中..." />
+            </div>
+          )}
+
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
           {/* Event count */}
           <div className="mb-4">
             <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
@@ -310,10 +226,9 @@ export default function EventListPage() {
 
           {/* Event cards */}
           <div className="space-y-[61px]">
-            {events.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-            {events.length === 0 && (
+            {!loading &&
+              events.map((event) => <EventCard key={event.id} event={event} />)}
+            {!loading && events.length === 0 && (
               <p className="text-center text-sm text-slate-400 py-8">
                 表示するイベントがありません。
               </p>

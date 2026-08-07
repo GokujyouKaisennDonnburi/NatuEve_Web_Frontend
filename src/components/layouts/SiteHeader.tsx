@@ -25,16 +25,6 @@ type CreateEventButtonProps = ComponentPropsWithoutRef<typeof Button> & {
   children?: ReactNode;
 };
 
-// /api/v1/me のレスポンス型（snake_case / camelCase 両対応）
-type MeApiResponse = {
-  id: string;
-  email?: string;
-  display_name?: string;
-  avatar_url?: string;
-  displayName?: string;
-  avatarUrl?: string;
-};
-
 export function SiteHeader() {
   const router = useRouter();
 

@@ -52,6 +52,11 @@ const buildEventListParams = (request: EventListRequest): URLSearchParams => {
       params.append("q", keyword);
     }
   }
+  if (request.tagIds) {
+    for (const tagId of request.tagIds) {
+      params.append("tagId", tagId);
+    }
+  }
 
   return params;
 };
