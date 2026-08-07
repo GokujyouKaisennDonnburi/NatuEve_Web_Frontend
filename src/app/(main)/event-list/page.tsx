@@ -12,6 +12,32 @@ import { useEffect, useMemo, useState } from "react";
 
 type SortOption = "created_at" | "event_date";
 
+type ApiResponseProfile = {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+};
+
+type ApiResponseEvent = {
+  createdAt: string;
+  eventDate: string;
+  id: string;
+  location: string;
+  profileId: string;
+  title: string;
+  profile: ApiResponseProfile;
+  tags?: Array<{ id: string; name: string }>;
+  // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
+  cancelledAt?: string | null;
+};
+
+type EventsApiResponse = {
+  events: ApiResponseEvent[];
+  limit: number;
+  offset: number;
+  totalCount: number;
+};
+
 export default function EventListPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -19,6 +45,9 @@ export default function EventListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const ITEMS_PER_PAGE = 15;
+
+  // Supabaseのセッション状態を取得
+  const { session, isLoading: isSessionLoading } = useAuth();
 
   // 絞り込みフィルターの状態
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -207,6 +236,13 @@ export default function EventListPage() {
             initialValue={searchQuery}
             className="w-full"
           />
+    <div className="mx-auto max-w-xl">
+      {/* 検索・件数 */}
+      <div className="mb-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+            {totalCount} 件のイベント
+          </span>
         </div>
         <div className="shrink-0 flex items-center gap-3">
           <SortButton
