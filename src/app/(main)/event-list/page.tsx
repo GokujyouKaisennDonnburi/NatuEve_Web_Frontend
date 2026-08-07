@@ -2,15 +2,42 @@
 
 import { FilterIconButton } from "@/components/atoms/FilterIconButton";
 import { SortButton } from "@/components/atoms/SortButton";
-import { SearchBar } from "@/components/molecules/SearchBar";
 import { Pagination } from "@/components/molecules/Pagination";
+import { SearchBar } from "@/components/molecules/SearchBar";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
+import { useAuth } from "@/hooks/useAuth";
 import { fetchEventList } from "@/services/event";
 import type { TagItem } from "@/types/tag";
 import { useEffect, useMemo, useState } from "react";
 
 type SortOption = "created_at" | "event_date";
+
+type ApiResponseProfile = {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+};
+
+type ApiResponseEvent = {
+  createdAt: string;
+  eventDate: string;
+  id: string;
+  location: string;
+  profileId: string;
+  title: string;
+  profile: ApiResponseProfile;
+  tags?: Array<{ id: string; name: string }>;
+  // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
+  cancelledAt?: string | null;
+};
+
+type EventsApiResponse = {
+  events: ApiResponseEvent[];
+  limit: number;
+  offset: number;
+  totalCount: number;
+};
 
 export default function EventListPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -48,6 +75,8 @@ export default function EventListPage() {
       .map(([id]) => tagMap.get(id))
       .filter((t): t is TagItem => t != null);
   }, [events]);
+  // Supabaseのセッション状態を取得
+  const { session, isLoading: isSessionLoading } = useAuth();
 
   useEffect(() => {
     let cancelled = false;

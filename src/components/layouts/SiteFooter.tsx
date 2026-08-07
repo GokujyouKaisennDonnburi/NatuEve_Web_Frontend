@@ -74,7 +74,7 @@ export function SiteFooter() {
                   href={ROUTES.EVENT_POST}
                   className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
-                  イベントを掲載する
+                  イベントを投稿する
                 </Link>
               </li>
               <li>
@@ -82,7 +82,7 @@ export function SiteFooter() {
                   href={ROUTES.COMING_SOON}
                   className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
-                  掲載ガイドライン
+                ガイドライン
                 </Link>
               </li>
             </ul>
@@ -121,6 +121,7 @@ export function SiteFooter() {
                   className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   なちゅぽーたるへ
+
                 </Link>
               </li>
               <li>
