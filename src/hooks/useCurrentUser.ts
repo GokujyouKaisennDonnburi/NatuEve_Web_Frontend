@@ -10,6 +10,8 @@ type UseCurrentUserState = {
   user: CurrentUser | null;
   isLoading: boolean;
   error: string | null;
+  // プロフィール更新後に、再取得せず手元の状態へ反映するための setter。
+  setUser: (user: CurrentUser) => void;
 };
 
 // カスタムフック: 現在のユーザー情報を取得する
@@ -77,5 +79,6 @@ export function useCurrentUser(
     user,
     isLoading,
     error,
+    setUser,
   };
 }

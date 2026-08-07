@@ -1,81 +1,35 @@
 "use client";
 
+import { useCurrentUserContext } from "@/components/layouts/CurrentUserProvider";
 import type { EventItem } from "@/components/organisms/EventCard";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
-import { useAuth } from "@/hooks/useAuth";
-import { fetchCurrentUser, updateMyProfile } from "@/services/user";
-import type { CurrentUser } from "@/types/user";
+import { updateMyProfile } from "@/services/user";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function MyPage() {
-  const { session, isLoading: isSessionLoading } = useAuth();
+  // プロフィールはヘッダーと共有された Provider から取得する。
+  // setUser で更新すればヘッダーの表示名・アイコンにも即座に反映される。
+  const {
+    user: profile,
+    isLoading,
+    setUser: setProfile,
+  } = useCurrentUserContext();
 
-  // API の DTO 変換は services/user 側に集約しているため、そのまま保持する
-  const [profile, setProfile] = useState<CurrentUser | null>(null);
-
+  // ==========================================
+  // イベント取得APIが実装されたら、ここで取得して State へ格納する
+  // ==========================================
+  // const [hostedRes, participatedRes] = await Promise.all([
+  //   fetchHostedEvents(profile.id),
+  //   fetchParticipatedEvents(profile.id),
+  // ]);
+  // ==========================================
   // 今後のAPI実装時にそのまま使えるよう、Stateは残しておきます
-  const [hostedEvents, setHostedEvents] = useState<EventItem[]>([]);
-  const [participatedEvents, setParticipatedEvents] = useState<EventItem[]>([]);
+  const [hostedEvents] = useState<EventItem[]>([]);
+  const [participatedEvents] = useState<EventItem[]>([]);
 
-  const [isDataLoading, setIsDataLoading] = useState(true);
-  const [isNotFound, setIsNotFound] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchData = async () => {
-      if (isSessionLoading) return;
-      if (!session?.token) {
-        if (!cancelled) {
-          setIsNotFound(true);
-          setIsDataLoading(false);
-        }
-        return;
-      }
-
-      try {
-        // Service を経由して自身のプロフィールを取得
-        const currentUser = await fetchCurrentUser();
-
-        if (!cancelled) {
-          setProfile(currentUser);
-
-          // ==========================================
-          // イベント取得APIが実装されたらここを追加
-          // ==========================================
-          // const myId = currentUser.id;
-          // const [hostedRes, participatedRes] = await Promise.all([
-          //   fetchHostedEvents(myId),
-          //   fetchParticipatedEvents(myId),
-          // ]);
-          //
-          // 各resのok判定と、setHostedEvents / setParticipatedEvents への格納処理をここに書く
-          // ==========================================
-
-          // 今回はAPIがないため、空配列のままローディングを終了させる
-          setHostedEvents([]);
-          setParticipatedEvents([]);
-        }
-      } catch (err) {
-        // 認証エラーやNot Found等、取得失敗時は未取得状態として扱う
-        console.error(err);
-        if (!cancelled) {
-          setIsNotFound(true);
-        }
-      } finally {
-        if (!cancelled) setIsDataLoading(false);
-      }
-    };
-
-    void fetchData();
-    return () => {
-      cancelled = true;
-    };
-  }, [session, isSessionLoading]);
-
-  if (isSessionLoading || isDataLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-8 h-8 rounded-full bg-slate-300 animate-pulse" />
@@ -83,7 +37,8 @@ export default function MyPage() {
     );
   }
 
-  if (isNotFound || !profile) {
+  // 未ログイン、または /api/v1/me の取得に失敗した場合
+  if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16">
         <p className="text-slate-500">
