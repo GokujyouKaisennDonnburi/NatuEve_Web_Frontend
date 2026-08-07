@@ -15,8 +15,8 @@ import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { EventParticipationButton } from "@/components/organisms/EventParticipationButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { ROUTES } from "@/constants/routes";
-import { useAuth } from "@/hooks/useAuth";
 import { useEventMembers } from "@/hooks/useEventMembers";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
@@ -44,7 +44,7 @@ export function EventDetail({
   const organizerId = event.profile?.id;
 
   const router = useRouter();
-  const { session } = useAuth();
+  const { session } = useAuthContext();
 
   // ログイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(

@@ -2,7 +2,6 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
-import { signInWithGoogle, signOut } from "@/services/auth";
 import {
   getMockAuthSession,
   isMockAuthEnabled,
@@ -122,11 +121,11 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // isAuthenticated 等の導出値は AuthProvider 側で組み立てる。
+  // ログイン / ログアウトの実行は services/auth を直接 import して行う
+  // （signin/page.tsx が既にその方式）。
   return {
     session,
-    isAuthenticated: session !== null,
     isLoading,
-    loginWithGoogle: signInWithGoogle,
-    logout: signOut,
   };
 }

@@ -1,10 +1,10 @@
 "use client";
 
+import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/hooks/useAuth";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { MOCK_AUTH_SESSION, isMockAuthEnabled } from "@/services/mockAuth";
 import { leaveEvent, participateEvent } from "@/services/participate";
@@ -90,7 +90,9 @@ export function EventParticipationButton({
   onParticipateSuccess,
   onCancelSuccess,
 }: EventParticipationButtonProps) {
-  const { session, isLoading: isSessionLoading } = useAuth();
+  // 参加送信に必要なのはセッションの email / name / トークンだけなので、
+  // プロフィール取得を待たない isSessionLoading で操作可否を判定する。
+  const { session, isSessionLoading } = useAuthContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // 参加キャンセル理由入力モーダルの開閉状態
