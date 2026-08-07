@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { PageHeader } from "@/components/molecules/PageHeader";
+import { PageToc } from "@/components/molecules/PageToc";
 import { EventPostForm } from "@/components/organisms/event-post/EventPostForm";
-import { EventPostToc } from "@/components/organisms/event-post/EventPostToc";
+import { EVENT_POST_TOC_SECTIONS } from "@/components/organisms/event-post/eventPostTocSections";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -31,7 +32,7 @@ export default function EventPostPage() {
       />
       <div className="flex flex-col gap-8 lg:flex-row">
         <aside className="hidden shrink-0 lg:block lg:w-44">
-          <EventPostToc />
+          <PageToc sections={EVENT_POST_TOC_SECTIONS} />
         </aside>
         <div className="w-full max-w-3xl">
           <EventPostForm />

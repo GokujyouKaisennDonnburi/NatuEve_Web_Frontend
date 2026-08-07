@@ -8,6 +8,8 @@
   --foreground: #0f172a;
   --surface: rgba(255, 255, 255, 0.78);
   --surface-strong: #ffffff;
+  /* 白背景の上でわずかに面を分けるための淡い色。表の見出し列などに使う */
+  --surface-muted: #f8faf6;
   --border: rgba(15, 23, 42, 0.1);
   --accent: #0f766e;
   --accent-foreground: #ffffff;
