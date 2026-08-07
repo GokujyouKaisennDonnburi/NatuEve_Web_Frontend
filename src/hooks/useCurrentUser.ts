@@ -29,23 +29,32 @@ export function useCurrentUser(
   // API へ付与するトークンは apiFetch が呼び出し時に取得するので依存に含めない。
   const userId = session?.userId ?? null;
 
+  // 現在保持している state が、どのユーザーに対するものかを覚えておく。
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
+
+  // ログインユーザーが変わったら、前のユーザーの情報をレンダー中に破棄する。
+  //
+  // useEffect は描画の後に走るため、そこでリセットすると
+  // ログアウト直後の1フレームだけ前のユーザーの情報が表示されてしまう
+  // （ヘッダーが一瞬ログイン状態に見える）。ユーザー切替時はさらに問題で、
+  // 別人の表示名とアイコンが出てしまう。
+  // レンダー中の setState は描画前に再レンダーされるため、この隙間が生まれない。
+  if (loadedUserId !== userId) {
+    setLoadedUserId(userId);
+    setUser(null);
+    setError(null);
+    // ログイン中なら、この後の副作用で取得するので最初からローディング扱いにする。
+    setIsLoading(userId !== null);
+  }
+
   // ログインユーザーが変わったときにユーザー情報を取得する副作用を定義
   useEffect(() => {
-    let cancelled = false;
-
-    // 未ログインの場合はユーザー情報をリセットして終了
+    // 未ログイン時は取得しない。state のリセットはレンダー中に済んでいる。
     if (!userId) {
-      setUser(null);
-      setError(null);
-      setIsLoading(false);
-      return () => {
-        cancelled = true;
-      };
+      return;
     }
 
-    // ユーザー情報を取得する前にロード状態を設定し、エラー状態をリセット
-    setIsLoading(true);
-    setError(null);
+    let cancelled = false;
 
     // ユーザー情報を取得する非同期関数を呼び出し、結果に応じてステートを更新
     void fetchCurrentUser()
