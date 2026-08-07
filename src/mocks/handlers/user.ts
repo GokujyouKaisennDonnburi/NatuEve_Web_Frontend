@@ -1,4 +1,7 @@
-import { HttpResponse, delay, http } from "msw";
+import { HttpResponse, http } from "msw";
+
+import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
+import type { UserProfileResponse } from "@/types/user";
 
 // ============================================
 // ユーザー系モックのダミーデータと補助関数
@@ -23,27 +26,59 @@ const sampleUsers = [
   },
 ];
 
-// プロフィール詳細用ダミーデータ (マイページ・他人のページ表示用)
-const sampleUserProfiles = [
-  {
-    id: "user-1", // 自分のIDとして扱う
-    displayName: "Aoi Tanaka",
-    avatarUrl: "https://example.com/avatar.jpg",
-    bio: "週末はよく登山に行きます。自然が大好きです！\nよろしくお願いします。",
+// 他人プロフィール取得（GET /api/v1/profiles/:id）用のダミーデータ。
+// 実 API の ProfilePublic と同じ形（camelCase）で返す。
+//
+// キーはアプリ内のモックデータが実際に持つプロフィールIDに揃えてある。
+// - profile-1〜6: イベントモック（handlers/events/data.ts）の主催者
+// - MOCK_AUTH_SESSION.userId: ログイン中のモックユーザー本人
+// ここに無いIDは実 API と同じく 404 を返し、Not Found 表示も検証できるようにする。
+const sampleUserProfiles: Readonly<Record<string, UserProfileResponse>> = {
+  "profile-1": {
+    id: "profile-1",
+    displayName: "ナチュビト公式",
+    avatarUrl: "https://i.pravatar.cc/150?img=1",
+    description: "自然体験イベントの企画・運営をしています。",
   },
-  {
-    id: "user-2", // 他人のIDとして扱う
-    displayName: "Ren Sato",
+  "profile-2": {
+    id: "profile-2",
+    displayName: "森の案内人・山田",
+    avatarUrl: "https://i.pravatar.cc/150?img=2",
+    description: "週末はよく登山に行きます。自然が大好きです！",
+  },
+  "profile-3": {
+    id: "profile-3",
+    displayName: "ナチュビト公式",
+    // アバター未設定（空文字）の表示を確認するためのケース
     avatarUrl: "",
-    bio: "海沿いのクリーン活動をメインに活動しています。",
+    description: "海沿いのクリーン活動をメインに活動しています。",
   },
-  {
-    id: "mock-access-token", // モック環境でのテスト用
-    displayName: "モックユーザー",
-    avatarUrl: "https://example.com/avatar.jpg",
-    bio: "モック環境でのテスト用プロフィールです。",
+  "profile-4": {
+    id: "profile-4",
+    displayName: "森の案内人・山田",
+    avatarUrl: "https://i.pravatar.cc/150?img=4",
+    // 自己紹介未設定（空文字）の表示を確認するためのケース
+    description: "",
   },
-];
+  "profile-5": {
+    id: "profile-5",
+    displayName: "ナチュビト公式",
+    avatarUrl: "https://i.pravatar.cc/150?img=5",
+    description: "生き物観察ハイクを毎月開催しています。",
+  },
+  "profile-6": {
+    id: "profile-6",
+    displayName: "森の案内人・山田",
+    avatarUrl: "https://i.pravatar.cc/150?img=6",
+    description: "ビオトープの保全活動をしています。",
+  },
+  [MOCK_AUTH_SESSION.userId]: {
+    id: MOCK_AUTH_SESSION.userId,
+    displayName: MOCK_AUTH_SESSION.name ?? "モックユーザー",
+    avatarUrl: MOCK_AUTH_SESSION.iconUrl ?? "",
+    description: "モック環境でのテスト用プロフィールです。",
+  },
+};
 
 // ユーザー別イベント用ダミーデータ
 const sampleUserEvents = {
@@ -69,11 +104,6 @@ const sampleUserEvents = {
   ],
 };
 
-// ユーザープロフィール更新用リクエスト型
-type UpdateUserProfileRequest = {
-  displayName?: string;
-  bio?: string;
-};
 // ▼ マイページ用の初期モックデータ（メモリ上に保持）
 const myProfile = {
   // MeResponse 契約（camelCase）に合わせる
@@ -152,24 +182,18 @@ export const userHandlers = [
   // 他人のプロフィール取得 (GET /api/v1/profiles/:id)
   // ------------------------------------------
   http.get("/api/v1/profiles/:id", ({ params }) => {
-    const { id } = params;
+    const id = String(params.id ?? "");
+    const profile = sampleUserProfiles[id];
 
-    // "other-user" 以外のIDが指定された場合は 404 Not Found を返す
-    if (id !== "other-user") {
+    // 未登録のIDは実 API と同じく 404 Not Found を返す
+    if (!profile) {
       return HttpResponse.json(
         { error: { code: "not_found", message: "リソースが見つかりません" } },
         { status: 404 },
       );
     }
 
-    // id が "other-user" の場合のみ正常データを返す
-    return HttpResponse.json({
-      id: id,
-      displayName: "他のユーザーさん",
-      avatarUrl: "https://github.com/shadcn.png",
-      description:
-        "これはAPIから取得した他のユーザーの自己紹介文です。よろしくおねがいします！",
-    });
+    return HttpResponse.json(profile);
   }),
 
   // 指定したIDのユーザーが主催したイベント取得API
@@ -180,38 +204,5 @@ export const userHandlers = [
   // 指定したIDのユーザーが参加したイベント取得API
   http.get("/api/v1/users/:id/events/participated", () => {
     return HttpResponse.json({ events: sampleUserEvents.participated });
-  }),
-
-  // 1. プロフィールテキスト情報（名前・自己紹介）の更新 (PATCH)
-  http.patch("/api/v1/users/:id", async ({ request, params }) => {
-    await delay(1000);
-
-    try {
-      const body = (await request.json()) as UpdateUserProfileRequest;
-      const { id } = params;
-      const userId = typeof id === "string" ? id : "unknown";
-
-      // モックデータベース（配列）から該当ユーザーを探して直接書き換える
-      const userIndex = sampleUserProfiles.findIndex((u) => u.id === userId);
-      if (userIndex !== -1) {
-        if (body.displayName !== undefined) {
-          sampleUserProfiles[userIndex].displayName = body.displayName;
-        }
-        if (body.bio !== undefined) {
-          sampleUserProfiles[userIndex].bio = body.bio;
-        }
-      }
-
-      return HttpResponse.json({
-        success: true,
-        message: "プロフィールを更新しました",
-        updatedData: body,
-      });
-    } catch (_error) {
-      return HttpResponse.json(
-        { error: "無効なリクエストです" },
-        { status: 400 },
-      );
-    }
   }),
 ];
