@@ -6,7 +6,6 @@ import { EventCancelModal } from "@/components/molecules/event-detail/EventCance
 import {
   type EventDetailTab,
   EventDetailTabs,
-  eventDetailPanelId,
   eventDetailTabId,
 } from "@/components/molecules/event-detail/EventDetailTabs";
 import { EventImageCarousel } from "@/components/molecules/event-detail/EventImageCarousel";
@@ -202,7 +201,6 @@ export function EventDetail({
       {activeTab === "detail" ? (
         <div
           role="tabpanel"
-          id={eventDetailPanelId("detail")}
           aria-labelledby={eventDetailTabId("detail")}
           className="flex flex-col gap-8 lg:flex-row"
         >
@@ -254,11 +252,7 @@ export function EventDetail({
         </div>
       ) : (
         // 活動レポート（未投稿のときは EventReportList 側が何も描画しない）
-        <div
-          role="tabpanel"
-          id={eventDetailPanelId("report")}
-          aria-labelledby={eventDetailTabId("report")}
-        >
+        <div role="tabpanel" aria-labelledby={eventDetailTabId("report")}>
           <EventReportList report={report} />
         </div>
       )}

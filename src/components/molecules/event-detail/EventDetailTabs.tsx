@@ -5,12 +5,13 @@ import { cn } from "@/lib/utils";
 // イベント詳細画面のタブ種別。
 export type EventDetailTab = "detail" | "report";
 
-// タブとタブパネルを aria で相互参照させるための id。
-// パネル側（EventDetail）からも参照する。
+// タブの id。タブパネル側（EventDetail）が aria-labelledby で参照する。
+//
+// 逆方向（タブ → パネル）の aria-controls は付けない。
+// パネルはアクティブなタブの分だけを条件レンダリングしており、
+// 非アクティブなタブから参照すると存在しない id を指してしまうため。
 export const eventDetailTabId = (tab: EventDetailTab): string =>
   `event-detail-tab-${tab}`;
-export const eventDetailPanelId = (tab: EventDetailTab): string =>
-  `event-detail-panel-${tab}`;
 
 type EventDetailTabsProps = {
   activeTab: EventDetailTab;
@@ -48,7 +49,6 @@ export function EventDetailTabs({
               role="tab"
               id={eventDetailTabId(tab.value)}
               aria-selected={isActive}
-              aria-controls={eventDetailPanelId(tab.value)}
               onClick={() => onTabChange(tab.value)}
               className={cn(
                 "-mb-px flex cursor-pointer items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm transition-colors",
