@@ -31,6 +31,17 @@ const formatDateTime = (value: string): string =>
     timeZone: "Asia/Tokyo",
   });
 
+// 参加費1件分を表示用に整形する。
+// 金額が0円のときは「無料」と表示し、カテゴリが未入力のときは金額だけを表示する。
+const formatCost = ({
+  category,
+  cost,
+}: EventDetailType["costs"][number]): string => {
+  const amount = cost === 0 ? "無料" : `${cost.toLocaleString()}円`;
+  const label = category.trim();
+  return label ? `${label}：${amount}` : amount;
+};
+
 // イベント情報表コンポーネント
 export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
   const organizerName = event.profile?.displayName ?? event.organizerName;
@@ -92,12 +103,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
                     {event.costs.length > 0
-                      ? event.costs
-                          .map(
-                            (cost) =>
-                              `${cost.category}: ¥${cost.cost.toLocaleString()}`,
-                          )
-                          .join(" / ")
+                      ? event.costs.map(formatCost).join(" / ")
                       : "無料"}
                   </td>
                 </tr>
