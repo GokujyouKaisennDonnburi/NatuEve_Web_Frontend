@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import { PageHeader } from "@/components/molecules/PageHeader";
 import { EventPostForm } from "@/components/organisms/event-post/EventPostForm";
+import { EventPostToc } from "@/components/organisms/event-post/EventPostToc";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -22,13 +23,20 @@ export default function EventPostPage() {
   }, [isAuthLoading, isAuthenticated, router]);
 
   return (
-    <section className="mx-auto w-full max-w-3xl space-y-6">
+    <section className="mx-auto w-full max-w-5xl space-y-6">
       <PageHeader
         title="イベントを投稿"
         backHref={ROUTES.EVENT_LIST}
         backLabel="イベント一覧にもどる"
       />
-      <EventPostForm />
+      <div className="flex flex-col gap-8 lg:flex-row">
+        <aside className="hidden shrink-0 lg:block lg:w-44">
+          <EventPostToc />
+        </aside>
+        <div className="w-full max-w-3xl">
+          <EventPostForm />
+        </div>
+      </div>
     </section>
   );
 }
