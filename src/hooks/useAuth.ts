@@ -41,7 +41,11 @@ const buildSession = (session: {
   };
 };
 
-// カスタムフック: 認証状態を管理する
+// カスタムフック: 認証状態を管理する。
+//
+// 呼び出すたびに getSession() と onAuthStateChange の購読を1組作るため、
+// AuthProvider 以外からは呼ばないこと。
+// 画面から認証状態を参照する場合は AuthProvider の useAuthContext を使う。
 export function useAuth() {
   const [session, setSession] = useState<AuthSession | null>(null); // 認証セッションの状態を保持するステート
   const [isLoading, setIsLoading] = useState(true); // 認証状態のロード中かどうかを示すステート
