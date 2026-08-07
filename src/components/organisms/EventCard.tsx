@@ -136,7 +136,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </div>
           <button
             type="button"
-            className="absolute left-[288px] flex items-center cursor-pointer hover:opacity-70 transition-opacity bg-transparent border-none p-0"
+            className="absolute left-[190px] flex items-center cursor-pointer hover:opacity-70 transition-opacity bg-transparent border-none p-0"
             onClick={handleOrganizerClick}
             onKeyDown={handleOrganizerKeyDown}
             aria-label={`${event.hostName} のプロフィールへ移動`}
