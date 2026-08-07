@@ -13,7 +13,7 @@ export type MockEvent = {
   createdAt: string;
   eventDate: string;
   // 終了日時(RFC3339)。作成時に省略された場合は eventDate と同値が入る。
-  endDate?: string;
+  endDate: string;
   id: string;
   location: string;
   profile: MockProfile;
@@ -105,6 +105,8 @@ const createInitialDummyEvents = (): MockEvent[] => {
       id: toUuid(index + 1),
       title: `${index % 3 === 0 ? "🦆" : index % 3 === 1 ? "🐟" : "🦋"} 森と水の生き物観察ハイク Vol.${index + 1}`,
       eventDate: `${yyyy}-${mm}-${dd}T${isMorning ? "10:00:00" : "14:00:00"}+09:00`,
+      // 開始から2時間後を終了日時とする（詳細画面の終了日時表示の確認用）。
+      endDate: `${yyyy}-${mm}-${dd}T${isMorning ? "12:00:00" : "16:00:00"}+09:00`,
       location:
         index % 2 === 0
           ? "青葉の森公園 (ネイチャーセンター前)"
