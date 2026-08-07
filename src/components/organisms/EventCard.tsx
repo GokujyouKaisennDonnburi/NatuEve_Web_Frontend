@@ -13,12 +13,13 @@ export type EventItem = {
   id: string;
   title: string;
   eventDate: string;
+  endDate: string;
   location: string;
   profileId: string;
   hostName: string;
   hostAvatarUrl: string;
   tags?: TagItem[];
-  status: "open" | "few_left" | "closed";
+  status: "open" | "few_left" | "ended_registration" | "closed";
 };
 
 type EventCardProps = {
