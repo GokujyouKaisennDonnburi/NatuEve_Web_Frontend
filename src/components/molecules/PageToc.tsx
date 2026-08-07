@@ -4,22 +4,31 @@ import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-import {
-  EVENT_POST_TOC_SECTIONS,
-  type EventPostTocSectionId,
-} from "./eventPostTocSections";
+// 目次の1項目。id は対応するセクション要素の id 属性と一致させる。
+export type PageTocSection = {
+  id: string;
+  label: string;
+};
 
-// イベント投稿フォームの目次。クリックで該当セクションへジャンプし、
+type PageTocProps = {
+  sections: readonly PageTocSection[];
+  className?: string;
+};
+
+// ページ内目次。クリックで該当セクションへジャンプし、
 // スクロール位置に応じて現在地をハイライトする。
-export function EventPostToc() {
-  const [activeId, setActiveId] = useState<EventPostTocSectionId>(
-    EVENT_POST_TOC_SECTIONS[0].id,
-  );
+// イベント投稿フォームとイベント詳細画面で見た目・挙動を共有する。
+export function PageToc({ sections, className }: Readonly<PageTocProps>) {
+  const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? "");
 
   useEffect(() => {
-    const sectionElements = EVENT_POST_TOC_SECTIONS.map((section) =>
-      document.getElementById(section.id),
-    ).filter((element): element is HTMLElement => element !== null);
+    if (sections.length === 0) {
+      return;
+    }
+
+    const sectionElements = sections
+      .map((section) => document.getElementById(section.id))
+      .filter((element): element is HTMLElement => element !== null);
 
     if (sectionElements.length === 0) {
       return;
@@ -28,8 +37,7 @@ export function EventPostToc() {
     // 画面上部付近の帯（-96px 〜 上から30%の位置）に入っているセクションを
     // 現在地とみなす。複数該当した場合は目次の並び順で一番上のものを採用する。
     const visibleIds = new Set<string>();
-    const lastSectionId =
-      EVENT_POST_TOC_SECTIONS[EVENT_POST_TOC_SECTIONS.length - 1].id;
+    const lastSectionId = sections[sections.length - 1].id;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -41,9 +49,7 @@ export function EventPostToc() {
           }
         }
 
-        const current = EVENT_POST_TOC_SECTIONS.find((section) =>
-          visibleIds.has(section.id),
-        );
+        const current = sections.find((section) => visibleIds.has(section.id));
         if (current) {
           setActiveId(current.id);
         }
@@ -81,13 +87,17 @@ export function EventPostToc() {
       observer.disconnect();
       window.removeEventListener("scroll", handleScroll);
     };
-  }, []);
+  }, [sections]);
+
+  if (sections.length === 0) {
+    return null;
+  }
 
   return (
-    <nav aria-label="目次" className="sticky top-8">
+    <nav aria-label="目次" className={cn("sticky top-8", className)}>
       <p className="mb-3 px-3 text-sm font-semibold text-slate-800">目次</p>
       <ul className="space-y-1">
-        {EVENT_POST_TOC_SECTIONS.map((section) => {
+        {sections.map((section) => {
           const isActive = section.id === activeId;
           return (
             <li key={section.id}>
