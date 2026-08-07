@@ -1,7 +1,6 @@
 "use client";
 
 import { BackLink } from "@/components/atoms/BackLink";
-import { EmptyMessage } from "@/components/atoms/EmptyMessage";
 import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { EventCancelModal } from "@/components/molecules/event-detail/EventCancelModal";
 import {
@@ -249,17 +248,13 @@ export function EventDetail({
           </div>
         </div>
       ) : (
-        // 活動レポート。未投稿のイベントでもタブ自体は残し、空であることを伝える
+        // 活動レポート（未投稿のときは EventReportList 側が何も描画しない）
         <div
           role="tabpanel"
           id={eventDetailPanelId("report")}
           aria-labelledby={eventDetailTabId("report")}
         >
-          {report ? (
-            <EventReportList report={report} />
-          ) : (
-            <EmptyMessage>まだ活動レポートは投稿されていません。</EmptyMessage>
-          )}
+          <EventReportList report={report} />
         </div>
       )}
 
