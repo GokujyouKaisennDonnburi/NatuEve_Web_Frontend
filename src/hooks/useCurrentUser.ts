@@ -55,6 +55,10 @@ export function useCurrentUser(
         }
       })
       .catch((caughtError) => {
+        // 呼び出し側は代替表示へ切り替えるだけで画面にエラーを出さないため、
+        // 原因を追えるようコンソールには必ず残す。
+        console.error("Failed to fetch current user", caughtError);
+
         if (!cancelled) {
           setUser(null);
           setError(
