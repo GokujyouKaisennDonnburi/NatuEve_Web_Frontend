@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { FilterTag } from "@/components/atoms/FilterTag";
 import { TagAutocomplete } from "@/components/molecules/TagAutocomplete";
@@ -9,6 +9,7 @@ import type { TagItem } from "@/types/tag";
 
 type TagFilterProps = {
   allTags: TagItem[];
+  frequentTags: TagItem[];
   selectedIds?: string[];
   onTagSelect?: (id: string) => void;
   className?: string;
@@ -16,11 +17,28 @@ type TagFilterProps = {
 
 export function TagFilter({
   allTags,
+  frequentTags,
   selectedIds = [],
   onTagSelect,
   className,
 }: Readonly<TagFilterProps>) {
   const [draft, setDraft] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [hiddenCount, setHiddenCount] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el || isExpanded) return;
+    let visibleCount = 0;
+    for (let i = 0; i < el.children.length; i++) {
+      const child = el.children[i] as HTMLElement;
+      if (child.offsetTop < 76) {
+        visibleCount++;
+      }
+    }
+    setHiddenCount(frequentTags.length - visibleCount);
+  }, [frequentTags, isExpanded]);
 
   const selectedTags = selectedIds
     .map((id) => allTags.find((tag) => tag.id === id))
@@ -93,6 +111,45 @@ export function TagFilter({
           </div>
         )}
       />
+
+      {/* よく使うタグ */}
+      {frequentTags.length > 0 ? (
+        <>
+          <span className="block text-[11px] font-bold leading-4 text-[#A8B1A2] mt-4 mb-2">
+            よく使うタグ
+          </span>
+
+          <div
+            ref={containerRef}
+            className={cn(
+              "relative flex flex-wrap gap-2 mb-1 overflow-hidden",
+              !isExpanded && "max-h-[76px]",
+            )}
+          >
+            {frequentTags.map((tag) => (
+              <FilterTag
+                key={tag.id}
+                label={tag.name}
+                size="md"
+                selected={selectedIds.includes(tag.id)}
+                onClick={onTagSelect ? () => onTagSelect(tag.id) : undefined}
+              />
+            ))}
+          </div>
+
+          {(hiddenCount > 0 || isExpanded) && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              className="text-[13px] font-bold leading-[19px] text-[#3868A3] hover:underline bg-transparent border-none p-0 cursor-pointer"
+            >
+              {isExpanded
+                ? "− 閉じる"
+                : `＋ もっと見る（残り${hiddenCount}個）`}
+            </button>
+          )}
+        </>
+      ) : null}
 
       {/* 選択済みタグ */}
       {selectedTags.length > 0 ? (

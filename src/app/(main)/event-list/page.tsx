@@ -9,7 +9,8 @@ import { EventCard } from "@/components/organisms/EventCard";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
 import { useTags } from "@/hooks/useTags";
-import { useState } from "react";
+import type { TagItem } from "@/types/tag";
+import { useMemo, useState } from "react";
 
 type SortOption = "created_at" | "event_date";
 
@@ -45,6 +46,22 @@ export default function EventListPage() {
   });
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+  // 現在表示中のイベントから使用頻度の高いタグ順に算出する
+  const frequentTags = useMemo(() => {
+    const countMap = new Map<string, number>();
+    const tagMap = new Map<string, TagItem>();
+    for (const event of events) {
+      for (const tag of event.tags ?? []) {
+        countMap.set(tag.id, (countMap.get(tag.id) ?? 0) + 1);
+        tagMap.set(tag.id, tag);
+      }
+    }
+    return Array.from(countMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => tagMap.get(id))
+      .filter((t): t is TagItem => t != null);
+  }, [events]);
 
   const sortOptions: { value: SortOption; label: string }[] = [
     { value: "event_date", label: "開催日が近い順" },
@@ -150,6 +167,7 @@ export default function EventListPage() {
         <aside className="w-[342px] shrink-0 sticky top-8">
           <FilterSidebar
             allTags={allTags}
+            frequentTags={frequentTags}
             selectedTagIds={selectedTagIds}
             onTagSelect={handleTagSelect}
             selectedRegions={selectedRegions}

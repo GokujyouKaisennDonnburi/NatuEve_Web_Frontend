@@ -8,6 +8,7 @@ import type { TagItem } from "@/types/tag";
 
 type FilterSidebarProps = {
   allTags: TagItem[];
+  frequentTags: TagItem[];
   selectedTagIds: string[];
   onTagSelect: (id: string) => void;
   selectedRegions: string[];
@@ -36,6 +37,7 @@ type FilterSidebarProps = {
 
 export function FilterSidebar({
   allTags,
+  frequentTags,
   selectedTagIds,
   onTagSelect,
   selectedRegions,
@@ -79,6 +81,7 @@ export function FilterSidebar({
       <div className="px-[21px] py-5 space-y-6">
         <TagFilter
           allTags={allTags}
+          frequentTags={frequentTags}
           selectedIds={selectedTagIds}
           onTagSelect={onTagSelect}
         />
