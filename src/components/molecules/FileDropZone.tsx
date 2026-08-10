@@ -3,9 +3,10 @@
 import { FileText, Upload } from "lucide-react";
 import Image from "next/image";
 import type { ChangeEvent, DragEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { DeleteIconButton } from "@/components/atoms/DeleteIconButton";
+import { FieldNote } from "@/components/atoms/FieldNote";
 import { cn } from "@/lib/utils";
 
 type FileDropZoneProps = {
@@ -21,6 +22,8 @@ type FileDropZoneProps = {
   maxFiles?: number;
   disabled?: boolean;
   className?: string;
+  // 検証エラーメッセージ。あるときだけルート直下に表示する
+  error?: string;
 };
 
 // プレビュー用の Blob URL は File 単位で作り直すと無駄なため、
@@ -43,11 +46,13 @@ export function FileDropZone({
   maxFiles = 1,
   disabled = false,
   className,
+  error,
 }: Readonly<FileDropZoneProps>) {
   const isImage = accept.startsWith("image/");
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const entriesRef = useRef<FileEntry[]>([]);
+  const errorId = useId();
 
   useEffect(() => {
     const current = entriesRef.current;
@@ -126,7 +131,13 @@ export function FileDropZone({
   };
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div
+      className={cn("space-y-3", className)}
+      data-field-error={error ? "" : undefined}
+      // ファイル入力は sr-only で、1件選択済みのときは disabled にもなるため
+      // フォーカス先にできない。エラー時だけルートがフォーカスを受け取れるようにする
+      tabIndex={error ? -1 : undefined}
+    >
       {/* label より前に置くことで、キーボードフォーカスを peer で領域側に伝える */}
       <input
         id={id}
@@ -136,6 +147,8 @@ export function FileDropZone({
         disabled={disabled || !canAddMore}
         onChange={handleInputChange}
         className="peer sr-only"
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
       />
 
       {canAddMore ? (
@@ -203,6 +216,12 @@ export function FileDropZone({
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {error ? (
+        <FieldNote tone="error">
+          <span id={errorId}>{error}</span>
+        </FieldNote>
       ) : null}
     </div>
   );
