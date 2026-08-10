@@ -1,10 +1,9 @@
 "use client";
 
+import { useCurrentUserContext } from "@/components/layouts/CurrentUserProvider";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
-import { useAuth } from "@/hooks/useAuth";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import Image from "next/image";
@@ -28,24 +27,28 @@ type CreateEventButtonProps = ComponentPropsWithoutRef<typeof Button> & {
 export function SiteHeader() {
   const router = useRouter();
 
-  // 認証状態の取得
-  const { session, isLoading: isSessionLoading } = useAuth();
+  // 認証状態と現在のユーザー情報を Provider から取得
+  const { session, user: currentUser, isLoading } = useCurrentUserContext();
 
-  // 現在のユーザー情報を取得（Service経由）
-  const { user: currentUser, isLoading: isProfileLoading } =
-    useCurrentUser(session);
-
-  // session に応じてヘッダ表示用ユーザー情報を生成
+  // ヘッダ表示用ユーザー情報を生成する。
+  // /api/v1/me が失敗した場合は、セッション（Google の user_metadata 由来）の
+  // 名前とアイコンで代替する。ここで null にしてしまうと、ログイン済みなのに
+  // 「ログイン」ボタンが出て、イベント投稿にも進めなくなるため。
+  // 表示名をアプリ側で編集していた場合は API 復旧まで Google の名前が出るが、
+  // アイコンは同じ値（DB の avatar_url も JWT 由来）なので見た目は変わらない。
   const user: HeaderUser | null = currentUser
     ? {
         id: currentUser.id,
         name: currentUser.displayName || "ユーザー",
         avatarUrl: currentUser.avatarUrl,
       }
-    : null;
-
-  // 認証状態またはプロフィール取得中の場合はローディング状態とする
-  const isLoading = isSessionLoading || isProfileLoading;
+    : session
+      ? {
+          id: session.userId,
+          name: session.name || "ユーザー",
+          avatarUrl: session.iconUrl ?? "",
+        }
+      : null;
 
   // ログイン状態を確認してイベント投稿ページへ遷移する
   const handleCreateEvent = () => {
