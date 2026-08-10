@@ -1,9 +1,4 @@
-import {
-  ExternalLink,
-  FilePlus2,
-  FileText,
-  Image as ImageIcon,
-} from "lucide-react";
+import { ExternalLink, FilePlus2, FileText } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -91,7 +86,6 @@ function ExternalReportCard({
     <SurfaceCard>
       <CardContent>
         <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
-          <FileText className="h-5 w-5 text-emerald-500" />
           活動レポート
         </h2>
         <p className="mt-1.5 text-xs text-slate-500">
@@ -142,7 +136,6 @@ function ReportCard({
     <SurfaceCard>
       <CardContent>
         <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
-          <FileText className="h-5 w-5 text-emerald-500" />
           活動レポート
         </h2>
         <p className="mt-1.5 text-xs text-slate-500">
@@ -160,10 +153,6 @@ function ReportCard({
 
           {imageSources.length > 0 ? (
             <section>
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <ImageIcon className="h-4 w-4 text-slate-700" />
-                画像
-              </h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {imageSources.map((url) => (
                   <div
@@ -184,10 +173,6 @@ function ReportCard({
 
           {pdfSources.length > 0 ? (
             <section>
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <FileText className="h-4 w-4 text-slate-700" />
-                PDF
-              </h3>
               <div className="mt-3 space-y-2">
                 {pdfSources.map((url, index) => (
                   <a
