@@ -8,8 +8,8 @@ import { Pagination } from "@/components/molecules/Pagination";
 import { EventCard } from "@/components/organisms/EventCard";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
-import type { TagItem } from "@/types/tag";
-import { useMemo, useState } from "react";
+import { useTags } from "@/hooks/useTags";
+import { useState } from "react";
 
 type SortOption = "created_at" | "event_date";
 
@@ -19,9 +19,8 @@ export default function EventListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const ITEMS_PER_PAGE = 15;
 
-  // 絞り込みフィルターの状態
+  // 絞り込みフィルターの状態（ドラフト: サイドバーでの選択状態）
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [tagSearchQuery, setTagSearchQuery] = useState("");
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
@@ -32,29 +31,18 @@ export default function EventListPage() {
   const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
   const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
 
+  // 絞り込みフィルターの状態（適用済み: 「N件を表示」押下で反映され、APIリクエストに使われる）
+  const [appliedTagIds, setAppliedTagIds] = useState<string[]>([]);
+
+  const { tags: allTags } = useTags();
+
   const { events, totalCount, loading, error } = useEventList({
     currentPage,
     sortBy,
     searchQuery,
-    selectedTagIds,
+    selectedTagIds: appliedTagIds,
     itemsPerPage: ITEMS_PER_PAGE,
   });
-
-  // 現在表示中のイベントから使用頻度の高いタグ順に算出する
-  const frequentTags = useMemo(() => {
-    const countMap = new Map<string, number>();
-    const tagMap = new Map<string, TagItem>();
-    for (const event of events) {
-      for (const tag of event.tags ?? []) {
-        countMap.set(tag.id, (countMap.get(tag.id) ?? 0) + 1);
-        tagMap.set(tag.id, tag);
-      }
-    }
-    return Array.from(countMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([id]) => tagMap.get(id))
-      .filter((t): t is TagItem => t != null);
-  }, [events]);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -88,7 +76,6 @@ export default function EventListPage() {
   // 全フィルターをリセットする関数
   const resetFilters = () => {
     setSelectedTagIds([]);
-    setTagSearchQuery("");
     setSelectedRegions([]);
     setSelectedPrefectures([]);
     setSelectedCities([]);
@@ -98,6 +85,7 @@ export default function EventListPage() {
     setFreeOnly(false);
     setMinPrice(undefined);
     setMaxPrice(undefined);
+    setAppliedTagIds([]);
     setCurrentPage(1);
   };
 
@@ -109,7 +97,9 @@ export default function EventListPage() {
     resetFilters();
   };
 
+  // 「N件を表示」押下時にドラフト状態を適用済み状態に反映し、APIリクエストをトリガーする
   const handleApply = () => {
+    setAppliedTagIds(selectedTagIds);
     setCurrentPage(1);
   };
 
@@ -159,11 +149,9 @@ export default function EventListPage() {
         {/* Filter sidebar */}
         <aside className="w-[342px] shrink-0 sticky top-8">
           <FilterSidebar
-            tags={frequentTags}
+            allTags={allTags}
             selectedTagIds={selectedTagIds}
             onTagSelect={handleTagSelect}
-            onTagSearch={setTagSearchQuery}
-            tagSearchQuery={tagSearchQuery}
             selectedRegions={selectedRegions}
             selectedPrefectures={selectedPrefectures}
             selectedCities={selectedCities}
