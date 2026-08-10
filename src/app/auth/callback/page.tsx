@@ -2,104 +2,52 @@
 "use client";
 
 import { ROUTES } from "@/constants/routes";
-import { supabase } from "@/lib/supabase";
-import { getMockAuthSession, isMockAuthEnabled } from "@/services/mockAuth";
+import { completeOAuthCallback, subscribeAuthSession } from "@/services/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
 // 認証コールバックページ
 // - Google OAuthのリダイレクト先として使用される。
-// - 認証状態の変化を監視し、成功時はイベント一覧ページへ、失敗時はサインインページへリダイレクトする。
+// - セッションの確立を検知し、成功時はイベント一覧ページへ、失敗時はサインインページへリダイレクトする。
 export default function AuthCallbackPage() {
   const router = useRouter(); // useRouterフックを使用してルーターオブジェクトを取得
 
-  // 認証状態の変化を監視する副作用
+  // セッションの確立を待って遷移先を決める副作用
   useEffect(() => {
     let handled = false;
 
-    // モック認証が有効な場合の処理
-    if (isMockAuthEnabled()) {
-      if (getMockAuthSession()) {
+    // 成否どちらか一方だけを一度だけ実行する。
+    // セッション確立の検知と完了処理の両方から呼ばれるためフラグで制御する。
+    const finish = (isSignedIn: boolean) => {
+      if (handled) {
+        return;
+      }
+
+      handled = true;
+
+      if (isSignedIn) {
         toast.success("ログインに成功しました。");
         router.replace(ROUTES.EVENT_LIST);
-      } else {
-        toast.error("ログインに失敗しました。もう一度お試しください。");
-        router.replace(ROUTES.SIGNIN);
-      }
-
-      return;
-    }
-
-    const exchangeSession = async () => {
-      const code = new URLSearchParams(window.location.search).get("code");
-
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-        if (error) {
-          throw error;
-        }
-      }
-    };
-
-    // 認証成功時の処理
-    const finishSuccess = () => {
-      if (handled) {
         return;
       }
 
-      // 認証成功時の処理を一度だけ実行するためのフラグを設定
-      handled = true;
-      toast.success("ログインに成功しました。");
-      router.replace(ROUTES.EVENT_LIST);
-    };
-
-    // 認証失敗時の処理
-    const finishError = () => {
-      if (handled) {
-        return;
-      }
-
-      // 認証失敗時の処理を一度だけ実行するためのフラグを設定
-      handled = true;
       toast.error("ログインに失敗しました。もう一度お試しください。");
       router.replace(ROUTES.SIGNIN);
     };
 
-    // Supabaseの認証状態の変化を監視する
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        finishSuccess();
-      }
-    });
+    // code の交換を経ずにセッションが確立する経路があるため、先に購読しておく
+    const unsubscribe = subscribeAuthSession(() => finish(true));
 
-    // PKCE の code をセッションへ交換し、その後に成功/失敗を判定する
-    void exchangeSession()
-      .then(() => supabase.auth.getSession())
-      .then(({ data: { session }, error }) => {
-        if (error) {
-          finishError();
-          return;
-        }
+    // PKCE の code をセッションへ交換し、その結果で成功/失敗を判定する
+    void completeOAuthCallback()
+      .then(finish)
+      .catch(() => finish(false));
 
-        if (session) {
-          finishSuccess();
-          return;
-        }
-
-        finishError();
-      })
-      .catch(() => {
-        finishError();
-      });
-
-    // クリーンアップ関数を返すことで、コンポーネントがアンマウントされたときにタイムアウトとサブスクリプションを解除する
+    // アンマウント時に遷移処理を止め、購読も解除する
     return () => {
       handled = true;
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, [router]);
 
