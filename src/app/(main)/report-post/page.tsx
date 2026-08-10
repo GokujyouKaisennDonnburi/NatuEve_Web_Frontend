@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants/routes";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { createReport } from "@/services/report";
 import { uploadFile } from "@/services/upload";
 import type { CreateReportRequest } from "@/types/report";
@@ -50,7 +50,9 @@ export default function ReportPostPage() {
 function ReportPostPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, isLoading } = useAuth();
+  // リダイレクト判定に必要なのは認証状態だけなので、
+  // プロフィール取得を待たない isSessionLoading を使う。
+  const { isAuthenticated, isSessionLoading: isLoading } = useAuthContext();
 
   // フォーム状態
   const [formState, setFormState] = useState<ReportPostFormState>({
