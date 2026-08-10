@@ -191,11 +191,14 @@ export function EventDetail({
         )}
       </header>
 
-      {/* 詳細 / 活動レポート の切り替えタブ */}
+      {/* 詳細 / 活動レポート の切り替えタブ。
+          主催者はレポート未投稿でも空状態（作成ボタン付き）を確認できるようにし、
+          非主催者はレポート未投稿のときタブを開けないようにする。 */}
       <EventDetailTabs
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        hasReport={Boolean(report)}
+        showReportBadge={isOrganizer && !report}
+        reportTabDisabled={!isOrganizer && !report}
       />
 
       {activeTab === "detail" ? (
