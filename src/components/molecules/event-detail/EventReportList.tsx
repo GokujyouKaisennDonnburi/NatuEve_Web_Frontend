@@ -55,7 +55,7 @@ function EmptyReportCard({
           <p className="mt-5 text-base font-bold text-slate-900">
             まだ活動レポートがありません
           </p>
-          <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">
             開催後にレポートを作成すると、参加者や閲覧者に活動の様子を届けられます。
           </p>
           {isOrganizer ? (
@@ -73,46 +73,53 @@ function EmptyReportCard({
 }
 
 type ExternalReportCardProps = {
+  report: ReportDetail;
   externalUrls: string[];
 };
 
 // 外部サイトでレポートを公開している場合の専用カード。
 function ExternalReportCard({
+  report,
   externalUrls,
 }: Readonly<ExternalReportCardProps>) {
+  const externalUrl = externalUrls[0];
+  if (!externalUrl) {
+    return null;
+  }
+
   return (
     <SurfaceCard>
       <CardContent>
-        <div className="flex flex-col items-center px-4 py-8 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
-            <ExternalLink className="h-7 w-7 text-emerald-600" />
+        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+          <FileText className="h-5 w-5 text-emerald-500" />
+          活動レポート
+        </h2>
+        <p className="mt-1.5 text-xs text-slate-500">
+          {formatReportDate(report.createdAt)}
+        </p>
+
+        <div className="mt-5 rounded-2xl border border-sky-100 bg-sky-50 px-6 py-8 text-center">
+          <div className="flex justify-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
+              <ExternalLink className="h-6 w-6 text-sky-600" />
+            </div>
           </div>
-          <p className="mt-5 text-sm leading-relaxed text-slate-600">
+          <p className="mt-4 text-lg font-bold text-slate-800">
             レポートは主催者のサイトで公開されています
           </p>
-          <div className="mt-4 w-full max-w-md space-y-2">
-            {externalUrls.map((url) => (
-              <a
-                key={url}
-                href={normalizeAssetUrl(url)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block break-all rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500 hover:bg-slate-100"
-              >
-                {url}
-              </a>
-            ))}
-          </div>
-          <PillButton asChild tone="brand" className="mt-6">
-            <a
-              href={normalizeAssetUrl(externalUrls[0])}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink className="h-4 w-4" />
-              レポートを読む
-            </a>
-          </PillButton>
+          <p className="mt-2 break-all text-sm text-slate-500">
+            {externalUrl}
+            <span className="whitespace-nowrap"> ／ 別のタブで開きます</span>
+          </p>
+          <a
+            href={normalizeAssetUrl(externalUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#85B7EB] px-6 py-2.5 text-sm font-semibold text-[#1E2C10] transition hover:opacity-90"
+          >
+            レポートを読む
+            <ExternalLink className="h-4 w-4" />
+          </a>
         </div>
       </CardContent>
     </SurfaceCard>
@@ -225,7 +232,7 @@ export function EventReportList({
   const externalUrls = report.externalUrls ?? [];
 
   if (externalUrls.length > 0) {
-    return <ExternalReportCard externalUrls={externalUrls} />;
+    return <ExternalReportCard report={report} externalUrls={externalUrls} />;
   }
 
   const imageSources = report.imageUrls?.length
