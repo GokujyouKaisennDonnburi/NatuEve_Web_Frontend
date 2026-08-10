@@ -61,7 +61,6 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       e.stopPropagation();
-      router.push(`${ROUTES.USERS}/${event.profileId}`);
     }
   };
 
@@ -130,7 +129,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
         <div className="relative flex items-center mt-[10px] ml-[26px]">
           <div className="flex items-center max-w-[175px] min-w-0">
             <MapPin className="h-[13px] w-[13px] text-[#5F8530] shrink-0" />
-            <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061] truncate">
+            <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061] truncate inline-block max-w-[156px]">
               {displayLocation}
             </span>
           </div>
