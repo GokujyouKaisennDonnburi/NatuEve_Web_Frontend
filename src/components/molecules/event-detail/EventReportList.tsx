@@ -187,7 +187,9 @@ function ReportCard({
                         <FileText className="h-5 w-5 text-red-400" />
                       </div>
                       <span className="truncate text-sm font-bold text-slate-800">
-                        {report.pdfFilenames?.[index] || url.split("/").pop()}
+                        {report.pdfFilenames?.[index] ||
+                          url.split("/").pop() ||
+                          "PDF"}
                       </span>
                     </div>
                     <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">
