@@ -75,15 +75,13 @@ export const eventLeaveHandler = http.post(
     participationLogs.set(id, logs);
 
     // eventMembers からも該当レコードを削除する。
-    // ログイン参加の場合は profileId（= TOKEN_TO_PROFILE_ID[token]）で特定する。
+    // ログイン参加の場合は profile.id（= TOKEN_TO_PROFILE_ID[token]）で特定する。
+    // 匿名参加は profile が null のため、常に残る（本エンドポイントの対象外）。
     const members = eventMembers.get(id);
     if (members) {
-      const updatedMembers = members.filter((member) => {
-        // join モックが profileId に raw token を入れる挙動と、TOKEN_TO_PROFILE_ID による userId の両方に対応する
-        return (
-          member.profileId !== token && member.profileId !== requesterProfileId
-        );
-      });
+      const updatedMembers = members.filter(
+        (member) => member.profile?.id !== requesterProfileId,
+      );
       eventMembers.set(id, updatedMembers);
     }
 
