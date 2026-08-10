@@ -1,13 +1,6 @@
 "use client";
 
-import { Check, Plus } from "lucide-react";
-import {
-  type KeyboardEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AddItemButton } from "@/components/atoms/AddItemButton";
@@ -15,6 +8,7 @@ import { FieldNote } from "@/components/atoms/FieldNote";
 import { FormInput } from "@/components/atoms/FormInput";
 import { TagChip } from "@/components/atoms/event-post/TagChip";
 import { FormField } from "@/components/molecules/FormField";
+import { TagAutocomplete } from "@/components/molecules/TagAutocomplete";
 import { MAX_TAG_COUNT, MAX_TAG_LENGTH } from "@/constants/config";
 import { MESSAGES } from "@/constants/messages";
 import { useCreateTag } from "@/hooks/useCreateTag";
@@ -38,8 +32,6 @@ export function TagInputField({
   error,
 }: Readonly<TagInputFieldProps>) {
   const [draft, setDraft] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
-  const [highlightIndex, setHighlightIndex] = useState(-1);
   const { isSubmitting, submit } = useCreateTag();
   const { tags: allTags, isLoading: isTagsLoading } = useTags();
   const trimmedDraft = draft.trim();
@@ -59,14 +51,6 @@ export function TagInputField({
 
   const { rowIds, removeRowId } = useRowIds(tags.length);
 
-  const suggestions = normalizedDraft
-    ? allTags.filter(
-        (t) =>
-          !normalizedTagNames.has(normalize(t.name)) &&
-          normalize(t.name).includes(normalizedDraft),
-      )
-    : [];
-
   // 同名のタグが既にある場合は候補から選ばせたいので、新規作成の行は出さない
   const canCreate =
     trimmedDraft.length > 0 &&
@@ -83,11 +67,6 @@ export function TagInputField({
     return false;
   };
 
-  // 候補の末尾に新規作成の行を足したものを、まとめて1つのリストとして扱う
-  const createIndex = canCreate ? suggestions.length : -1;
-  const optionCount = suggestions.length + (canCreate ? 1 : 0);
-  const showDropdown = isOpen && optionCount > 0;
-
   const handleAdd = async () => {
     if (isAddDisabled || rejectWhenCountExceeded()) {
       return;
@@ -100,8 +79,6 @@ export function TagInputField({
         { id: created.id, name: created.name },
       ]);
       setDraft("");
-      setIsOpen(false);
-      setHighlightIndex(-1);
     } catch (caughtError) {
       if (
         caughtError instanceof TagError &&
@@ -113,8 +90,6 @@ export function TagInputField({
         if (existing) {
           onTagsChange([...latestTagsRef.current, existing]);
           setDraft("");
-          setIsOpen(false);
-          setHighlightIndex(-1);
         }
         return;
       }
@@ -129,48 +104,11 @@ export function TagInputField({
 
   const handleSuggestionSelect = (tag: TagItem) => {
     if (rejectWhenCountExceeded()) {
-      return;
+      return false;
     }
     onTagsChange([...latestTagsRef.current, tag]);
     setDraft("");
-    setIsOpen(false);
-    setHighlightIndex(-1);
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      if (event.nativeEvent.isComposing) {
-        return;
-      }
-      event.preventDefault();
-      if (showDropdown && highlightIndex >= 0 && highlightIndex < optionCount) {
-        if (highlightIndex === createIndex) {
-          void handleAdd();
-        } else {
-          handleSuggestionSelect(suggestions[highlightIndex]);
-        }
-        return;
-      }
-      void handleAdd();
-      return;
-    }
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setHighlightIndex((prev) => (prev < optionCount - 1 ? prev + 1 : 0));
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setHighlightIndex((prev) => (prev > 0 ? prev - 1 : optionCount - 1));
-      return;
-    }
-
-    if (event.key === "Escape") {
-      setIsOpen(false);
-      setHighlightIndex(-1);
-    }
+    return true;
   };
 
   const handleDraftChange = (value: string) => {
@@ -179,29 +117,8 @@ export function TagInputField({
       toast.error(MESSAGES.TAG_LENGTH_EXCEEDED, { id: `${id}-tag-length` });
     }
 
-    const nextDraft = value.slice(0, MAX_TAG_LENGTH);
-    setDraft(nextDraft);
-    setIsOpen(nextDraft.trim().length > 0);
-    setHighlightIndex(-1);
+    setDraft(value.slice(0, MAX_TAG_LENGTH));
   };
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (
-      containerRef.current &&
-      !containerRef.current.contains(event.target as Node)
-    ) {
-      setIsOpen(false);
-      setHighlightIndex(-1);
-    }
-  }, []);
-
-  useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [handleClickOutside]);
 
   const handleRemove = (index: number) => {
     // 削除した位置の ID も落とす。件数の変化だけに任せると末尾が切り詰められ、
@@ -222,99 +139,54 @@ export function TagInputField({
         </ul>
       ) : null}
 
-      <div ref={containerRef} className="relative">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <FormInput
-              id={id}
-              value={draft}
-              onChange={(event) => handleDraftChange(event.target.value)}
-              onKeyDown={handleKeyDown}
-              onFocus={() => {
-                if (trimmedDraft.length > 0) {
-                  setIsOpen(true);
-                }
-              }}
-              placeholder="タグを入力（例: 野鳥）"
-              disabled={isSubmitting}
-              aria-invalid={Boolean(error) || isDuplicate}
-              aria-describedby={isDuplicate ? helperId : undefined}
-              aria-expanded={showDropdown}
-              aria-controls={`${id}-listbox`}
-              aria-autocomplete="list"
-              role="combobox"
-            />
-
-            {/* 候補は入力欄と同じ幅で下に開き、ウィンドウ幅の変化に追従させる */}
-            {showDropdown ? (
-              <div
-                id={`${id}-listbox`}
-                role="listbox"
-                aria-label="タグ候補"
-                className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
-              >
-                {suggestions.map((suggestion, index) => (
-                  <div
-                    key={suggestion.id}
-                    role="option"
-                    aria-selected={index === highlightIndex}
-                    tabIndex={-1}
-                    className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm ${
-                      index === highlightIndex
-                        ? "bg-(--brand-green-soft) text-(--brand-green-text)"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
-                    onMouseDown={() => handleSuggestionSelect(suggestion)}
-                    onMouseEnter={() => setHighlightIndex(index)}
-                  >
-                    <span className="truncate">{suggestion.name}</span>
-                    {index === highlightIndex ? (
-                      <Check className="h-3.5 w-3.5 shrink-0" />
-                    ) : null}
-                  </div>
-                ))}
-
-                {canCreate ? (
-                  <div
-                    role="option"
-                    aria-selected={highlightIndex === createIndex}
-                    tabIndex={-1}
-                    className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm ${
-                      highlightIndex === createIndex
-                        ? "bg-(--brand-green-soft) text-(--brand-green-text)"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
-                    onMouseDown={() => {
-                      void handleAdd();
-                    }}
-                    onMouseEnter={() => setHighlightIndex(createIndex)}
-                  >
-                    <Plus className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">「{trimmedDraft}」を追加</span>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {isTagsLoading &&
-            trimmedDraft.length > 0 &&
-            suggestions.length === 0 ? (
-              <div className="absolute z-10 mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
-                読み込み中…
-              </div>
-            ) : null}
-          </div>
-
-          <AddItemButton
-            onClick={() => {
-              void handleAdd();
-            }}
-            disabled={isAddDisabled}
-            className="h-11 shrink-0"
-          >
-            {isSubmitting ? "追加中…" : "追加"}
-          </AddItemButton>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <TagAutocomplete
+            allTags={allTags}
+            selectedIds={tags.map((t) => t.id)}
+            value={draft}
+            onValueChange={handleDraftChange}
+            onSelect={handleSuggestionSelect}
+            onCreate={handleAdd}
+            canCreate={canCreate}
+            isLoading={isTagsLoading}
+            listboxId={`${id}-listbox`}
+            renderInput={({
+              value,
+              onChange,
+              onKeyDown,
+              onFocus,
+              showDropdown,
+              listboxId,
+            }) => (
+              <FormInput
+                id={id}
+                value={value}
+                onChange={onChange}
+                onKeyDown={onKeyDown}
+                onFocus={onFocus}
+                placeholder="タグを入力（例: 野鳥）"
+                disabled={isSubmitting}
+                aria-invalid={Boolean(error) || isDuplicate}
+                aria-describedby={isDuplicate ? helperId : undefined}
+                aria-expanded={showDropdown}
+                aria-controls={listboxId}
+                aria-autocomplete="list"
+                role="combobox"
+              />
+            )}
+          />
         </div>
+
+        <AddItemButton
+          onClick={() => {
+            void handleAdd();
+          }}
+          disabled={isAddDisabled}
+          className="h-11 shrink-0"
+        >
+          {isSubmitting ? "追加中…" : "追加"}
+        </AddItemButton>
       </div>
 
       {isDuplicate ? (
