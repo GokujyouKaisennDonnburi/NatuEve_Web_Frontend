@@ -71,6 +71,7 @@ export function PriceCategoryField({
           <div
             key={rowIds[index] ?? `${fieldId}-item-${index}`}
             className="space-y-2"
+            data-field-error={errors?.[index] ? "" : undefined}
           >
             <div className="flex items-start gap-3">
               {/* カテゴリの入力欄を表示する部分。 */}
