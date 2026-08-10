@@ -251,9 +251,13 @@ export function EventDetail({
           </div>
         </div>
       ) : (
-        // 活動レポート（未投稿のときは EventReportList 側が何も描画しない）
+        // 活動レポート（未投稿のときは空状態を EventReportList 側で描画する）
         <div role="tabpanel" aria-labelledby={eventDetailTabId("report")}>
-          <EventReportList report={report} />
+          <EventReportList
+            report={report}
+            eventId={event.id}
+            isOrganizer={isOrganizer}
+          />
         </div>
       )}
 
