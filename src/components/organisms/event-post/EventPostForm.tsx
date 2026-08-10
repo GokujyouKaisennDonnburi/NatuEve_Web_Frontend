@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId } from "react";
+import { useCallback, useEffect, useId } from "react";
 
 import { FormInput } from "@/components/atoms/FormInput";
 import { FormTextarea } from "@/components/atoms/FormTextarea";
@@ -15,6 +15,7 @@ import { PriceCategoryField } from "@/components/molecules/event-post/PriceCateg
 import { RequiredItemField } from "@/components/molecules/event-post/RequiredItemField";
 import { TagInputField } from "@/components/molecules/event-post/TagInputField";
 import { MAX_EVENT_PDF_COUNT, MAX_TEXT_LENGTH } from "@/constants/config";
+import type { EventPostFormErrors } from "@/hooks/useEventPostForm";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
 import { normalizeHalfWidthDigits } from "@/utils/format";
 import { MAX_IMAGE_BYTES, MAX_PDF_BYTES } from "@/utils/upload";
@@ -44,6 +45,29 @@ const clampDateYear = (value: string) => {
 // 上限バイト数の表記は、実際の検証に使う値から作ることでズレを防ぐ
 const toMegabytes = (bytes: number) => Math.floor(bytes / (1024 * 1024));
 
+// 送信時に最初のエラー項目へジャンプするための、フォームの表示順。
+// 下の JSX の並び順と対応させる必要があるため、JSX を変更した際はここも合わせて見直すこと。
+const FORM_ERROR_ORDER: readonly (keyof EventPostFormErrors)[] = [
+  "eventName",
+  "tags",
+  "location",
+  "eventDateTime",
+  "endDateTime",
+  "capacity",
+  "applicationUrl",
+  "feeCategoryGroups",
+  "requiredItems",
+  "eventContent",
+];
+
+// 参加費用・持ち物は行の増減がある項目で、入力欄の id は子コンポーネント内の
+// useId() から生成されるため親からは個々の id を知れない。そのため、
+// セクション要素の id を起点に中の最初のエラー項目を探す。
+const SECTION_ANCHOR_IDS: Partial<Record<keyof EventPostFormErrors, string>> = {
+  feeCategoryGroups: EVENT_FEE_SECTION_ID,
+  requiredItems: EVENT_ITEMS_SECTION_ID,
+};
+
 // イベント投稿フォーム。入力項目を意味のまとまりごとにカードへ分けて並べる。
 export function EventPostForm() {
   const formId = useId();
@@ -51,7 +75,53 @@ export function EventPostForm() {
   const { formState, errors, isSubmitting, setField, handleSubmit } =
     useEventPostForm();
 
-  const getFieldId = (suffix: string) => `${formId}-${suffix}`;
+  const getFieldId = useCallback(
+    (suffix: string) => `${formId}-${suffix}`,
+    [formId],
+  );
+
+  // 送信時、表示順で一番上のエラー項目へスクロール＋フォーカスする。
+  // errors は送信時にのみ更新されるため、初回マウント時や送信成功時
+  // （errors が空のとき）はここで何もせず抜ける。
+  useEffect(() => {
+    const firstErrorKey = FORM_ERROR_ORDER.find((key) => {
+      const value = errors[key];
+      if (typeof value === "string") {
+        return value.length > 0;
+      }
+      if (value) {
+        return Object.keys(value).length > 0;
+      }
+      return false;
+    });
+
+    if (!firstErrorKey) {
+      return;
+    }
+
+    const sectionId = SECTION_ANCHOR_IDS[firstErrorKey];
+    const target = sectionId
+      ? document
+          .getElementById(sectionId)
+          ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+      : document.getElementById(getFieldId(firstErrorKey));
+
+    if (target) {
+      // focus によって一瞬でジャンプしてしまうため、先にスクロールを止めてから
+      // 改めて滑らかにスクロールさせる。
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    // 行が0件でエラーだけが出るケース（例: 参加費用が1件も無い）の保険として、
+    // 入力欄が見つからない場合はセクション自体へスクロールする。
+    if (sectionId) {
+      document
+        .getElementById(sectionId)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [errors, getFieldId]);
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
