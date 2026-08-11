@@ -191,11 +191,14 @@ export function EventDetail({
         )}
       </header>
 
-      {/* 詳細 / 活動レポート の切り替えタブ */}
+      {/* 詳細 / 活動レポート の切り替えタブ。
+          主催者はレポート未投稿でも空状態（作成ボタン付き）を確認できるようにし、
+          非主催者はレポート未投稿のときタブを開けないようにする。 */}
       <EventDetailTabs
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        hasReport={Boolean(report)}
+        showReportBadge={isOrganizer && !report}
+        reportTabDisabled={!isOrganizer && !report}
       />
 
       {activeTab === "detail" ? (
@@ -251,9 +254,13 @@ export function EventDetail({
           </div>
         </div>
       ) : (
-        // 活動レポート（未投稿のときは EventReportList 側が何も描画しない）
+        // 活動レポート（未投稿のときは空状態を EventReportList 側で描画する）
         <div role="tabpanel" aria-labelledby={eventDetailTabId("report")}>
-          <EventReportList report={report} />
+          <EventReportList
+            report={report}
+            eventId={event.id}
+            isOrganizer={isOrganizer}
+          />
         </div>
       )}
 
