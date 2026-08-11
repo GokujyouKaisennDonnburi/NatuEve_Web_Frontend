@@ -56,7 +56,7 @@ export const validateUploadFile = (
 
   if (!ALLOWED_CONTENT_TYPES[kind].includes(contentType)) {
     if (kind === "image") {
-      return `${file.name} は対応していない画像形式です（JPEG / PNG のみ・WebP不可）。`;
+      return `${file.name} は対応していない画像形式です（JPEG / PNG のみ）`;
     }
     return `${file.name} は PDF ファイルではありません。`;
   }

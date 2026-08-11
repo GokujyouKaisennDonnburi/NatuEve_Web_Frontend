@@ -17,7 +17,11 @@ import { TagInputField } from "@/components/molecules/event-post/TagInputField";
 import { MAX_EVENT_PDF_COUNT, MAX_TEXT_LENGTH } from "@/constants/config";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
 import { normalizeHalfWidthDigits } from "@/utils/format";
-import { MAX_IMAGE_BYTES, MAX_PDF_BYTES } from "@/utils/upload";
+import {
+  MAX_IMAGE_BYTES,
+  MAX_PDF_BYTES,
+  validateUploadFile,
+} from "@/utils/upload";
 
 import {
   EVENT_ATTACHMENTS_SECTION_ID,
@@ -251,6 +255,7 @@ export function EventPostForm() {
             onFilesChange={(files) => setField("eventImage", files[0] ?? null)}
             promptLabel="クリックまたはドラッグで画像をアップロード"
             hint={`1ファイル ${toMegabytes(MAX_IMAGE_BYTES)}MB まで`}
+            validate={(file) => validateUploadFile(file, "image")}
           />
         </FormCard>
 
@@ -266,6 +271,7 @@ export function EventPostForm() {
             maxFiles={MAX_EVENT_PDF_COUNT}
             promptLabel="クリックまたはドラッグでPDFをアップロード"
             hint={`1ファイル ${toMegabytes(MAX_PDF_BYTES)}MB まで`}
+            validate={(file) => validateUploadFile(file, "pdf")}
           />
         </FormCard>
       </div>
