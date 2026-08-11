@@ -68,14 +68,14 @@ export function TagFilter({
           showDropdown,
           listboxId,
         }) => (
-          <div className="flex items-center h-[42px] bg-[#F8FAF6] border border-[#E3E8DF] rounded-[10px] overflow-hidden">
+          <div className="flex flex-wrap items-center gap-1 min-h-[42px] bg-[#F8FAF6] border border-[#E3E8DF] rounded-[10px] px-[13px] py-1">
             <svg
               width="15"
               height="15"
               viewBox="0 0 24 24"
               fill="none"
               aria-hidden="true"
-              className="shrink-0 ml-[13px]"
+              className="shrink-0"
             >
               <circle
                 cx="11"
@@ -95,14 +95,25 @@ export function TagFilter({
                 strokeLinecap="round"
               />
             </svg>
+            {selectedTags.map((tag) => (
+              <FilterTag
+                key={tag.id}
+                label={tag.name}
+                size="sm"
+                selected
+                onClick={onTagSelect ? () => onTagSelect(tag.id) : undefined}
+              />
+            ))}
             <input
               type="text"
               value={value}
               onChange={onChange}
               onKeyDown={onKeyDown}
               onFocus={onFocus}
-              placeholder="タグを検索（例: 双眼鏡）"
-              className="flex-1 h-[22px] ml-[8px] mr-[13px] bg-transparent border-none outline-none text-sm leading-5 text-[#757575] placeholder:text-[#757575] p-0"
+              placeholder={
+                selectedTags.length > 0 ? "" : "タグを検索（例: 双眼鏡）"
+              }
+              className="flex-1 h-[22px] min-w-[80px] bg-transparent border-none outline-none text-sm leading-5 text-[#757575] placeholder:text-[#757575] p-0"
               role="combobox"
               aria-expanded={showDropdown}
               aria-controls={listboxId}
@@ -149,21 +160,6 @@ export function TagFilter({
             </button>
           )}
         </>
-      ) : null}
-
-      {/* 選択済みタグ */}
-      {selectedTags.length > 0 ? (
-        <div className="flex flex-wrap gap-2 mt-3">
-          {selectedTags.map((tag) => (
-            <FilterTag
-              key={tag.id}
-              label={tag.name}
-              size="md"
-              selected
-              onClick={onTagSelect ? () => onTagSelect(tag.id) : undefined}
-            />
-          ))}
-        </div>
       ) : null}
     </div>
   );
