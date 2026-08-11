@@ -18,7 +18,6 @@ import { createEvent } from "@/services/event";
 import { uploadFile, uploadFiles } from "@/services/upload";
 import type { CreateEventRequest } from "@/types/event";
 import type { TagItem } from "@/types/tag";
-import { findUploadValidationError, validateUploadFile } from "@/utils/upload";
 
 // イベント投稿フォームの入力状態を管理する型定義
 export type EventPostFormState = {
@@ -40,8 +39,6 @@ export type EventPostFormState = {
 export type EventPostFormErrors = {
   eventName?: string;
   eventContent?: string;
-  eventImage?: string;
-  eventDocuments?: string;
   location?: string;
   eventDateTime?: string;
   endDateTime?: string;
@@ -193,23 +190,6 @@ export function useEventPostForm() {
     });
     if (Object.keys(requiredItemErrors).length > 0) {
       nextErrors.requiredItems = requiredItemErrors;
-    }
-
-    // 添付ファイルの検証（形式・サイズ）。他の項目と同じタイミングで返すことで、
-    // フィールドのエラーと同時に画面へ出す。最終判断は API 側。
-    if (formState.eventImage) {
-      const imageError = validateUploadFile(formState.eventImage, "image");
-      if (imageError) {
-        nextErrors.eventImage = imageError;
-      }
-    }
-
-    // PDF は最初に見つかったエラーだけを出す。メッセージにファイル名が入るため特定できる。
-    const documentError = findUploadValidationError(
-      formState.eventDocuments.map((file) => ({ file, kind: "pdf" as const })),
-    );
-    if (documentError) {
-      nextErrors.eventDocuments = documentError;
     }
 
     // 定員数の検証（0以上の整数であるか）

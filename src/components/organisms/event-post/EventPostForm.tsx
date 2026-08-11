@@ -17,7 +17,11 @@ import { TagInputField } from "@/components/molecules/event-post/TagInputField";
 import { MAX_EVENT_PDF_COUNT, MAX_TEXT_LENGTH } from "@/constants/config";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
 import { normalizeHalfWidthDigits } from "@/utils/format";
-import { MAX_IMAGE_BYTES, MAX_PDF_BYTES } from "@/utils/upload";
+import {
+  MAX_IMAGE_BYTES,
+  MAX_PDF_BYTES,
+  validateUploadFile,
+} from "@/utils/upload";
 
 import {
   EVENT_ATTACHMENTS_SECTION_ID,
@@ -67,12 +71,8 @@ export function EventPostForm() {
     if (!field) {
       return;
     }
-    // ファイル入力は sr-only かつ選択済みだと disabled になるためフォーカス先にしない。
-    // 添付セクションでは要素が見つからず、印を付けたルート（tabIndex=-1）にフォールバックする。
     const target =
-      field.querySelector<HTMLElement>(
-        'input:not([type="file"]), textarea, select',
-      ) ?? field;
+      field.querySelector<HTMLElement>("input, textarea, select") ?? field;
     // focus 単体だと一瞬でジャンプしてしまうため、スクロールを止めてから滑らかに寄せる
     target.focus({ preventScroll: true });
     target.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -255,7 +255,7 @@ export function EventPostForm() {
             onFilesChange={(files) => setField("eventImage", files[0] ?? null)}
             promptLabel="クリックまたはドラッグで画像をアップロード"
             hint={`1ファイル ${toMegabytes(MAX_IMAGE_BYTES)}MB まで`}
-            error={errors.eventImage}
+            validate={(file) => validateUploadFile(file, "image")}
           />
         </FormCard>
 
@@ -271,7 +271,7 @@ export function EventPostForm() {
             maxFiles={MAX_EVENT_PDF_COUNT}
             promptLabel="クリックまたはドラッグでPDFをアップロード"
             hint={`1ファイル ${toMegabytes(MAX_PDF_BYTES)}MB まで`}
-            error={errors.eventDocuments}
+            validate={(file) => validateUploadFile(file, "pdf")}
           />
         </FormCard>
       </div>

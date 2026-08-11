@@ -22,8 +22,8 @@ type FileDropZoneProps = {
   maxFiles?: number;
   disabled?: boolean;
   className?: string;
-  // 検証エラーメッセージ。あるときだけルート直下に表示する
-  error?: string;
+  // 選択されたファイルを検証する。エラーメッセージを返すと、そのファイルは追加されない
+  validate?: (file: File) => string | null;
 };
 
 // プレビュー用の Blob URL は File 単位で作り直すと無駄なため、
@@ -46,11 +46,12 @@ export function FileDropZone({
   maxFiles = 1,
   disabled = false,
   className,
-  error,
+  validate,
 }: Readonly<FileDropZoneProps>) {
   const isImage = accept.startsWith("image/");
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
   const entriesRef = useRef<FileEntry[]>([]);
   const errorId = useId();
 
@@ -102,11 +103,37 @@ export function FileDropZone({
       return;
     }
 
+    // 選択された時点で検証し、通らないものはフォームへ渡さない。
+    // 理由は領域の下に赤字で出し、最初の1件だけを表示する。
+    const accepted: File[] = [];
+    let message: string | null = null;
+    for (const file of incoming) {
+      const validationError = validate?.(file) ?? null;
+      if (validationError) {
+        message ??= validationError;
+        continue;
+      }
+      accepted.push(file);
+    }
+
+    // 上限で切り捨てたぶんも黙って落とさず伝える
+    if (!message && maxFiles > 1 && files.length + accepted.length > maxFiles) {
+      message = `最大${maxFiles}個までアップロードできます`;
+    }
+
+    setRejectionMessage(message);
+
+    // 1件も通らなかったときは親へ通知しない。maxFiles が 1 のときに
+    // 空配列を渡すと、選択済みの正しいファイルまで消えてしまうため。
+    if (accepted.length === 0) {
+      return;
+    }
+
     // 1件しか持てない場合は「選び直し」として扱い、複数の場合は上限まで追加する
     onFilesChange(
       maxFiles === 1
-        ? incoming.slice(0, 1)
-        : [...files, ...incoming].slice(0, maxFiles),
+        ? accepted.slice(0, 1)
+        : [...files, ...accepted].slice(0, maxFiles),
     );
   };
 
@@ -123,6 +150,7 @@ export function FileDropZone({
   };
 
   const handleRemove = (targetId: string) => {
+    setRejectionMessage(null);
     onFilesChange(
       entries
         .filter((entry) => entry.id !== targetId)
@@ -131,13 +159,7 @@ export function FileDropZone({
   };
 
   return (
-    <div
-      className={cn("space-y-3", className)}
-      data-field-error={error ? "" : undefined}
-      // ファイル入力は sr-only で、1件選択済みのときは disabled にもなるため
-      // フォーカス先にできない。エラー時だけルートがフォーカスを受け取れるようにする
-      tabIndex={error ? -1 : undefined}
-    >
+    <div className={cn("space-y-3", className)}>
       {/* label より前に置くことで、キーボードフォーカスを peer で領域側に伝える */}
       <input
         id={id}
@@ -147,8 +169,8 @@ export function FileDropZone({
         disabled={disabled || !canAddMore}
         onChange={handleInputChange}
         className="peer sr-only"
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? errorId : undefined}
+        aria-invalid={Boolean(rejectionMessage)}
+        aria-describedby={rejectionMessage ? errorId : undefined}
       />
 
       {canAddMore ? (
@@ -218,9 +240,9 @@ export function FileDropZone({
         </ul>
       ) : null}
 
-      {error ? (
+      {rejectionMessage ? (
         <FieldNote tone="error">
-          <span id={errorId}>{error}</span>
+          <span id={errorId}>{rejectionMessage}</span>
         </FieldNote>
       ) : null}
     </div>
