@@ -30,9 +30,9 @@ export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
 
         {/* PDFリストの表示 */}
         <div className="space-y-3">
-          {pdfItems.map(({ source, filename }) => (
+          {pdfItems.map(({ source, filename }, index) => (
             <a
-              key={source}
+              key={source || `${filename}-${index}`}
               href={normalizeAssetUrl(source)}
               target="_blank"
               rel="noopener noreferrer"

@@ -125,14 +125,16 @@ export function EventPostPreview({
     endDate: previewEvent.endDate,
   });
 
-  const pdfItems = useMemo(
-    () =>
-      formState.eventDocuments.map((file, index) => ({
-        source: pdfObjectUrls[index] ?? "",
-        filename: file.name,
-      })),
-    [formState.eventDocuments, pdfObjectUrls],
-  );
+  const pdfItems = useMemo(() => {
+    // Blob URL が未生成の間は描画しない（空 source による key 重複を防ぐ）
+    if (pdfObjectUrls.length !== formState.eventDocuments.length) {
+      return [];
+    }
+    return formState.eventDocuments.map((file, index) => ({
+      source: pdfObjectUrls[index] ?? "",
+      filename: file.name,
+    }));
+  }, [formState.eventDocuments, pdfObjectUrls]);
   const hasPdf = pdfItems.length > 0;
 
   const organizerName =
