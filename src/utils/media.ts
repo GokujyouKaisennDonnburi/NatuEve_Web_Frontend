@@ -5,6 +5,11 @@ export const normalizeAssetUrl = (url: string): string => {
     return "";
   }
 
+  // blob: / data: はブラウザ組み込みのスキームのため、そのまま返す。
+  if (url.startsWith("blob:") || url.startsWith("data:")) {
+    return url;
+  }
+
   // 先頭のスラッシュを除去して正規化する。
   if (url.startsWith("/") || url.startsWith("//") || /^https?:\/\//.test(url)) {
     return url;
