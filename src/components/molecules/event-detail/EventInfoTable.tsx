@@ -20,9 +20,17 @@ type EventInfoTableProps = {
   >;
 };
 
-// RFC3339 の日時文字列を日本時間の表示用文字列へ整形する
-const formatDateTime = (value: string): string =>
-  new Date(value).toLocaleString("ja-JP", {
+// RFC3339 の日時文字列を日本時間の表示用文字列へ整形する。
+// 空文字や不正な日時の場合は「—」を返す（プレビュー表示時を想定）。
+const formatDateTime = (value: string): string => {
+  if (!value.trim()) {
+    return "—";
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "—";
+  }
+  return parsed.toLocaleString("ja-JP", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -30,6 +38,7 @@ const formatDateTime = (value: string): string =>
     minute: "2-digit",
     timeZone: "Asia/Tokyo",
   });
+};
 
 // 参加費1件分を表示用に整形する。
 // 金額が0円のときは「無料」と表示し、カテゴリが未入力のときは金額だけを表示する。
