@@ -91,6 +91,7 @@ export default function EventListPage() {
   };
 
   // 全フィルターをリセットする関数
+  const [filterResetKey, setFilterResetKey] = useState(0);
   const resetFilters = () => {
     setSelectedTagIds([]);
     setSelectedRegions([]);
@@ -103,6 +104,7 @@ export default function EventListPage() {
     setMinPrice(undefined);
     setMaxPrice(undefined);
     setAppliedTagIds([]);
+    setFilterResetKey((prev) => prev + 1);
     setCurrentPage(1);
   };
 
@@ -168,6 +170,7 @@ export default function EventListPage() {
           <FilterSidebar
             allTags={allTags}
             frequentTags={frequentTags}
+            tagFilterKey={filterResetKey}
             selectedTagIds={selectedTagIds}
             onTagSelect={handleTagSelect}
             selectedRegions={selectedRegions}
