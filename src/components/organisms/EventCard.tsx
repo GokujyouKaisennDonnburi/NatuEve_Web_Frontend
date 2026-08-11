@@ -20,7 +20,7 @@ export type EventItem = {
   hostName: string;
   hostAvatarUrl: string;
   tags?: TagItem[];
-  status: "open" | "few_left" | "ended_registration" | "closed";
+  status: "open" | "closed";
 };
 
 type EventCardProps = {
