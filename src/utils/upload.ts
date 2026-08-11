@@ -83,7 +83,7 @@ export const findUploadValidationError = (
   return null;
 };
 
-// 追加できなかったファイルの名前を「「a」「b」」形式に整形する。
+// 追加できなかったファイルの名前を「a」「b」形式に整形する。
 // 3件以上は先頭だけ挙げて件数でまとめる。
 export const formatFileNames = (targets: readonly File[]): string => {
   const names = targets.map((file) => `「${file.name}」`);
