@@ -48,27 +48,28 @@ export function MultiFileField({
   const previewUrlsRef = useRef<Record<string, string>>({});
 
   // selectedFiles の増減に応じて、プレビューURLを生成・破棄する
+  // 再利用は state ではなく ref を基準に行う。ref はアンマウント時に空になるため、
+  // 入力⇔プレビュー切替で再マウントされた際に revoke 済みURLを使い回さない。
   useEffect(() => {
     if (!isImage) return;
 
-    setPreviewUrls((prev) => {
-      const next: Record<string, string> = {};
+    const current = previewUrlsRef.current;
+    const next: Record<string, string> = {};
 
-      // 既存ファイルのURLは再利用し、新規ファイルのみ生成する
-      for (const file of selectedFiles) {
-        next[file.id] = prev[file.id] ?? URL.createObjectURL(file);
+    // 前回保持していたURLは再利用し、新規ファイルのみ生成する
+    for (const file of selectedFiles) {
+      next[file.id] = current[file.id] ?? URL.createObjectURL(file);
+    }
+
+    // 配列からなくなったファイルのURLは解放する
+    for (const fileId of Object.keys(current)) {
+      if (!(fileId in next)) {
+        URL.revokeObjectURL(current[fileId]);
       }
+    }
 
-      // 配列からなくなったファイルのURLは解放する
-      for (const fileId of Object.keys(prev)) {
-        if (!(fileId in next)) {
-          URL.revokeObjectURL(prev[fileId]);
-        }
-      }
-
-      previewUrlsRef.current = next;
-      return next;
-    });
+    previewUrlsRef.current = next;
+    setPreviewUrls(next);
   }, [selectedFiles, isImage]);
 
   // コンポーネント自体がアンマウントされる際に、残っているURLをすべて解放する
@@ -77,6 +78,8 @@ export function MultiFileField({
       for (const url of Object.values(previewUrlsRef.current)) {
         URL.revokeObjectURL(url);
       }
+      // 解放済みURLを再マウント後に使い回さないよう、参照ごと空にする
+      previewUrlsRef.current = {};
     };
   }, []);
 
@@ -168,6 +171,8 @@ export function MultiFileField({
                       src={previewUrls[file.id]}
                       alt={file.name}
                       fill
+                      // Blob URL は Next.js の画像最適化を通せないため、そのまま表示する
+                      unoptimized
                       className="object-cover"
                     />
                   )}
