@@ -13,14 +13,10 @@ export type EventPdfItem = {
 // 添付資料（PDF）リストコンポーネントのプロパティ型定義
 type EventPdfListProps = {
   pdfItems: EventPdfItem[];
-  onItemClick?: (item: EventPdfItem) => void;
 };
 
 // 添付資料（PDF）リストコンポーネント
-export function EventPdfList({
-  pdfItems,
-  onItemClick,
-}: Readonly<EventPdfListProps>) {
+export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
   // PDFが存在しない場合は何も表示しない
   if (pdfItems.length === 0) {
     return null;
@@ -40,12 +36,6 @@ export function EventPdfList({
               href={normalizeAssetUrl(source)}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(event) => {
-                if (onItemClick) {
-                  event.preventDefault();
-                  onItemClick({ source, filename });
-                }
-              }}
               className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:shadow-md"
             >
               {/* PDFファイル名の表示（元ファイル名。無ければURL末尾にフォールバック） */}

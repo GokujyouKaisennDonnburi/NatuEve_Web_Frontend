@@ -19,7 +19,6 @@ import type { EventPostFormState } from "@/hooks/useEventPostForm";
 import { resolveEventStatus } from "@/utils/eventStatus";
 import { Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 
 // 投稿日の表示用に日付だけを整形する
 const formatPostedDate = (value: string): string =>
@@ -212,10 +211,7 @@ export function EventPostPreview({
             id={EVENT_DETAIL_ATTACHMENTS_SECTION_ID}
             className="scroll-mt-24"
           >
-            <EventPdfList
-              pdfItems={pdfItems}
-              onItemClick={() => toast.info("投稿が完了すれば、開けます")}
-            />
+            <EventPdfList pdfItems={pdfItems} />
           </section>
         ) : null}
       </div>
