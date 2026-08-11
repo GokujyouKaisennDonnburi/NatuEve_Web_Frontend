@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchEventList } from "@/services/event";
 import type { EventItem } from "@/components/organisms/EventCard";
+import { resolveEventStatus } from "@/utils/eventStatus";
 
 type UseEventListParams = {
   currentPage: number;
@@ -70,25 +71,10 @@ export function useEventList({
           );
 
           const mappedEvents: EventItem[] = visibleApiEvents.map((apiEvent) => {
-            const now = new Date();
-            const eventDate = new Date(apiEvent.eventDate);
-            const endDate = apiEvent.endDate
-              ? new Date(apiEvent.endDate)
-              : null;
-            const threeDaysBefore = new Date(
-              eventDate.getTime() - 3 * 24 * 60 * 60 * 1000,
-            );
-
-            let status: EventItem["status"];
-            if (endDate && now >= endDate) {
-              status = "closed";
-            } else if (now >= eventDate) {
-              status = "ended_registration";
-            } else if (now >= threeDaysBefore) {
-              status = "few_left";
-            } else {
-              status = "open";
-            }
+            const status = resolveEventStatus({
+              eventDate: apiEvent.eventDate,
+              endDate: apiEvent.endDate,
+            });
 
             return {
               id: apiEvent.id,
