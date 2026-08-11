@@ -218,8 +218,11 @@ function ReportPostPageContent() {
       const trimmedExternalUrl = formState.externalUrl.trim();
       const payload: CreateReportRequest = {
         eventId,
-        ...(!formState.externalUrlEnabled &&
-          formState.content.trim() && { content: formState.content.trim() }),
+        // バックエンドは content が必須のため、外部URL時は固定文言を送って契約を満たす。
+        // 外部URLレポートは詳細画面で本文を表示しないため、見た目への影響はない。
+        content: formState.externalUrlEnabled
+          ? "外部サイトでレポートを公開しています。"
+          : formState.content.trim(),
         ...(formState.externalUrlEnabled &&
           trimmedExternalUrl && {
             externalUrls: [trimmedExternalUrl],
