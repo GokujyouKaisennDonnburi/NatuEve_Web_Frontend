@@ -135,13 +135,13 @@ export function ReportPostPreview({
               </div>
             </div>
           </header>
-
-          {/* 活動レポート（通常 / 外部URL のどちらかを表示） */}
-          <EventReportList report={previewReport} />
         </>
       ) : (
         <p className="text-sm text-slate-500">イベント情報を取得中…</p>
       )}
+
+      {/* 活動レポート（通常 / 外部URL のどちらかを表示） */}
+      <EventReportList report={previewReport} />
     </div>
   );
 }
