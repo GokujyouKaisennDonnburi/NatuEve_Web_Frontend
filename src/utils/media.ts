@@ -5,8 +5,8 @@ export const normalizeAssetUrl = (url: string): string => {
     return "";
   }
 
-  // blob: / data: はブラウザ組み込みのスキームのため、そのまま返す。
-  if (url.startsWith("blob:") || url.startsWith("data:")) {
+  // blob: はブラウザ組み込みスキームで、同一オリジン内でしか有効でないためそのまま返す。
+  if (url.startsWith("blob:")) {
     return url;
   }
 
