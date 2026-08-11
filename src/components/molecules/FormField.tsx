@@ -29,7 +29,12 @@ export function FormField({
   className,
 }: Readonly<FormFieldProps>) {
   return (
-    <div className={cn("space-y-2", className)}>
+    // error はバリデーション結果に基づくため、この印はそのまま
+    // 「送信をブロックするエラーがある項目」を意味する。
+    <div
+      className={cn("space-y-2", className)}
+      data-field-error={error ? "" : undefined}
+    >
       <div className="flex items-center gap-2">
         <Label htmlFor={id} className="text-sm font-semibold text-slate-800">
           {label}

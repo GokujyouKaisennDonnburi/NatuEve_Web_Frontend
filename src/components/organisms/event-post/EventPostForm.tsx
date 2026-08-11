@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { FormInput } from "@/components/atoms/FormInput";
 import { FormTextarea } from "@/components/atoms/FormTextarea";
@@ -48,13 +48,39 @@ const toMegabytes = (bytes: number) => Math.floor(bytes / (1024 * 1024));
 export function EventPostForm() {
   const formId = useId();
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const { formState, errors, isSubmitting, setField, handleSubmit } =
     useEventPostForm();
 
   const getFieldId = (suffix: string) => `${formId}-${suffix}`;
 
+  // 送信時、フォームの中で一番上にあるエラー項目へジャンプする。
+  // DOM の並び順がそのまま画面の並び順なので、項目の順序を別に持たなくてよい。
+  useEffect(() => {
+    // errors が更新されるのは送信時だけ。空なら初回マウントか送信成功なので何もしない。
+    if (Object.keys(errors).length === 0) {
+      return;
+    }
+
+    const field =
+      formRef.current?.querySelector<HTMLElement>("[data-field-error]");
+    if (!field) {
+      return;
+    }
+    const target =
+      field.querySelector<HTMLElement>("input, textarea, select") ?? field;
+    // focus 単体だと一瞬でジャンプしてしまうため、スクロールを止めてから滑らかに寄せる
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [errors]);
+
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      noValidate
+      className="space-y-4"
+    >
       <div id={EVENT_TITLE_SECTION_ID} className="scroll-mt-6">
         <FormCard>
           <FormField
