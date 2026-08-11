@@ -158,6 +158,7 @@ export function TagInputField({
               onFocus,
               showDropdown,
               listboxId,
+              activeDescendantId,
             }) => (
               <FormInput
                 id={id}
@@ -172,6 +173,7 @@ export function TagInputField({
                 aria-expanded={showDropdown}
                 aria-controls={listboxId}
                 aria-autocomplete="list"
+                aria-activedescendant={activeDescendantId}
                 role="combobox"
               />
             )}

@@ -21,6 +21,7 @@ type TagAutocompleteRenderInputProps = {
   onFocus: () => void;
   showDropdown: boolean;
   listboxId: string;
+  activeDescendantId: string | undefined;
 };
 
 type TagAutocompleteProps = {
@@ -74,8 +75,9 @@ export function TagAutocomplete({
       )
     : [];
 
-  const createIndex = canCreate ? suggestions.length : -1;
-  const optionCount = suggestions.length + (canCreate ? 1 : 0);
+  const hasCreateAction = canCreate && onCreate != null;
+  const createIndex = hasCreateAction ? suggestions.length : -1;
+  const optionCount = suggestions.length + (hasCreateAction ? 1 : 0);
   const showDropdown = isOpen && optionCount > 0;
 
   const handleSuggestionSelect = (tag: TagItem) => {
@@ -165,6 +167,13 @@ export function TagAutocomplete({
     };
   }, [handleClickOutside]);
 
+  const activeOptionId =
+    showDropdown && highlightIndex >= 0
+      ? highlightIndex === createIndex
+        ? `${listboxId}-option-create`
+        : `${listboxId}-option-${highlightIndex}`
+      : undefined;
+
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       {renderInput({
@@ -178,6 +187,7 @@ export function TagAutocomplete({
         },
         showDropdown,
         listboxId,
+        activeDescendantId: activeOptionId,
       })}
 
       {/* 候補は入力欄と同じ幅で下に開く */}
@@ -191,6 +201,7 @@ export function TagAutocomplete({
           {suggestions.map((suggestion, index) => (
             <div
               key={suggestion.id}
+              id={`${listboxId}-option-${index}`}
               role="option"
               aria-selected={index === highlightIndex}
               tabIndex={-1}
@@ -209,8 +220,9 @@ export function TagAutocomplete({
             </div>
           ))}
 
-          {canCreate && onCreate ? (
+          {hasCreateAction ? (
             <div
+              id={`${listboxId}-option-create`}
               role="option"
               aria-selected={highlightIndex === createIndex}
               tabIndex={-1}

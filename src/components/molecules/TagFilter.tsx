@@ -58,7 +58,6 @@ export function TagFilter({
   };
 
   const handleFrequentTagClick = (id: string) => {
-    // 検索欄で選択されたタグをよく使うタグから解除する場合は追跡からも削除する
     if (selectedIds.includes(id)) {
       setSearchSelectedIds((prev) => prev.filter((sid) => sid !== id));
     }
@@ -85,6 +84,7 @@ export function TagFilter({
           onFocus,
           showDropdown,
           listboxId,
+          activeDescendantId,
         }) => (
           <div className="flex flex-wrap items-center gap-1 min-h-[42px] bg-[#F8FAF6] border border-[#E3E8DF] rounded-[10px] px-[13px] py-1">
             <svg
@@ -136,6 +136,7 @@ export function TagFilter({
               aria-expanded={showDropdown}
               aria-controls={listboxId}
               aria-autocomplete="list"
+              aria-activedescendant={activeDescendantId}
             />
           </div>
         )}
