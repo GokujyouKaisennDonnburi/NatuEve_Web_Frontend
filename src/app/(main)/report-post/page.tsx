@@ -30,7 +30,7 @@ import { getEventDetail } from "@/services/event";
 import { createReport } from "@/services/report";
 import { uploadFile } from "@/services/upload";
 import type { CreateReportRequest } from "@/types/report";
-import { findUploadValidationError } from "@/utils/upload";
+import { findUploadValidationError, validateUploadFile } from "@/utils/upload";
 
 // レポート投稿フォームの入力状態を管理する型定義
 type ReportPostFormState = {
@@ -383,6 +383,7 @@ function ReportPostPageContent() {
                       className="mt-4"
                       error={validationErrors.reportImages}
                       disabled={formState.externalUrlEnabled}
+                      validate={(file) => validateUploadFile(file, "image")}
                     />
                   </div>
 
@@ -410,6 +411,7 @@ function ReportPostPageContent() {
                       maxFiles={3}
                       className="mt-4"
                       error={validationErrors.reportPdfs}
+                      validate={(file) => validateUploadFile(file, "pdf")}
                     />
                   </div>
                 </>

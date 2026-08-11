@@ -9,6 +9,7 @@ import { DeleteIconButton } from "@/components/atoms/DeleteIconButton";
 import { FieldNote } from "@/components/atoms/FieldNote";
 import { FormEmptyBox } from "@/components/atoms/FormEmptyBox";
 import { cn } from "@/lib/utils";
+import { formatFileNames } from "@/utils/upload";
 
 type FileDropZoneProps = {
   id: string;
@@ -33,15 +34,6 @@ type FileEntry = {
   id: string;
   file: File;
   previewUrl: string | null;
-};
-
-// 入らなかったファイルを名前で伝える。3件以上は先頭だけ挙げて件数でまとめる。
-const formatFileNames = (targets: File[]) => {
-  const names = targets.map((file) => `「${file.name}」`);
-  if (names.length <= 2) {
-    return names.join("");
-  }
-  return `${names[0]}ほか${names.length - 1}件`;
 };
 
 // クリックとドラッグ&ドロップの両方でファイルを受け取る入力欄。
