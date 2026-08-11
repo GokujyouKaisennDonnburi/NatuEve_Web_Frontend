@@ -7,11 +7,11 @@ import { PriceFilter } from "@/components/molecules/PriceFilter";
 import type { TagItem } from "@/types/tag";
 
 type FilterSidebarProps = {
-  tags: TagItem[];
+  allTags: TagItem[];
+  frequentTags: TagItem[];
+  tagFilterKey?: number;
   selectedTagIds: string[];
   onTagSelect: (id: string) => void;
-  onTagSearch: (query: string) => void;
-  tagSearchQuery: string;
   selectedRegions: string[];
   selectedPrefectures: string[];
   selectedCities: string[];
@@ -37,11 +37,11 @@ type FilterSidebarProps = {
 };
 
 export function FilterSidebar({
-  tags,
+  allTags,
+  frequentTags,
+  tagFilterKey,
   selectedTagIds,
   onTagSelect,
-  onTagSearch,
-  tagSearchQuery,
   selectedRegions,
   selectedPrefectures,
   selectedCities,
@@ -82,11 +82,11 @@ export function FilterSidebar({
 
       <div className="px-[21px] py-5 space-y-6">
         <TagFilter
-          tags={tags}
+          key={tagFilterKey}
+          allTags={allTags}
+          frequentTags={frequentTags}
           selectedIds={selectedTagIds}
           onTagSelect={onTagSelect}
-          onSearch={onTagSearch}
-          searchQuery={tagSearchQuery}
         />
 
         <RegionFilter
