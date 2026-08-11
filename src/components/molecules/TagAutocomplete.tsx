@@ -104,9 +104,23 @@ export function TagAutocomplete({
         } else {
           handleSuggestionSelect(suggestions[highlightIndex]);
         }
-      } else {
-        handleCreate();
+        return;
       }
+
+      // 入力が既存タグと完全一致するか、候補が1つだけなら自動選択
+      const exactMatch = suggestions.find(
+        (s) => normalize(s.name) === normalizedDraft,
+      );
+      if (exactMatch) {
+        handleSuggestionSelect(exactMatch);
+        return;
+      }
+      if (suggestions.length === 1) {
+        handleSuggestionSelect(suggestions[0]);
+        return;
+      }
+
+      handleCreate();
       return;
     }
 

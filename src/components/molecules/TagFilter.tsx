@@ -25,6 +25,7 @@ export function TagFilter({
   const [draft, setDraft] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [hiddenCount, setHiddenCount] = useState(0);
+  const [searchSelectedIds, setSearchSelectedIds] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -40,9 +41,29 @@ export function TagFilter({
     setHiddenCount(frequentTags.length - visibleCount);
   }, [frequentTags, isExpanded]);
 
-  const selectedTags = selectedIds
+  // 検索欄で選択されたタグのみをチップ表示する
+  const searchBoxTags = searchSelectedIds
     .map((id) => allTags.find((tag) => tag.id === id))
     .filter((tag): tag is TagItem => tag != null);
+
+  const handleAutocompleteSelect = (tag: TagItem) => {
+    onTagSelect?.(tag.id);
+    setSearchSelectedIds((prev) => [...prev, tag.id]);
+    return true;
+  };
+
+  const handleSearchChipClick = (id: string) => {
+    onTagSelect?.(id);
+    setSearchSelectedIds((prev) => prev.filter((sid) => sid !== id));
+  };
+
+  const handleFrequentTagClick = (id: string) => {
+    // 検索欄で選択されたタグをよく使うタグから解除する場合は追跡からも削除する
+    if (selectedIds.includes(id)) {
+      setSearchSelectedIds((prev) => prev.filter((sid) => sid !== id));
+    }
+    onTagSelect?.(id);
+  };
 
   return (
     <div className={cn("", className)}>
@@ -55,10 +76,7 @@ export function TagFilter({
         selectedIds={selectedIds}
         value={draft}
         onValueChange={setDraft}
-        onSelect={(tag) => {
-          onTagSelect?.(tag.id);
-          return true;
-        }}
+        onSelect={handleAutocompleteSelect}
         listboxId="tag-filter-listbox"
         renderInput={({
           value,
@@ -95,13 +113,13 @@ export function TagFilter({
                 strokeLinecap="round"
               />
             </svg>
-            {selectedTags.map((tag) => (
+            {searchBoxTags.map((tag) => (
               <FilterTag
                 key={tag.id}
                 label={tag.name}
                 size="sm"
                 selected
-                onClick={onTagSelect ? () => onTagSelect(tag.id) : undefined}
+                onClick={() => handleSearchChipClick(tag.id)}
               />
             ))}
             <input
@@ -111,7 +129,7 @@ export function TagFilter({
               onKeyDown={onKeyDown}
               onFocus={onFocus}
               placeholder={
-                selectedTags.length > 0 ? "" : "タグを検索（例: 双眼鏡）"
+                searchBoxTags.length > 0 ? "" : "タグを検索（例: 双眼鏡）"
               }
               className="flex-1 h-[22px] min-w-[80px] bg-transparent border-none outline-none text-sm leading-5 text-[#757575] placeholder:text-[#757575] p-0"
               role="combobox"
@@ -143,7 +161,7 @@ export function TagFilter({
                 label={tag.name}
                 size="md"
                 selected={selectedIds.includes(tag.id)}
-                onClick={onTagSelect ? () => onTagSelect(tag.id) : undefined}
+                onClick={() => handleFrequentTagClick(tag.id)}
               />
             ))}
           </div>
