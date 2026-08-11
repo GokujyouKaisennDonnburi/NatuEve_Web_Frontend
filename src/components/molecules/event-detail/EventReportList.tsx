@@ -1,8 +1,8 @@
 import { ExternalLink, FilePlus2, FileText } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 import { PillButton } from "@/components/atoms/PillButton";
+import { EventReportImageCarousel } from "@/components/molecules/event-detail/EventReportImageCarousel";
 import { SurfaceCard } from "@/components/molecules/SurfaceCard";
 import { CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
@@ -85,9 +85,7 @@ function ExternalReportCard({
   return (
     <SurfaceCard>
       <CardContent>
-        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
-          活動レポート
-        </h2>
+        <h2 className="text-lg font-bold text-slate-900">活動レポート</h2>
         <p className="mt-1.5 text-xs text-slate-500">
           {formatReportDate(report.createdAt)}
         </p>
@@ -135,9 +133,7 @@ function ReportCard({
   return (
     <SurfaceCard>
       <CardContent>
-        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
-          活動レポート
-        </h2>
+        <h2 className="text-lg font-bold text-slate-900">活動レポート</h2>
         <p className="mt-1.5 text-xs text-slate-500">
           {formatReportDate(report.createdAt)}
         </p>
@@ -153,21 +149,7 @@ function ReportCard({
 
           {imageSources.length > 0 ? (
             <section>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {imageSources.map((url) => (
-                  <div
-                    key={url}
-                    className="relative aspect-4/3 w-full overflow-hidden rounded-2xl bg-slate-100"
-                  >
-                    <Image
-                      src={normalizeAssetUrl(url)}
-                      alt="レポート画像"
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                ))}
-              </div>
+              <EventReportImageCarousel images={imageSources} />
             </section>
           ) : null}
 
