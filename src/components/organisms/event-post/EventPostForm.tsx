@@ -1,12 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
 import { useEffect, useId, useRef } from "react";
 
 import { FormInput } from "@/components/atoms/FormInput";
 import { FormTextarea } from "@/components/atoms/FormTextarea";
-import { PillButton } from "@/components/atoms/PillButton";
 import { PaymentAlertNote } from "@/components/atoms/event-post/PaymentAlertNote";
 import { FileDropZone } from "@/components/molecules/FileDropZone";
 import { FormCard } from "@/components/molecules/FormCard";
@@ -56,25 +53,21 @@ const toMegabytes = (bytes: number) => Math.floor(bytes / (1024 * 1024));
 type EventPostFormProps = {
   formState: EventPostFormState;
   errors: EventPostFormErrors;
-  isSubmitting: boolean;
   setField: <K extends keyof EventPostFormState>(
     key: K,
     value: EventPostFormState[K],
   ) => void;
-  handleSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
 // イベント投稿フォーム。入力項目を意味のまとまりごとにカードへ分けて並べる。
+// form 要素と操作ボタンは画面側で管理するため、ここでは入力項目のみを描画する。
 export function EventPostForm({
   formState,
   errors,
-  isSubmitting,
   setField,
-  handleSubmit,
 }: Readonly<EventPostFormProps>) {
   const formId = useId();
-  const router = useRouter();
-  const formRef = useRef<HTMLFormElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const getFieldId = (suffix: string) => `${formId}-${suffix}`;
 
@@ -87,7 +80,7 @@ export function EventPostForm({
     }
 
     const field =
-      formRef.current?.querySelector<HTMLElement>("[data-field-error]");
+      containerRef.current?.querySelector<HTMLElement>("[data-field-error]");
     if (!field) {
       return;
     }
@@ -99,12 +92,7 @@ export function EventPostForm({
   }, [errors]);
 
   return (
-    <form
-      ref={formRef}
-      onSubmit={handleSubmit}
-      noValidate
-      className="space-y-4"
-    >
+    <div ref={containerRef} className="space-y-4">
       <div id={EVENT_TITLE_SECTION_ID} className="scroll-mt-6">
         <FormCard>
           <FormField
@@ -319,20 +307,6 @@ export function EventPostForm({
           </FormField>
         </FormCard>
       </div>
-
-      <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <PillButton
-          tone="outline"
-          type="button"
-          onClick={() => router.back()}
-          disabled={isSubmitting}
-        >
-          キャンセル
-        </PillButton>
-        <PillButton tone="brand" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "送信中…" : "イベントを投稿"}
-        </PillButton>
-      </div>
-    </form>
+    </div>
   );
 }

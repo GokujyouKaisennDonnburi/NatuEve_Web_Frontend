@@ -4,6 +4,7 @@ import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { PillButton } from "@/components/atoms/PillButton";
 import { SegmentControl } from "@/components/atoms/SegmentControl";
 import {
   EVENT_DETAIL_ATTACHMENTS_SECTION_ID,
@@ -70,31 +71,45 @@ export default function EventPostPage() {
           />
         }
       />
-      <div className="flex flex-col gap-8 lg:flex-row">
-        {mode === "edit" ? (
-          <aside className="hidden shrink-0 lg:block lg:w-44">
-            <PageToc sections={tocSections} />
-          </aside>
-        ) : null}
-        <div
-          className={cn(
-            "w-full",
-            mode === "edit" ? "max-w-3xl" : "min-w-0 flex-1",
-          )}
-        >
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <div className="flex flex-col gap-8 lg:flex-row">
           {mode === "edit" ? (
-            <EventPostForm
-              formState={formState}
-              errors={errors}
-              isSubmitting={isSubmitting}
-              setField={setField}
-              handleSubmit={handleSubmit}
-            />
-          ) : (
-            <EventPostPreview formState={formState} />
-          )}
+            <aside className="hidden shrink-0 lg:block lg:w-44">
+              <PageToc sections={tocSections} />
+            </aside>
+          ) : null}
+          <div
+            className={cn(
+              "w-full",
+              mode === "edit" ? "max-w-3xl" : "min-w-0 flex-1",
+            )}
+          >
+            {mode === "edit" ? (
+              <EventPostForm
+                formState={formState}
+                errors={errors}
+                setField={setField}
+              />
+            ) : (
+              <EventPostPreview formState={formState} />
+            )}
+          </div>
         </div>
-      </div>
+
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <PillButton
+            tone="outline"
+            type="button"
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
+            キャンセル
+          </PillButton>
+          <PillButton tone="brand" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "送信中…" : "イベントを投稿"}
+          </PillButton>
+        </div>
+      </form>
     </section>
   );
 }
