@@ -38,8 +38,9 @@ export function FormCard({
             {title}
             {required ? <RequiredBadge /> : null}
           </CardTitle>
+          {/* 説明文に改行を入れて読み分けさせたいカードがあるため、改行を保持する */}
           {description ? (
-            <CardDescription className="text-sm text-slate-500">
+            <CardDescription className="text-sm whitespace-pre-line text-slate-500">
               {description}
             </CardDescription>
           ) : null}

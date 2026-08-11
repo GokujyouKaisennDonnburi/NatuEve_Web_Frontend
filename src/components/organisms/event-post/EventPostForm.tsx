@@ -246,7 +246,9 @@ export function EventPostForm() {
       <div id={EVENT_ATTACHMENTS_SECTION_ID} className="scroll-mt-6 space-y-4">
         <FormCard
           title="イベント画像"
-          description="JPEG / PNG。告知バナーやサムネイルに使います。"
+          description={
+            "詳細ページの先頭に表示されます。\nJPG / PNG を1つ選択できます。"
+          }
         >
           <FileDropZone
             id={getFieldId("eventImage")}
@@ -261,7 +263,7 @@ export function EventPostForm() {
 
         <FormCard
           title="イベント資料"
-          description={`しおり、アクセスマップ、同意書など。最大${MAX_EVENT_PDF_COUNT}つまでのPDFを選択できます。`}
+          description={`しおり、アクセスマップ、同意書など、まとめてアップロードできます。\n最大${MAX_EVENT_PDF_COUNT}つまでのPDFファイルを選択できます。`}
         >
           <FileDropZone
             id={getFieldId("eventDocuments")}
