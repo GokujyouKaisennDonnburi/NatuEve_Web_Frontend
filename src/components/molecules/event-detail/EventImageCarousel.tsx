@@ -7,11 +7,13 @@ import * as React from "react";
 // イベント画像カルーセルコンポーネントのプロパティ型定義
 type EventImageCarouselProps = {
   images: string[];
+  unoptimized?: boolean;
 };
 
 // イベント画像カルーセルコンポーネント
 export function EventImageCarousel({
   images,
+  unoptimized = false,
 }: Readonly<EventImageCarouselProps>) {
   // 選択された画像のインデックスを管理する状態
   const [selected, setSelected] = React.useState(0);
@@ -35,6 +37,7 @@ export function EventImageCarousel({
           src={mainImage}
           alt="イベント画像"
           fill
+          unoptimized={unoptimized}
           className="object-contain"
         />
       </div>
@@ -56,6 +59,7 @@ export function EventImageCarousel({
                 alt={`イベント画像 サムネイル ${index + 1}`}
                 width={112}
                 height={64}
+                unoptimized={unoptimized}
                 className="h-full w-full object-cover"
               />
             </button>

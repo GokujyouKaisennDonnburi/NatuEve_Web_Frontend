@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import { useEffect, useId, useRef } from "react";
 
 import { FormInput } from "@/components/atoms/FormInput";
@@ -15,7 +16,10 @@ import { PriceCategoryField } from "@/components/molecules/event-post/PriceCateg
 import { RequiredItemField } from "@/components/molecules/event-post/RequiredItemField";
 import { TagInputField } from "@/components/molecules/event-post/TagInputField";
 import { MAX_EVENT_PDF_COUNT, MAX_TEXT_LENGTH } from "@/constants/config";
-import { useEventPostForm } from "@/hooks/useEventPostForm";
+import type {
+  EventPostFormErrors,
+  EventPostFormState,
+} from "@/hooks/useEventPostForm";
 import { normalizeHalfWidthDigits } from "@/utils/format";
 import {
   MAX_IMAGE_BYTES,
@@ -48,13 +52,29 @@ const clampDateYear = (value: string) => {
 // 上限バイト数の表記は、実際の検証に使う値から作ることでズレを防ぐ
 const toMegabytes = (bytes: number) => Math.floor(bytes / (1024 * 1024));
 
+// イベント投稿フォームのプロパティ型定義
+type EventPostFormProps = {
+  formState: EventPostFormState;
+  errors: EventPostFormErrors;
+  isSubmitting: boolean;
+  setField: <K extends keyof EventPostFormState>(
+    key: K,
+    value: EventPostFormState[K],
+  ) => void;
+  handleSubmit: (event: FormEvent<HTMLFormElement>) => void;
+};
+
 // イベント投稿フォーム。入力項目を意味のまとまりごとにカードへ分けて並べる。
-export function EventPostForm() {
+export function EventPostForm({
+  formState,
+  errors,
+  isSubmitting,
+  setField,
+  handleSubmit,
+}: Readonly<EventPostFormProps>) {
   const formId = useId();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const { formState, errors, isSubmitting, setField, handleSubmit } =
-    useEventPostForm();
 
   const getFieldId = (suffix: string) => `${formId}-${suffix}`;
 
