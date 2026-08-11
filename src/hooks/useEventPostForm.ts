@@ -18,6 +18,7 @@ import { createEvent } from "@/services/event";
 import { uploadFile, uploadFiles } from "@/services/upload";
 import type { CreateEventRequest } from "@/types/event";
 import type { TagItem } from "@/types/tag";
+import { UploadValidationError } from "@/utils/upload";
 
 // イベント投稿フォームの入力状態を管理する型定義
 export type EventPostFormState = {
@@ -331,8 +332,13 @@ export function useEventPostForm() {
       router.push(ROUTES.EVENT_LIST);
     } catch (error) {
       console.error("イベント情報の登録に失敗しました。", error);
+      // ファイルは FileDropZone が選択時点で弾くため、uploadFile の検証に
+      // 引っかかるのは想定外の経路のときだけ。原因が具体的に分かっているので、
+      // 一律の文言で覆い隠さずそのまま伝える。
       toast.error(
-        "イベント情報の登録に失敗しました。時間をおいて再度お試しください。",
+        error instanceof UploadValidationError
+          ? error.message
+          : "イベント情報の登録に失敗しました。時間をおいて再度お試しください。",
       );
     } finally {
       setIsSubmitting(false);
