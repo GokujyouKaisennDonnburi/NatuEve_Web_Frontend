@@ -28,6 +28,7 @@ export default function MyPage() {
   // 今後のAPI実装時にそのまま使えるよう、Stateは残しておきます
   const [hostedEvents] = useState<EventItem[]>([]);
   const [participatedEvents] = useState<EventItem[]>([]);
+  const [appliedEvents] = useState<EventItem[]>([]);
 
   if (isUserLoading) {
     return (
@@ -75,6 +76,7 @@ export default function MyPage() {
       <UserEventTabs
         hostedEvents={hostedEvents}
         participatedEvents={participatedEvents}
+        appliedEvents={appliedEvents}
       />
     </div>
   );
