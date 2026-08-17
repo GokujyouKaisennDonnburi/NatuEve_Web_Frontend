@@ -120,7 +120,9 @@ export function InlineTextareaField({
       </div>
 {isEditable &&
           (editTrigger ? (
-            editTrigger(() => setIsEditing(true))
+            <span className="absolute -top-2 -right-2">
+              {editTrigger(() => setIsEditing(true))}
+            </span>
           ) : (
             <Button
               type="button"
