@@ -242,6 +242,45 @@ function ReportPostPageContent() {
     }
   };
 
+  const startDate = event?.eventDate ? new Date(event.eventDate) : null;
+  const endDate = event?.endDate ? new Date(event.endDate) : null;
+
+  const startDateLabel = startDate?.toLocaleDateString("ja-JP", {
+    month: "short",
+    day: "numeric",
+    weekday: "short",
+    timeZone: "Asia/Tokyo",
+  });
+
+  const startTimeLabel = startDate?.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Tokyo",
+  });
+
+  const endDateLabel = endDate?.toLocaleDateString("ja-JP", {
+    month: "short",
+    day: "numeric",
+    weekday: "short",
+    timeZone: "Asia/Tokyo",
+  });
+
+  const endTimeLabel = endDate?.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Tokyo",
+  });
+
+  const isSameDay =
+    startDate &&
+    endDate &&
+    startDate.toLocaleDateString("ja-JP", {
+      timeZone: "Asia/Tokyo",
+    }) ===
+      endDate.toLocaleDateString("ja-JP", {
+        timeZone: "Asia/Tokyo",
+      });
+
   if (isLoading) {
     return null;
   }
@@ -273,29 +312,8 @@ function ReportPostPageContent() {
             <div className="mt-2 text-sm text-slate-600">
               {event.eventDate && event.endDate && (
                 <span>
-                  {new Date(event.eventDate).toLocaleDateString("ja-JP", {
-                    month: "short",
-                    day: "numeric",
-                    weekday: "short",
-                    timeZone: "Asia/Tokyo",
-                  })}{" "}
-                  {new Date(event.eventDate).toLocaleTimeString("ja-JP", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "Asia/Tokyo",
-                  })}
-                  〜
-                  {new Date(event.endDate).toLocaleDateString("ja-JP", {
-                    month: "short",
-                    day: "numeric",
-                    weekday: "short",
-                    timeZone: "Asia/Tokyo",
-                  })}{" "}
-                  {new Date(event.endDate).toLocaleTimeString("ja-JP", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "Asia/Tokyo",
-                  })}
+                  {startDateLabel} {startTimeLabel}〜
+                  {isSameDay ? endTimeLabel : `${endDateLabel} ${endTimeLabel}`}
                 </span>
               )}
 
