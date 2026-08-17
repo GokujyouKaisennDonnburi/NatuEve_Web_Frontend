@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, Pencil, X } from "lucide-react";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 type InlineTextareaFieldProps = {
@@ -12,6 +13,7 @@ type InlineTextareaFieldProps = {
   isEditable?: boolean;
   className?: string;
   textClassName?: string;
+  editTrigger?: (onClick: () => void) => ReactNode;
 };
 
 export function InlineTextareaField({
@@ -21,6 +23,7 @@ export function InlineTextareaField({
   isEditable = false,
   className = "",
   textClassName = "",
+  editTrigger,
 }: InlineTextareaFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialValue);
@@ -93,7 +96,9 @@ export function InlineTextareaField({
   }
 
   if (!initialValue && isEditable) {
-    return (
+    return editTrigger ? (
+      editTrigger(() => setIsEditing(true))
+    ) : (
       <button
         type="button"
         onClick={() => setIsEditing(true)}
@@ -113,18 +118,21 @@ export function InlineTextareaField({
           {initialValue || "自己紹介がまだ設定されていません。"}
         </p>
       </div>
-      {isEditable && (
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="absolute -top-2 -right-2 h-8 w-8 text-slate-400 hover:text-slate-600 transition-colors"
-          onClick={() => setIsEditing(true)}
-          aria-label="編集する"
-        >
-          <Pencil className="w-3.5 h-3.5" />
-        </Button>
-      )}
+{isEditable &&
+          (editTrigger ? (
+            editTrigger(() => setIsEditing(true))
+          ) : (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="absolute -top-2 -right-2 h-8 w-8 text-slate-400 hover:text-slate-600 transition-colors"
+              onClick={() => setIsEditing(true)}
+              aria-label="編集する"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+          ))}
     </div>
   );
 }

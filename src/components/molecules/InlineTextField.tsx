@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check, Pencil, X } from "lucide-react";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 type InlineTextFieldProps = {
@@ -12,6 +13,7 @@ type InlineTextFieldProps = {
   isEditable?: boolean;
   className?: string;
   textClassName?: string;
+  editTrigger?: (onClick: () => void) => ReactNode;
 };
 
 export function InlineTextField({
@@ -21,6 +23,7 @@ export function InlineTextField({
   isEditable = false,
   className = "",
   textClassName = "",
+  editTrigger,
 }: InlineTextFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialValue);
@@ -100,18 +103,21 @@ export function InlineTextField({
       >
         {initialValue}
       </span>
-      {isEditable && (
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="shrink-0 h-8 w-8 text-slate-400 hover:text-slate-600 transition-colors"
-          onClick={() => setIsEditing(true)}
-          aria-label="編集する"
-        >
-          <Pencil className="w-3.5 h-3.5" />
-        </Button>
-      )}
+      {isEditable &&
+        (editTrigger ? (
+          editTrigger(() => setIsEditing(true))
+        ) : (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="shrink-0 h-8 w-8 text-slate-400 hover:text-slate-600 transition-colors"
+            onClick={() => setIsEditing(true)}
+            aria-label="編集する"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+        ))}
     </div>
   );
 }
