@@ -1,156 +1,221 @@
-import {
-  ChevronDown,
-  Download,
-  ExternalLink,
-  FileText,
-  Image as ImageIcon,
-} from "lucide-react";
-import Image from "next/image";
+import { ExternalLink, FilePlus2, FileText } from "lucide-react";
+import Link from "next/link";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { PillButton } from "@/components/atoms/PillButton";
+import { EventReportImageCarousel } from "@/components/molecules/event-detail/EventReportImageCarousel";
+import { SurfaceCard } from "@/components/molecules/SurfaceCard";
+import { CardContent } from "@/components/ui/card";
+import { ROUTES } from "@/constants/routes";
 import type { ReportDetail } from "@/types/report";
 import { normalizeAssetUrl } from "@/utils/media";
 
 type EventReportListProps = {
   report?: ReportDetail | null;
+  // 「レポートを作成」ボタンからレポート投稿画面へ遷移するためのイベントID。
+  eventId?: string;
+  // 主催者（ログイン中のユーザー＝投稿者）のときだけ「レポートを作成」ボタンを表示する。
+  isOrganizer?: boolean;
 };
 
-export function EventReportList({ report }: Readonly<EventReportListProps>) {
-  if (!report) {
+// 投稿日時を「投稿日時 YYYY年M月D日」形式で表示する。
+const formatReportDate = (value: string): string =>
+  `投稿日時 ${new Date(value).toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "Asia/Tokyo",
+  })}`;
+
+type EmptyReportCardProps = {
+  eventId?: string;
+  isOrganizer?: boolean;
+};
+
+// レポート未投稿の空状態。主催者にはレポート作成画面への導線を表示する。
+function EmptyReportCard({
+  eventId,
+  isOrganizer,
+}: Readonly<EmptyReportCardProps>) {
+  const reportPostUrl = eventId
+    ? `${ROUTES.REPORT_POST}?eventId=${encodeURIComponent(eventId)}`
+    : ROUTES.REPORT_POST;
+
+  return (
+    <SurfaceCard>
+      <CardContent>
+        <div className="flex flex-col items-center px-4 py-8 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
+            <FileText className="h-7 w-7 text-emerald-600" />
+          </div>
+          <p className="mt-5 text-base font-bold text-slate-900">
+            まだ活動レポートがありません
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            開催後にレポートを作成すると、参加者や閲覧者に活動の様子を届けられます。
+          </p>
+          {isOrganizer ? (
+            <PillButton asChild tone="brand" className="mt-6">
+              <Link href={reportPostUrl}>
+                <FilePlus2 className="h-4 w-4" />
+                レポートを作成
+              </Link>
+            </PillButton>
+          ) : null}
+        </div>
+      </CardContent>
+    </SurfaceCard>
+  );
+}
+
+type ExternalReportCardProps = {
+  report: ReportDetail;
+  externalUrls: string[];
+};
+
+// 外部サイトでレポートを公開している場合の専用カード。
+function ExternalReportCard({
+  report,
+  externalUrls,
+}: Readonly<ExternalReportCardProps>) {
+  const externalUrl = externalUrls[0];
+  if (!externalUrl) {
     return null;
   }
 
-  // 画像のソースを取得
+  return (
+    <SurfaceCard>
+      <CardContent>
+        <h2 className="text-lg font-bold text-slate-900">活動レポート</h2>
+        <p className="mt-1.5 text-xs text-slate-500">
+          {formatReportDate(report.createdAt)}
+        </p>
+
+        <div className="mt-5 rounded-2xl border border-sky-100 bg-sky-50 px-6 py-8 text-center">
+          <div className="flex justify-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
+              <ExternalLink className="h-6 w-6 text-sky-600" />
+            </div>
+          </div>
+          <p className="mt-4 text-lg font-bold text-slate-800">
+            レポートは主催者のサイトで公開されています
+          </p>
+          <p className="mt-2 break-all text-sm text-slate-500">
+            {externalUrl}
+            <span className="whitespace-nowrap"> ／ 別のタブで開きます</span>
+          </p>
+          <a
+            href={normalizeAssetUrl(externalUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#85B7EB] px-6 py-2.5 text-sm font-semibold text-[#1E2C10] transition hover:opacity-90"
+          >
+            レポートを読む
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        </div>
+      </CardContent>
+    </SurfaceCard>
+  );
+}
+
+type ReportCardProps = {
+  report: ReportDetail;
+  imageSources: string[];
+  pdfSources: string[];
+};
+
+// 通常の活動レポート（本文・画像・PDF）。
+function ReportCard({
+  report,
+  imageSources,
+  pdfSources,
+}: Readonly<ReportCardProps>) {
+  return (
+    <SurfaceCard>
+      <CardContent>
+        <h2 className="text-lg font-bold text-slate-900">活動レポート</h2>
+        <p className="mt-1.5 text-xs text-slate-500">
+          {formatReportDate(report.createdAt)}
+        </p>
+
+        <div className="mt-5 space-y-6">
+          {report.content ? (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+              {report.content}
+            </p>
+          ) : (
+            <p className="text-sm text-slate-500">レポート本文はありません。</p>
+          )}
+
+          {imageSources.length > 0 ? (
+            <section>
+              <EventReportImageCarousel images={imageSources} />
+            </section>
+          ) : null}
+
+          {pdfSources.length > 0 ? (
+            <section>
+              <div className="mt-3 space-y-2">
+                {pdfSources.map((url, index) => (
+                  <a
+                    key={url}
+                    href={normalizeAssetUrl(url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition hover:shadow-md"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50">
+                        <FileText className="h-5 w-5 text-red-400" />
+                      </div>
+                      <span className="truncate text-sm font-bold text-slate-800">
+                        {report.pdfFilenames?.[index] ||
+                          url.split("/").pop() ||
+                          "PDF"}
+                      </span>
+                    </div>
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      開く
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </CardContent>
+    </SurfaceCard>
+  );
+}
+
+export function EventReportList({
+  report,
+  eventId,
+  isOrganizer,
+}: Readonly<EventReportListProps>) {
+  if (!report) {
+    return <EmptyReportCard eventId={eventId} isOrganizer={isOrganizer} />;
+  }
+
+  const externalUrls = report.externalUrls ?? [];
+
+  if (externalUrls.length > 0) {
+    return <ExternalReportCard report={report} externalUrls={externalUrls} />;
+  }
+
   const imageSources = report.imageUrls?.length
     ? report.imageUrls
     : (report.imageObjectKeys ?? []);
-
-  // PDFのソースを取得
   const pdfSources = report.pdfUrls?.length
     ? report.pdfUrls
     : (report.pdfObjectKeys ?? []);
 
-  // 外部URL一覧（空配列で正規化）
-  const externalUrls = report.externalUrls ?? [];
-
   return (
-    <Card>
-      <CardContent>
-        <div className="section-title flex items-center gap-2">
-          <FileText className="h-5 w-5 text-emerald-500" />
-          活動レポート
-        </div>
-
-        <div className="mt-4 space-y-4">
-          <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
-            <summary className="flex cursor-pointer items-center justify-between gap-3 px-5 py-4 text-sm font-medium text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                  <span>レポート</span>
-                  {externalUrls.length > 0 ? (
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
-                      外部URL
-                    </span>
-                  ) : null}
-                </div>
-                <div className="text-xs text-slate-500">
-                  {new Date(report.createdAt).toLocaleString("ja-JP", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "Asia/Tokyo",
-                  })}
-                </div>
-              </div>
-              <ChevronDown className="h-5 w-5 text-slate-500 transition-transform duration-200 group-open:rotate-180" />
-            </summary>
-
-            <div className="border-t border-slate-200 bg-white px-5 py-5 text-sm text-slate-700">
-              {report.content ? (
-                <p className="whitespace-pre-wrap rounded-2xl bg-slate-50 px-4 py-4 text-sm leading-relaxed text-slate-800">
-                  {report.content}
-                </p>
-              ) : (
-                <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm leading-relaxed text-slate-800">
-                  レポート本文はありません。
-                </p>
-              )}
-
-              {externalUrls.length > 0 ? (
-                <div className="mt-4 space-y-2">
-                  {externalUrls.map((url, index) => (
-                    <a
-                      key={url}
-                      href={normalizeAssetUrl(url)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      {index === 0 ? "外部レポートを開く" : url}
-                    </a>
-                  ))}
-                </div>
-              ) : null}
-
-              {imageSources.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                    <ImageIcon className="h-4 w-4 text-slate-700" />
-                    画像
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {imageSources.map((url) => (
-                      <div
-                        key={url}
-                        className="relative h-32 w-full overflow-hidden rounded-2xl bg-slate-100"
-                      >
-                        <Image
-                          src={normalizeAssetUrl(url)}
-                          alt="レポート画像"
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {pdfSources.length > 0 ? (
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                    <FileText className="h-4 w-4 text-slate-700" />
-                    PDF
-                  </div>
-                  <div className="space-y-2">
-                    {pdfSources.map((url, index) => (
-                      <a
-                        key={url}
-                        href={normalizeAssetUrl(url)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between gap-3 rounded-md border border-slate-100 bg-white px-4 py-3 shadow-sm hover:shadow-md"
-                      >
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-slate-700" />
-                          <span className="text-sm text-slate-800">
-                            {report.pdfFilenames?.[index] ||
-                              url.split("/").pop()}
-                          </span>
-                        </div>
-                        <Download className="h-4 w-4 text-emerald-600" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </details>
-        </div>
-      </CardContent>
-    </Card>
+    <ReportCard
+      report={report}
+      imageSources={imageSources}
+      pdfSources={pdfSources}
+    />
   );
 }

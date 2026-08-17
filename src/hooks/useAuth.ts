@@ -2,7 +2,6 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
-import { signInWithGoogle, signOut } from "@/services/auth";
 import {
   getMockAuthSession,
   isMockAuthEnabled,
@@ -41,7 +40,11 @@ const buildSession = (session: {
   };
 };
 
-// カスタムフック: 認証状態を管理する
+// カスタムフック: 認証状態を管理する。
+//
+// 呼び出すたびに getSession() と onAuthStateChange の購読を1組作るため、
+// AuthProvider 以外からは呼ばないこと。
+// 画面から認証状態を参照する場合は AuthProvider の useAuthContext を使う。
 export function useAuth() {
   const [session, setSession] = useState<AuthSession | null>(null); // 認証セッションの状態を保持するステート
   const [isLoading, setIsLoading] = useState(true); // 認証状態のロード中かどうかを示すステート
@@ -94,13 +97,19 @@ export function useAuth() {
     }
 
     // 初期セッション確認
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSession(buildSession(session));
-      }
-
-      setIsLoading(false); // 認証状態のロードが完了したことを示す
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSession(session ? buildSession(session) : null);
+      })
+      .catch(() => {
+        // 取得に失敗した場合は未ログイン扱いで画面を進める。
+        // ここで握りつぶさないとローディングが解除されず、画面が固まる。
+        setSession(null);
+      })
+      .finally(() => {
+        setIsLoading(false); // 成否によらず認証状態のロードを完了させる
+      });
 
     // セッション変化を監視
     const {
@@ -112,11 +121,11 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // isAuthenticated 等の導出値は AuthProvider 側で組み立てる。
+  // ログイン / ログアウトの実行は services/auth を直接 import して行う
+  // （signin/page.tsx が既にその方式）。
   return {
     session,
-    isAuthenticated: session !== null,
     isLoading,
-    loginWithGoogle: signInWithGoogle,
-    logout: signOut,
   };
 }

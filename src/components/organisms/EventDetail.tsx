@@ -1,7 +1,13 @@
 "use client";
 
-import { EventCancelButton } from "@/components/atoms/event-post/EventCancelButton";
+import { BackLink } from "@/components/atoms/BackLink";
+import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { EventCancelModal } from "@/components/molecules/event-detail/EventCancelModal";
+import {
+  type EventDetailTab,
+  EventDetailTabs,
+  eventDetailTabId,
+} from "@/components/molecules/event-detail/EventDetailTabs";
 import { EventImageCarousel } from "@/components/molecules/event-detail/EventImageCarousel";
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
 import { EventMemberListModal } from "@/components/molecules/event-detail/EventMemberListModal";
@@ -10,20 +16,37 @@ import { EventOrganizerToolbar } from "@/components/molecules/event-detail/Event
 import { EventPdfList } from "@/components/molecules/event-detail/EventPdfList";
 import { EventReportList } from "@/components/molecules/event-detail/EventReportList";
 import { EventTagList } from "@/components/molecules/event-detail/EventTagList";
+import {
+  EVENT_DETAIL_ATTACHMENTS_SECTION_ID,
+  EVENT_DETAIL_INFO_SECTION_ID,
+  EVENT_DETAIL_OVERVIEW_SECTION_ID,
+  EVENT_DETAIL_TOC_SECTIONS,
+} from "@/components/molecules/event-detail/eventDetailTocSections";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
+import { PageToc } from "@/components/molecules/PageToc";
+import { SurfaceCard } from "@/components/molecules/SurfaceCard";
 import { EventParticipationButton } from "@/components/organisms/EventParticipationButton";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { useAuthContext } from "@/components/layouts/AuthProvider";
+import { CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
-import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 import { useEventMembers } from "@/hooks/useEventMembers";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
-import { ChevronLeft } from "lucide-react";
+import { resolveEventStatus } from "@/utils/eventStatus";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
+// 投稿日の表示用に日付だけを整形する
+const formatPostedDate = (value: string): string =>
+  new Date(value).toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "Asia/Tokyo",
+  });
 
 // イベント詳細コンポーネント
 export function EventDetail({
@@ -44,7 +67,38 @@ export function EventDetail({
   const organizerId = event.profile?.id;
 
   const router = useRouter();
-  const { session } = useAuth();
+  const { session } = useAuthContext();
+
+  // 表示中のタブ（詳細 / 活動レポート）
+  const [activeTab, setActiveTab] = useState<EventDetailTab>("detail");
+
+  // 添付資料（PDF）。URL が無い場合は objectKey にフォールバックする
+  const pdfSources = event.pdfUrls?.length
+    ? event.pdfUrls
+    : (event.pdfObjectKeys ?? []);
+  const pdfItems = pdfSources.map((source, index) => ({
+    source,
+    filename: event.pdfFilenames?.[index] ?? "",
+  }));
+  const hasPdf = pdfItems.length > 0;
+
+  // 添付資料が無いイベントでは目次から「添付資料」を落とす
+  const tocSections = useMemo(
+    () =>
+      EVENT_DETAIL_TOC_SECTIONS.filter(
+        (section) =>
+          section.id !== EVENT_DETAIL_ATTACHMENTS_SECTION_ID || hasPdf,
+      ),
+    [hasPdf],
+  );
+
+  // 開催状況は共通ルールで判定する。詳細 API は endDate を必ず返すため、
+  // 開催中（開始済み・未終了）のイベントは「開催終了」にならない。
+  // イベント一覧は endDate を持たないため eventDate 基準のままで、表示が食い違う点に注意。
+  const status = resolveEventStatus({
+    eventDate: event.eventDate,
+    endDate: event.endDate,
+  });
 
   // ログイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(
@@ -71,92 +125,144 @@ export function EventDetail({
   const participating = participationData?.participating ?? false;
 
   return (
-    <div className="space-y-6">
-      {/* 一覧画面に戻るボタン */}
-      <div className="flex items-center justify-between">
-        {/* 一覧画面に戻るリンク */}
-        <Button
-          variant="link"
-          onClick={() => router.push(ROUTES.EVENT_LIST)}
-          className="h-auto w-fit cursor-pointer gap-1 p-0 has-[>svg]:px-0 text-sm font-normal tracking-[2px] text-slate-500 hover:text-sky-600 hover:no-underline"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          イベント一覧にもどる
-        </Button>
-      </div>
+    <div
+      className={cn(
+        "space-y-6",
+        // 主催者ツールバーは fixed でビューポート右端から約86px を占有する。
+        // 画面幅が xl 未満だと本文の右端がツールバーの下に潜り込むため、
+        // 主催者に表示しているときだけ右側に逃げ幅を確保する。
+        isOrganizer && "lg:pr-24 xl:pr-0",
+      )}
+    >
+      {/* 画面上部：もどるリンク・タイトル・ステータス/タグ・主催者 */}
+      <header className="space-y-3">
+        <BackLink href={ROUTES.EVENT_LIST}>イベント一覧にもどる</BackLink>
 
-      {/* タイトル */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">
+        {/* タイトル */}
+        <h1 className="text-2xl font-extrabold text-slate-900 md:text-3xl">
           {event.title}
         </h1>
 
-        {/* タグ表示(Qiita 風)バックエンド未対応時は undefined → フォールバック */}
-        <EventTagList tags={event.tags} />
-
-        {/* アイコンと名前の表示部分をLinkで囲む */}
-        <div className="mt-2 w-fit">
-          {organizerId ? (
-            <Link
-              href={isOrganizer ? "/mypage" : `/users/${organizerId}`}
-              className="flex items-center gap-2 text-sm text-slate-600 hover:opacity-80 transition-opacity cursor-pointer group"
-            >
-              <GlobalUserAvatar
-                name={organizerName}
-                iconUrl={organizerAvatarUrl}
-                className="h-5 w-5 border-slate-300 group-hover:ring-2 group-hover:ring-emerald-100 transition-all"
-              />
-              <span className="font-medium text-slate-700 group-hover:text-emerald-600 transition-colors">
-                {organizerName ?? "未設定"}
-              </span>
-            </Link>
-          ) : (
-            // IDがない（過去のデータ等で紐付いていない）場合のフォールバック（リンクなし）
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <GlobalUserAvatar
-                name={organizerName}
-                iconUrl={organizerAvatarUrl}
-                className="h-5 w-5 border-slate-300"
-              />
-              <span className="font-medium text-slate-700">
-                {organizerName ?? "未設定"}
-              </span>
-            </div>
-          )}
+        {/* 受付状況とタグ（タグはバックエンド未対応時 undefined → 非表示） */}
+        <div className="flex flex-wrap items-center gap-2">
+          <EventStatusLabel status={status} />
+          <EventTagList tags={event.tags} />
         </div>
-      </div>
 
-      {/* イベント画像（固定アスペクト）後々配置場所をイベント内容内に変更予定 */}
-      {images.length > 0 ? <EventImageCarousel images={images} /> : null}
+        {/* 主催者と投稿日。アイコンと名前は主催者のプロフィールへのリンクにする */}
+        {organizerId ? (
+          <Link
+            href={
+              isOrganizer ? ROUTES.MYPAGE : `${ROUTES.USERS}/${organizerId}`
+            }
+            className="group flex w-fit items-center gap-2 transition-opacity hover:opacity-80"
+          >
+            <GlobalUserAvatar
+              name={organizerName}
+              iconUrl={organizerAvatarUrl}
+              className="h-9 w-9 border-slate-300 transition-all group-hover:ring-2 group-hover:ring-emerald-100"
+            />
+            <div>
+              <p className="text-sm font-bold text-slate-800 transition-colors group-hover:text-(--brand-green-text)">
+                {organizerName ?? "未設定"}
+              </p>
+              <p className="text-xs text-slate-500">
+                投稿日 {formatPostedDate(event.createdAt)}
+              </p>
+            </div>
+          </Link>
+        ) : (
+          // IDがない（過去のデータ等で紐付いていない）場合のフォールバック（リンクなし）
+          <div className="flex w-fit items-center gap-2">
+            <GlobalUserAvatar
+              name={organizerName}
+              iconUrl={organizerAvatarUrl}
+              className="h-9 w-9 border-slate-300"
+            />
+            <div>
+              <p className="text-sm font-bold text-slate-800">
+                {organizerName ?? "未設定"}
+              </p>
+              <p className="text-xs text-slate-500">
+                投稿日 {formatPostedDate(event.createdAt)}
+              </p>
+            </div>
+          </div>
+        )}
+      </header>
 
-      {/* イベント概要 */}
-      <div>
-        <Card>
-          <CardContent>
-            <h2 className="section-title">イベント概要</h2>
-            <p className="text-sm text-slate-800 leading-relaxed">
-              {event.description}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* イベント情報（表形式） */}
-      <EventInfoTable event={event} />
-
-      {/* 添付資料（PDF） */}
-      <EventPdfList
-        pdfItems={(event.pdfUrls?.length
-          ? event.pdfUrls
-          : (event.pdfObjectKeys ?? [])
-        ).map((source, index) => ({
-          source,
-          filename: event.pdfFilenames?.[index] ?? "",
-        }))}
+      {/* 詳細 / 活動レポート の切り替えタブ。
+          主催者はレポート未投稿でも空状態（作成ボタン付き）を確認できるようにし、
+          非主催者はレポート未投稿のときタブを開けないようにする。 */}
+      <EventDetailTabs
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        showReportBadge={isOrganizer && !report}
+        reportTabDisabled={!isOrganizer && !report}
       />
 
-      {/* レポート */}
-      <EventReportList report={report} />
+      {activeTab === "detail" ? (
+        <div
+          role="tabpanel"
+          aria-labelledby={eventDetailTabId("detail")}
+          className="flex flex-col gap-8 lg:flex-row"
+        >
+          {/* 目次（イベント投稿フォームと共通コンポーネント） */}
+          <aside className="hidden shrink-0 lg:block lg:w-44">
+            <PageToc sections={tocSections} />
+          </aside>
+
+          <div className="min-w-0 flex-1 space-y-6">
+            {/* イベント画像（固定アスペクト） */}
+            {images.length > 0 ? (
+              <SurfaceCard>
+                <CardContent>
+                  <EventImageCarousel images={images} />
+                </CardContent>
+              </SurfaceCard>
+            ) : null}
+
+            {/* イベント概要 */}
+            <section
+              id={EVENT_DETAIL_OVERVIEW_SECTION_ID}
+              className="scroll-mt-24"
+            >
+              <SurfaceCard>
+                <CardContent>
+                  <h2 className="section-title">イベント概要</h2>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
+                    {event.description}
+                  </p>
+                </CardContent>
+              </SurfaceCard>
+            </section>
+
+            {/* イベント詳細（表形式） */}
+            <section id={EVENT_DETAIL_INFO_SECTION_ID} className="scroll-mt-24">
+              <EventInfoTable event={event} />
+            </section>
+
+            {/* 添付資料（PDF） */}
+            {hasPdf ? (
+              <section
+                id={EVENT_DETAIL_ATTACHMENTS_SECTION_ID}
+                className="scroll-mt-24"
+              >
+                <EventPdfList pdfItems={pdfItems} />
+              </section>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        // 活動レポート（未投稿のときは空状態を EventReportList 側で描画する）
+        <div role="tabpanel" aria-labelledby={eventDetailTabId("report")}>
+          <EventReportList
+            report={report}
+            eventId={event.id}
+            isOrganizer={isOrganizer}
+          />
+        </div>
+      )}
 
       {/* 参加者一覧モーダル */}
       <EventMemberListModal
@@ -201,29 +307,25 @@ export function EventDetail({
         />
       ) : null}
 
-      {/* イベント投稿者向けボタンと参加申し込みボタンの切り替え */}
-      {/* スクロール中も画面下部に固定で表示する */}
-      <div className="sticky bottom-4 z-40">
-        {isOrganizer ? (
-          <EventCancelButton eventId={event.id} hasMembers={hasMembers} />
-        ) : (
-          <>
-            {participationError ? (
-              <p className="text-center text-sm text-slate-500">
-                参加状態の取得に失敗しました。
-                参加申し込みは通常通りご利用いただけます。
-              </p>
-            ) : null}
-            <EventParticipationButton
-              eventId={event.id}
-              capacity={event.capacity}
-              participating={participating}
-              onParticipateSuccess={refetchParticipation}
-              onCancelSuccess={refetchParticipation}
-            />
-          </>
-        )}
-      </div>
+      {/* 参加申し込みボタン。スクロール中も画面下部に固定で表示する。 */}
+      {/* 主催者にはイベントの削除をツールバーの削除ボタンに一本化しているため何も出さない。 */}
+      {isOrganizer ? null : (
+        <div className="sticky bottom-4 z-40">
+          {participationError ? (
+            <p className="text-center text-sm text-slate-500">
+              参加状態の取得に失敗しました。
+              参加申し込みは通常通りご利用いただけます。
+            </p>
+          ) : null}
+          <EventParticipationButton
+            eventId={event.id}
+            capacity={event.capacity}
+            participating={participating}
+            onParticipateSuccess={refetchParticipation}
+            onCancelSuccess={refetchParticipation}
+          />
+        </div>
+      )}
     </div>
   );
 }

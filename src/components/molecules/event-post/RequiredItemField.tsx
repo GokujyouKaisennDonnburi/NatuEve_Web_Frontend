@@ -62,7 +62,10 @@ export function RequiredItemField({
             key={rowIds[index] ?? `${fieldId}-item-${index}`}
             className="flex items-start gap-3"
           >
-            <div className="min-w-0 flex-1 space-y-2">
+            <div
+              className="min-w-0 flex-1 space-y-2"
+              data-field-error={errors?.[index] ? "" : undefined}
+            >
               <Label htmlFor={`${fieldId}-name-${index}`} className="sr-only">
                 持ち物名
               </Label>

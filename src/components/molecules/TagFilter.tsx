@@ -1,29 +1,31 @@
 "use client";
 
-import { FilterTag } from "@/components/atoms/FilterTag";
-import { cn } from "@/lib/utils";
-import type { TagItem } from "@/types/tag";
 import { useLayoutEffect, useRef, useState } from "react";
 
+import { FilterTag } from "@/components/atoms/FilterTag";
+import { TagAutocomplete } from "@/components/molecules/TagAutocomplete";
+import { cn } from "@/lib/utils";
+import type { TagItem } from "@/types/tag";
+
 type TagFilterProps = {
-  tags: TagItem[];
+  allTags: TagItem[];
+  frequentTags: TagItem[];
   selectedIds?: string[];
   onTagSelect?: (id: string) => void;
-  onSearch?: (query: string) => void;
-  searchQuery?: string;
   className?: string;
 };
 
 export function TagFilter({
-  tags,
+  allTags,
+  frequentTags,
   selectedIds = [],
   onTagSelect,
-  onSearch,
-  searchQuery = "",
   className,
 }: Readonly<TagFilterProps>) {
+  const [draft, setDraft] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [hiddenCount, setHiddenCount] = useState(0);
+  const [searchSelectedIds, setSearchSelectedIds] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -36,8 +38,31 @@ export function TagFilter({
         visibleCount++;
       }
     }
-    setHiddenCount(tags.length - visibleCount);
-  }, [tags, isExpanded]);
+    setHiddenCount(frequentTags.length - visibleCount);
+  }, [frequentTags, isExpanded]);
+
+  // 検索欄で選択されたタグのみをチップ表示する
+  const searchBoxTags = searchSelectedIds
+    .map((id) => allTags.find((tag) => tag.id === id))
+    .filter((tag): tag is TagItem => tag != null);
+
+  const handleAutocompleteSelect = (tag: TagItem) => {
+    onTagSelect?.(tag.id);
+    setSearchSelectedIds((prev) => [...prev, tag.id]);
+    return true;
+  };
+
+  const handleSearchChipClick = (id: string) => {
+    onTagSelect?.(id);
+    setSearchSelectedIds((prev) => prev.filter((sid) => sid !== id));
+  };
+
+  const handleFrequentTagClick = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSearchSelectedIds((prev) => prev.filter((sid) => sid !== id));
+    }
+    onTagSelect?.(id);
+  };
 
   return (
     <div className={cn("", className)}>
@@ -45,45 +70,82 @@ export function TagFilter({
         タグ
       </span>
 
-      <div className="flex items-center h-[42px] bg-[#F8FAF6] border border-[#E3E8DF] rounded-[10px] overflow-hidden mb-4">
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-          className="shrink-0 ml-[13px]"
-        >
-          <circle
-            cx="11"
-            cy="11"
-            r="6"
-            stroke="#A8B1A2"
-            strokeWidth="1.25"
-            strokeLinecap="round"
-          />
-          <line
-            x1="16.5"
-            y1="16.5"
-            x2="20"
-            y2="20"
-            stroke="#A8B1A2"
-            strokeWidth="1.25"
-            strokeLinecap="round"
-          />
-        </svg>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => onSearch?.(e.target.value)}
-          placeholder="タグを検索（例: 双眼鏡）"
-          className="flex-1 h-[22px] ml-[8px] mr-[13px] bg-transparent border-none outline-none text-sm leading-5 text-[#757575] placeholder:text-[#757575] p-0"
-        />
-      </div>
+      <TagAutocomplete
+        allTags={allTags}
+        selectedIds={selectedIds}
+        value={draft}
+        onValueChange={setDraft}
+        onSelect={handleAutocompleteSelect}
+        listboxId="tag-filter-listbox"
+        renderInput={({
+          value,
+          onChange,
+          onKeyDown,
+          onFocus,
+          showDropdown,
+          listboxId,
+          activeDescendantId,
+        }) => (
+          <div className="flex flex-wrap items-center gap-1 min-h-[42px] bg-[#F8FAF6] border border-[#E3E8DF] rounded-[10px] px-[13px] py-1">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+              className="shrink-0"
+            >
+              <circle
+                cx="11"
+                cy="11"
+                r="6"
+                stroke="#A8B1A2"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+              />
+              <line
+                x1="16.5"
+                y1="16.5"
+                x2="20"
+                y2="20"
+                stroke="#A8B1A2"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+              />
+            </svg>
+            {searchBoxTags.map((tag) => (
+              <FilterTag
+                key={tag.id}
+                label={tag.name}
+                size="sm"
+                selected
+                onClick={() => handleSearchChipClick(tag.id)}
+              />
+            ))}
+            <input
+              type="text"
+              value={value}
+              onChange={onChange}
+              onKeyDown={onKeyDown}
+              onFocus={onFocus}
+              placeholder={
+                searchBoxTags.length > 0 ? "" : "タグを検索（例: 双眼鏡）"
+              }
+              className="flex-1 h-[22px] min-w-[80px] bg-transparent border-none outline-none text-sm leading-5 text-[#757575] placeholder:text-[#757575] p-0"
+              role="combobox"
+              aria-expanded={showDropdown}
+              aria-controls={listboxId}
+              aria-autocomplete="list"
+              aria-activedescendant={activeDescendantId}
+            />
+          </div>
+        )}
+      />
 
-      {tags.length > 0 && (
+      {/* よく使うタグ */}
+      {frequentTags.length > 0 ? (
         <>
-          <span className="block text-[11px] font-bold leading-4 text-[#A8B1A2] mb-2">
+          <span className="block text-[11px] font-bold leading-4 text-[#A8B1A2] mt-4 mb-2">
             よく使うタグ
           </span>
 
@@ -94,13 +156,13 @@ export function TagFilter({
               !isExpanded && "max-h-[76px]",
             )}
           >
-            {tags.map((tag) => (
+            {frequentTags.map((tag) => (
               <FilterTag
                 key={tag.id}
                 label={tag.name}
                 size="md"
                 selected={selectedIds.includes(tag.id)}
-                onClick={onTagSelect ? () => onTagSelect(tag.id) : undefined}
+                onClick={() => handleFrequentTagClick(tag.id)}
               />
             ))}
           </div>
@@ -117,7 +179,7 @@ export function TagFilter({
             </button>
           )}
         </>
-      )}
+      ) : null}
     </div>
   );
 }

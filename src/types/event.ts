@@ -99,6 +99,7 @@ export type EventListItemProfile = {
 // イベント一覧取得 API のイベント DTO。
 export type EventListItem = {
   createdAt: string;
+  endDate: string;
   eventDate: string;
   id: string;
   location: string;
@@ -126,6 +127,8 @@ export type EventListRequest = {
   offset?: number;
   // 検索キーワードの配列（AND 検索・最大10語）。
   keywords?: string[];
+  // 絞り込むタグIDの配列（UUID・OR 検索・最大20件）。
+  tagIds?: string[];
 };
 
 // イベント詳細取得 API のレスポンス DTO。

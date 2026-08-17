@@ -1,7 +1,7 @@
 // このファイルは、イベント参加モックエンドポイントを定義する。
 // POST /api/v1/events/:id/join
-// 認証は任意。Authorization ヘッダなし → 匿名参加（profileId = null）。
-// ヘッダありで有効な Bearer → profileId を記録してログイン参加。
+// 認証は任意。Authorization ヘッダなし → 匿名参加（profile = null）。
+// ヘッダありで有効な Bearer → プロフィールを記録してログイン参加。
 // 同一イベントへの重複参加は 409 already_joined、定員超過は 409 capacity_full で返す。
 import { HttpResponse, http } from "msw";
 
@@ -13,7 +13,7 @@ import {
 } from "./participation";
 import { mockEventDetails } from "./data";
 import {
-  TOKEN_TO_PROFILE_ID,
+  TOKEN_TO_PROFILE,
   getBearerToken,
   hasBearerToken,
   unauthorizedResponse,
@@ -91,18 +91,23 @@ export const eventJoinHandler = http.post(
       );
     }
 
-    // 認証ヘッダの有無で profileId を決定
-    // ヘッダなし → 匿名参加（profileId = null）
-    // ヘッダあり（Bearer） → トークンを profileId として流用（モック限定ハック）
+    // 認証ヘッダの有無で参加者のプロフィールを決定する。
+    // ヘッダなし → 匿名参加（profile = null）
+    // ヘッダあり（Bearer） → 既知トークンならそのプロフィールでログイン参加
     const authorizationHeader = request.headers.get("authorization");
     const hasBearer = hasBearerToken(authorizationHeader);
     const token = hasBearer ? getBearerToken(authorizationHeader) : "";
 
     // Authorization ヘッダが Bearer 形式でも既知トークンでない場合は 401。
-    const profileId = hasBearer ? (TOKEN_TO_PROFILE_ID[token] ?? null) : null;
-    if (hasBearer && !profileId) {
+    // 参加者一覧に載せる profile もここで引いた値をそのまま使う。
+    // 別々に引き直すと、片方だけ引けなかったときに
+    // 「認証は通ったのに匿名参加として記録される」状態を作ってしまう。
+    const profile = hasBearer ? (TOKEN_TO_PROFILE[token] ?? null) : null;
+    if (hasBearer && !profile) {
       return unauthorizedResponse();
     }
+
+    const profileId = profile?.id ?? null;
 
     // 重複参加チェック：ログイン時は token、匿名時は mailAddress で識別
     const participantKey = hasBearer ? token : `anon:${mailAddress}`;
@@ -133,12 +138,13 @@ export const eventJoinHandler = http.post(
     participationLogs.set(id, logs);
 
     // members エンドポイントで参加者一覧に反映されるよう、参加レコードを蓄積する。
+    // 参加者一覧はプロフィールサマリーを返す契約のため、匿名参加は null とする。
     const members = eventMembers.get(id) ?? [];
     members.push({
       username,
       mailAddress,
       partySize,
-      profileId,
+      profile,
       createdAt,
     });
     eventMembers.set(id, members);

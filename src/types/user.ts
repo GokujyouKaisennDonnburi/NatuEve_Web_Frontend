@@ -10,16 +10,17 @@ export type UserListResponse = {
   users: User[];
 };
 
-// 現在のユーザー情報の型定義
+// 本人プロフィール取得 API（GET /api/v1/me）のレスポンス DTO。
+// バックエンドの ProfileResponse は camelCase を返すため、それに合わせる。
 export type MeResponse = {
   id: string;
   email: string;
-  display_name: string;
-  avatar_url: string;
+  displayName: string;
+  avatarUrl: string;
   // 自己紹介文（任意）
   description?: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 // 現在のユーザー情報をフロントエンドで使用するための型定義
@@ -35,7 +36,8 @@ export type CurrentUser = {
 };
 
 // 本人プロフィール更新 API（PATCH /api/v1/me）のリクエスト DTO。
-// バックエンドが snake_case を受け取るため、プロパティ名も snake_case とする。
+// バックエンドの UpdateProfileRequest だけは snake_case を受け取るため、
+// レスポンス（camelCase）と規則が異なる点に注意する。
 export type UpdateMyProfileRequest = {
   display_name?: string;
   description?: string;

@@ -95,7 +95,7 @@ export default function EventDetailPage() {
 
   return (
     // イベント詳細ページのメインコンテンツ
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto w-full max-w-5xl">
       <EventDetail event={event} report={report} />
     </div>
   );

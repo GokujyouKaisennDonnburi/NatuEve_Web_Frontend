@@ -1,14 +1,13 @@
 import type { ReactNode } from "react";
 
 import { RequiredBadge } from "@/components/atoms/RequiredBadge";
+import { SurfaceCard } from "@/components/molecules/SurfaceCard";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 type FormCardProps = {
   // 見出しを持たず入力欄だけを載せるカードもあるため、title は任意
@@ -22,6 +21,8 @@ type FormCardProps = {
 
 // フォーム画面で入力項目をまとめる白いカード。
 // 1カード＝1つの意味のまとまり（開催情報、参加費用など）として使う。
+// カードの表面（白背景・角丸・枠線・影）は SurfaceCard に委ね、
+// ここでは見出しと必須バッジの並びだけを受け持つ。
 export function FormCard({
   title,
   description,
@@ -30,26 +31,22 @@ export function FormCard({
   className,
 }: Readonly<FormCardProps>) {
   return (
-    <Card
-      className={cn(
-        "gap-5 rounded-2xl border-slate-200/80 bg-white py-6 shadow-sm shadow-slate-200/60",
-        className,
-      )}
-    >
+    <SurfaceCard className={className}>
       {title ? (
         <CardHeader className="gap-1 px-6">
           <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
             {title}
             {required ? <RequiredBadge /> : null}
           </CardTitle>
+          {/* 説明文に改行を入れて読み分けさせたいカードがあるため、改行を保持する */}
           {description ? (
-            <CardDescription className="text-sm text-slate-500">
+            <CardDescription className="text-sm whitespace-pre-line text-slate-500">
               {description}
             </CardDescription>
           ) : null}
         </CardHeader>
       ) : null}
       <CardContent className="space-y-5 px-6">{children}</CardContent>
-    </Card>
+    </SurfaceCard>
   );
 }

@@ -1,11 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { FormInput } from "@/components/atoms/FormInput";
 import { FormTextarea } from "@/components/atoms/FormTextarea";
-import { PillButton } from "@/components/atoms/PillButton";
 import { PaymentAlertNote } from "@/components/atoms/event-post/PaymentAlertNote";
 import { FileDropZone } from "@/components/molecules/FileDropZone";
 import { FormCard } from "@/components/molecules/FormCard";
@@ -15,9 +13,16 @@ import { PriceCategoryField } from "@/components/molecules/event-post/PriceCateg
 import { RequiredItemField } from "@/components/molecules/event-post/RequiredItemField";
 import { TagInputField } from "@/components/molecules/event-post/TagInputField";
 import { MAX_EVENT_PDF_COUNT, MAX_TEXT_LENGTH } from "@/constants/config";
-import { useEventPostForm } from "@/hooks/useEventPostForm";
+import type {
+  EventPostFormErrors,
+  EventPostFormState,
+} from "@/hooks/useEventPostForm";
 import { normalizeHalfWidthDigits } from "@/utils/format";
-import { MAX_IMAGE_BYTES, MAX_PDF_BYTES } from "@/utils/upload";
+import {
+  MAX_IMAGE_BYTES,
+  MAX_PDF_BYTES,
+  validateUploadFile,
+} from "@/utils/upload";
 
 import {
   EVENT_ATTACHMENTS_SECTION_ID,
@@ -44,17 +49,50 @@ const clampDateYear = (value: string) => {
 // 上限バイト数の表記は、実際の検証に使う値から作ることでズレを防ぐ
 const toMegabytes = (bytes: number) => Math.floor(bytes / (1024 * 1024));
 
+// イベント投稿フォームのプロパティ型定義
+type EventPostFormProps = {
+  formState: EventPostFormState;
+  errors: EventPostFormErrors;
+  setField: <K extends keyof EventPostFormState>(
+    key: K,
+    value: EventPostFormState[K],
+  ) => void;
+};
+
 // イベント投稿フォーム。入力項目を意味のまとまりごとにカードへ分けて並べる。
-export function EventPostForm() {
+// form 要素と操作ボタンは画面側で管理するため、ここでは入力項目のみを描画する。
+export function EventPostForm({
+  formState,
+  errors,
+  setField,
+}: Readonly<EventPostFormProps>) {
   const formId = useId();
-  const router = useRouter();
-  const { formState, errors, isSubmitting, setField, handleSubmit } =
-    useEventPostForm();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const getFieldId = (suffix: string) => `${formId}-${suffix}`;
 
+  // 送信時、フォームの中で一番上にあるエラー項目へジャンプする。
+  // DOM の並び順がそのまま画面の並び順なので、項目の順序を別に持たなくてよい。
+  useEffect(() => {
+    // errors が更新されるのは送信時だけ。空なら初回マウントか送信成功なので何もしない。
+    if (Object.keys(errors).length === 0) {
+      return;
+    }
+
+    const field =
+      containerRef.current?.querySelector<HTMLElement>("[data-field-error]");
+    if (!field) {
+      return;
+    }
+    const target =
+      field.querySelector<HTMLElement>("input, textarea, select") ?? field;
+    // focus 単体だと一瞬でジャンプしてしまうため、スクロールを止めてから滑らかに寄せる
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [errors]);
+
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+    <div ref={containerRef} className="space-y-4">
       <div id={EVENT_TITLE_SECTION_ID} className="scroll-mt-6">
         <FormCard>
           <FormField
@@ -216,7 +254,9 @@ export function EventPostForm() {
       <div id={EVENT_ATTACHMENTS_SECTION_ID} className="scroll-mt-6 space-y-4">
         <FormCard
           title="イベント画像"
-          description="JPEG / PNG。告知バナーやサムネイルに使います。"
+          description={
+            "詳細ページの先頭に表示されます。\nJPG / PNG を1つ選択できます。"
+          }
         >
           <FileDropZone
             id={getFieldId("eventImage")}
@@ -225,12 +265,13 @@ export function EventPostForm() {
             onFilesChange={(files) => setField("eventImage", files[0] ?? null)}
             promptLabel="クリックまたはドラッグで画像をアップロード"
             hint={`1ファイル ${toMegabytes(MAX_IMAGE_BYTES)}MB まで`}
+            validate={(file) => validateUploadFile(file, "image")}
           />
         </FormCard>
 
         <FormCard
           title="イベント資料"
-          description={`しおり、アクセスマップ、同意書など。最大${MAX_EVENT_PDF_COUNT}つまでのPDFを選択できます。`}
+          description={`しおり、アクセスマップ、同意書など、まとめてアップロードできます。\n最大${MAX_EVENT_PDF_COUNT}つまでのPDFファイルを選択できます。`}
         >
           <FileDropZone
             id={getFieldId("eventDocuments")}
@@ -240,6 +281,7 @@ export function EventPostForm() {
             maxFiles={MAX_EVENT_PDF_COUNT}
             promptLabel="クリックまたはドラッグでPDFをアップロード"
             hint={`1ファイル ${toMegabytes(MAX_PDF_BYTES)}MB まで`}
+            validate={(file) => validateUploadFile(file, "pdf")}
           />
         </FormCard>
       </div>
@@ -265,20 +307,6 @@ export function EventPostForm() {
           </FormField>
         </FormCard>
       </div>
-
-      <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <PillButton
-          tone="outline"
-          type="button"
-          onClick={() => router.back()}
-          disabled={isSubmitting}
-        >
-          キャンセル
-        </PillButton>
-        <PillButton tone="brand" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "送信中…" : "イベントを投稿"}
-        </PillButton>
-      </div>
-    </form>
+    </div>
   );
 }

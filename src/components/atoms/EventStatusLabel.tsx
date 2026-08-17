@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-type EventStatus = "open" | "few_left" | "closed";
+type EventStatus = "open" | "few_left" | "ended_registration" | "closed";
 
 type EventStatusLabelProps = {
   status: EventStatus;
@@ -17,9 +17,14 @@ const statusConfig: Record<
     textClass: "text-[#1E2C10]",
   },
   few_left: {
-    label: "残りわずか",
+    label: "期限間近",
     bgClass: "bg-[#FAC775]",
     textClass: "text-[#77471C]",
+  },
+  ended_registration: {
+    label: "受付終了",
+    bgClass: "bg-[rgba(5,5,5,0.1)] border border-[#838C7D]",
+    textClass: "text-[#838C7D]",
   },
   closed: {
     label: "開催終了",

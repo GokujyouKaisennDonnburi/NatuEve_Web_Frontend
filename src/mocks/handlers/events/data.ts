@@ -30,7 +30,15 @@ export type MockEventListResponse = {
   limit: number;
   offset: number;
   totalCount: number;
+  error?: {
+    code: string;
+    message: string;
+  };
 };
+
+// UUIDの簡易検証（桁数とハイフン位置のみ）。
+const isValidUuid = (value: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 export type MockEventDetail = MockEvent & {
   organizerName: string;
@@ -290,14 +298,55 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
     .filter((value) => value.length > 0)
     .slice(0, 10);
 
+  // tagId クエリパラメータの処理。
+  // 空値は無視し、UUID形式でない値または21件以上の指定は 400 エラーを返す。
+  const rawTagIds = url.searchParams
+    .getAll("tagId")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+  if (rawTagIds.length > 20) {
+    return {
+      events: [],
+      limit,
+      offset,
+      totalCount: 0,
+      error: {
+        code: "invalid_request",
+        message: "リクエストボディが不正です",
+      },
+    };
+  }
+  const invalidTagId = rawTagIds.find((id) => !isValidUuid(id));
+  if (invalidTagId) {
+    return {
+      events: [],
+      limit,
+      offset,
+      totalCount: 0,
+      error: {
+        code: "invalid_request",
+        message: "リクエストボディが不正です",
+      },
+    };
+  }
+
   // キャンセル済みイベント(cancelledAt が設定済み)は一覧から除外する。
   // バックエンド仕様: 公開イベント一覧は開催予定のみを返し totalCount も絞り込み後件数とする。
   const activeEvents = mockEvents.filter((event) => !event.cancelledAt);
 
   // 検索キーワードで絞り込む
-  const filteredEvents = keywords.length
+  const keywordFiltered = keywords.length
     ? activeEvents.filter((event) => matchesAllKeywords(event, keywords))
     : activeEvents;
+
+  // タグIDで絞り込む（OR 検索）。q と同時指定の場合は AND になる。
+  const filteredEvents = rawTagIds.length
+    ? keywordFiltered.filter((event) =>
+        rawTagIds.some((tagId) =>
+          (event.tags ?? []).some((tag) => tag.id === tagId),
+        ),
+      )
+    : keywordFiltered;
 
   // イベントデータをソートする
   const sortedEvents = [...filteredEvents].sort((left, right) => {

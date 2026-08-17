@@ -3,9 +3,11 @@
 import { FileText, Upload } from "lucide-react";
 import Image from "next/image";
 import type { ChangeEvent, DragEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { DeleteIconButton } from "@/components/atoms/DeleteIconButton";
+import { FieldNote } from "@/components/atoms/FieldNote";
+import { FormEmptyBox } from "@/components/atoms/FormEmptyBox";
 import { cn } from "@/lib/utils";
 
 type FileDropZoneProps = {
@@ -21,6 +23,8 @@ type FileDropZoneProps = {
   maxFiles?: number;
   disabled?: boolean;
   className?: string;
+  // 選択されたファイルを検証する。エラーメッセージを返すと、そのファイルは追加されない
+  validate?: (file: File) => string | null;
 };
 
 // プレビュー用の Blob URL は File 単位で作り直すと無駄なため、
@@ -29,6 +33,15 @@ type FileEntry = {
   id: string;
   file: File;
   previewUrl: string | null;
+};
+
+// 入らなかったファイルを名前で伝える。3件以上は先頭だけ挙げて件数でまとめる。
+const formatFileNames = (targets: File[]) => {
+  const names = targets.map((file) => `「${file.name}」`);
+  if (names.length <= 2) {
+    return names.join("");
+  }
+  return `${names[0]}ほか${names.length - 1}件`;
 };
 
 // クリックとドラッグ&ドロップの両方でファイルを受け取る入力欄。
@@ -43,11 +56,14 @@ export function FileDropZone({
   maxFiles = 1,
   disabled = false,
   className,
+  validate,
 }: Readonly<FileDropZoneProps>) {
   const isImage = accept.startsWith("image/");
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
   const entriesRef = useRef<FileEntry[]>([]);
+  const errorId = useId();
 
   useEffect(() => {
     const current = entriesRef.current;
@@ -92,17 +108,50 @@ export function FileDropZone({
 
   const canAddMore = files.length < maxFiles;
 
+  // 上限が複数のときは、あと何件入れられるかを常に見せて超過を起きにくくする
+  const remainingHint =
+    maxFiles > 1 ? `あと${maxFiles - files.length}つ追加できます` : null;
+  const hintText = [hint, remainingHint].filter(Boolean).join("・");
+
   const addFiles = (incoming: File[]) => {
     if (disabled || incoming.length === 0) {
       return;
     }
 
-    // 1件しか持てない場合は「選び直し」として扱い、複数の場合は上限まで追加する
-    onFilesChange(
-      maxFiles === 1
-        ? incoming.slice(0, 1)
-        : [...files, ...incoming].slice(0, maxFiles),
-    );
+    // 選択された時点で検証し、通らないものはフォームへ渡さない。
+    // 理由は領域の下に赤字で出し、最初の1件だけを表示する。
+    const accepted: File[] = [];
+    let message: string | null = null;
+    for (const file of incoming) {
+      const validationError = validate?.(file) ?? null;
+      if (validationError) {
+        message ??= validationError;
+        continue;
+      }
+      accepted.push(file);
+    }
+
+    // 1件しか持てない場合は「選び直し」として扱い、複数の場合は空き枠のぶんだけ追加する
+    const capacity = maxFiles === 1 ? 1 : maxFiles - files.length;
+    const added = accepted.slice(0, capacity);
+    const overflowed = accepted.slice(capacity);
+
+    // 入りきらなかったぶんは黙って落とさず、どれが入らなかったかを名前で伝える
+    if (!message && overflowed.length > 0) {
+      const limitText =
+        maxFiles === 1 ? "1つだけ選べます" : `最大${maxFiles}個までです`;
+      message = `${limitText}。${formatFileNames(overflowed)}は追加していません。`;
+    }
+
+    setRejectionMessage(message);
+
+    // 1件も追加できないときは親へ通知しない。maxFiles が 1 のときに
+    // 空配列を渡すと、選択済みの正しいファイルまで消えてしまうため。
+    if (added.length === 0) {
+      return;
+    }
+
+    onFilesChange(maxFiles === 1 ? added : [...files, ...added]);
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -118,6 +167,7 @@ export function FileDropZone({
   };
 
   const handleRemove = (targetId: string) => {
+    setRejectionMessage(null);
     onFilesChange(
       entries
         .filter((entry) => entry.id !== targetId)
@@ -136,6 +186,8 @@ export function FileDropZone({
         disabled={disabled || !canAddMore}
         onChange={handleInputChange}
         className="peer sr-only"
+        aria-invalid={Boolean(rejectionMessage)}
+        aria-describedby={rejectionMessage ? errorId : undefined}
       />
 
       {canAddMore ? (
@@ -166,9 +218,18 @@ export function FileDropZone({
           <span className="text-sm font-semibold text-slate-700">
             {promptLabel}
           </span>
-          {hint ? <span className="text-xs text-slate-400">{hint}</span> : null}
+          {hintText ? (
+            <span className="text-xs text-slate-400">{hintText}</span>
+          ) : null}
         </label>
-      ) : null}
+      ) : (
+        // 上限に達すると領域が消えるため、理由と次の操作が分かる枠を残す
+        <FormEmptyBox>
+          {maxFiles === 1
+            ? "変更するには、下の一覧から削除してください。"
+            : `追加するには、下の一覧から削除してください。`}
+        </FormEmptyBox>
+      )}
 
       {entries.length > 0 ? (
         <ul className="space-y-2">
@@ -203,6 +264,12 @@ export function FileDropZone({
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {rejectionMessage ? (
+        <FieldNote tone="error">
+          <span id={errorId}>{rejectionMessage}</span>
+        </FieldNote>
       ) : null}
     </div>
   );
