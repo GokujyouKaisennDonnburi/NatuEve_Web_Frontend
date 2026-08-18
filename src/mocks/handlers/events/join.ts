@@ -73,12 +73,16 @@ export const eventJoinHandler = http.post(
     const partySize = body.partySize as number;
 
     // 定員チェック：イベントの定員が設定されている場合は、
-    // 参加人数が定員を超える場合は 409 capacity_full を返す
+    // 現在の参加人数に今回の申込人数を加えた合計が定員を超える場合は 409 capacity_full を返す
     const detail = mockEventDetails.get(id);
+    const totalCurrent = (eventMembers.get(id) ?? []).reduce(
+      (sum, member) => sum + member.partySize,
+      0,
+    );
     if (
       typeof detail?.capacity === "number" &&
       detail.capacity >= 1 &&
-      partySize > detail.capacity
+      totalCurrent + partySize > detail.capacity
     ) {
       return HttpResponse.json(
         {
@@ -134,7 +138,11 @@ export const eventJoinHandler = http.post(
     // participation-logs エンドポイントが返す参加履歴を記録する。
     const logs =
       participationLogs.get(id) ?? new Map<string, MockParticipationLog>();
-    logs.set(participantKey, { action: "join", updatedAt: createdAt });
+    logs.set(participantKey, {
+      action: "join",
+      partySize,
+      updatedAt: createdAt,
+    });
     participationLogs.set(id, logs);
 
     // members エンドポイントで参加者一覧に反映されるよう、参加レコードを蓄積する。

@@ -50,7 +50,16 @@ export const eventParticipationLogsHandler = http.get(
     const action = log?.action ?? null;
     const updatedAt = log?.updatedAt ?? null;
     const participating = action === "join";
+    const partySize =
+      action === "join" && typeof log?.partySize === "number"
+        ? log.partySize
+        : undefined;
 
-    return HttpResponse.json({ action, participating, updatedAt });
+    return HttpResponse.json({
+      action,
+      participating,
+      partySize,
+      updatedAt,
+    });
   },
 );

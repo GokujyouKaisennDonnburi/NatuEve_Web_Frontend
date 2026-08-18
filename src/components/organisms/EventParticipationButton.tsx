@@ -5,9 +5,11 @@ import { ParticipationModal } from "@/components/organisms/participation/Partici
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { cn } from "@/lib/utils";
 import { leaveEvent } from "@/services/participate";
 import type { EventDetailCost } from "@/types/event";
 import { LeaveError, LeaveErrorCode } from "@/types/participate";
+import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -23,8 +25,14 @@ type EventParticipationButtonProps = {
   disabled?: boolean; // 主催者自身のイベントなどで、参加申し込みを無効化するためのフラグ
   // イベントの定員（参加人数の上限）。未設定時は上限なし。
   capacity?: number;
-  // 現在のユーザーが当該イベントに参加中かどうか。true の場合は「参加キャンセル」ボタンを表示する。
+  // 現在の合計参加人数。未設定時は 0 として扱う。
+  currentParticipants?: number;
+  // 残り参加可能人数。未設定時は capacity から計算する。
+  remainingParticipants?: number;
+  // 現在のユーザーが当該イベントに参加中かどうか。true の場合は参加キャンセルボタンを表示する。
   participating?: boolean;
+  // 現在のユーザーの参加申込人数（代表者を含む）。参加済み表示用。
+  partySize?: number;
   // 参加申し込み成功後に呼ばれるコールバック。参加状態の再取得をトリガーする。
   onParticipateSuccess?: () => void;
   // 参加キャンセル成功後に呼ばれるコールバック。参加状態の再取得をトリガーする。
@@ -33,8 +41,9 @@ type EventParticipationButtonProps = {
 
 // 参加申し込みボタンコンポーネント
 //
-// 申し込みの入力と送信は ParticipationModal が担当し、ここでは開閉のみを扱う。
-// 参加中の場合は代わりに参加キャンセルボタンを表示する。
+// 表示は定員・プログレスバー・残り人数を内包したピル形式。
+// 申し込みの入力と送信は ParticipationModal が担当し、ここではピル表示とモーダル開閉を扱う。
+// 参加中の場合は「申し込み済み + 内容の確認・取り消し」を表示する。
 export function EventParticipationButton({
   eventId,
   eventTitle,
@@ -42,7 +51,10 @@ export function EventParticipationButton({
   costs,
   disabled,
   capacity,
+  currentParticipants,
+  remainingParticipants,
   participating = false,
+  partySize,
   onParticipateSuccess,
   onCancelSuccess,
 }: EventParticipationButtonProps) {
@@ -55,6 +67,34 @@ export function EventParticipationButton({
   // 参加キャンセル送信中フラグ
   const [isCancelSubmitting, setIsCancelSubmitting] = useState(false);
 
+  const displayPartySize = partySize ?? 1;
+
+  // 定員・残り人数の計算
+  const effectiveCapacity =
+    typeof capacity === "number" && capacity >= 0 ? capacity : 0;
+  const effectiveCurrent =
+    typeof currentParticipants === "number" ? currentParticipants : 0;
+  const remaining = Math.max(
+    typeof remainingParticipants === "number"
+      ? remainingParticipants
+      : effectiveCapacity > 0
+        ? effectiveCapacity - effectiveCurrent
+        : 0,
+    0,
+  );
+  const hasCapacity = effectiveCapacity > 0;
+  const participationRate = hasCapacity
+    ? Math.min(effectiveCurrent / effectiveCapacity, 1)
+    : 0;
+  const isFull = hasCapacity && remaining === 0;
+  const isFew =
+    hasCapacity &&
+    !isFull &&
+    (remaining <= effectiveCapacity * 0.2 || remaining <= 10);
+
+  // コントロールの無効状態を判定
+  const isControlDisabled = disabled || isSessionLoading;
+
   // 参加キャンセルボタンのクリックハンドラ
   const handleCancelClick = () => {
     if (disabled || isSessionLoading) return;
@@ -62,36 +102,100 @@ export function EventParticipationButton({
     setIsCancelModalOpen(true);
   };
 
-  // 参加申し込みボタンのクリックハンドラ
+  // 参加申し込みボタンのクリックハンドラ。ピル右側のボタンからモーダルを開く。
   const handleButtonClick = () => {
-    if (disabled || isSessionLoading) return;
+    if (disabled || isSessionLoading || isFull) return;
 
     setIsModalOpen(true);
   };
 
   return (
     <>
-      {participating ? (
-        // 参加中：参加キャンセルボタンを表示する
-        <button
-          type="button"
-          className="flex h-10 w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-r from-rose-500 via-red-500 to-orange-500 px-6 text-base font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:-translate-y-px hover:shadow-xl hover:shadow-rose-500/30 focus-visible:ring-2 focus-visible:ring-rose-500/30 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled || isSessionLoading || isCancelSubmitting}
-          onClick={handleCancelClick}
-        >
-          {isCancelSubmitting ? "送信中…" : "参加キャンセル"}
-        </button>
-      ) : (
-        // 未参加：参加申し込みボタンを表示する
-        <button
-          type="button"
-          className="flex h-10 w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-r from-teal-600 via-emerald-600 to-cyan-600 px-6 text-base font-semibold text-white shadow-lg shadow-teal-500/25 transition hover:-translate-y-px hover:shadow-xl hover:shadow-teal-500/30 focus-visible:ring-2 focus-visible:ring-teal-500/30 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled || isSessionLoading}
-          onClick={handleButtonClick}
-        >
-          参加申し込み
-        </button>
-      )}
+      <div
+        className={cn(
+          "mx-auto flex min-h-[56px] w-full max-w-[480px] items-center justify-between gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-lg sm:min-h-[64px] sm:gap-3 sm:px-5 sm:py-2.5",
+          isControlDisabled && !participating && "opacity-70",
+        )}
+      >
+        {participating ? (
+          // 参加済み：チェックアイコン + 申込人数 + 内容の確認・取り消しボタン
+          <>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <span
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#9ABD5A] text-white"
+                aria-hidden="true"
+              >
+                <Check className="size-3" strokeWidth={2.5} />
+              </span>
+              <span className="text-xs font-bold text-[#173315] sm:text-sm">
+                申し込み済み（{displayPartySize}名）
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={disabled || isSessionLoading || isCancelSubmitting}
+              onClick={handleCancelClick}
+              className="h-10 w-[140px] shrink-0 rounded-full border-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#9ABD5A]/10 focus-visible:ring-[#9ABD5A] disabled:opacity-50 sm:h-11 sm:w-[160px] sm:text-sm"
+            >
+              {isCancelSubmitting ? "送信中…" : "内容の確認・取り消し"}
+            </Button>
+          </>
+        ) : (
+          // 未参加：定員・プログレスバー・残り人数 + 参加申込ボタン
+          <>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-700 sm:text-sm">
+                  {hasCapacity ? `定員${effectiveCapacity}名` : "定員なし"}
+                </span>
+                {isFull ? (
+                  <span className="text-xs font-bold text-red-500 sm:text-sm">
+                    満員
+                  </span>
+                ) : hasCapacity ? (
+                  <span
+                    className={cn(
+                      "text-xs font-bold sm:text-sm",
+                      isFew ? "text-(--brand-orange)" : "text-[#9ABD5A]",
+                    )}
+                  >
+                    残り{remaining}名
+                  </span>
+                ) : null}
+              </div>
+              {hasCapacity ? (
+                <div
+                  className="h-1.5 w-full max-w-[270px] overflow-hidden rounded-full bg-slate-100 sm:max-w-[360px]"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={effectiveCapacity}
+                  aria-valuenow={effectiveCurrent}
+                  aria-label="参加状況"
+                >
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      isFull || isFew
+                        ? "bg-linear-to-r from-[#9ABD5A] to-(--brand-orange)"
+                        : "bg-[#9ABD5A]",
+                    )}
+                    style={{ width: `${participationRate * 100}%` }}
+                  />
+                </div>
+              ) : null}
+            </div>
+            <Button
+              type="button"
+              disabled={isControlDisabled || isFull}
+              onClick={handleButtonClick}
+              className="h-10 w-[140px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[160px] sm:text-sm"
+            >
+              参加を申し込む
+            </Button>
+          </>
+        )}
+      </div>
 
       {/* 参加申し込みモーダル。未登録者は「お客様情報 → 人数 → 完了」の順に進む。 */}
       <ParticipationModal
