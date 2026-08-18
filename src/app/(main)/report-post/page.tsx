@@ -8,15 +8,15 @@ import { toast } from "sonner";
 import { FieldNote } from "@/components/atoms/FieldNote";
 import { PillButton } from "@/components/atoms/PillButton";
 import { SegmentControl } from "@/components/atoms/SegmentControl";
+import { useAuthContext } from "@/components/layouts/AuthProvider";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
-import { PageHeader } from "@/components/molecules/PageHeader";
 import { OptionalUrlField } from "@/components/molecules/event-post/OptionalUrlField";
+import { PageHeader } from "@/components/molecules/PageHeader";
 import {
   MultiFileField,
   type FileWithId,
 } from "@/components/molecules/report-post/MultiFileField";
 import { ReportPostPreview } from "@/components/organisms/report-post/ReportPostPreview";
-import { useAuthContext } from "@/components/layouts/AuthProvider";
 import {
   Card,
   CardContent,
@@ -94,6 +94,29 @@ function ReportPostPageContent() {
       router.push(ROUTES.EVENT_LIST);
     }
   }, [eventId, router]);
+
+  // イベント詳細取得
+  useEffect(() => {
+    if (!eventId) return;
+    let cancelled = false;
+    const fetchEvent = async () => {
+      try {
+        const data = await getEventDetail(eventId);
+        if (!cancelled) {
+          setEvent(data);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("イベント取得エラー", error);
+          toast.error("イベント情報の取得に失敗しました");
+        }
+      }
+    };
+    void fetchEvent();
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
 
   // プレビュー表示用にイベント詳細を取得する（取得失敗時はエラーを無視して表示のみ続行）。
   useEffect(() => {
@@ -246,6 +269,45 @@ function ReportPostPageContent() {
     }
   };
 
+  const startDate = event?.eventDate ? new Date(event.eventDate) : null;
+  const endDate = event?.endDate ? new Date(event.endDate) : null;
+
+  const startDateLabel = startDate?.toLocaleDateString("ja-JP", {
+    month: "short",
+    day: "numeric",
+    weekday: "short",
+    timeZone: "Asia/Tokyo",
+  });
+
+  const startTimeLabel = startDate?.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Tokyo",
+  });
+
+  const endDateLabel = endDate?.toLocaleDateString("ja-JP", {
+    month: "short",
+    day: "numeric",
+    weekday: "short",
+    timeZone: "Asia/Tokyo",
+  });
+
+  const endTimeLabel = endDate?.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Tokyo",
+  });
+
+  const isSameDay =
+    startDate &&
+    endDate &&
+    startDate.toLocaleDateString("ja-JP", {
+      timeZone: "Asia/Tokyo",
+    }) ===
+      endDate.toLocaleDateString("ja-JP", {
+        timeZone: "Asia/Tokyo",
+      });
+
   if (isLoading) {
     return null;
   }
@@ -275,6 +337,33 @@ function ReportPostPageContent() {
           />
         }
       />
+
+      {/* イベント情報表示 */}
+      {event && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardContent className="px-5">
+            <p className="text-sm font-semibold text-blue-600">対象イベント</p>
+
+            <h2 className="text-lg font-bold text-slate-900">{event.title}</h2>
+
+            <div className="mt-2 text-sm text-slate-600">
+              {event.eventDate && event.endDate && (
+                <span>
+                  {startDateLabel} {startTimeLabel}〜
+                  {isSameDay ? endTimeLabel : `${endDateLabel} ${endTimeLabel}`}
+                </span>
+              )}
+
+              {event.location && (
+                <>
+                  <span className="mx-2">｜</span>
+                  <span>{event.location}</span>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* メインコンテンツ */}
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
