@@ -319,6 +319,9 @@ export function EventDetail({
           ) : null}
           <EventParticipationButton
             eventId={event.id}
+            eventTitle={event.title}
+            eventDate={event.eventDate}
+            costs={event.costs}
             capacity={event.capacity}
             participating={participating}
             onParticipateSuccess={refetchParticipation}
