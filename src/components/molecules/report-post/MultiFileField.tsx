@@ -1,13 +1,15 @@
 import { Trash2 } from "lucide-react";
 import Image from "next/image";
 import type { ChangeEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { FieldNote } from "@/components/atoms/FieldNote";
+import { FormEmptyBox } from "@/components/atoms/FormEmptyBox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { formatFileNames } from "@/utils/upload";
 
 // 複数画像選択フィールドコンポーネントのプロパティを定義
 type MultiFileFieldProps = {
@@ -21,6 +23,8 @@ type MultiFileFieldProps = {
   maxFiles?: number;
   className?: string;
   disabled?: boolean;
+  // 選択されたファイルを検証する。エラーメッセージを返すと、そのファイルは追加されない
+  validate?: (file: File) => string | null;
 };
 
 // ファイルに一意のIDを追加するための型
@@ -38,37 +42,42 @@ export function MultiFileField({
   maxFiles = 10,
   className,
   disabled = false,
+  validate,
 }: Readonly<MultiFileFieldProps>) {
   const isImage = accept?.startsWith("image/"); // 受け入れるファイルタイプが画像かどうかを判定するフラグ
   const canAddMore = selectedFiles.length < maxFiles; // さらにファイルを追加できるかどうかを判定
+  const errorId = useId();
 
   // file.id -> プレビュー用のBlob URLを保持するマップ
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   // アンマウント時のcleanupで最新のpreviewUrlsを参照するためのref
   const previewUrlsRef = useRef<Record<string, string>>({});
+  // 追加できなかったファイルの理由を伝えるメッセージ（検証エラー / 上限超過）
+  const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
 
   // selectedFiles の増減に応じて、プレビューURLを生成・破棄する
+  // 再利用は state ではなく ref を基準に行う。ref はアンマウント時に空になるため、
+  // 入力⇔プレビュー切替で再マウントされた際に revoke 済みURLを使い回さない。
   useEffect(() => {
     if (!isImage) return;
 
-    setPreviewUrls((prev) => {
-      const next: Record<string, string> = {};
+    const current = previewUrlsRef.current;
+    const next: Record<string, string> = {};
 
-      // 既存ファイルのURLは再利用し、新規ファイルのみ生成する
-      for (const file of selectedFiles) {
-        next[file.id] = prev[file.id] ?? URL.createObjectURL(file);
+    // 前回保持していたURLは再利用し、新規ファイルのみ生成する
+    for (const file of selectedFiles) {
+      next[file.id] = current[file.id] ?? URL.createObjectURL(file);
+    }
+
+    // 配列からなくなったファイルのURLは解放する
+    for (const fileId of Object.keys(current)) {
+      if (!(fileId in next)) {
+        URL.revokeObjectURL(current[fileId]);
       }
+    }
 
-      // 配列からなくなったファイルのURLは解放する
-      for (const fileId of Object.keys(prev)) {
-        if (!(fileId in next)) {
-          URL.revokeObjectURL(prev[fileId]);
-        }
-      }
-
-      previewUrlsRef.current = next;
-      return next;
-    });
+    previewUrlsRef.current = next;
+    setPreviewUrls(next);
   }, [selectedFiles, isImage]);
 
   // コンポーネント自体がアンマウントされる際に、残っているURLをすべて解放する
@@ -77,37 +86,61 @@ export function MultiFileField({
       for (const url of Object.values(previewUrlsRef.current)) {
         URL.revokeObjectURL(url);
       }
+      // 解放済みURLを再マウント後に使い回さないよう、参照ごと空にする
+      previewUrlsRef.current = {};
     };
   }, []);
 
   // ファイルが選択されたときの処理
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
-    if (files.length === 0) return;
+    // 同じファイルを選び直せるように入力値をリセットする
+    event.target.value = "";
+    if (disabled || files.length === 0) return;
 
-    // 残り追加可能数を計算し、それ以上は追加しない
-    const remaining = Math.max(0, maxFiles - selectedFiles.length);
-    if (remaining === 0) {
-      // 追加できる枠がない場合は入力をリセットして何もしない
-      event.target.value = "";
+    // 選択された時点で検証し、通らないものはフォームへ渡さない。
+    // 理由は欄の下に赤字で出し、最初の1件だけを表示する。
+    const accepted: File[] = [];
+    let message: string | null = null;
+    for (const file of files) {
+      const validationError = validate?.(file) ?? null;
+      if (validationError) {
+        message ??= validationError;
+        continue;
+      }
+      accepted.push(file);
+    }
+
+    // 上限を超えた分は黙って落とさず、どれが入らなかったかを名前で伝える
+    const capacity = Math.max(0, maxFiles - selectedFiles.length);
+    const added = accepted.slice(0, capacity);
+    const overflowed = accepted.slice(capacity);
+
+    if (!message && overflowed.length > 0) {
+      const limitText =
+        maxFiles === 1 ? "1つだけ選べます" : `最大${maxFiles}個までです`;
+      message = `${limitText}。${formatFileNames(overflowed)}は追加していません。`;
+    }
+
+    setRejectionMessage(message);
+
+    // 1件も追加できないときは親へ通知しない
+    if (added.length === 0) {
       return;
     }
 
-    const filesToAdd = files.slice(0, remaining);
-
-    const newFiles = filesToAdd.map((file) => {
+    const newFiles = added.map((file) => {
       const fileWithId = file as FileWithId;
       fileWithId.id = crypto.randomUUID();
       return fileWithId;
     });
 
     onSelectedFilesChange([...selectedFiles, ...newFiles]);
-    // 同名ファイル再選択を可能にするために input をリセット
-    event.target.value = "";
   };
 
   // ファイルを削除する処理
   const handleRemoveFile = (id: string) => {
+    setRejectionMessage(null);
     onSelectedFilesChange(selectedFiles.filter((file) => file.id !== id));
   };
 
@@ -126,8 +159,8 @@ export function MultiFileField({
 
       {hint && <FieldNote>{hint}</FieldNote>}
 
-      {/* ファイル追加ボタン */}
-      {canAddMore && (
+      {/* ファイル追加ボタン。上限に達したら代わりに「削除してほしい」旨の枠を表示する */}
+      {canAddMore ? (
         <div className="relative w-full cursor-pointer">
           <label
             htmlFor={id}
@@ -147,10 +180,17 @@ export function MultiFileField({
             multiple
             onChange={handleFileChange}
             disabled={!canAddMore || disabled}
+            aria-describedby={rejectionMessage ? errorId : undefined}
             title=""
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
         </div>
+      ) : (
+        <FormEmptyBox>
+          {maxFiles === 1
+            ? "変更するには、下の一覧から削除してください。"
+            : "追加するには、下の一覧から削除してください。"}
+        </FormEmptyBox>
       )}
 
       {/* 選択されたファイルの一覧 */}
@@ -168,6 +208,8 @@ export function MultiFileField({
                       src={previewUrls[file.id]}
                       alt={file.name}
                       fill
+                      // Blob URL は Next.js の画像最適化を通せないため、そのまま表示する
+                      unoptimized
                       className="object-cover"
                     />
                   )}
@@ -197,9 +239,9 @@ export function MultiFileField({
         </div>
       )}
 
-      {!canAddMore && (
+      {rejectionMessage && (
         <FieldNote tone="error">
-          最大{maxFiles}個までアップロードできます
+          <span id={errorId}>{rejectionMessage}</span>
         </FieldNote>
       )}
 
