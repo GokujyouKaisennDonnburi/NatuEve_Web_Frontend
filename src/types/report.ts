@@ -6,9 +6,10 @@
 export type CreateReportRequest = {
   // イベントID（必須）。
   eventId: string;
-  // 活動記録の文章（任意）。
-  // NOTE: 外部URLのみで投稿可能にするため任意とする。
-  content?: string;
+  // 活動記録の文章。
+  // NOTE: バックエンドは必須のため、外部URLのみで投稿する場合も必ず送る。
+  // 外部URL時は固定文言を送ってバリデーション（required）を満たす。
+  content: string;
   // 関連URL一覧（任意・各要素255文字以内・http/https）。
   externalUrls?: string[];
   // 画像オブジェクトキーの一覧（任意）。
