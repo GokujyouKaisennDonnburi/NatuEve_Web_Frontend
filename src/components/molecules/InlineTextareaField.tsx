@@ -95,10 +95,8 @@ export function InlineTextareaField({
     );
   }
 
-  if (!initialValue && isEditable) {
-    return editTrigger ? (
-      editTrigger(() => setIsEditing(true))
-    ) : (
+  if (!initialValue && isEditable && !editTrigger) {
+    return (
       <button
         type="button"
         onClick={() => setIsEditing(true)}

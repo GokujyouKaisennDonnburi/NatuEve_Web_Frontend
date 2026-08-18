@@ -19,6 +19,7 @@ export function EventFilterPill({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
         "inline-flex items-center h-10 rounded-full border px-[19px] font-bold text-sm transition-colors",
         active

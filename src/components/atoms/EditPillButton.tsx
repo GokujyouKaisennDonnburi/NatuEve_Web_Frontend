@@ -13,12 +13,12 @@ type EditPillButtonProps = {
 const SIZE_MAP = {
   sm: {
     label: "編集",
-    iconSize: 12,
+    iconClass: "size-3",
     buttonClass: "h-[30px] text-xs px-[14px]",
   },
   md: {
     label: "名前を編集",
-    iconSize: 13,
+    iconClass: "size-[13px]",
     buttonClass: "h-8 text-sm px-[15px]",
   },
 } as const;
@@ -41,10 +41,7 @@ export function EditPillButton({
         className,
       )}
     >
-      <Pencil
-        style={{ width: config.iconSize, height: config.iconSize }}
-        stroke="#3A4237"
-      />
+      <Pencil className={config.iconClass} />
       <span>{config.label}</span>
     </Button>
   );
