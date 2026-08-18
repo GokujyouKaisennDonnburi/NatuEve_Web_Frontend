@@ -1,5 +1,6 @@
 "use client";
 
+import { EditPillButton } from "@/components/atoms/EditPillButton";
 import { InlineTextField } from "@/components/molecules/InlineTextField";
 import { InlineTextareaField } from "@/components/molecules/InlineTextareaField";
 import { User } from "lucide-react";
@@ -56,6 +57,9 @@ export function ProfileHeader({
             onSave={onUpdateName || defaultOnSave}
             placeholder="ユーザー名を入力"
             textClassName="text-lg font-bold text-slate-900 truncate"
+            editTrigger={(onClick) => (
+              <EditPillButton size="md" onClick={onClick} />
+            )}
           />
         </div>
 
@@ -67,6 +71,9 @@ export function ProfileHeader({
             onSave={onUpdateDescription || defaultOnSave}
             placeholder="自己紹介を入力してみましょう！"
             textClassName="text-sm text-slate-600 leading-relaxed pr-6"
+            editTrigger={(onClick) => (
+              <EditPillButton size="sm" onClick={onClick} />
+            )}
           />
         </div>
       </div>
