@@ -14,6 +14,10 @@ type InlineTextareaFieldProps = {
   className?: string;
   textClassName?: string;
   editTrigger?: (onClick: () => void) => ReactNode;
+  /** 外部から編集モードを開始するためのフラグ。true になると編集モードに入る */
+  forceEdit?: boolean;
+  /** forceEdit による編集モード開始を消費したことを親に通知する */
+  onConsumeForceEdit?: () => void;
 };
 
 export function InlineTextareaField({
@@ -24,6 +28,8 @@ export function InlineTextareaField({
   className = "",
   textClassName = "",
   editTrigger,
+  forceEdit,
+  onConsumeForceEdit,
 }: InlineTextareaFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialValue);
@@ -32,6 +38,13 @@ export function InlineTextareaField({
   useEffect(() => {
     if (!isEditing) setValue(initialValue);
   }, [initialValue, isEditing]);
+
+  useEffect(() => {
+    if (forceEdit) {
+      setIsEditing(true);
+      onConsumeForceEdit?.();
+    }
+  }, [forceEdit, onConsumeForceEdit]);
   const handleSave = async () => {
     // 変更がない場合は何もしない（閉じるだけ）
     if (value === initialValue) {

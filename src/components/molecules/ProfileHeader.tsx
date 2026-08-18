@@ -3,7 +3,6 @@
 import { EditPillButton } from "@/components/atoms/EditPillButton";
 import { InlineTextField } from "@/components/molecules/InlineTextField";
 import { InlineTextareaField } from "@/components/molecules/InlineTextareaField";
-import { User } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -12,68 +11,105 @@ type ProfileHeaderProps = {
   avatarUrl: string;
   description?: string;
   isOwnProfile: boolean;
+  createdAt?: string;
   onUpdateName?: (newName: string) => Promise<void>;
   onUpdateDescription?: (newDescription: string) => Promise<void>;
 };
+
+function formatMemberSince(createdAt?: string): string {
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}年から利用`;
+}
 
 export function ProfileHeader({
   name,
   avatarUrl,
   description,
   isOwnProfile,
+  createdAt,
   onUpdateName,
   onUpdateDescription,
 }: ProfileHeaderProps) {
   const [imgError, setImgError] = useState(false);
+  const [forceEditName, setForceEditName] = useState(false);
+  const [forceEditDesc, setForceEditDesc] = useState(false);
 
   const defaultOnSave = async () => {};
 
-  return (
-    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 bg-white rounded-xl border border-slate-200/80 shadow-sm">
-      {/* 1. アイコン領域 (フォールバック対応) */}
-      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border border-slate-200 shrink-0 bg-slate-100 flex items-center justify-center text-slate-400">
-        {avatarUrl && !imgError ? (
-          <Image
-            width={96}
-            height={96}
-            src={avatarUrl}
-            alt={`${name}のアイコン`}
-            className="w-full h-full object-cover"
-            unoptimized
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <User className="w-10 h-10 sm:w-12 sm:h-12" />
-        )}
-      </div>
+  const memberSince = formatMemberSince(createdAt);
+  const firstChar = name.charAt(0) || "?";
 
-      {/* 2. ユーザー情報・自己紹介領域 */}
-      <div className="flex-1 text-center sm:text-left space-y-3 w-full min-w-0">
-        {/* ユーザー名 (インライン編集) */}
-        <div className="flex justify-center sm:justify-start">
-          <InlineTextField
-            value={name}
-            isEditable={isOwnProfile}
-            onSave={onUpdateName || defaultOnSave}
-            placeholder="ユーザー名を入力"
-            textClassName="text-lg font-bold text-slate-900 truncate"
-            editTrigger={(onClick) => (
-              <EditPillButton size="md" onClick={onClick} />
-            )}
-          />
+  return (
+    <div className="relative bg-white border border-[#E3E8DF] rounded-2xl shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] p-[29px]">
+      {/* 編集ボタン（右上） */}
+      {isOwnProfile && (
+        <div className="absolute top-[19px] right-[19px]">
+          <EditPillButton size="sm" onClick={() => setForceEditDesc(true)} />
+        </div>
+      )}
+
+      {/* アバター + 名前行 */}
+      <div className="flex items-start gap-[27px]">
+        {/* アバター */}
+        <div className="w-[76px] h-[76px] rounded-full overflow-hidden shrink-0 bg-[#97C459] flex items-center justify-center">
+          {avatarUrl && !imgError ? (
+            <Image
+              width={76}
+              height={76}
+              src={avatarUrl}
+              alt={`${name}のアイコン`}
+              className="w-full h-full object-cover"
+              unoptimized
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <span className="font-['Zen_Maru_Gothic'] font-bold text-[30px] leading-[43px] text-[#1E2C10] text-center">
+              {firstChar}
+            </span>
+          )}
         </div>
 
-        {/* 自己紹介 (インライン編集) */}
-        <div className="relative p-3 bg-slate-50 rounded-lg border border-slate-100 min-h-[4rem] text-left">
+        {/* 名前 + 利用開始年 */}
+        <div className="flex-1 min-w-0 pt-[10px]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <InlineTextField
+              value={name}
+              isEditable={isOwnProfile}
+              onSave={onUpdateName || defaultOnSave}
+              placeholder="ユーザー名を入力"
+              forceEdit={forceEditName}
+              onConsumeForceEdit={() => setForceEditName(false)}
+              textClassName="font-['Zen_Maru_Gothic'] font-bold text-[24px] leading-[35px] text-[#272E24] tracking-[0.48px] truncate"
+              editTrigger={(onClick) => (
+                <EditPillButton size="md" onClick={onClick} />
+              )}
+            />
+          </div>
+          {memberSince && (
+            <p className="mt-[6px] text-[13px] leading-[19px] text-[#838C7D] font-['Zen_Kaku_Gothic_New']">
+              {memberSince}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* 区切り線 */}
+      <div className="border-t border-[#F1F4EE] mt-[20px] mb-[24px]" />
+
+      {/* 自己紹介 */}
+      <div>
+        <p className="text-sm font-bold text-[#272E24] mb-[16px]">自己紹介</p>
+        <div className="relative">
           <InlineTextareaField
             value={description || ""}
-            isEditable={isOwnProfile}
+            isEditable={false}
             onSave={onUpdateDescription || defaultOnSave}
             placeholder="自己紹介を入力してみましょう！"
-            textClassName="text-sm text-slate-600 leading-relaxed pr-6"
-            editTrigger={(onClick) => (
-              <EditPillButton size="sm" onClick={onClick} />
-            )}
+            forceEdit={forceEditDesc}
+            onConsumeForceEdit={() => setForceEditDesc(false)}
+            textClassName="text-[15px] leading-[28px] text-[#3A4237]"
           />
         </div>
       </div>
