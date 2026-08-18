@@ -118,23 +118,23 @@ export function InlineTextareaField({
           {initialValue || "自己紹介がまだ設定されていません。"}
         </p>
       </div>
-{isEditable &&
-          (editTrigger ? (
-            <span className="absolute -top-2 -right-2">
-              {editTrigger(() => setIsEditing(true))}
-            </span>
-          ) : (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="absolute -top-2 -right-2 h-8 w-8 text-slate-400 hover:text-slate-600 transition-colors"
-              onClick={() => setIsEditing(true)}
-              aria-label="編集する"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </Button>
-          ))}
+      {isEditable &&
+        (editTrigger ? (
+          <span className="absolute -top-2 -right-2">
+            {editTrigger(() => setIsEditing(true))}
+          </span>
+        ) : (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="absolute -top-2 -right-2 h-8 w-8 text-slate-400 hover:text-slate-600 transition-colors"
+            onClick={() => setIsEditing(true)}
+            aria-label="編集する"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+        ))}
     </div>
   );
 }

@@ -11,8 +11,16 @@ type EditPillButtonProps = {
 };
 
 const SIZE_MAP = {
-  sm: { label: "編集", iconSize: 12, buttonClass: "h-[30px] text-xs px-[14px]" },
-  md: { label: "名前を編集", iconSize: 13, buttonClass: "h-8 text-sm px-[15px]" },
+  sm: {
+    label: "編集",
+    iconSize: 12,
+    buttonClass: "h-[30px] text-xs px-[14px]",
+  },
+  md: {
+    label: "名前を編集",
+    iconSize: 13,
+    buttonClass: "h-8 text-sm px-[15px]",
+  },
 } as const;
 
 export function EditPillButton({
