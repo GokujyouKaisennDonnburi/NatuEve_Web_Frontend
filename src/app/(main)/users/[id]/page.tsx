@@ -22,7 +22,6 @@ export default function UserProfilePage({
   // 今後のイベント取得API実装時に備えてStateを残す
   const [hostedEvents, setHostedEvents] = useState<EventItem[]>([]);
   const [participatedEvents, setParticipatedEvents] = useState<EventItem[]>([]);
-  const [appliedEvents, setAppliedEvents] = useState<EventItem[]>([]);
 
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -49,7 +48,6 @@ export default function UserProfilePage({
 
           setHostedEvents([]);
           setParticipatedEvents([]);
-          setAppliedEvents([]);
         }
       } catch (err) {
         // 取得失敗時（404含む）は Not Found 扱いとする
@@ -94,6 +92,7 @@ export default function UserProfilePage({
         description={profile.description}
         // false を指定して編集UI（鉛筆マークなど）を確実に非表示にする
         isOwnProfile={false}
+        createdAt={profile.createdAt}
         // 何もしないダミーのPromise関数を渡す
         onUpdateName={() => Promise.resolve()}
         onUpdateDescription={() => Promise.resolve()}
@@ -101,7 +100,7 @@ export default function UserProfilePage({
       <UserEventTabs
         hostedEvents={hostedEvents}
         participatedEvents={participatedEvents}
-        appliedEvents={appliedEvents}
+        isOwnProfile={false}
       />
     </div>
   );

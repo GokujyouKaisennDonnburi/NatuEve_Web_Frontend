@@ -63,12 +63,13 @@ export default function MyPage() {
   };
 
   return (
-    <div className="mx-auto max-w-xl pt-2 space-y-8">
+    <div className="mx-auto max-w-[1192px] pt-2 space-y-8">
       <ProfileHeader
         name={profile.displayName}
         avatarUrl={profile.avatarUrl}
         description={profile.description}
         isOwnProfile={true}
+        createdAt={profile.createdAt}
         onUpdateName={handleUpdateName}
         onUpdateDescription={handleUpdateDescription}
       />
@@ -77,6 +78,7 @@ export default function MyPage() {
         hostedEvents={hostedEvents}
         participatedEvents={participatedEvents}
         appliedEvents={appliedEvents}
+        isOwnProfile={true}
       />
     </div>
   );
