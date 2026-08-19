@@ -27,6 +27,9 @@ type EventParticipationButtonProps = {
   capacity?: number;
   // 現在申込中の合計参加人数。未設定時は 0 として扱う。残り人数は capacity - participantCount で算出する。
   participantCount?: number;
+  // 受付終了フラグ。true のとき参加申し込みボタンを無効化し「受付終了」と表示する。
+  // 現状は開催終了時（endDate 経過）で判定するが、将来は申込期限の導入を予定している。
+  receptionClosed?: boolean;
   // 現在のユーザーが当該イベントに参加中かどうか。true の場合は参加キャンセルボタンを表示する。
   participating?: boolean;
   // 現在のユーザーの参加申込人数（代表者を含む）。参加済み表示用。
@@ -50,6 +53,7 @@ export function EventParticipationButton({
   disabled,
   capacity,
   participantCount,
+  receptionClosed,
   participating = false,
   partySize,
   onParticipateSuccess,
@@ -85,6 +89,14 @@ export function EventParticipationButton({
     !isFull &&
     (remaining <= effectiveCapacity * 0.2 || remaining <= 10);
 
+  // 未参加ボタンの文言。受付終了が最優先で、次に満員を優先する。
+  // 受付終了の判定基準は現状開催終了時だが、将来は申込期限の導入を予定している。
+  const buttonLabel = receptionClosed
+    ? "受付終了"
+    : isFull
+      ? "現在満員です"
+      : "参加を申し込む";
+
   // コントロールの無効状態を判定
   const isControlDisabled = disabled || isSessionLoading;
 
@@ -97,7 +109,7 @@ export function EventParticipationButton({
 
   // 参加申し込みボタンのクリックハンドラ。ピル右側のボタンからモーダルを開く。
   const handleButtonClick = () => {
-    if (disabled || isSessionLoading || isFull) return;
+    if (disabled || isSessionLoading || isFull || receptionClosed) return;
 
     setIsModalOpen(true);
   };
@@ -180,11 +192,11 @@ export function EventParticipationButton({
             </div>
             <Button
               type="button"
-              disabled={isControlDisabled || isFull}
+              disabled={isControlDisabled || isFull || receptionClosed}
               onClick={handleButtonClick}
-              className="h-10 w-[140px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[160px] sm:text-sm"
+              className="h-10 w-[168px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[192px] sm:text-sm"
             >
-              参加を申し込む
+              {buttonLabel}
             </Button>
           </>
         )}
