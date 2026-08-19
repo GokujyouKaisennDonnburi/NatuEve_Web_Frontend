@@ -29,8 +29,11 @@ export function PaymentAlertNote({
         !
       </span>
       <div className="space-y-1 text-sm leading-6 text-[#5C4A33]">
-        {lines.map((line) => (
-          <p key={line}>{line}</p>
+        {lines.map((line, index) => (
+          // 同じ文言が渡される可能性があるため文言自体は key にできない。
+          // 行の増減も並べ替えも起きない固定リストなので添字を key にする。
+          // biome-ignore lint/suspicious/noArrayIndexKey: 並び順が変化しない固定リストのため添字で一意にする。
+          <p key={index}>{line}</p>
         ))}
       </div>
     </div>
