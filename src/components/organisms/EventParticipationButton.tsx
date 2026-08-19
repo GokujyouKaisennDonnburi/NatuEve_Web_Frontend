@@ -149,27 +149,27 @@ export function EventParticipationButton({
         ) : (
           // 未参加：定員・プログレスバー・残り人数 + 参加申込ボタン
           <>
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-slate-700 sm:text-sm">
-                  {hasCapacity ? `定員${effectiveCapacity}名` : "定員なし"}
-                </span>
-                {isFull ? (
-                  <span className="text-xs font-bold text-red-500 sm:text-sm">
-                    満員
+            {hasCapacity ? (
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-700 sm:text-sm">
+                    定員{effectiveCapacity}名
                   </span>
-                ) : hasCapacity ? (
-                  <span
-                    className={cn(
-                      "text-xs font-bold sm:text-sm",
-                      isFew ? "text-(--brand-orange)" : "text-[#9ABD5A]",
-                    )}
-                  >
-                    残り{remaining}名
-                  </span>
-                ) : null}
-              </div>
-              {hasCapacity ? (
+                  {isFull ? (
+                    <span className="text-xs font-bold text-red-500 sm:text-sm">
+                      満員
+                    </span>
+                  ) : (
+                    <span
+                      className={cn(
+                        "text-xs font-bold sm:text-sm",
+                        isFew ? "text-(--brand-orange)" : "text-[#9ABD5A]",
+                      )}
+                    >
+                      残り{remaining}名
+                    </span>
+                  )}
+                </div>
                 <div
                   className="h-1.5 w-full max-w-[270px] overflow-hidden rounded-full bg-slate-100 sm:max-w-[360px]"
                   role="progressbar"
@@ -188,8 +188,17 @@ export function EventParticipationButton({
                     style={{ width: `${participationRate * 100}%` }}
                   />
                 </div>
-              ) : null}
-            </div>
+              </div>
+            ) : (
+              <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+                <span className="text-xs font-bold text-slate-700 sm:text-sm">
+                  定員なし
+                </span>
+                <span className="text-xs font-bold text-[#9ABD5A] sm:text-sm">
+                  現在{effectiveCurrent}名
+                </span>
+              </div>
+            )}
             <Button
               type="button"
               disabled={isControlDisabled || isFull || receptionClosed}

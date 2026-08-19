@@ -218,7 +218,7 @@ export const mockEventDetails = new Map<string, MockEventDetail>(
 seedEventMembers(toUuid(100), 30); // 満員
 seedEventMembers(toUuid(99), 24); // 残りわずか
 seedEventMembers(toUuid(98), 15); // 余裕あり
-seedEventMembers(toUuid(98), 0); // 参加者なし
+seedEventMembers(toUuid(97), 0); // 参加者なし
 
 // 検索対象フィールドを収集する。
 // 検索対象: title / location / profile.displayName(主催者) /
