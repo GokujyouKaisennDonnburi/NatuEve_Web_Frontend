@@ -1,14 +1,24 @@
 // イベント参加 API（POST /api/v1/events/{id}/join）の DTO 群。
 // バックエンドの契約に合わせる。OpenAPI codegen 未導入のため upload.ts 等と同様に手書きする。
 
+// 参加内訳1件分の DTO。カテゴリにはイベント詳細の costs[].category を指定する。
+// 大文字小文字は区別されない。0人のカテゴリは送信しない。
+export type ParticipantEntry = {
+  // 費用カテゴリ名（イベント詳細の costs[].category に存在する名前）。
+  category: string;
+  // そのカテゴリの参加人数（1以上の整数）。
+  headCount: number;
+};
+
 // 参加エンドポイントへのリクエストボディ DTO。
 export type ParticipateEventRequest = {
   // 参加者のメールアドレス（必須）。
   mailAddress: string;
   // 参加者の表示名（必須）。
   username: string;
-  // 参加人数（代表者を含む）。初期値は 1、最小値は 1。
-  partySize: number;
+  // カテゴリ別の参加人数内訳（1件以上）。0人のカテゴリは含めない。
+  // 合計人数（partySize）はサーバーが内訳から算出するため送信しない。
+  participants: ParticipantEntry[];
 };
 
 // 参加エンドポイントのレスポンス DTO。
@@ -19,7 +29,9 @@ export type ParticipateEventResponse = {
   mailAddress: string;
   // 参加者の表示名。
   username: string;
-  // 参加人数（代表者を含む）。
+  // カテゴリ別の参加人数内訳（リクエスト内容をそのまま反映）。
+  participants: ParticipantEntry[];
+  // 合計参加人数（代表者を含む）。サーバーが participants の内訳から算出する。
   partySize: number;
   // プロフィールID（ログイン参加時はユーザーID・匿名参加時は null）。
   profileId: string | null;

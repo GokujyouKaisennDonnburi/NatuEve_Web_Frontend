@@ -9,6 +9,8 @@ export type MockParticipationLog = {
   action: "join" | "leave";
   // 参加申込人数（代表者を含む）。leave の場合は undefined として扱う。
   partySize?: number;
+  // カテゴリ別の参加人数内訳。join 時に記録し、leave では undefined として扱う。
+  participants?: Array<{ category: string; headCount: number }>;
   updatedAt: string;
 };
 

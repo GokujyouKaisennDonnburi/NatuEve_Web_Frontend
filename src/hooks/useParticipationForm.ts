@@ -4,6 +4,7 @@ import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { MOCK_AUTH_SESSION, isMockAuthEnabled } from "@/services/mockAuth";
 import { participateEvent } from "@/services/participate";
 import type { EventDetailCost } from "@/types/event";
+import type { ParticipantEntry } from "@/types/participate";
 import { ParticipateError, ParticipateErrorCode } from "@/types/participate";
 import type {
   ParticipantCounts,
@@ -308,10 +309,34 @@ export function useParticipationForm({
 
   // 参加申し込みを送信する。
   //
-  // API は合計人数（partySize）のみを受け取るため、カテゴリ別の内訳は送れない。
+  // 人数はカテゴリ別内訳（participants）で送る。カテゴリにはイベント詳細の
+  // costs[].category を指定し、0人のカテゴリは含めない。合計人数（partySize）は
+  // サーバー側が内訳から算出するため送信しない。
   // ログイン時はセッションの情報を、未ログイン時は入力値をトークン無しで送る。
   const submit = useCallback(() => {
     if (!canSubmit) return;
+
+    // カテゴリ別内訳を組立。0人カテゴリは除外する。
+    const participants: ParticipantEntry[] = resolvedCosts
+      .map((cost, index) => ({
+        category: cost.category,
+        headCount: counts[index] ?? 0,
+      }))
+      .filter((entry) => entry.headCount > 0);
+
+    // 防御: イベントの costs に存在しないカテゴリ（フォールバック由来等）が
+    // 含まれる場合は送信しない。要件上 costs は空にならない前提だが、
+    // 万一不正データが入った場合に API の 400 を避けるための最小限のガード。
+    const realCategories = (costs ?? []).map((cost) => cost.category.trim());
+    if (
+      participants.length === 0 ||
+      participants.some((entry) => !realCategories.includes(entry.category))
+    ) {
+      toast.error(
+        "このイベントは費用カテゴリが設定されていないため参加申し込みできません。",
+      );
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -335,7 +360,7 @@ export function useParticipationForm({
           await participateEvent(eventId, {
             mailAddress: sessionMailAddress,
             username: sessionUsername,
-            partySize: summary.totalCount,
+            participants,
           });
         } else {
           await participateEvent(
@@ -343,7 +368,7 @@ export function useParticipationForm({
             {
               mailAddress: mailAddress.trim(),
               username: username.trim(),
-              partySize: summary.totalCount,
+              participants,
             },
             { auth: false },
           );
@@ -362,7 +387,9 @@ export function useParticipationForm({
     isAuthenticated,
     session,
     eventId,
-    summary.totalCount,
+    resolvedCosts,
+    counts,
+    costs,
     mailAddress,
     username,
     onSuccess,
