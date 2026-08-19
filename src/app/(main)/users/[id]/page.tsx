@@ -1,7 +1,8 @@
 "use client";
 
-import type { EventItem } from "@/components/organisms/EventCard";
+import { BackLink } from "@/components/atoms/BackLink";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
+import type { EventItem } from "@/components/organisms/EventCard";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
 import { fetchUserProfile } from "@/services/user";
 import type { UserProfileResponse } from "@/types/user";
@@ -22,7 +23,6 @@ export default function UserProfilePage({
   // 今後のイベント取得API実装時に備えてStateを残す
   const [hostedEvents, setHostedEvents] = useState<EventItem[]>([]);
   const [participatedEvents, setParticipatedEvents] = useState<EventItem[]>([]);
-  const [appliedEvents, setAppliedEvents] = useState<EventItem[]>([]);
 
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -49,7 +49,6 @@ export default function UserProfilePage({
 
           setHostedEvents([]);
           setParticipatedEvents([]);
-          setAppliedEvents([]);
         }
       } catch (err) {
         // 取得失敗時（404含む）は Not Found 扱いとする
@@ -87,22 +86,43 @@ export default function UserProfilePage({
   }
 
   return (
-    <div className="mx-auto max-w-xl pt-2 space-y-8">
+    <div className="mx-auto max-w-[1192px] pt-2 space-y-8">
+      <BackLink href="/">前の画面にもどる</BackLink>
+
+      <h1 className="font-['Zen_Maru_Gothic'] font-bold text-[28px] text-[#272E24] tracking-[0.56px]">
+        プロフィール
+      </h1>
+
       <ProfileHeader
         name={profile.displayName}
         avatarUrl={profile.avatarUrl}
         description={profile.description}
-        // false を指定して編集UI（鉛筆マークなど）を確実に非表示にする
+        // false を指定して編集UIを確実に非表示にする
         isOwnProfile={false}
+        createdAt={profile.createdAt}
         // 何もしないダミーのPromise関数を渡す
         onUpdateName={() => Promise.resolve()}
         onUpdateDescription={() => Promise.resolve()}
       />
-      <UserEventTabs
-        hostedEvents={hostedEvents}
-        participatedEvents={participatedEvents}
-        appliedEvents={appliedEvents}
-      />
+
+      <section>
+        <div className="flex items-baseline gap-3">
+          <h2 className="font-['Zen_Maru_Gothic'] font-bold text-[19px] leading-[28px] text-[#272E24]">
+            主催したイベント
+          </h2>
+          <span className="text-[13px] leading-[19px] text-[#838C7D]">
+            このユーザーが主催したイベント
+          </span>
+        </div>
+
+        <div className="mt-4">
+          <UserEventTabs
+            hostedEvents={hostedEvents}
+            participatedEvents={participatedEvents}
+            isOwnProfile={false}
+          />
+        </div>
+      </section>
     </div>
   );
 }

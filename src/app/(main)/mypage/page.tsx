@@ -1,8 +1,9 @@
 "use client";
 
+import { BackLink } from "@/components/atoms/BackLink";
 import { useCurrentUserContext } from "@/components/layouts/AuthProvider";
-import type { EventItem } from "@/components/organisms/EventCard";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
+import type { EventItem } from "@/components/organisms/EventCard";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
 import { updateMyProfile } from "@/services/user";
 import Link from "next/link";
@@ -63,21 +64,42 @@ export default function MyPage() {
   };
 
   return (
-    <div className="mx-auto max-w-xl pt-2 space-y-8">
+    <div className="mx-auto max-w-[1192px] pt-2 space-y-8">
+      <BackLink href="/">前の画面にもどる</BackLink>
+
+      <h1 className="font-['Zen_Maru_Gothic'] font-bold text-[28px] text-[#272E24] tracking-[0.56px]">
+        マイページ
+      </h1>
+
       <ProfileHeader
         name={profile.displayName}
         avatarUrl={profile.avatarUrl}
         description={profile.description}
         isOwnProfile={true}
+        createdAt={profile.createdAt}
         onUpdateName={handleUpdateName}
         onUpdateDescription={handleUpdateDescription}
       />
-      {/* APIから取得できない間は、「まだイベントがありません」等の初期UIが安全に表示されます */}
-      <UserEventTabs
-        hostedEvents={hostedEvents}
-        participatedEvents={participatedEvents}
-        appliedEvents={appliedEvents}
-      />
+
+      <section>
+        <div className="flex items-baseline gap-3">
+          <h2 className="font-['Zen_Maru_Gothic'] font-bold text-[19px] leading-[28px] text-[#272E24]">
+            主催したイベント
+          </h2>
+          <span className="text-[13px] leading-[19px] text-[#838C7D]">
+            あなたが主催したイベント
+          </span>
+        </div>
+
+        <div className="mt-4">
+          <UserEventTabs
+            hostedEvents={hostedEvents}
+            participatedEvents={participatedEvents}
+            appliedEvents={appliedEvents}
+            isOwnProfile={true}
+          />
+        </div>
+      </section>
     </div>
   );
 }

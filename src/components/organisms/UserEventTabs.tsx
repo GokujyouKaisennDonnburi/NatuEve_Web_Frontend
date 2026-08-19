@@ -3,17 +3,18 @@
 import { EventFilterPill } from "@/components/atoms/EventFilterPill";
 import { EmptyMessage } from "@/components/atoms/EmptyMessage";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type UserEventTabsProps = {
   hostedEvents: EventItem[];
   participatedEvents: EventItem[];
-  appliedEvents: EventItem[];
+  appliedEvents?: EventItem[];
+  isOwnProfile: boolean;
 };
 
 type TabKey = "applied" | "hosted" | "participated";
 
-const TAB_CONFIG: { key: TabKey; label: string }[] = [
+const ALL_TABS: { key: TabKey; label: string }[] = [
   { key: "applied", label: "申し込み中イベント" },
   { key: "hosted", label: "主催したイベント" },
   { key: "participated", label: "参加済みイベント" },
@@ -22,8 +23,15 @@ const TAB_CONFIG: { key: TabKey; label: string }[] = [
 export function UserEventTabs({
   hostedEvents,
   participatedEvents,
-  appliedEvents,
+  appliedEvents = [],
+  isOwnProfile,
 }: UserEventTabsProps) {
+  const tabs = useMemo(
+    () =>
+      isOwnProfile ? ALL_TABS : ALL_TABS.filter((t) => t.key !== "applied"),
+    [isOwnProfile],
+  );
+
   const [activeTab, setActiveTab] = useState<TabKey>("hosted");
 
   const eventMap: Record<TabKey, EventItem[]> = {
@@ -37,7 +45,7 @@ export function UserEventTabs({
   return (
     <div className="w-full space-y-6">
       <div className="flex flex-wrap gap-2">
-        {TAB_CONFIG.map(({ key, label }) => (
+        {tabs.map(({ key, label }) => (
           <EventFilterPill
             key={key}
             label={label}

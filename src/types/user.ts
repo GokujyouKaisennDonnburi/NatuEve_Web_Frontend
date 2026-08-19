@@ -53,4 +53,5 @@ export type UserProfileResponse = {
   displayName: string;
   avatarUrl: string;
   description?: string;
+  createdAt?: string;
 };

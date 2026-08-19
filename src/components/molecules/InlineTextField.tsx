@@ -14,6 +14,10 @@ type InlineTextFieldProps = {
   className?: string;
   textClassName?: string;
   editTrigger?: (onClick: () => void) => ReactNode;
+  /** 外部から編集モードを開始するためのフラグ */
+  forceEdit?: boolean;
+  /** forceEdit を消費したことを親に通知する */
+  onConsumeForceEdit?: () => void;
 };
 
 export function InlineTextField({
@@ -24,6 +28,8 @@ export function InlineTextField({
   className = "",
   textClassName = "",
   editTrigger,
+  forceEdit,
+  onConsumeForceEdit,
 }: InlineTextFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialValue);
@@ -32,6 +38,13 @@ export function InlineTextField({
   useEffect(() => {
     if (!isEditing) setValue(initialValue);
   }, [initialValue, isEditing]);
+
+  useEffect(() => {
+    if (forceEdit) {
+      setIsEditing(true);
+      onConsumeForceEdit?.();
+    }
+  }, [forceEdit, onConsumeForceEdit]);
   const handleSave = async () => {
     // 空欄、または変更がない場合は何もしない（元の値に戻して閉じる）
     if (!value.trim() || value === initialValue) {
