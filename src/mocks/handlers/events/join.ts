@@ -5,6 +5,7 @@
 // 同一イベントへの重複参加は 409 already_joined、定員超過は 409 capacity_full で返す。
 import { HttpResponse, http } from "msw";
 
+import type { ParticipationCostBreakdown } from "@/types/participate";
 import type { MockParticipationLog } from "./participation";
 import {
   eventMembers,
@@ -18,6 +19,41 @@ import {
   hasBearerToken,
   unauthorizedResponse,
 } from "./auth";
+
+// イベントの費用カテゴリ（costs）へ、申し込み人数（partySize）を先頭のカテゴリから
+// 多めに配分し、末尾へ向かって減らす「階段状」の内訳を組み立てる。
+//
+// 実 API では申し込み時に選択されたカテゴリ別の内訳をそのまま保存・返却する想定だが、
+// 参加 API のリクエストボディ（ParticipateEventRequest）は partySize（合計人数）のみを
+// 受け取り、カテゴリ別の内訳はサーバーへ送信されない。そのためモックでは、
+// 送信されない内訳をイベントの費用カテゴリへの配分によって再現している。
+const buildCostBreakdown = (
+  costs: { category: string; cost: number }[],
+  partySize: number,
+): ParticipationCostBreakdown[] => {
+  // カテゴリが1件だけの場合は、そのカテゴリに全人数を入れる。
+  if (costs.length === 1) {
+    return [
+      { category: costs[0].category, cost: costs[0].cost, count: partySize },
+    ];
+  }
+
+  let remaining = partySize;
+  return costs.map((cost, index) => {
+    const remainingCategories = costs.length - index;
+    // 残りカテゴリ数に応じて先頭側が多くなるよう繰り上げで配分し、
+    // 最後のカテゴリには残り全部（0名になる場合もある）を割り当てる。
+    const count =
+      remainingCategories === 1
+        ? remaining
+        : Math.min(
+            remaining,
+            Math.ceil((remaining * 2) / (remainingCategories + 1)),
+          );
+    remaining -= count;
+    return { category: cost.category, cost: cost.cost, count };
+  });
+};
 
 export const eventJoinHandler = http.post(
   "/api/v1/events/:id/join",
@@ -131,10 +167,24 @@ export const eventJoinHandler = http.post(
     // タイムスタンプがズレないよう単一の値で整合性を保つ。
     const createdAt = new Date().toISOString();
 
+    // 申し込み内訳（カテゴリ別人数）を組み立てる。
+    // イベントの費用カテゴリが取得できない場合は costs を保存しない
+    // （＝表示側が内訳ブロックを省略する）。
+    const eventCosts = detail?.costs;
+    const costBreakdown =
+      eventCosts && eventCosts.length > 0
+        ? buildCostBreakdown(eventCosts, partySize)
+        : undefined;
+
     // participation-logs エンドポイントが返す参加履歴を記録する。
     const logs =
       participationLogs.get(id) ?? new Map<string, MockParticipationLog>();
-    logs.set(participantKey, { action: "join", updatedAt: createdAt });
+    logs.set(participantKey, {
+      action: "join",
+      updatedAt: createdAt,
+      partySize,
+      costs: costBreakdown,
+    });
     participationLogs.set(id, logs);
 
     // members エンドポイントで参加者一覧に反映されるよう、参加レコードを蓄積する。

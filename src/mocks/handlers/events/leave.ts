@@ -69,6 +69,8 @@ export const eventLeaveHandler = http.post(
     eventParticipants.set(id, participants);
 
     // participation-logs エンドポイントが返す参加履歴を記録する。
+    // partySize / costs（申し込み内訳）は持ち越さない。取り消し後は
+    // 「参加していない」状態として扱うため、あえて指定せず undefined のままにする。
     const logs =
       participationLogs.get(id) ?? new Map<string, MockParticipationLog>();
     logs.set(participantKey, { action: "leave", updatedAt: canceledAt });

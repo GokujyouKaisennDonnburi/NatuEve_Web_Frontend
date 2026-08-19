@@ -124,6 +124,19 @@ export function EventDetail({
   } = useParticipationLogs(isOrganizer ? null : event.id, isAuthenticated);
   const participating = participationData?.participating ?? false;
 
+  // 申し込み内容モーダルに渡す申し込み内容。
+  // 参加状態 API の直近アクションが join のときだけ意味を持つため、参加中のみ組み立てる。
+  const participationDetail = useMemo(
+    () =>
+      participating && participationData
+        ? {
+            appliedAt: participationData.updatedAt,
+            costs: participationData.costs,
+          }
+        : undefined,
+    [participating, participationData],
+  );
+
   return (
     <div
       className={cn(
@@ -321,9 +334,14 @@ export function EventDetail({
             eventId={event.id}
             eventTitle={event.title}
             eventDate={event.eventDate}
+            eventEndDate={event.endDate}
+            eventLocation={event.location}
+            organizerName={organizerName}
+            cancelDeadline={event.cancelDeadline}
             costs={event.costs}
             capacity={event.capacity}
             participating={participating}
+            participationDetail={participationDetail}
             onParticipateSuccess={refetchParticipation}
             onCancelSuccess={refetchParticipation}
           />

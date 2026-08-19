@@ -1,13 +1,20 @@
 // このファイルは、参加・キャンセル・参加者一覧周りのハンドラー間で
 // 共有するメモリ内状態と、その生成・操作ロジックを定義する。
 // MSW はプロセス内状態のためリロードでリセットされる前提。
-import type { EventMemberProfile } from "@/types/participate";
+import type {
+  EventMemberProfile,
+  ParticipationCostBreakdown,
+} from "@/types/participate";
 
 // participation-logs エンドポイントが返す参加履歴1件分の型。
 // 直近のアクション（join / leave）とその日時を保持する。
 export type MockParticipationLog = {
   action: "join" | "leave";
   updatedAt: string;
+  // 申し込んだ合計人数。leave 後は保持しない。
+  partySize?: number;
+  // カテゴリ別の申し込み内訳。leave 後は保持しない。
+  costs?: ParticipationCostBreakdown[];
 };
 
 // 参加者一覧取得 API（GET /api/v1/events/{id}/members）が返す参加者1件分の型。

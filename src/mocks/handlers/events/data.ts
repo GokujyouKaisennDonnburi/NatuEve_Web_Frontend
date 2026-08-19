@@ -45,6 +45,8 @@ export type MockEventDetail = MockEvent & {
   organizerAvatarUrl: string;
   description: string;
   capacity?: number;
+  // 参加の取り消し期限(RFC3339)。未設定(undefined)の場合は期限なしとして扱う。
+  cancelDeadline?: string | null;
   externalUrl?: string;
   costs: { category: string; cost: number }[];
   items?: { item: string; isRequired: boolean }[];
@@ -153,6 +155,7 @@ const createDefaultMockEventDetail = (
   organizerAvatarUrl: event.profile.avatarUrl,
   description: `詳細情報です。自然観察を楽しみましょう。`,
   capacity: 30,
+  cancelDeadline: buildCancelDeadline(event, index),
   externalUrl: "https://example.com/event",
   costs: [
     { category: "大人", cost: 1000 },
@@ -205,6 +208,18 @@ const createDefaultMockEventDetail = (
     },
   ],
 });
+
+// 参加取り消し期限(RFC3339)を算出する。
+// 基本は開催日当日の 23:59(JST)を期限とするが、「申し込み内容モーダル」で
+// 期限切れ表示を確認できるよう、1件だけ明らかに過去の日時を固定で設定する
+// (index === 1 のイベント。id: 00000000-0000-4000-8000-000000000002)。
+const buildCancelDeadline = (event: MockEvent, index: number): string => {
+  if (index === 1) {
+    return "2024-01-01T23:59:59+09:00";
+  }
+  const eventDateOnly = event.eventDate.slice(0, 10); // "YYYY-MM-DD" を取り出す
+  return `${eventDateOnly}T23:59:59+09:00`;
+};
 
 export const mockEventDetails = new Map<string, MockEventDetail>(
   mockEvents.map((event, index) => [

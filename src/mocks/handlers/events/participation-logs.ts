@@ -51,6 +51,17 @@ export const eventParticipationLogsHandler = http.get(
     const updatedAt = log?.updatedAt ?? null;
     const participating = action === "join";
 
-    return HttpResponse.json({ action, participating, updatedAt });
+    // 申し込み内訳（partySize / costs）は参加中（action === "join"）のときのみ返す。
+    // leave 後や履歴なしの場合は undefined のままとし、JSON からは除外される。
+    const partySize = participating ? log?.partySize : undefined;
+    const costs = participating ? log?.costs : undefined;
+
+    return HttpResponse.json({
+      action,
+      participating,
+      updatedAt,
+      partySize,
+      costs,
+    });
   },
 );

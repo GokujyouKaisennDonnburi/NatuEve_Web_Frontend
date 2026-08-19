@@ -26,6 +26,21 @@
   --brand-green-text: #5f8530;
   --brand-orange-hover: #f0b447;
 
+  /* 注意喚起の帯（申し込み内容の取り消し期限など）で使うオレンジの派生色。
+     --brand-orange は帯の背景には濃いため、背景・枠線・アイコンの明度違いを用意する。 */
+  --brand-orange-soft: #fdf7ec;
+  --brand-orange-line: #f6e3bb;
+  --brand-orange-text: #c98a1e;
+
+  /* 取り消し・削除など、取り返しのつかない操作に使う赤系。
+     ブランドカラーと同じく背景・枠線・文字それぞれに使える明度違いを用意する。
+     --danger は塗りボタンの背景、--danger-text は淡い帯の上の文字に使う。 */
+  --danger: #e2696e;
+  --danger-hover: #d0565b;
+  --danger-soft: #fdf1f1;
+  --danger-line: #f7dada;
+  --danger-text: #c04a50;
+
   /* 完了トースト（濃色のピル）の配色 */
   --toast-dark: #272e24;
   --toast-accent: #97c459;
