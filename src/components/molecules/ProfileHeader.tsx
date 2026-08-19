@@ -39,7 +39,7 @@ export function ProfileHeader({
   const defaultOnSave = async () => {};
 
   const memberSince = formatMemberSince(createdAt);
-  const firstChar = name.charAt(0) || "?";
+  const firstChar = name.trim().charAt(0) || "?";
 
   return (
     <div className="bg-white border border-[#E3E8DF] rounded-2xl shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] p-[29px]">
@@ -108,6 +108,7 @@ export function ProfileHeader({
             forceEdit={forceEditDesc}
             onConsumeForceEdit={() => setForceEditDesc(false)}
             textClassName="text-[15px] leading-[28px] text-[#3A4237]"
+            className="pr-0"
           />
         </div>
       </div>
