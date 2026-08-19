@@ -84,10 +84,13 @@ export function EventParticipationButton({
     ? Math.min(effectiveCurrent / effectiveCapacity, 1)
     : 0;
   const isFull = hasCapacity && remaining === 0;
+  // 残りわずかの判定は「定員の20%以下、かつ10人以下」とする。
+  // 小規模（定員<=50）では20%が実効閾値となり開始時から発火せず、
+  // 大規模では上限10人でクランプされ、残り人数が多いのに発火しないのを防ぐ。
   const isFew =
     hasCapacity &&
     !isFull &&
-    (remaining <= effectiveCapacity * 0.2 || remaining <= 10);
+    remaining <= Math.min(effectiveCapacity * 0.2, 10);
 
   // 未参加ボタンの文言。受付終了が最優先で、次に満員を優先する。
   // 受付終了の判定基準は現状開催終了時だが、将来は申込期限の導入を予定している。
