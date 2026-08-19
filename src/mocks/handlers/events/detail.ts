@@ -16,21 +16,18 @@ export const eventDetailHandler = http.get(
       );
     }
 
-    // 現在の合計参加人数と残り人数を算出して返す。
+    // 現在申込中の合計参加人数を算出して返す。残り人数は client 側で
+    // capacity - participantCount から算出する（swagger に合わせて participantCount のみ返す）。
     const members = eventMembers.get(id) ?? [];
-    const currentParticipants = members.reduce(
+    const participantCount = members.reduce(
       (sum, member) => sum + member.partySize,
       0,
     );
-    const capacity = found.capacity ?? 0;
-    const remainingParticipants =
-      capacity > 0 ? Math.max(capacity - currentParticipants, 0) : 0;
 
     // 詳細フィールドを付与して返す（投稿時のフォーマットを模倣）
     return HttpResponse.json({
       ...found,
-      currentParticipants,
-      remainingParticipants,
+      participantCount,
     });
   },
 );

@@ -97,6 +97,7 @@ export function EventPostPreview({
       costs,
       items,
       capacity: formState.capacity ? Number(formState.capacity) : 0,
+      participantCount: 0,
       externalUrl: formState.applicationUrl || undefined,
       imageUrls: imageObjectUrls,
       imageObjectKeys: [],

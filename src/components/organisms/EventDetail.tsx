@@ -326,8 +326,7 @@ export function EventDetail({
             eventDate={event.eventDate}
             costs={event.costs}
             capacity={event.capacity}
-            currentParticipants={event.currentParticipants}
-            remainingParticipants={event.remainingParticipants}
+            participantCount={event.participantCount}
             participating={participating}
             partySize={participationData?.partySize}
             onParticipateSuccess={() => {

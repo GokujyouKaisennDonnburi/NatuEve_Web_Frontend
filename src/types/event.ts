@@ -136,9 +136,9 @@ export type EventDetailResponse = {
   capacity: number;
   costs: EventDetailCost[];
   createdAt: string;
-  // 現在の合計参加人数。バックエンド未対応時は undefined となるため、
-  // クライアント側で capacity から計算するフォールバックを用意する。
-  currentParticipants?: number;
+  // 現在申込中の参加人数の合計。定員未設定（capacity=0）でも返す。
+  // 定員がある場合の残り人数は capacity - participantCount で算出する。
+  participantCount: number;
   description: string;
   eventDate: string;
   // 終了日時(RFC3339)。作成時に省略されてもサーバー側で eventDate と同値が補完されるため、
@@ -155,8 +155,6 @@ export type EventDetailResponse = {
   pdfFilenames: string[];
   pdfUrls: string[];
   profile: EventDetailProfile;
-  // 残り参加可能人数。バックエンド未対応時は undefined。
-  remainingParticipants?: number;
   reports?: EventDetailReport[];
   tags?: TagItem[];
   title: string;

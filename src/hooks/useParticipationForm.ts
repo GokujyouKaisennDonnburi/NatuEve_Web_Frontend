@@ -55,6 +55,9 @@ type UseParticipationFormParams = {
   // 本来は「残り枠」を使いたいが、参加者数を返す API は主催者専用のため、
   // 一般の参加者はイベントの定員をそのまま上限として扱う。
   capacity: number | undefined;
+  // 現在申込中の合計参加人数。定員がある場合、選択できる上限は capacity - participantCount
+  // （残り枠）として扱う。未指定（定員なし・未知）時は capacity をそのまま上限にする。
+  participantCount?: number;
   // 申し込み成功後に呼ばれる。参加状態の再取得に使う。
   onSuccess?: () => void;
 };
@@ -106,6 +109,7 @@ export function useParticipationForm({
   eventId,
   costs,
   capacity,
+  participantCount,
   onSuccess,
 }: UseParticipationFormParams) {
   // 申し込みに必要なのはセッションの email / name / トークンだけなので、
@@ -150,8 +154,13 @@ export function useParticipationForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 定員が未設定・0以下のイベントは上限なしとして扱う。
-  const maxCount =
-    typeof capacity === "number" && capacity >= 1 ? Math.floor(capacity) : null;
+  // 定員がある場合は、現在の参加人数（participantCount）を差し引いた残り枠を上限にする。
+  const maxCount = (() => {
+    if (typeof capacity !== "number" || capacity < 1) return null;
+
+    const current = typeof participantCount === "number" ? participantCount : 0;
+    return Math.max(Math.floor(capacity) - Math.floor(current), 0);
+  })();
 
   const summary = useMemo<ParticipationSummary>(
     () => buildParticipationSummary(resolvedCosts, counts),

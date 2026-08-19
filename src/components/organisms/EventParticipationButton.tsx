@@ -25,10 +25,8 @@ type EventParticipationButtonProps = {
   disabled?: boolean; // 主催者自身のイベントなどで、参加申し込みを無効化するためのフラグ
   // イベントの定員（参加人数の上限）。未設定時は上限なし。
   capacity?: number;
-  // 現在の合計参加人数。未設定時は 0 として扱う。
-  currentParticipants?: number;
-  // 残り参加可能人数。未設定時は capacity から計算する。
-  remainingParticipants?: number;
+  // 現在申込中の合計参加人数。未設定時は 0 として扱う。残り人数は capacity - participantCount で算出する。
+  participantCount?: number;
   // 現在のユーザーが当該イベントに参加中かどうか。true の場合は参加キャンセルボタンを表示する。
   participating?: boolean;
   // 現在のユーザーの参加申込人数（代表者を含む）。参加済み表示用。
@@ -51,8 +49,7 @@ export function EventParticipationButton({
   costs,
   disabled,
   capacity,
-  currentParticipants,
-  remainingParticipants,
+  participantCount,
   participating = false,
   partySize,
   onParticipateSuccess,
@@ -69,17 +66,13 @@ export function EventParticipationButton({
 
   const displayPartySize = partySize ?? 1;
 
-  // 定員・残り人数の計算
+  // 定員・残り人数の計算（残り = capacity - participantCount、swagger 準拠）
   const effectiveCapacity =
     typeof capacity === "number" && capacity >= 0 ? capacity : 0;
   const effectiveCurrent =
-    typeof currentParticipants === "number" ? currentParticipants : 0;
+    typeof participantCount === "number" ? participantCount : 0;
   const remaining = Math.max(
-    typeof remainingParticipants === "number"
-      ? remainingParticipants
-      : effectiveCapacity > 0
-        ? effectiveCapacity - effectiveCurrent
-        : 0,
+    effectiveCapacity > 0 ? effectiveCapacity - effectiveCurrent : 0,
     0,
   );
   const hasCapacity = effectiveCapacity > 0;
@@ -206,6 +199,7 @@ export function EventParticipationButton({
         eventDate={eventDate}
         costs={costs}
         capacity={capacity}
+        participantCount={participantCount}
         onParticipateSuccess={onParticipateSuccess}
       />
 
