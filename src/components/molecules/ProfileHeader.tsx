@@ -42,14 +42,7 @@ export function ProfileHeader({
   const firstChar = name.charAt(0) || "?";
 
   return (
-    <div className="relative bg-white border border-[#E3E8DF] rounded-2xl shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] p-[29px]">
-      {/* 編集ボタン（右上） */}
-      {isOwnProfile && (
-        <div className="absolute top-[19px] right-[19px]">
-          <EditPillButton size="sm" onClick={() => setForceEditDesc(true)} />
-        </div>
-      )}
-
+    <div className="bg-white border border-[#E3E8DF] rounded-2xl shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] p-[29px]">
       {/* アバター + 名前行 */}
       <div className="flex items-start gap-[27px]">
         {/* アバター */}
@@ -100,7 +93,12 @@ export function ProfileHeader({
 
       {/* 自己紹介 */}
       <div>
-        <p className="text-sm font-bold text-[#272E24] mb-[16px]">自己紹介</p>
+        <div className="flex items-center justify-between mb-[16px]">
+          <p className="text-sm font-bold text-[#272E24]">自己紹介</p>
+          {isOwnProfile && (
+            <EditPillButton size="sm" onClick={() => setForceEditDesc(true)} />
+          )}
+        </div>
         <div className="relative">
           <InlineTextareaField
             value={description || ""}
