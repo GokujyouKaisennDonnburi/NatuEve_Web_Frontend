@@ -163,7 +163,7 @@ export function EventParticipationButton({
                     <span
                       className={cn(
                         "text-xs font-bold sm:text-sm",
-                        isFew ? "text-(--brand-orange)" : "text-[#9ABD5A]",
+                        isFew ? "text-[#DE8F28]" : "text-[#9ABD5A]",
                       )}
                     >
                       残り{remaining}名
