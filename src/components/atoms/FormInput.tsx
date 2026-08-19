@@ -1,9 +1,11 @@
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentProps } from "react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-type FormInputProps = ComponentPropsWithoutRef<typeof Input>;
+// ref も受け取れるようにしている。モーダルを開いた直後に
+// 先頭の入力欄へフォーカスを移す用途で必要になるため。
+type FormInputProps = ComponentProps<typeof Input>;
 
 // フォーム画面の入力欄。ui/input は直接編集せず、
 // 画面共通の見た目（高さ・角丸・フォーカス色）をここで与える。

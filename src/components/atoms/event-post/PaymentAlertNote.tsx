@@ -1,7 +1,21 @@
-// 投稿画面の参加費用欄の下に表示する、支払い方法に関する警告メッセージを表示するコンポーネント
-// このサイト経由で決済を行えない旨を補足し、概要欄への支払い方法の記入を促す目的で配置する
+// 支払い方法に関する警告メッセージを表示するコンポーネント
+// このサイト経由で決済を行えない旨を伝える目的で、投稿画面の参加費用欄と
+// 申し込みモーダルの人数選択ステップの双方で使う
 
-export function PaymentAlertNote() {
+// デフォルトは投稿画面向けの文言。申し込みモーダル等、別文言で使い回せるよう props で差し替え可能にする
+const DEFAULT_LINES = [
+  "このサイト経由でのお支払いに対応していません。",
+  "必ず概要にお支払い方法を記入してください。",
+];
+
+type PaymentAlertNoteProps = {
+  // 表示する文言。省略時は投稿画面向けの既定文言を表示する
+  lines?: string[];
+};
+
+export function PaymentAlertNote({
+  lines = DEFAULT_LINES,
+}: Readonly<PaymentAlertNoteProps>) {
   return (
     <div
       role="note"
@@ -15,8 +29,12 @@ export function PaymentAlertNote() {
         !
       </span>
       <div className="space-y-1 text-sm leading-6 text-[#5C4A33]">
-        <p>このサイト経由でのお支払いに対応していません。</p>
-        <p>必ず概要にお支払い方法を記入してください。</p>
+        {lines.map((line, index) => (
+          // 同じ文言が渡される可能性があるため文言自体は key にできない。
+          // 行の増減も並べ替えも起きない固定リストなので添字を key にする。
+          // biome-ignore lint/suspicious/noArrayIndexKey: 並び順が変化しない固定リストのため添字で一意にする。
+          <p key={index}>{line}</p>
+        ))}
       </div>
     </div>
   );
