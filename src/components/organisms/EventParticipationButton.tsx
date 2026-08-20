@@ -201,7 +201,8 @@ export function EventParticipationButton({
     <>
       <div
         className={cn(
-          "mx-auto flex min-h-[56px] w-full max-w-[480px] items-center justify-between gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-lg sm:min-h-[64px] sm:gap-3 sm:px-5 sm:py-2.5",
+          "mx-auto flex min-h-[56px] w-full items-center justify-between gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-lg sm:min-h-[64px] sm:gap-3 sm:px-5 sm:py-2.5",
+          hasCapacity || participating ? "max-w-[480px]" : "max-w-[400px]",
           isControlDisabled && !participating && "opacity-70",
         )}
       >
