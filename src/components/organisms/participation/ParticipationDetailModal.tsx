@@ -8,6 +8,7 @@ import {
 } from "@/components/molecules/participation/ParticipationDetailTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import type { ParticipationCostBreakdown } from "@/types/participate";
 import { formatFullDateTime, formatMonthDayTime } from "@/utils/date";
@@ -158,7 +159,12 @@ export function ParticipationDetailModal({
       <button
         type="button"
         aria-label="申し込み内容を閉じる"
-        className="absolute inset-0 cursor-default bg-black/50"
+        className={cn(
+          "absolute inset-0 cursor-default",
+          // 確認モーダルが重なっている間は、そちらのオーバーレイに暗さを任せる。
+          // 両方が bg-black/50 のままだと背景が 75% まで暗くなり、意図より濃く見える。
+          isBlocked ? "bg-transparent" : "bg-black/50",
+        )}
         onClick={handleClose}
         tabIndex={-1}
       />
