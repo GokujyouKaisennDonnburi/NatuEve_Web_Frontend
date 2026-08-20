@@ -2,8 +2,8 @@
 
 import { BackLink } from "@/components/atoms/BackLink";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
-import type { EventItem } from "@/components/organisms/EventCard";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
+import { useProfileEvents } from "@/hooks/useProfileEvents";
 import { fetchUserProfile } from "@/services/user";
 import type { UserProfileResponse } from "@/types/user";
 import Link from "next/link";
@@ -20,9 +20,17 @@ export default function UserProfilePage({
 
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
 
-  // 今後のイベント取得API実装時に備えてStateを残す
-  const [hostedEvents, setHostedEvents] = useState<EventItem[]>([]);
-  const [participatedEvents, setParticipatedEvents] = useState<EventItem[]>([]);
+  const {
+    events: hostedEvents,
+    counts,
+    isLoading: hostedLoading,
+  } = useProfileEvents(id, "hosted");
+  const {
+    events: participatedEvents,
+    isLoading: participatedLoading,
+  } = useProfileEvents(id, "attended");
+
+  const isEventsLoading = hostedLoading || participatedLoading;
 
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -37,18 +45,6 @@ export default function UserProfilePage({
 
         if (!cancelled) {
           setProfile(profileData);
-
-          // ==========================================
-          // 今後、ユーザーのイベント取得APIが実装されたらここに追加
-          // ==========================================
-          // const [hostedRes, participatedRes] = await Promise.all([
-          //   fetchHostedEvents(id),
-          //   fetchParticipatedEvents(id),
-          // ]);
-          // ==========================================
-
-          setHostedEvents([]);
-          setParticipatedEvents([]);
         }
       } catch (err) {
         // 取得失敗時（404含む）は Not Found 扱いとする
@@ -65,7 +61,7 @@ export default function UserProfilePage({
     };
   }, [id]);
 
-  if (isDataLoading) {
+  if (isDataLoading || isEventsLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-8 h-8 rounded-full bg-slate-300 animate-pulse" />
@@ -120,6 +116,14 @@ export default function UserProfilePage({
             hostedEvents={hostedEvents}
             participatedEvents={participatedEvents}
             isOwnProfile={false}
+            counts={
+              counts
+                ? {
+                    hosted: counts.hosted,
+                    participated: counts.attended,
+                  }
+                : undefined
+            }
           />
         </div>
       </section>

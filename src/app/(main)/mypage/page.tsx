@@ -3,35 +3,35 @@
 import { BackLink } from "@/components/atoms/BackLink";
 import { useCurrentUserContext } from "@/components/layouts/AuthProvider";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
-import type { EventItem } from "@/components/organisms/EventCard";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
+import { useMyEvents } from "@/hooks/useMyEvents";
 import { updateMyProfile } from "@/services/user";
 import Link from "next/link";
-import { useState } from "react";
 
 export default function MyPage() {
-  // プロフィールはヘッダーと共有された Provider から取得する。
-  // setUser で更新すればヘッダーの表示名・アイコンにも即座に反映される。
   const {
     user: profile,
     isUserLoading,
     setUser: setProfile,
   } = useCurrentUserContext();
 
-  // ==========================================
-  // イベント取得APIが実装されたら、ここで取得して State へ格納する
-  // ==========================================
-  // const [hostedRes, participatedRes] = await Promise.all([
-  //   fetchHostedEvents(profile.id),
-  //   fetchParticipatedEvents(profile.id),
-  // ]);
-  // ==========================================
-  // 今後のAPI実装時にそのまま使えるよう、Stateは残しておきます
-  const [hostedEvents] = useState<EventItem[]>([]);
-  const [participatedEvents] = useState<EventItem[]>([]);
-  const [appliedEvents] = useState<EventItem[]>([]);
+  const {
+    events: hostedEvents,
+    counts,
+    isLoading: hostedLoading,
+  } = useMyEvents("hosted");
+  const {
+    events: appliedEvents,
+    isLoading: appliedLoading,
+  } = useMyEvents("applied");
+  const {
+    events: participatedEvents,
+    isLoading: participatedLoading,
+  } = useMyEvents("attended");
 
-  if (isUserLoading) {
+  const isEventsLoading = hostedLoading || appliedLoading || participatedLoading;
+
+  if (isUserLoading || isEventsLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-8 h-8 rounded-full bg-slate-300 animate-pulse" />
@@ -97,6 +97,15 @@ export default function MyPage() {
             participatedEvents={participatedEvents}
             appliedEvents={appliedEvents}
             isOwnProfile={true}
+            counts={
+              counts
+                ? {
+                    hosted: counts.hosted,
+                    participated: counts.attended,
+                    applied: counts.applied,
+                  }
+                : undefined
+            }
           />
         </div>
       </section>
