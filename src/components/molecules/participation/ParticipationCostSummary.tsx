@@ -33,8 +33,11 @@ export function ParticipationCostSummary({
           // summary.lines は costs の並び順そのままで増減しないため添字を key にする。
           // biome-ignore lint/suspicious/noArrayIndexKey: 並び順が変化しない固定リストのため添字で一意にする。
           <Fragment key={index}>
-            <span>{line.category}</span>
-            <span className="text-right tabular-nums">{line.count}名</span>
+            {/* 「誰が何名か」が最初に目に入るよう、カテゴリと人数だけ太字にする */}
+            <span className="font-bold">{line.category}</span>
+            <span className="text-right font-bold tabular-nums">
+              {line.count}名
+            </span>
             <span>×</span>
             <span className="tabular-nums">{formatCostLabel(line.cost)}</span>
             <span className="text-right tabular-nums">
