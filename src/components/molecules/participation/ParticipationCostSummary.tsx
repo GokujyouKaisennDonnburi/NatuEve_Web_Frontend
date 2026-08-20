@@ -1,5 +1,6 @@
 import {
   formatCostLabel,
+  formatTotalAmountLabel,
   type ParticipationSummary,
 } from "@/utils/participation";
 import { Fragment } from "react";
@@ -53,7 +54,7 @@ export function ParticipationCostSummary({
           合計 {summary.totalCount}名
         </span>
         <span className="text-xl font-bold text-slate-900">
-          {formatCostLabel(summary.totalAmount)}
+          {formatTotalAmountLabel(summary.totalAmount)}
         </span>
       </div>
       {note ? <p className="text-sm text-slate-800">{note}</p> : null}
