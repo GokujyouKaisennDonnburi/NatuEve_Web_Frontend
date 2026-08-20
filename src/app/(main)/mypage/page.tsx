@@ -20,16 +20,13 @@ export default function MyPage() {
     counts,
     isLoading: hostedLoading,
   } = useMyEvents("hosted");
-  const {
-    events: appliedEvents,
-    isLoading: appliedLoading,
-  } = useMyEvents("applied");
-  const {
-    events: participatedEvents,
-    isLoading: participatedLoading,
-  } = useMyEvents("attended");
+  const { events: appliedEvents, isLoading: appliedLoading } =
+    useMyEvents("applied");
+  const { events: participatedEvents, isLoading: participatedLoading } =
+    useMyEvents("attended");
 
-  const isEventsLoading = hostedLoading || appliedLoading || participatedLoading;
+  const isEventsLoading =
+    hostedLoading || appliedLoading || participatedLoading;
 
   if (isUserLoading || isEventsLoading) {
     return (

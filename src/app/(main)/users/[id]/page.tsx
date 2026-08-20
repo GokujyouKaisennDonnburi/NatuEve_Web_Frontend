@@ -25,10 +25,8 @@ export default function UserProfilePage({
     counts,
     isLoading: hostedLoading,
   } = useProfileEvents(id, "hosted");
-  const {
-    events: participatedEvents,
-    isLoading: participatedLoading,
-  } = useProfileEvents(id, "attended");
+  const { events: participatedEvents, isLoading: participatedLoading } =
+    useProfileEvents(id, "attended");
 
   const isEventsLoading = hostedLoading || participatedLoading;
 

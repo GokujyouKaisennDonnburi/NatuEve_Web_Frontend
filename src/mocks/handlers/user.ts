@@ -237,7 +237,12 @@ export const userHandlers = [
         break;
       default:
         return HttpResponse.json(
-          { error: { code: "invalid_request", message: "リクエストボディが不正です" } },
+          {
+            error: {
+              code: "invalid_request",
+              message: "リクエストボディが不正です",
+            },
+          },
           { status: 400 },
         );
     }
@@ -275,7 +280,9 @@ export const userHandlers = [
         const profile = sampleUserProfiles[profileId];
         if (!profile) {
           return HttpResponse.json(
-            { error: { code: "not_found", message: "リソースが見つかりません" } },
+            {
+              error: { code: "not_found", message: "リソースが見つかりません" },
+            },
             { status: 404 },
           );
         }
@@ -292,12 +299,19 @@ export const userHandlers = [
         break;
       default:
         return HttpResponse.json(
-          { error: { code: "invalid_request", message: "リクエストボディが不正です" } },
+          {
+            error: {
+              code: "invalid_request",
+              message: "リクエストボディが不正です",
+            },
+          },
           { status: 400 },
         );
     }
 
-    const attendedCount = filtered.filter((e) => new Date(e.endDate) <= now).length;
+    const attendedCount = filtered.filter(
+      (e) => new Date(e.endDate) <= now,
+    ).length;
 
     return HttpResponse.json({
       counts: {

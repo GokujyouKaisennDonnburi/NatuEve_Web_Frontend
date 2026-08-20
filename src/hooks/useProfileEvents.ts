@@ -71,7 +71,9 @@ export function useProfileEvents(
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err : new Error("イベント一覧の取得に失敗しました"),
+            err instanceof Error
+              ? err
+              : new Error("イベント一覧の取得に失敗しました"),
           );
         }
       } finally {

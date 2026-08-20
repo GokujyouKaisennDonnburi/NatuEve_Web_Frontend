@@ -183,19 +183,18 @@ export async function notifyEventParticipants(
 }
 
 // クエリパラメータをビルドする内部ヘルパー（sort / order / limit / offset）。
-const buildPaginationParams = (
-  params?: {
-    sort?: "created_at" | "event_date";
-    order?: "asc" | "desc";
-    limit?: number;
-    offset?: number;
-  },
-): URLSearchParams => {
+const buildPaginationParams = (params?: {
+  sort?: "created_at" | "event_date";
+  order?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
+}): URLSearchParams => {
   const searchParams = new URLSearchParams();
   if (params?.sort) searchParams.set("sort", params.sort);
   if (params?.order) searchParams.set("order", params.order);
   if (params?.limit != null) searchParams.set("limit", params.limit.toString());
-  if (params?.offset != null) searchParams.set("offset", params.offset.toString());
+  if (params?.offset != null)
+    searchParams.set("offset", params.offset.toString());
   return searchParams;
 };
 
@@ -215,7 +214,9 @@ export async function fetchMyEvents(
 ): Promise<MyEventListResponse> {
   const searchParams = buildPaginationParams(params);
   searchParams.set("type", type);
-  const response = await apiFetch(`/api/v1/me/events?${searchParams.toString()}`);
+  const response = await apiFetch(
+    `/api/v1/me/events?${searchParams.toString()}`,
+  );
 
   if (!response.ok) {
     throw new Error(
