@@ -22,7 +22,7 @@ type ParticipationDetailModalProps = {
   eventTitle: string;
   // ヘッダー2段目に出す主催者名
   organizerName: string;
-  // 申込日(RFC3339)。取得できない場合は null
+  // 申し込み日時(RFC3339)。取得できない場合は null
   appliedAt: string | null;
   // 開催日時(RFC3339)
   eventDate: string;
@@ -34,7 +34,7 @@ type ParticipationDetailModalProps = {
   cancelDeadline?: string | null;
   // カテゴリ別の申し込み内訳。未取得なら参加費ブロックごと出さない
   costs?: ParticipationCostBreakdown[];
-  // 「申込を取り消す」押下時に呼ぶ。確認モーダルの表示は呼び出し側が担当する
+  // 「申し込みを取り消す」押下時に呼ぶ。確認モーダルの表示は呼び出し側が担当する
   onRequestCancel: () => void;
   // 取り消し確認モーダルなど、手前に別のモーダルが重なっているかどうか。
   // 重なっている間はこちらを閉じさせない（手前のモーダルだけが Escape に反応する）。
@@ -56,7 +56,7 @@ function isDeadlinePassed(deadline: string | null | undefined): boolean {
 // 申し込み内容モーダル。
 //
 // 参加済みユーザーが自分の申込内容（日時・場所・参加費）を確認し、
-// 取り消し期限内であれば「申込を取り消す」から確認モーダルへ進める。
+// 取り消し期限内であれば「申し込みを取り消す」から確認モーダルへ進める。
 export function ParticipationDetailModal({
   isOpen,
   onOpenChange,
@@ -87,7 +87,7 @@ export function ParticipationDetailModal({
   const rows = useMemo<ParticipationDetailRow[]>(
     () => [
       {
-        label: "申込日",
+        label: "申し込み日時",
         value: appliedAt ? formatFullDateTime(appliedAt) : "—",
       },
       { label: "開催日時", value: formatFullDateTime(eventDate) },
@@ -231,7 +231,7 @@ export function ParticipationDetailModal({
                 onClick={onRequestCancel}
                 className="h-11 rounded-full border-(--danger) px-8 font-semibold text-(--danger) hover:bg-(--danger-soft) hover:text-(--danger) disabled:border-slate-200 disabled:text-slate-300"
               >
-                申込を取り消す
+                申し込みを取り消す
               </Button>
             </div>
           </CardContent>

@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Fragment } from "react";
 
-// 申込日・開催日時などを縦に並べる2列テーブルの1行分
+// 申し込み日時・開催日時などを縦に並べる2列テーブルの1行分
 export type ParticipationDetailRow = {
   label: string;
   value: string;

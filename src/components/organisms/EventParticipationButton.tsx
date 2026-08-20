@@ -15,7 +15,7 @@ import { toast } from "sonner";
 // 申し込み内容モーダルに表示する、このユーザー自身の申し込み内容。
 // 参加状態 API（participation-logs）から取得した値をそのまま渡す。
 export type ParticipationDetail = {
-  // 申込日(RFC3339)。取得できない場合は null。
+  // 申し込み日時(RFC3339)。取得できない場合は null。
   appliedAt: string | null;
   // カテゴリ別の申し込み内訳。API が返さない場合は undefined となり、内訳の表示を省略する。
   costs?: ParticipationCostBreakdown[];
