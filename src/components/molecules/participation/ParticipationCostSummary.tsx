@@ -27,7 +27,7 @@ export function ParticipationCostSummary({
 
       {/* カテゴリ・人数・単価・小計を列ごとに揃える。
           人数と小計は右揃えにして、桁が変わっても縦の位置がずれないようにする。 */}
-      <div className="grid grid-cols-[auto_auto_auto_auto_1fr] items-center gap-x-2 gap-y-1.5 text-sm text-slate-600">
+      <div className="grid grid-cols-[auto_auto_auto_auto_1fr] items-center gap-x-2 gap-y-1.5 text-sm text-slate-800">
         {summary.lines.map((line, index) => (
           // カテゴリ名・金額はどちらも重複し得るため、値では一意にできない。
           // summary.lines は costs の並び順そのままで増減しないため添字を key にする。
@@ -53,7 +53,7 @@ export function ParticipationCostSummary({
           {formatCostLabel(summary.totalAmount)}
         </span>
       </div>
-      {note ? <p className="text-sm text-slate-600">{note}</p> : null}
+      {note ? <p className="text-sm text-slate-800">{note}</p> : null}
     </div>
   );
 }
