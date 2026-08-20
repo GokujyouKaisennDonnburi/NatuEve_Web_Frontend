@@ -32,6 +32,7 @@ import { CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { useEventMembers } from "@/hooks/useEventMembers";
+import { useMyEventApplication } from "@/hooks/useMyEventApplication";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
 import { resolveEventStatus } from "@/utils/eventStatus";
@@ -127,17 +128,25 @@ export function EventDetail({
   } = useParticipationLogs(isOrganizer ? null : event.id, isAuthenticated);
   const participating = participationData?.participating ?? false;
 
-  // 申し込み内容モーダルに渡す申し込み内容。
-  // 参加状態 API の直近アクションが join のときだけ意味を持つため、参加中のみ組み立てる。
+  // 申し込み内容（申込日時・カテゴリ別の内訳）の取得。
+  // 申込内容は参加中のユーザーにしか存在しないため、参加中と判明してから取得する。
+  // モーダルを開いた時点で内容が揃っているよう、押下時ではなくここで先読みする。
+  const { data: myApplication } = useMyEventApplication(
+    participating ? event.id : null,
+  );
+
+  // 申し込み内容モーダルに渡す申し込み内容。参加中のときだけ意味を持つ。
+  // 取得できていない間・取得に失敗した場合は中身が空のまま渡し、
+  // モーダル側で日時「—」・内訳非表示にフォールバックさせる。
   const participationDetail = useMemo(
     () =>
-      participating && participationData
+      participating
         ? {
-            appliedAt: participationData.updatedAt,
-            costs: participationData.costs,
+            appliedAt: myApplication?.createdAt ?? null,
+            participants: myApplication?.participants,
           }
         : undefined,
-    [participating, participationData],
+    [participating, myApplication],
   );
 
   return (
