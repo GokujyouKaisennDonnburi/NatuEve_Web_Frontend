@@ -48,6 +48,7 @@ export function useParticipationLogs(
     let cancelled = false;
 
     setIsLoading(true);
+    setData(null);
     setError(null);
 
     const fetchParticipationLogs = async (): Promise<void> => {
