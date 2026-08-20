@@ -1,6 +1,7 @@
 import { HttpResponse, http } from "msw";
 
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
+import type { EventListItem } from "@/types/event";
 import type { UserProfileResponse } from "@/types/user";
 
 // ============================================
@@ -80,29 +81,39 @@ const sampleUserProfiles: Readonly<Record<string, UserProfileResponse>> = {
   },
 };
 
-// ユーザー別イベント用ダミーデータ
-const sampleUserEvents = {
-  hosted: [
-    {
-      id: "00000000-0000-4000-8000-000000000101",
-      title: "高尾山クリーンハイク",
-      location: "東京都 高尾山",
-      createdAt: "2026-06-01T10:00:00Z",
-      eventDate: "2026-07-15T09:00:00Z",
-      profileId: "user-1",
+// マイページ用イベントのダミーデータ
+const myMockEvents: EventListItem[] = [
+  {
+    id: "00000000-0000-4000-8000-000000000101",
+    title: "高尾山クリーンハイク",
+    location: "東京都 高尾山",
+    createdAt: "2026-06-01T10:00:00Z",
+    eventDate: "2026-07-15T09:00:00Z",
+    endDate: "2026-07-15T17:00:00Z",
+    profileId: MOCK_AUTH_SESSION.userId,
+    profile: {
+      id: MOCK_AUTH_SESSION.userId,
+      displayName: MOCK_AUTH_SESSION.name ?? "なちゅいべ太郎",
+      avatarUrl: MOCK_AUTH_SESSION.iconUrl ?? "",
     },
-  ],
-  participated: [
-    /*{
-      id: "201",
-      title: "代々木公園ピクニック＆ゴミ拾い",
-      location: "東京都 代々木公園",
-      createdAt: "2026-05-20T10:00:00Z",
-      eventDate: "2026-06-10T10:00:00Z",
-      profileId: "user-2",
-    },*/
-  ],
-};
+    tags: [{ id: "tag-1", name: "クリーン活動" }],
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000102",
+    title: "サクラ観察会",
+    location: "東京都 新宿御苑",
+    createdAt: "2026-03-20T10:00:00Z",
+    eventDate: "2026-04-01T10:00:00Z",
+    endDate: "2026-04-01T15:00:00Z",
+    profileId: MOCK_AUTH_SESSION.userId,
+    profile: {
+      id: MOCK_AUTH_SESSION.userId,
+      displayName: MOCK_AUTH_SESSION.name ?? "なちゅいべ太郎",
+      avatarUrl: MOCK_AUTH_SESSION.iconUrl ?? "",
+    },
+    tags: [{ id: "tag-2", name: "外来生物" }],
+  },
+];
 
 // ▼ マイページ用の初期モックデータ（メモリ上に保持）
 const myProfile = {
@@ -196,13 +207,107 @@ export const userHandlers = [
     return HttpResponse.json(profile);
   }),
 
-  // 指定したIDのユーザーが主催したイベント取得API
-  http.get("/api/v1/users/:id/events/hosted", () => {
-    return HttpResponse.json({ events: sampleUserEvents.hosted });
+  // ------------------------------------------
+  // マイページ用イベント一覧取得 (GET /api/v1/me/events)
+  // ------------------------------------------
+  http.get("/api/v1/me/events", ({ request }) => {
+    const authHeader = request.headers.get("authorization");
+    if (!hasBearerToken(authHeader)) {
+      return HttpResponse.json(
+        { error: { code: "unauthorized", message: "認証が必要です" } },
+        { status: 401 },
+      );
+    }
+
+    const url = new URL(request.url);
+    const type = url.searchParams.get("type");
+
+    let events: EventListItem[];
+    const now = new Date();
+
+    switch (type) {
+      case "hosted":
+        events = myMockEvents;
+        break;
+      case "applied":
+        events = myMockEvents.filter((e) => new Date(e.endDate) > now);
+        break;
+      case "attended":
+        events = myMockEvents.filter((e) => new Date(e.endDate) <= now);
+        break;
+      default:
+        return HttpResponse.json(
+          { error: { code: "invalid_request", message: "リクエストボディが不正です" } },
+          { status: 400 },
+        );
+    }
+
+    return HttpResponse.json({
+      counts: {
+        applied: myMockEvents.filter((e) => new Date(e.endDate) > now).length,
+        attended: myMockEvents.filter((e) => new Date(e.endDate) <= now).length,
+        hosted: myMockEvents.length,
+      },
+      events,
+      limit: 20,
+      offset: 0,
+      totalCount: events.length,
+    });
   }),
 
-  // 指定したIDのユーザーが参加したイベント取得API
-  http.get("/api/v1/users/:id/events/participated", () => {
-    return HttpResponse.json({ events: sampleUserEvents.participated });
+  // ------------------------------------------
+  // プロフィールページ用イベント一覧取得 (GET /api/v1/profiles/:id/events)
+  // ------------------------------------------
+  http.get("/api/v1/profiles/:id/events", ({ params, request }) => {
+    const url = new URL(request.url);
+    const type = url.searchParams.get("type");
+    const profileId = String(params.id ?? "");
+
+    const now = new Date();
+    const isOwnProfile = profileId === MOCK_AUTH_SESSION.userId;
+
+    let filtered: EventListItem[];
+    if (isOwnProfile) {
+      filtered = myMockEvents;
+    } else {
+      filtered = myMockEvents.filter((e) => e.profileId === profileId);
+      if (filtered.length === 0) {
+        const profile = sampleUserProfiles[profileId];
+        if (!profile) {
+          return HttpResponse.json(
+            { error: { code: "not_found", message: "リソースが見つかりません" } },
+            { status: 404 },
+          );
+        }
+      }
+    }
+
+    let events: EventListItem[];
+    switch (type) {
+      case "hosted":
+        events = filtered;
+        break;
+      case "attended":
+        events = filtered.filter((e) => new Date(e.endDate) <= now);
+        break;
+      default:
+        return HttpResponse.json(
+          { error: { code: "invalid_request", message: "リクエストボディが不正です" } },
+          { status: 400 },
+        );
+    }
+
+    const attendedCount = filtered.filter((e) => new Date(e.endDate) <= now).length;
+
+    return HttpResponse.json({
+      counts: {
+        hosted: filtered.length,
+        attended: attendedCount,
+      },
+      events,
+      limit: 20,
+      offset: 0,
+      totalCount: events.length,
+    });
   }),
 ];
