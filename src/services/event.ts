@@ -7,8 +7,12 @@ import type {
   EventDetailResponse,
   EventListRequest,
   EventListResponse,
+  MyEventListResponse,
+  MyEventType,
   NotifyEventParticipantsRequest,
   NotifyEventParticipantsResponse,
+  ProfileEventListResponse,
+  ProfileEventType,
 } from "@/types/event";
 
 // イベント詳細取得 API（GET /api/v1/events/{id}）を呼ぶ（認証不要）。
@@ -176,4 +180,79 @@ export async function notifyEventParticipants(
   }
 
   return (await response.json()) as NotifyEventParticipantsResponse;
+}
+
+// クエリパラメータをビルドする内部ヘルパー（sort / order / limit / offset）。
+const buildPaginationParams = (
+  params?: {
+    sort?: "created_at" | "event_date";
+    order?: "asc" | "desc";
+    limit?: number;
+    offset?: number;
+  },
+): URLSearchParams => {
+  const searchParams = new URLSearchParams();
+  if (params?.sort) searchParams.set("sort", params.sort);
+  if (params?.order) searchParams.set("order", params.order);
+  if (params?.limit != null) searchParams.set("limit", params.limit.toString());
+  if (params?.offset != null) searchParams.set("offset", params.offset.toString());
+  return searchParams;
+};
+
+// マイページ用イベント一覧取得 API（GET /api/v1/me/events）を呼ぶ（要認証）。
+//
+// type は必須（hosted|applied|attended）。認証済みユーザー自身のイベントを種別ごとに返す。
+// counts には3種別すべての件数が常に含まれる。
+// 失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
+export async function fetchMyEvents(
+  type: MyEventType,
+  params?: {
+    sort?: "created_at" | "event_date";
+    order?: "asc" | "desc";
+    limit?: number;
+    offset?: number;
+  },
+): Promise<MyEventListResponse> {
+  const searchParams = buildPaginationParams(params);
+  searchParams.set("type", type);
+  const response = await apiFetch(`/api/v1/me/events?${searchParams.toString()}`);
+
+  if (!response.ok) {
+    throw new Error(
+      `マイページのイベント一覧取得に失敗しました (Status: ${response.status})`,
+    );
+  }
+
+  return (await response.json()) as MyEventListResponse;
+}
+
+// プロフィールページ用イベント一覧取得 API（GET /api/v1/profiles/{id}/events）を呼ぶ（認証不要）。
+//
+// type は必須（hosted|attended）。指定したユーザーのイベントを種別ごとに返す。
+// counts には公開する2種別の件数が常に含まれる。
+// 存在しないユーザーIDの場合は 404 となるため例外を送出する。
+export async function fetchProfileEvents(
+  profileId: string,
+  type: ProfileEventType,
+  params?: {
+    sort?: "created_at" | "event_date";
+    order?: "asc" | "desc";
+    limit?: number;
+    offset?: number;
+  },
+): Promise<ProfileEventListResponse> {
+  const searchParams = buildPaginationParams(params);
+  searchParams.set("type", type);
+  const response = await apiFetch(
+    `/api/v1/profiles/${encodeURIComponent(profileId)}/events?${searchParams.toString()}`,
+    { auth: false },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `プロフィールページのイベント一覧取得に失敗しました (Status: ${response.status})`,
+    );
+  }
+
+  return (await response.json()) as ProfileEventListResponse;
 }
