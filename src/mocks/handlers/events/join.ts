@@ -5,7 +5,6 @@
 // 同一イベントへの重複参加は 409 already_joined、定員超過は 409 capacity_full で返す。
 import { HttpResponse, http } from "msw";
 
-import type { ParticipationCostBreakdown } from "@/types/participate";
 import type { MockParticipationLog } from "./participation";
 import {
   eventMembers,
@@ -19,41 +18,6 @@ import {
   hasBearerToken,
   unauthorizedResponse,
 } from "./auth";
-
-// イベントの費用カテゴリ（costs）へ、申し込み人数（partySize）を先頭のカテゴリから
-// 多めに配分し、末尾へ向かって減らす「階段状」の内訳を組み立てる。
-//
-// 実 API では申し込み時に選択されたカテゴリ別の内訳をそのまま保存・返却する想定だが、
-// 参加 API のリクエストボディ（ParticipateEventRequest）は partySize（合計人数）のみを
-// 受け取り、カテゴリ別の内訳はサーバーへ送信されない。そのためモックでは、
-// 送信されない内訳をイベントの費用カテゴリへの配分によって再現している。
-const buildCostBreakdown = (
-  costs: { category: string; cost: number }[],
-  partySize: number,
-): ParticipationCostBreakdown[] => {
-  // カテゴリが1件だけの場合は、そのカテゴリに全人数を入れる。
-  if (costs.length === 1) {
-    return [
-      { category: costs[0].category, cost: costs[0].cost, count: partySize },
-    ];
-  }
-
-  let remaining = partySize;
-  return costs.map((cost, index) => {
-    const remainingCategories = costs.length - index;
-    // 残りカテゴリ数に応じて先頭側が多くなるよう繰り上げで配分し、
-    // 最後のカテゴリには残り全部（0名になる場合もある）を割り当てる。
-    const count =
-      remainingCategories === 1
-        ? remaining
-        : Math.min(
-            remaining,
-            Math.ceil((remaining * 2) / (remainingCategories + 1)),
-          );
-    remaining -= count;
-    return { category: cost.category, cost: cost.cost, count };
-  });
-};
 
 export const eventJoinHandler = http.post(
   "/api/v1/events/:id/join",
@@ -77,7 +41,10 @@ export const eventJoinHandler = http.post(
     const body = (await request.json()) as {
       mailAddress?: unknown;
       username?: unknown;
-      partySize?: unknown;
+      participants?: Array<{
+        category?: unknown;
+        headCount?: unknown;
+      }>;
     };
 
     // 本番のサーバー側バリデーションを模し、必須項目が欠ける場合は 400 を返す
@@ -85,19 +52,16 @@ export const eventJoinHandler = http.post(
       typeof body.mailAddress === "string" && body.mailAddress.length > 0;
     const hasUsername =
       typeof body.username === "string" && body.username.length > 0;
-    const hasValidPartySize =
-      typeof body.partySize === "number" &&
-      Number.isInteger(body.partySize) &&
-      body.partySize >= 1;
+    const hasParticipants = Array.isArray(body.participants);
 
     // 必須項目が欠けている場合は400エラーを返す
-    if (!hasMailAddress || !hasUsername || !hasValidPartySize) {
+    if (!hasMailAddress || !hasUsername || !hasParticipants) {
       return HttpResponse.json(
         {
           error: {
             code: "invalid_request",
             message:
-              "メールアドレス・ユーザー名・参加人数（1以上の整数）は必須です",
+              "メールアドレス・ユーザー名・カテゴリ別参加人数（participants）は必須です",
           },
         },
         { status: 400 },
@@ -106,15 +70,92 @@ export const eventJoinHandler = http.post(
 
     const mailAddress = body.mailAddress as string;
     const username = body.username as string;
-    const partySize = body.partySize as number;
+    // ここに到達する時点で hasParticipants（Array.isArray）で検証済みのため、
+    // body.participants は配列として扱う。
+    const rawParticipants = body.participants as Array<{
+      category?: unknown;
+      headCount?: unknown;
+    }>;
+
+    // カテゴリ別内訳のバリデーション。
+    // 各エントリは category（空でない文字列）× headCount（1以上の整数）。
+    // 大文字小文字は区別しない（正規化して比較）。重複・0以下の人数は 400 を返す。
+    // 存在しないカテゴリ（イベント詳細の costs[].category に無い）も 400 を返す。
+    const detail = mockEventDetails.get(id);
+    const validCategories = (detail?.costs ?? [])
+      .map((cost) => cost.category.trim().toLowerCase())
+      .filter((name) => name.length > 0);
+
+    // participants が空配列は 400。
+    if (rawParticipants.length === 0) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "参加人数の内訳（participants）が空です",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    // 各エントリの構造を検証する（重複チェック用に正規化カテゴリを記録）。
+    const normalizedCategories = new Set<string>();
+    let isValidParticipants = true;
+    const participantEntries: Array<{ category: string; headCount: number }> =
+      [];
+    for (const entry of rawParticipants) {
+      const { category, headCount } = entry ?? {};
+      const normalized =
+        typeof category === "string" ? category.trim().toLowerCase() : "";
+      const isValidHeadCount =
+        typeof headCount === "number" &&
+        Number.isInteger(headCount) &&
+        headCount >= 1;
+      if (
+        !normalized ||
+        !isValidHeadCount ||
+        normalizedCategories.has(normalized) ||
+        !validCategories.includes(normalized)
+      ) {
+        isValidParticipants = false;
+        break;
+      }
+      normalizedCategories.add(normalized);
+      participantEntries.push({
+        category: (category as string).trim(),
+        headCount: headCount as number,
+      });
+    }
+    if (!isValidParticipants) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message:
+              "カテゴリはイベントの費用カテゴリに存在し、重複せず、人数は1以上の整数でなければなりません",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    // 合計人数（partySize）は内訳からサーバー側で算出する。
+    const partySize = participantEntries.reduce(
+      (sum, participant) => sum + participant.headCount,
+      0,
+    );
 
     // 定員チェック：イベントの定員が設定されている場合は、
-    // 参加人数が定員を超える場合は 409 capacity_full を返す
-    const detail = mockEventDetails.get(id);
+    // 現在の参加人数に今回の申込人数を加えた合計が定員を超える場合は 409 capacity_full を返す
+    const totalCurrent = (eventMembers.get(id) ?? []).reduce(
+      (sum, member) => sum + member.partySize,
+      0,
+    );
     if (
       typeof detail?.capacity === "number" &&
       detail.capacity >= 1 &&
-      partySize > detail.capacity
+      totalCurrent + partySize > detail.capacity
     ) {
       return HttpResponse.json(
         {
@@ -167,23 +208,14 @@ export const eventJoinHandler = http.post(
     // タイムスタンプがズレないよう単一の値で整合性を保つ。
     const createdAt = new Date().toISOString();
 
-    // 申し込み内訳（カテゴリ別人数）を組み立てる。
-    // イベントの費用カテゴリが取得できない場合は costs を保存しない
-    // （＝表示側が内訳ブロックを省略する）。
-    const eventCosts = detail?.costs;
-    const costBreakdown =
-      eventCosts && eventCosts.length > 0
-        ? buildCostBreakdown(eventCosts, partySize)
-        : undefined;
-
     // participation-logs エンドポイントが返す参加履歴を記録する。
     const logs =
       participationLogs.get(id) ?? new Map<string, MockParticipationLog>();
     logs.set(participantKey, {
       action: "join",
-      updatedAt: createdAt,
       partySize,
-      costs: costBreakdown,
+      participants: participantEntries,
+      updatedAt: createdAt,
     });
     participationLogs.set(id, logs);
 
@@ -205,6 +237,7 @@ export const eventJoinHandler = http.post(
         eventId: id,
         mailAddress,
         username,
+        participants: participantEntries,
         partySize,
         profileId,
         createdAt,

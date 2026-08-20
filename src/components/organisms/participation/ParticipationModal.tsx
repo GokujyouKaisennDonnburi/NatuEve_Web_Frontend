@@ -25,6 +25,8 @@ type ParticipationModalProps = {
   eventDate: string;
   costs: EventDetailCost[] | undefined;
   capacity: number | undefined;
+  // 現在申込中の合計参加人数。残り枠（capacity - participantCount）の算出に使う。
+  participantCount?: number;
   // 申し込み成功後に呼ばれる。参加状態の再取得に使う。
   onParticipateSuccess?: () => void;
 };
@@ -41,6 +43,7 @@ export function ParticipationModal({
   eventDate,
   costs,
   capacity,
+  participantCount,
   onParticipateSuccess,
 }: Readonly<ParticipationModalProps>) {
   const titleId = useId();
@@ -78,6 +81,7 @@ export function ParticipationModal({
     eventId,
     costs,
     capacity,
+    participantCount,
     onSuccess: onParticipateSuccess,
   });
 

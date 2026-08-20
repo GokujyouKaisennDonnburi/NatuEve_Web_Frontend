@@ -1,5 +1,6 @@
 // このファイルは、MSW ハンドラー間で共有するイベントの型・モックデータ・
 // 検索ロジックを定義する。MSW はプロセス内状態のためリロードでリセットされる前提。
+import { seedEventMembers } from "./participation";
 
 // MockProfile型は、イベントのプロフィール情報を表す型です。
 export type MockProfile = {
@@ -227,6 +228,12 @@ export const mockEventDetails = new Map<string, MockEventDetail>(
     createDefaultMockEventDetail(event, index),
   ]),
 );
+
+// 参加者向けUIの状態確認用に、一部の既存イベントに初期参加者をシードする。
+seedEventMembers(toUuid(100), 30); // 満員
+seedEventMembers(toUuid(99), 24); // 残りわずか
+seedEventMembers(toUuid(98), 15); // 余裕あり
+seedEventMembers(toUuid(97), 0); // 参加者なし
 
 // 検索対象フィールドを収集する。
 // 検索対象: title / location / profile.displayName(主催者) /

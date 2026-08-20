@@ -50,17 +50,37 @@ export const eventParticipationLogsHandler = http.get(
     const action = log?.action ?? null;
     const updatedAt = log?.updatedAt ?? null;
     const participating = action === "join";
+    const partySize =
+      participating && typeof log?.partySize === "number"
+        ? log.partySize
+        : undefined;
 
-    // 申し込み内訳（partySize / costs）は参加中（action === "join"）のときのみ返す。
+    // 申し込み内訳は参加中（action === "join"）のときのみ返す。
     // leave 後や履歴なしの場合は undefined のままとし、JSON からは除外される。
-    const partySize = participating ? log?.partySize : undefined;
-    const costs = participating ? log?.costs : undefined;
+    //
+    // 申込時に受け取るのはカテゴリと人数だけなので、1名あたりの参加費は
+    // イベントの費用カテゴリから引いて補う。カテゴリの照合は join エンドポイントの
+    // バリデーションに合わせて大文字小文字を区別しない。
+    const eventCosts = mockEventDetails.get(id)?.costs ?? [];
+    const costs =
+      participating && log?.participants
+        ? log.participants.map((participant) => ({
+            category: participant.category,
+            cost:
+              eventCosts.find(
+                (eventCost) =>
+                  eventCost.category.trim().toLowerCase() ===
+                  participant.category.trim().toLowerCase(),
+              )?.cost ?? 0,
+            count: participant.headCount,
+          }))
+        : undefined;
 
     return HttpResponse.json({
       action,
       participating,
-      updatedAt,
       partySize,
+      updatedAt,
       costs,
     });
   },

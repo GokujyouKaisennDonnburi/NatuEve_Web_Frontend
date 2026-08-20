@@ -4,6 +4,7 @@ import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { MOCK_AUTH_SESSION, isMockAuthEnabled } from "@/services/mockAuth";
 import { participateEvent } from "@/services/participate";
 import type { EventDetailCost } from "@/types/event";
+import type { ParticipantEntry } from "@/types/participate";
 import { ParticipateError, ParticipateErrorCode } from "@/types/participate";
 import type {
   ParticipantCounts,
@@ -54,6 +55,9 @@ type UseParticipationFormParams = {
   // 本来は「残り枠」を使いたいが、参加者数を返す API は主催者専用のため、
   // 一般の参加者はイベントの定員をそのまま上限として扱う。
   capacity: number | undefined;
+  // 現在申込中の合計参加人数。定員がある場合、選択できる上限は capacity - participantCount
+  // （残り枠）として扱う。未指定（定員なし・未知）時は capacity をそのまま上限にする。
+  participantCount?: number;
   // 申し込み成功後に呼ばれる。参加状態の再取得に使う。
   onSuccess?: () => void;
 };
@@ -105,6 +109,7 @@ export function useParticipationForm({
   eventId,
   costs,
   capacity,
+  participantCount,
   onSuccess,
 }: UseParticipationFormParams) {
   // 申し込みに必要なのはセッションの email / name / トークンだけなので、
@@ -149,8 +154,13 @@ export function useParticipationForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 定員が未設定・0以下のイベントは上限なしとして扱う。
-  const maxCount =
-    typeof capacity === "number" && capacity >= 1 ? Math.floor(capacity) : null;
+  // 定員がある場合は、現在の参加人数（participantCount）を差し引いた残り枠を上限にする。
+  const maxCount = (() => {
+    if (typeof capacity !== "number" || capacity < 1) return null;
+
+    const current = typeof participantCount === "number" ? participantCount : 0;
+    return Math.max(Math.floor(capacity) - Math.floor(current), 0);
+  })();
 
   const summary = useMemo<ParticipationSummary>(
     () => buildParticipationSummary(resolvedCosts, counts),
@@ -308,10 +318,34 @@ export function useParticipationForm({
 
   // 参加申し込みを送信する。
   //
-  // API は合計人数（partySize）のみを受け取るため、カテゴリ別の内訳は送れない。
+  // 人数はカテゴリ別内訳（participants）で送る。カテゴリにはイベント詳細の
+  // costs[].category を指定し、0人のカテゴリは含めない。合計人数（partySize）は
+  // サーバー側が内訳から算出するため送信しない。
   // ログイン時はセッションの情報を、未ログイン時は入力値をトークン無しで送る。
   const submit = useCallback(() => {
     if (!canSubmit) return;
+
+    // カテゴリ別内訳を組立。0人カテゴリは除外する。
+    const participants: ParticipantEntry[] = resolvedCosts
+      .map((cost, index) => ({
+        category: cost.category,
+        headCount: counts[index] ?? 0,
+      }))
+      .filter((entry) => entry.headCount > 0);
+
+    // 防御: イベントの costs に存在しないカテゴリ（フォールバック由来等）が
+    // 含まれる場合は送信しない。要件上 costs は空にならない前提だが、
+    // 万一不正データが入った場合に API の 400 を避けるための最小限のガード。
+    const realCategories = (costs ?? []).map((cost) => cost.category.trim());
+    if (
+      participants.length === 0 ||
+      participants.some((entry) => !realCategories.includes(entry.category))
+    ) {
+      toast.error(
+        "このイベントは費用カテゴリが設定されていないため参加申し込みできません。",
+      );
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -335,7 +369,7 @@ export function useParticipationForm({
           await participateEvent(eventId, {
             mailAddress: sessionMailAddress,
             username: sessionUsername,
-            partySize: summary.totalCount,
+            participants,
           });
         } else {
           await participateEvent(
@@ -343,7 +377,7 @@ export function useParticipationForm({
             {
               mailAddress: mailAddress.trim(),
               username: username.trim(),
-              partySize: summary.totalCount,
+              participants,
             },
             { auth: false },
           );
@@ -362,7 +396,9 @@ export function useParticipationForm({
     isAuthenticated,
     session,
     eventId,
-    summary.totalCount,
+    resolvedCosts,
+    counts,
+    costs,
     mailAddress,
     username,
     onSuccess,

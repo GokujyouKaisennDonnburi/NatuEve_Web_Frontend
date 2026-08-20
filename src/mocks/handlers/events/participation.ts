@@ -1,20 +1,17 @@
 // このファイルは、参加・キャンセル・参加者一覧周りのハンドラー間で
 // 共有するメモリ内状態と、その生成・操作ロジックを定義する。
 // MSW はプロセス内状態のためリロードでリセットされる前提。
-import type {
-  EventMemberProfile,
-  ParticipationCostBreakdown,
-} from "@/types/participate";
+import type { EventMemberProfile } from "@/types/participate";
 
 // participation-logs エンドポイントが返す参加履歴1件分の型。
-// 直近のアクション（join / leave）とその日時を保持する。
+// 直近のアクション（join / leave）とその日時、申込人数を保持する。
 export type MockParticipationLog = {
   action: "join" | "leave";
-  updatedAt: string;
-  // 申し込んだ合計人数。leave 後は保持しない。
+  // 参加申込人数（代表者を含む）。leave の場合は undefined として扱う。
   partySize?: number;
-  // カテゴリ別の申し込み内訳。leave 後は保持しない。
-  costs?: ParticipationCostBreakdown[];
+  // カテゴリ別の参加人数内訳。join 時に記録し、leave では undefined として扱う。
+  participants?: Array<{ category: string; headCount: number }>;
+  updatedAt: string;
 };
 
 // 参加者一覧取得 API（GET /api/v1/events/{id}/members）が返す参加者1件分の型。
@@ -87,4 +84,26 @@ export const seedMembersForNewEvent = (eventId: string): void => {
     },
   ];
   eventMembers.set(eventId, members);
+};
+
+// 既存イベントに初期参加者をシードする（参加者向けUIの状態確認用）。
+// 主に定員・残り人数の状態（通常/残りわずか/満員）を簡単に確認するために使用する。
+export const seedEventMembers = (
+  eventId: string,
+  totalPartySize: number,
+): void => {
+  const members: MockEventMember[] = [
+    {
+      username: "初期参加者",
+      mailAddress: `seed-${eventId}@example.com`,
+      partySize: totalPartySize,
+      profile: null,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  eventMembers.set(eventId, members);
+
+  const participants = eventParticipants.get(eventId) ?? new Set<string>();
+  participants.add(`anon:seed-${eventId}`);
+  eventParticipants.set(eventId, participants);
 };
