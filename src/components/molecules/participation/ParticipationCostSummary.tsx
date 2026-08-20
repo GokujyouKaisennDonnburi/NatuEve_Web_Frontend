@@ -53,7 +53,7 @@ export function ParticipationCostSummary({
           {formatCostLabel(summary.totalAmount)}
         </span>
       </div>
-      {note ? <p className="text-xs text-slate-400">{note}</p> : null}
+      {note ? <p className="text-sm text-slate-600">{note}</p> : null}
     </div>
   );
 }
