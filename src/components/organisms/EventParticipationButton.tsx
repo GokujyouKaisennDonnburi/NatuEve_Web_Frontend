@@ -235,7 +235,7 @@ export function EventParticipationButton({
             {hasCapacity ? (
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-slate-700 sm:text-sm">
+                  <span className="text-xs font-bold text-[#838C7D] sm:text-sm">
                     定員{effectiveCapacity}名
                   </span>
                   {isFull ? (
@@ -273,8 +273,8 @@ export function EventParticipationButton({
                 </div>
               </div>
             ) : (
-              <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-                <span className="text-xs font-bold text-slate-700 sm:text-sm">
+              <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:gap-3">
+                <span className="text-xs font-bold text-[#838C7D] sm:text-sm">
                   定員なし
                 </span>
                 <span className="text-xs font-bold text-[#9ABD5A] sm:text-sm">
