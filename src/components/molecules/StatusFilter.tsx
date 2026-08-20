@@ -10,6 +10,7 @@ type StatusFilterProps = {
 
 const STATUS_OPTIONS = [
   { id: "upcoming", label: "開催前" },
+  { id: "ongoing", label: "開催中" },
   { id: "closed", label: "開催終了" },
 ] as const;
 
