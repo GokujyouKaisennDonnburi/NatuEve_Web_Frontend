@@ -123,6 +123,17 @@ export type GetEventMembersErrorBody = ParticipateEventErrorBody;
 // 参加状態のアクション種別。"join"（参加）/ "leave"（参加キャンセル）/ null（履歴なし）。
 export type ParticipationAction = "join" | "leave" | null;
 
+// 申し込み時に選ばれたカテゴリ別の参加人数DTO。
+// イベントの費用内訳（EventDetailCost）に、申し込んだ人数を添えたもの。
+export type ParticipationCostBreakdown = {
+  // 費用カテゴリ名（例: 大人 / 学生 / 子ども）。
+  category: string;
+  // 1名あたりの参加費（円）。0 は無料。
+  cost: number;
+  // このカテゴリで申し込んだ人数。
+  count: number;
+};
+
 // 参加状態レスポンスDTO。
 export type ParticipationLogsResponse = {
   // 直近のアクション。履歴がない場合は null。
@@ -133,6 +144,8 @@ export type ParticipationLogsResponse = {
   partySize?: number;
   // 直近のアクション日時(RFC3339)。履歴がない場合は null。
   updatedAt: string | null;
+  // カテゴリ別の申し込み内訳。未提供の場合は undefined となり、表示側は内訳を省略する。
+  costs?: ParticipationCostBreakdown[];
 };
 
 // 参加状態取得APIのエラーレスポンスボディDTO。

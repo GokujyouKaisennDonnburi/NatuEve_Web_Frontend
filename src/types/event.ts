@@ -134,6 +134,8 @@ export type EventListRequest = {
 // イベント詳細取得 API のレスポンス DTO。
 export type EventDetailResponse = {
   capacity: number;
+  // 参加の取り消し期限(RFC3339)。未設定の場合は期限なしとして扱う。
+  cancelDeadline?: string | null;
   costs: EventDetailCost[];
   createdAt: string;
   // 現在申込中の参加人数の合計。定員未設定（capacity=0）でも返す。
