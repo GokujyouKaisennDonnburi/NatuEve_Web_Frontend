@@ -215,6 +215,9 @@ export const eventJoinHandler = http.post(
       action: "join",
       partySize,
       participants: participantEntries,
+      username,
+      mailAddress,
+      createdAt,
       updatedAt: createdAt,
     });
     participationLogs.set(id, logs);
