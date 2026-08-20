@@ -39,7 +39,11 @@ export function useMyEventApplication(
     // キャンセルフラグを設定して、コンポーネントがアンマウントされた場合に状態更新を防ぐ
     let cancelled = false;
 
+    // 再取得の開始時に前回の申込内容を捨てる。
+    // eventId が別のイベントへ切り替わったとき、取得が終わるまで前イベントの
+    // 申込内容が残っていると、その間に開いたモーダルへ誤った内容を出してしまう。
     setIsLoading(true);
+    setData(null);
     setError(null);
 
     const fetchMyApplication = async (): Promise<void> => {
