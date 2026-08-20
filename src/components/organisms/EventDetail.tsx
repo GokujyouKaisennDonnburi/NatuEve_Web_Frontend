@@ -52,9 +52,12 @@ const formatPostedDate = (value: string): string =>
 export function EventDetail({
   event,
   report,
+  onEventRefetch,
 }: {
   event: EventDetailType;
   report?: ReportDetail | null;
+  // イベント詳細を再取得するコールバック。参加/キャンセル後に最新の定員情報を反映する。
+  onEventRefetch?: () => void;
 }) {
   const images = event.imageUrls?.length
     ? event.imageUrls
@@ -323,9 +326,18 @@ export function EventDetail({
             eventDate={event.eventDate}
             costs={event.costs}
             capacity={event.capacity}
+            participantCount={event.participantCount}
             participating={participating}
-            onParticipateSuccess={refetchParticipation}
-            onCancelSuccess={refetchParticipation}
+            partySize={participationData?.partySize}
+            receptionClosed={status === "closed"}
+            onParticipateSuccess={() => {
+              refetchParticipation();
+              onEventRefetch?.();
+            }}
+            onCancelSuccess={() => {
+              refetchParticipation();
+              onEventRefetch?.();
+            }}
           />
         </div>
       )}

@@ -6,7 +6,7 @@ import { getEventDetail } from "@/services/event";
 import { getReport } from "@/services/report";
 import type { ReportDetail } from "@/types/report";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 // イベント詳細ページコンポーネント
 export default function EventDetailPage() {
@@ -16,6 +16,17 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<EventDetailType | null>(null); // イベント詳細データを保持するステート
   const [report, setReport] = useState<ReportDetail | null>(null); // レポートデータを保持するステート
   const [loading, setLoading] = useState(true);
+
+  // イベント詳細を再取得する（ローディング表示は出さない）
+  const refetchEvent = useCallback(async () => {
+    if (!id) return;
+    try {
+      const data = await getEventDetail(id);
+      setEvent(data);
+    } catch (err) {
+      console.error("イベント詳細再取得エラー", err);
+    }
+  }, [id]);
 
   // イベント詳細データを取得する副作用フック
   useEffect(() => {
@@ -96,7 +107,11 @@ export default function EventDetailPage() {
   return (
     // イベント詳細ページのメインコンテンツ
     <div className="mx-auto w-full max-w-5xl">
-      <EventDetail event={event} report={report} />
+      <EventDetail
+        event={event}
+        report={report}
+        onEventRefetch={refetchEvent}
+      />
     </div>
   );
 }
