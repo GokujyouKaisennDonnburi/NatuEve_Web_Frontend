@@ -207,7 +207,6 @@ export default function EventListPage() {
             maxPrice={maxPrice}
             onMinPriceChange={setMinPrice}
             onMaxPriceChange={setMaxPrice}
-            resultCount={totalCount}
             onClearAll={handleClearAll}
             onClear={handleClear}
             onApply={handleApply}
