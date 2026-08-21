@@ -202,7 +202,7 @@ export function EventParticipationButton({
       <div
         className={cn(
           "mx-auto flex min-h-[56px] w-full items-center justify-between gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-lg sm:min-h-[64px] sm:gap-3 sm:px-5 sm:py-2.5",
-          hasCapacity || participating ? "max-w-[480px]" : "max-w-[380px]",
+          hasCapacity || participating ? "max-w-[480px]" : "max-w-[340px]",
           isControlDisabled && !participating && "opacity-70",
         )}
       >
@@ -274,7 +274,7 @@ export function EventParticipationButton({
                 </div>
               </div>
             ) : (
-              <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:gap-3">
+              <div className="ml-5 flex items-center gap-4">
                 <span className="text-xs font-bold text-[#838C7D] sm:text-sm">
                   定員なし
                 </span>
@@ -287,7 +287,7 @@ export function EventParticipationButton({
               type="button"
               disabled={isControlDisabled || isFull || receptionClosed}
               onClick={handleButtonClick}
-              className="h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm"
+              className="ml-auto h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm"
             >
               {buttonLabel}
             </Button>
