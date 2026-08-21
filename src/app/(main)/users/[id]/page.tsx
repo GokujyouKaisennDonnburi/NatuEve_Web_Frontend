@@ -24,11 +24,19 @@ export default function UserProfilePage({
     events: hostedEvents,
     counts,
     isLoading: hostedLoading,
+    error: hostedError,
   } = useProfileEvents(id, "hosted");
-  const { events: participatedEvents, isLoading: participatedLoading } =
-    useProfileEvents(id, "attended");
+  const {
+    events: participatedEvents,
+    isLoading: participatedLoading,
+    error: participatedError,
+  } = useProfileEvents(id, "attended");
 
   const isEventsLoading = hostedLoading || participatedLoading;
+
+  // イベント取得エラーをログに出力
+  if (hostedError) console.error(hostedError);
+  if (participatedError) console.error(participatedError);
 
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);

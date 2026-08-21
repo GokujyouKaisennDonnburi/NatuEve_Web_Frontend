@@ -19,14 +19,26 @@ export default function MyPage() {
     events: hostedEvents,
     counts,
     isLoading: hostedLoading,
+    error: hostedError,
   } = useMyEvents("hosted");
-  const { events: appliedEvents, isLoading: appliedLoading } =
-    useMyEvents("applied");
-  const { events: participatedEvents, isLoading: participatedLoading } =
-    useMyEvents("attended");
+  const {
+    events: appliedEvents,
+    isLoading: appliedLoading,
+    error: appliedError,
+  } = useMyEvents("applied");
+  const {
+    events: participatedEvents,
+    isLoading: participatedLoading,
+    error: participatedError,
+  } = useMyEvents("attended");
 
   const isEventsLoading =
     hostedLoading || appliedLoading || participatedLoading;
+
+  // イベント取得エラーをログに出力
+  if (hostedError) console.error(hostedError);
+  if (appliedError) console.error(appliedError);
+  if (participatedError) console.error(participatedError);
 
   if (isUserLoading || isEventsLoading) {
     return (
