@@ -35,8 +35,8 @@ export default function UserProfilePage({
   const isEventsLoading = hostedLoading || participatedLoading;
 
   // イベント取得エラーをログに出力
-  if (hostedError) console.error(hostedError);
-  if (participatedError) console.error(participatedError);
+  const eventError = hostedError ?? participatedError;
+  if (eventError) console.error(eventError);
 
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -118,6 +118,11 @@ export default function UserProfilePage({
         </div>
 
         <div className="mt-4">
+          {eventError && (
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+              イベント一覧の取得に失敗しました。時間をおいて再度お試しください。
+            </div>
+          )}
           <UserEventTabs
             hostedEvents={hostedEvents}
             participatedEvents={participatedEvents}

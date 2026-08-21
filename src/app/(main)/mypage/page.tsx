@@ -36,9 +36,8 @@ export default function MyPage() {
     hostedLoading || appliedLoading || participatedLoading;
 
   // イベント取得エラーをログに出力
-  if (hostedError) console.error(hostedError);
-  if (appliedError) console.error(appliedError);
-  if (participatedError) console.error(participatedError);
+  const eventError = hostedError ?? appliedError ?? participatedError;
+  if (eventError) console.error(eventError);
 
   if (isUserLoading || isEventsLoading) {
     return (
@@ -101,6 +100,11 @@ export default function MyPage() {
         </div>
 
         <div className="mt-4">
+          {eventError && (
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+              イベント一覧の取得に失敗しました。時間をおいて再度お試しください。
+            </div>
+          )}
           <UserEventTabs
             hostedEvents={hostedEvents}
             participatedEvents={participatedEvents}
