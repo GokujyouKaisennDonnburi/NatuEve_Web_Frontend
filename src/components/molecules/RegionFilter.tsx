@@ -206,31 +206,25 @@ export function RegionFilter({
 
           return (
             <div key={region.name}>
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => toggleRegion(region.name)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    toggleRegion(region.name);
-                  }
-                }}
-                className={cn(
-                  "flex items-center w-full h-[22px] bg-transparent px-[8px] text-left cursor-pointer",
-                )}
-              >
-                <Checkbox
-                  checked={regionStatus === "checked"}
-                  indeterminate={regionStatus === "indeterminate"}
-                />
-                <span
-                  className={cn(
-                    "flex-1 ml-[6px] text-sm leading-5 text-[#3A4237] font-bold",
-                  )}
+              <div className="relative w-full h-[22px]">
+                <button
+                  type="button"
+                  onClick={() => toggleRegion(region.name)}
+                  className="flex items-center w-full h-full bg-transparent pl-[8px] pr-[18px] text-left cursor-pointer"
                 >
-                  {region.name}
-                </span>
+                  <Checkbox
+                    checked={regionStatus === "checked"}
+                    indeterminate={regionStatus === "indeterminate"}
+                  />
+                  <span
+                    className={cn(
+                      "flex-1 ml-[6px] text-sm leading-5 text-[#3A4237] font-bold",
+                    )}
+                  >
+                    {region.name}
+                  </span>
+                </button>
+
                 <button
                   type="button"
                   onClick={(e) => {
@@ -238,7 +232,7 @@ export function RegionFilter({
                     onToggleRegion?.(region.name);
                   }}
                   aria-label={`${region.name} を展開`}
-                  className="flex items-center justify-center bg-transparent border-none p-0 cursor-pointer"
+                  className="absolute top-0 right-[8px] flex items-center justify-center w-[10px] h-full bg-transparent border-none p-0 cursor-pointer"
                 >
                   <ChevronDown
                     className={cn(
@@ -259,36 +253,30 @@ export function RegionFilter({
 
                     return (
                       <div key={pref.name}>
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() =>
-                            togglePrefecture(region.name, pref.name)
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              togglePrefecture(region.name, pref.name);
+                        <div className="relative w-full h-[22px]">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              togglePrefecture(region.name, pref.name)
                             }
-                          }}
-                          className={cn(
-                            "flex items-center w-full h-[22px] bg-transparent px-[8px] text-left cursor-pointer",
-                          )}
-                        >
-                          <Checkbox
-                            checked={prefStatus === "checked"}
-                            indeterminate={prefStatus === "indeterminate"}
-                          />
-                          <span
-                            className={cn(
-                              "flex-1 ml-[6px] text-sm leading-5 text-[#3A4237]",
-                              prefStatus !== "unchecked"
-                                ? "font-bold"
-                                : "font-normal",
-                            )}
+                            className="flex items-center w-full h-full bg-transparent pl-[8px] pr-[18px] text-left cursor-pointer"
                           >
-                            {pref.name}
-                          </span>
+                            <Checkbox
+                              checked={prefStatus === "checked"}
+                              indeterminate={prefStatus === "indeterminate"}
+                            />
+                            <span
+                              className={cn(
+                                "flex-1 ml-[6px] text-sm leading-5 text-[#3A4237]",
+                                prefStatus !== "unchecked"
+                                  ? "font-bold"
+                                  : "font-normal",
+                              )}
+                            >
+                              {pref.name}
+                            </span>
+                          </button>
+
                           <button
                             type="button"
                             onClick={(e) => {
@@ -296,7 +284,7 @@ export function RegionFilter({
                               onTogglePrefecture?.(pref.name);
                             }}
                             aria-label={`${pref.name} を展開`}
-                            className="flex items-center justify-center bg-transparent border-none p-0 cursor-pointer"
+                            className="absolute top-0 right-[8px] flex items-center justify-center w-[10px] h-full bg-transparent border-none p-0 cursor-pointer"
                           >
                             <ChevronDown
                               className={cn(

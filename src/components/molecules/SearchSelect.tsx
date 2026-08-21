@@ -270,9 +270,9 @@ export function SearchSelect({
               『{query.trim()}』に一致する{emptyLabel}がありません
             </div>
           ) : (
-            <ul className="max-h-64 overflow-y-auto p-1">
+            <div className="max-h-64 overflow-y-auto p-1">
               {filteredGroups.map((group, groupIndex) => (
-                <li key={`${groupIndex}-${group.groupLabel}`}>
+                <div key={group.groupLabel}>
                   <div
                     aria-hidden="true"
                     className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-500"
@@ -284,25 +284,28 @@ export function SearchSelect({
                       </span>
                     ) : null}
                   </div>
-                  <ul
-                    role="group"
-                    aria-label={group.groupLabel}
-                    className="space-y-0.5"
-                  >
+                  <div className="space-y-0.5">
                     {group.options.map((option, optionIndex) => {
                       const index =
                         (groupStartIndices[groupIndex] ?? 0) + optionIndex;
                       const isHighlighted = index === highlightedIndex;
                       const isSelected = option.name === value;
                       return (
-                        <li
+                        <div
                           key={option.name}
                           id={`${optionBaseId}-option-${index}`}
                           role="option"
                           aria-selected={isSelected}
+                          tabIndex={-1}
                           onMouseDown={(event) => event.preventDefault()}
                           onMouseEnter={() => setHighlightedIndex(index)}
                           onClick={() => selectOption(option)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              selectOption(option);
+                            }
+                          }}
                           className={cn(
                             "flex cursor-pointer items-center gap-2 rounded-lg py-2 pl-7 pr-3 text-sm",
                             isSelected
@@ -320,13 +323,13 @@ export function SearchSelect({
                           <span className="min-w-0 truncate">
                             {option.name}
                           </span>
-                        </li>
+                        </div>
                       );
                     })}
-                  </ul>
-                </li>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       ) : null}
