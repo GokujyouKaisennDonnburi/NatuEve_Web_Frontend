@@ -19,6 +19,7 @@ import { uploadFile, uploadFiles } from "@/services/upload";
 import type { CreateEventRequest } from "@/types/event";
 import type { TagItem } from "@/types/tag";
 import { UploadValidationError } from "@/utils/upload";
+import { buildLocation } from "@/utils/regionSearch";
 
 // イベント投稿フォームの入力状態を管理する型定義
 export type EventPostFormState = {
@@ -26,7 +27,9 @@ export type EventPostFormState = {
   eventContent: string; // イベント概要
   eventImage: File | null; // イベント画像ファイル
   eventDocuments: File[]; // イベント資料ファイルの配列
-  location: string; // 開催場所
+  prefecture: string; // 都道府県
+  city: string; // 市区町村
+  address: string; // 番地・施設名等（任意）
   eventDateTime: string; // 開催日時
   endDateTime: string; // 終了日時
   feeCategoryGroups: PriceCategory[]; // 参加費用のカテゴリと金額の配列
@@ -40,7 +43,9 @@ export type EventPostFormState = {
 export type EventPostFormErrors = {
   eventName?: string;
   eventContent?: string;
-  location?: string;
+  prefecture?: string;
+  city?: string;
+  address?: string;
   eventDateTime?: string;
   endDateTime?: string;
   feeCategoryGroups?: Record<number, string>;
@@ -63,7 +68,9 @@ const INITIAL_STATE: EventPostFormState = {
   eventContent: "",
   eventImage: null,
   eventDocuments: [],
-  location: "",
+  prefecture: "",
+  city: "",
+  address: "",
   eventDateTime: "",
   endDateTime: "",
   // 1行だけ空の状態で用意する。初期値を入れると、そのまま送信されて
@@ -128,10 +135,16 @@ export function useEventPostForm() {
       nextErrors.eventContent = "イベント概要は必須です。";
     }
 
-    if (!formState.location.trim()) {
-      nextErrors.location = "開催場所は必須です。";
-    } else if (formState.location.trim().length > MAX_TEXT_LENGTH) {
-      nextErrors.location = "開催場所は255文字以内で入力してください。";
+    if (!formState.prefecture.trim()) {
+      nextErrors.prefecture = "都道府県を選択してください。";
+    }
+
+    if (!formState.city.trim()) {
+      nextErrors.city = "市区町村を選択してください。";
+    }
+
+    if (formState.address.trim().length > MAX_TEXT_LENGTH) {
+      nextErrors.address = "番地・施設名等は255文字以内で入力してください。";
     }
 
     if (!formState.eventDateTime.trim()) {
@@ -287,7 +300,11 @@ export function useEventPostForm() {
       const payload: CreateEventRequest = {
         title: formState.eventName.trim(),
         description: formState.eventContent.trim(),
-        location: formState.location.trim(),
+        location: buildLocation(
+          formState.prefecture,
+          formState.city,
+          formState.address,
+        ),
         eventDate: toRfc3339(formState.eventDateTime),
         endDate: toRfc3339(formState.endDateTime),
         costs: formState.feeCategoryGroups.map((group) => ({

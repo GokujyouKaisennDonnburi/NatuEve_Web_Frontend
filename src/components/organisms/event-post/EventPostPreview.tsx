@@ -16,6 +16,7 @@ import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { SurfaceCard } from "@/components/molecules/SurfaceCard";
 import { CardContent } from "@/components/ui/card";
 import type { EventPostFormState } from "@/hooks/useEventPostForm";
+import { buildLocation } from "@/utils/regionSearch";
 import { resolveEventStatus } from "@/utils/eventStatus";
 import { Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -93,7 +94,11 @@ export function EventPostPreview({
       description: formState.eventContent,
       eventDate: toRfc3339OrEmpty(formState.eventDateTime),
       endDate: toRfc3339OrEmpty(formState.endDateTime),
-      location: formState.location,
+      location: buildLocation(
+        formState.prefecture,
+        formState.city,
+        formState.address,
+      ),
       costs,
       items,
       capacity: formState.capacity ? Number(formState.capacity) : 0,
