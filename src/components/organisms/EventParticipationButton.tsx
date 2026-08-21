@@ -55,6 +55,8 @@ type EventParticipationButtonProps = {
   // 参加中ユーザーの申し込み内容。未参加・未取得の場合は undefined。
   participationDetail?: ParticipationDetail;
   // 現在のユーザーの参加申込人数（代表者を含む）。参加済み表示用。
+  // 申込内容 API から取得するため、参加中と判明してから1往復遅れて届く。
+  // 未取得の間は undefined となり、人数を伏せて「申し込み済み」とだけ表示する。
   partySize?: number;
   // 参加申し込み成功後に呼ばれるコールバック。参加状態の再取得をトリガーする。
   onParticipateSuccess?: () => void;
@@ -123,8 +125,6 @@ export function EventParticipationButton({
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   // 参加キャンセル送信中フラグ
   const [isCancelSubmitting, setIsCancelSubmitting] = useState(false);
-
-  const displayPartySize = partySize ?? 1;
 
   // 定員・残り人数の計算（残り = capacity - participantCount、swagger 準拠）
   const effectiveCapacity =
@@ -216,8 +216,12 @@ export function EventParticipationButton({
               >
                 <Check className="size-3" strokeWidth={2.5} />
               </span>
+              {/* 人数が未取得のうちは「1名」等で埋めず、確定してから括弧ごと添える。
+                  取得を待つ数百ミリ秒のあいだ、実際と違う人数を見せないようにする。 */}
               <span className="text-xs font-bold text-[#173315] sm:text-sm">
-                申し込み済み（{displayPartySize}名）
+                {typeof partySize === "number"
+                  ? `申し込み済み（${partySize}名）`
+                  : "申し込み済み"}
               </span>
             </div>
             <Button

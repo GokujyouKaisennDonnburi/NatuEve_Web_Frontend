@@ -355,7 +355,7 @@ export function EventDetail({
             participantCount={event.participantCount}
             participating={participating}
             participationDetail={participationDetail}
-            partySize={participationData?.partySize}
+            partySize={myApplication?.partySize}
             receptionClosed={status === "closed"}
             onParticipateSuccess={() => {
               refetchParticipation();
