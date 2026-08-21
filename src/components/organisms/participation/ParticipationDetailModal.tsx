@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import type { ParticipationCostBreakdown } from "@/types/participate";
+import type { EventDetailCost } from "@/types/event";
+import type { ParticipantEntry } from "@/types/participate";
 import { formatFullDateTime, formatMonthDayTime } from "@/utils/date";
-import { buildParticipationSummary } from "@/utils/participation";
+import { buildApplicationSummary } from "@/utils/participation";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef } from "react";
 
@@ -34,7 +35,10 @@ type ParticipationDetailModalProps = {
   // 取り消し期限(RFC3339)。未設定なら案内帯を出さない
   cancelDeadline?: string | null;
   // カテゴリ別の申し込み内訳。未取得なら参加費ブロックごと出さない
-  costs?: ParticipationCostBreakdown[];
+  participants?: ParticipantEntry[];
+  // イベントの費用カテゴリ。申し込み内訳と突合して1名あたりの参加費を補う。
+  // 申込内容 API は金額を返さないため、金額の出所はこちらだけになる。
+  eventCosts?: EventDetailCost[];
   // 「申し込みを取り消す」押下時に呼ぶ。確認モーダルの表示は呼び出し側が担当する
   onRequestCancel: () => void;
   // 取り消し確認モーダルなど、手前に別のモーダルが重なっているかどうか。
@@ -68,7 +72,8 @@ export function ParticipationDetailModal({
   endDate,
   location,
   cancelDeadline,
-  costs,
+  participants,
+  eventCosts,
   onRequestCancel,
   isBlocked = false,
 }: Readonly<ParticipationDetailModalProps>) {
@@ -98,16 +103,13 @@ export function ParticipationDetailModal({
     [appliedAt, eventDate, endDate, location],
   );
 
-  const hasCosts = !!costs && costs.length > 0;
-
+  // 参加費ブロックは申し込み内訳が取れたときだけ出す。
+  // 金額はイベントの費用カテゴリとの突合で補うため、突合できない行は金額不明として扱う。
   const summary = useMemo(() => {
-    if (!hasCosts) return null;
+    if (!participants || participants.length === 0) return null;
 
-    return buildParticipationSummary(
-      costs.map(({ category, cost }) => ({ category, cost })),
-      costs.map((c) => c.count),
-    );
-  }, [hasCosts, costs]);
+    return buildApplicationSummary(eventCosts, participants);
+  }, [participants, eventCosts]);
 
   const isExpired = isDeadlinePassed(cancelDeadline);
 

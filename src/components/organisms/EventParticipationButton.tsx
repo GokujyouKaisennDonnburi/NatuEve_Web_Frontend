@@ -9,19 +9,20 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { leaveEvent } from "@/services/participate";
 import type { EventDetailCost } from "@/types/event";
-import type { ParticipationCostBreakdown } from "@/types/participate";
+import type { ParticipantEntry } from "@/types/participate";
 import { LeaveError, LeaveErrorCode } from "@/types/participate";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 // 申し込み内容モーダルに表示する、このユーザー自身の申し込み内容。
-// 参加状態 API（participation-logs）から取得した値をそのまま渡す。
+// 申込内容 API（GET /api/v1/events/{id}/members/me）から取得した値をそのまま渡す。
 export type ParticipationDetail = {
   // 申し込み日時(RFC3339)。取得できない場合は null。
   appliedAt: string | null;
-  // カテゴリ別の申し込み内訳。API が返さない場合は undefined となり、内訳の表示を省略する。
-  costs?: ParticipationCostBreakdown[];
+  // カテゴリ別の申し込み内訳。取得できない場合は undefined となり、内訳の表示を省略する。
+  // 金額は含まれないため、イベントの費用カテゴリ（costs）と突合して補う。
+  participants?: ParticipantEntry[];
 };
 
 // 参加申し込みボタンのプロパティ
@@ -318,7 +319,8 @@ export function EventParticipationButton({
         endDate={eventEndDate}
         location={eventLocation}
         cancelDeadline={cancelDeadline}
-        costs={participationDetail?.costs}
+        participants={participationDetail?.participants}
+        eventCosts={costs}
         onRequestCancel={() => setIsCancelModalOpen(true)}
         isBlocked={isCancelModalOpen}
       />

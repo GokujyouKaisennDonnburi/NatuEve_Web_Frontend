@@ -2,9 +2,11 @@ import { apiFetch } from "@/services/apiClient";
 import type {
   EventMembersResponse,
   GetEventMembersErrorBody,
+  GetMyEventApplicationErrorBody,
   GetParticipationLogsErrorBody,
   LeaveErrorBody,
   LeaveResponse,
+  MyEventApplicationResponse,
   ParticipateEventErrorBody,
   ParticipateEventRequest,
   ParticipateEventResponse,
@@ -12,6 +14,7 @@ import type {
 } from "@/types/participate";
 import {
   LeaveError,
+  MyEventApplicationError,
   ParticipateError,
   ParticipationLogsError,
 } from "@/types/participate";
@@ -173,4 +176,43 @@ export async function leaveEvent(eventId: string): Promise<LeaveResponse> {
   }
 
   return (await response.json()) as LeaveResponse;
+}
+
+// 自分の申込内容取得 API（GET /api/v1/events/{eventId}/members/me）を呼ぶ（要認証）。
+//
+// 認証ユーザー自身が当該イベントへ申し込んだ内容（名前・メールアドレス・人数の内訳・申込日時）を返す。
+// 未認証・無効トークンは 401、イベント不存在 または 未申込・キャンセル済み・匿名申込は
+// 404 not_found となる（404 の2種は code が同じで message でしか区別できない）。
+// APIエラー・通信エラーは MyEventApplicationError を送出し、呼び出し側で判別できるようにする。
+export async function getMyEventApplication(
+  eventId: string,
+): Promise<MyEventApplicationResponse> {
+  const response = await apiFetch(
+    `/api/v1/events/${encodeURIComponent(eventId)}/members/me`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    // バックエンドは { error: { code, message } } 形式でエラー詳細を返す。
+    // code を取得して呼び出し側で 401 / 404 等を判別できるようにする。
+    let code = "internal_error";
+    let message: string | undefined;
+    try {
+      const body = (await response.json()) as GetMyEventApplicationErrorBody;
+      code = body?.error?.code ?? code;
+      message = body?.error?.message;
+    } catch {
+      // JSON 以外のボディは無視する
+    }
+
+    throw new MyEventApplicationError(
+      code,
+      message ?? `申込内容の取得に失敗しました (Status: ${response.status})`,
+      response.status,
+    );
+  }
+
+  return (await response.json()) as MyEventApplicationResponse;
 }

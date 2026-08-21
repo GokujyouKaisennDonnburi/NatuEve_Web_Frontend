@@ -123,17 +123,6 @@ export type GetEventMembersErrorBody = ParticipateEventErrorBody;
 // 参加状態のアクション種別。"join"（参加）/ "leave"（参加キャンセル）/ null（履歴なし）。
 export type ParticipationAction = "join" | "leave" | null;
 
-// 申し込み時に選ばれたカテゴリ別の参加人数DTO。
-// イベントの費用内訳（EventDetailCost）に、申し込んだ人数を添えたもの。
-export type ParticipationCostBreakdown = {
-  // 費用カテゴリ名（例: 大人 / 学生 / 子ども）。
-  category: string;
-  // 1名あたりの参加費（円）。0 は無料。
-  cost: number;
-  // このカテゴリで申し込んだ人数。
-  count: number;
-};
-
 // 参加状態レスポンスDTO。
 export type ParticipationLogsResponse = {
   // 直近のアクション。履歴がない場合は null。
@@ -144,8 +133,6 @@ export type ParticipationLogsResponse = {
   partySize?: number;
   // 直近のアクション日時(RFC3339)。履歴がない場合は null。
   updatedAt: string | null;
-  // カテゴリ別の申し込み内訳。未提供の場合は undefined となり、表示側は内訳を省略する。
-  costs?: ParticipationCostBreakdown[];
 };
 
 // 参加状態取得APIのエラーレスポンスボディDTO。
@@ -210,6 +197,60 @@ export class LeaveError extends Error {
   constructor(code: string, message: string, status: number) {
     super(message);
     this.name = "LeaveError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
+// 自分の申込内容取得 API（GET /api/v1/events/{id}/members/me）の DTO 群。
+// 認証ユーザー自身の、指定イベントへの申込内容を返す。要認証。
+// 呼び出し元が本人なので profileId は含まれない。
+//
+// 金額は返らない（ADR-0023）。参加費を表示する場合はイベント詳細
+// （GET /api/v1/events/{id}）の costs[] と category で突合して補う。
+// 双方が同じ費用行を参照しているためカテゴリ改名では壊れないが、
+// 突合で得られるのは「申込時の金額」ではなく現在値である点に注意する。
+
+// 自分の申込内容レスポンス DTO。
+export type MyEventApplicationResponse = {
+  // 申し込んだイベントID。
+  eventId: string;
+  // 申込時に入力された名前。アカウントの表示名とは別物で、一致するとは限らない。
+  username: string;
+  // 申込時のメールアドレス。
+  mailAddress: string;
+  // 合計人数（代表者を含む）。participants[].headCount の合計と必ず一致する。
+  partySize: number;
+  // カテゴリ別の申し込み内訳。カテゴリ名の昇順で、常に1件以上返る。
+  participants: ParticipantEntry[];
+  // 申込日時(RFC3339)。
+  createdAt: string;
+};
+
+// 自分の申込内容取得APIのエラーレスポンスボディDTO。
+export type GetMyEventApplicationErrorBody = ParticipateEventErrorBody;
+
+// 自分の申込内容取得APIのエラーコード（ハンドリングで区別するもの）。
+// 404 not_found はイベント不存在と「未申込・キャンセル済み・匿名申込」の
+// 両方を指す（leave の流儀に合わせ code は共通で、message でしか区別できない）。
+// イベント詳細画面からしか開かない導線のためイベント不存在は実質起きず、
+// 呼び出し側では区別せず「申込情報なし」として扱う。
+export const MyEventApplicationErrorCode = {
+  InvalidRequest: "invalid_request",
+  Unauthorized: "unauthorized",
+  NotFound: "not_found",
+  InternalError: "internal_error",
+} as const;
+
+// 自分の申込内容取得APIのエラー。code を保持し、呼び出し側で 401 / 404 等を判別できるようにする。
+export class MyEventApplicationError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  // コンストラクタ
+  constructor(code: string, message: string, status: number) {
+    super(message);
+    this.name = "MyEventApplicationError";
     this.code = code;
     this.status = status;
   }
