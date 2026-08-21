@@ -112,7 +112,9 @@ export function RegionFilter({
     if (isCurrentlySelected) {
       onPrefecturesChange?.(selectedPrefectures.filter((p) => p !== prefName));
       onCitiesChange?.(
-        selectedCities.filter((c) => !pref.cities.some((city) => city.name === c)),
+        selectedCities.filter(
+          (c) => !pref.cities.some((city) => city.name === c),
+        ),
       );
     } else {
       const newCities = pref.cities
@@ -308,8 +310,9 @@ export function RegionFilter({
                         {isPrefExpanded && (
                           <div className="ml-[22px] mt-[2px] flex flex-wrap gap-[2px]">
                             {pref.cities.map((city) => {
-                              const isCitySelected =
-                                selectedCities.includes(city.name);
+                              const isCitySelected = selectedCities.includes(
+                                city.name,
+                              );
                               return (
                                 <button
                                   key={city.name}
@@ -321,9 +324,7 @@ export function RegionFilter({
                                   )}
                                 >
                                   <Checkbox checked={isCitySelected} />
-                                  <span className="ml-[6px]">
-                                    {city.name}
-                                  </span>
+                                  <span className="ml-[6px]">{city.name}</span>
                                 </button>
                               );
                             })}
