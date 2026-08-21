@@ -59,9 +59,12 @@ export function useEventList({
 
         const tagIds = selectedTagIds.length > 0 ? selectedTagIds : undefined;
 
-        const statuses =
+        const statuses: EventListStatus[] | undefined =
           selectedStatuses.length > 0
-            ? (selectedStatuses as EventListStatus[])
+            ? selectedStatuses.filter(
+                (s): s is EventListStatus =>
+                  s === "upcoming" || s === "ongoing" || s === "ended",
+              )
             : undefined;
 
         const data = await fetchEventList({
