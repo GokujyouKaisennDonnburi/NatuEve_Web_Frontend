@@ -45,7 +45,7 @@ export function getCityGroup(prefectureName: string): RegionOptionGroup {
     (p) => p.name === prefectureName,
   );
   return {
-    groupLabel: prefecture?.name ?? "",
+    groupLabel: prefecture?.name ?? prefectureName,
     options:
       prefecture?.cities.map((city) => ({
         name: city.name,
