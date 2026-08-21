@@ -120,6 +120,8 @@ export type EventListResponse = {
 };
 
 // イベント一覧取得 API のリクエストパラメータ DTO。
+export type EventListStatus = "upcoming" | "ongoing" | "ended";
+
 export type EventListRequest = {
   sort?: "created_at" | "event_date";
   order?: "asc" | "desc";
@@ -129,6 +131,8 @@ export type EventListRequest = {
   keywords?: string[];
   // 絞り込むタグIDの配列（UUID・OR 検索・最大20件）。
   tagIds?: string[];
+  // 開催状況で絞り込む（OR 検索）。未指定なら絞り込みなし。
+  status?: EventListStatus[];
 };
 
 // イベント詳細取得 API のレスポンス DTO。
