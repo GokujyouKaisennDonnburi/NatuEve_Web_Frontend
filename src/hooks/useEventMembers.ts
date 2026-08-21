@@ -36,6 +36,7 @@ export function useEventMembers(
     let cancelled = false;
 
     setIsLoading(true);
+    setData(null);
     setError(null);
 
     const fetchMembers = async (): Promise<void> => {
