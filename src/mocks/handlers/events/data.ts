@@ -155,7 +155,7 @@ const createDefaultMockEventDetail = (
   organizerName: event.profile.displayName,
   organizerAvatarUrl: event.profile.avatarUrl,
   description: `詳細情報です。自然観察を楽しみましょう。`,
-  capacity: 0,
+  capacity: 30,
   cancelDeadline: buildCancelDeadline(event, index),
   externalUrl: "https://example.com/event",
   costs: [
