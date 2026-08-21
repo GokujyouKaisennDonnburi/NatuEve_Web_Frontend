@@ -10,6 +10,11 @@ type UserEventTabsProps = {
   participatedEvents: EventItem[];
   appliedEvents?: EventItem[];
   isOwnProfile: boolean;
+  counts?: {
+    hosted: number;
+    participated: number;
+    applied?: number;
+  };
 };
 
 type TabKey = "applied" | "hosted" | "participated";
@@ -25,6 +30,7 @@ export function UserEventTabs({
   participatedEvents,
   appliedEvents = [],
   isOwnProfile,
+  counts,
 }: UserEventTabsProps) {
   const tabs = useMemo(
     () =>
@@ -42,6 +48,20 @@ export function UserEventTabs({
 
   const currentEvents = eventMap[activeTab];
 
+  const getCount = (key: TabKey): number => {
+    if (counts) {
+      switch (key) {
+        case "applied":
+          return counts.applied ?? 0;
+        case "hosted":
+          return counts.hosted;
+        case "participated":
+          return counts.participated;
+      }
+    }
+    return eventMap[key].length;
+  };
+
   return (
     <div className="w-full space-y-6">
       <div className="flex flex-wrap gap-2">
@@ -49,7 +69,7 @@ export function UserEventTabs({
           <EventFilterPill
             key={key}
             label={label}
-            count={eventMap[key].length}
+            count={getCount(key)}
             active={activeTab === key}
             onClick={() => setActiveTab(key)}
           />

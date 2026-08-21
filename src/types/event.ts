@@ -194,3 +194,44 @@ export type CancelEventResponse = {
   // キャンセル受領日時(RFC3339)。
   cancelledAt: string;
 };
+
+// ============================================
+// マイページ／プロフィールページ API の DTO 群
+// ============================================
+
+// マイページ取得 API（GET /api/v1/me/events）の件数 DTO。
+export type MyEventCounts = {
+  applied: number;
+  attended: number;
+  hosted: number;
+};
+
+// マイページ取得 API のレスポンス DTO。
+export type MyEventListResponse = {
+  counts: MyEventCounts;
+  events: EventListItem[];
+  limit: number;
+  offset: number;
+  totalCount: number;
+};
+
+// プロフィールページ取得 API（GET /api/v1/profiles/:id/events）の件数 DTO。
+export type ProfileEventCounts = {
+  attended: number;
+  hosted: number;
+};
+
+// プロフィールページ取得 API のレスポンス DTO。
+export type ProfileEventListResponse = {
+  counts: ProfileEventCounts;
+  events: EventListItem[];
+  limit: number;
+  offset: number;
+  totalCount: number;
+};
+
+// マイページ API の type パラメータ。
+export type MyEventType = "hosted" | "applied" | "attended";
+
+// プロフィールページ API の type パラメータ。
+export type ProfileEventType = "hosted" | "attended";
