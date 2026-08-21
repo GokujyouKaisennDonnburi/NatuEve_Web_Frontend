@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchEventList } from "@/services/event";
 import type { EventItem } from "@/components/organisms/EventCard";
+import type { EventListStatus } from "@/types/event";
 import { resolveEventStatus } from "@/utils/eventStatus";
 
 type UseEventListParams = {
@@ -10,6 +11,7 @@ type UseEventListParams = {
   sortBy: "created_at" | "event_date";
   searchQuery: string;
   selectedTagIds: string[];
+  selectedStatuses: string[];
   itemsPerPage: number;
 };
 
@@ -25,6 +27,7 @@ export function useEventList({
   sortBy,
   searchQuery,
   selectedTagIds,
+  selectedStatuses,
   itemsPerPage,
 }: UseEventListParams): UseEventListReturn {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -56,6 +59,11 @@ export function useEventList({
 
         const tagIds = selectedTagIds.length > 0 ? selectedTagIds : undefined;
 
+        const statuses =
+          selectedStatuses.length > 0
+            ? (selectedStatuses as EventListStatus[])
+            : undefined;
+
         const data = await fetchEventList({
           sort: sortBy,
           order,
@@ -63,6 +71,7 @@ export function useEventList({
           offset,
           keywords,
           tagIds,
+          status: statuses,
         });
 
         if (!cancelled) {
@@ -133,7 +142,14 @@ export function useEventList({
     return () => {
       cancelled = true;
     };
-  }, [currentPage, sortBy, searchQuery, selectedTagIds, itemsPerPage]);
+  }, [
+    currentPage,
+    sortBy,
+    searchQuery,
+    selectedTagIds,
+    selectedStatuses,
+    itemsPerPage,
+  ]);
 
   return { events, totalCount, loading, error };
 }

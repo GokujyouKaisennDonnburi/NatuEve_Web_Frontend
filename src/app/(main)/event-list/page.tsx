@@ -34,6 +34,7 @@ export default function EventListPage() {
 
   // 絞り込みフィルターの状態（適用済み: 「N件を表示」押下で反映され、APIリクエストに使われる）
   const [appliedTagIds, setAppliedTagIds] = useState<string[]>([]);
+  const [appliedStatuses, setAppliedStatuses] = useState<string[]>([]);
 
   const { tags: allTags } = useTags();
 
@@ -42,6 +43,7 @@ export default function EventListPage() {
     sortBy,
     searchQuery,
     selectedTagIds: appliedTagIds,
+    selectedStatuses: appliedStatuses,
     itemsPerPage: ITEMS_PER_PAGE,
   });
 
@@ -104,6 +106,7 @@ export default function EventListPage() {
     setMinPrice(undefined);
     setMaxPrice(undefined);
     setAppliedTagIds([]);
+    setAppliedStatuses([]);
     setFilterResetKey((prev) => prev + 1);
     setCurrentPage(1);
   };
@@ -119,6 +122,7 @@ export default function EventListPage() {
   // 「N件を表示」押下時にドラフト状態を適用済み状態に反映し、APIリクエストをトリガーする
   const handleApply = () => {
     setAppliedTagIds(selectedTagIds);
+    setAppliedStatuses(selectedStatuses);
     setCurrentPage(1);
   };
 

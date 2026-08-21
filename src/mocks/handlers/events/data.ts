@@ -296,6 +296,23 @@ const matchesAllKeywords = (event: MockEvent, keywords: string[]): boolean => {
   );
 };
 
+// 開催状況フィルタ用に、現在時刻と eventDate/endDate から該当状況かを判定する。
+const matchesStatus = (event: MockEvent, status: string): boolean => {
+  const now = Date.now();
+  const start = Date.parse(event.eventDate);
+  const end = Date.parse(event.endDate || event.eventDate);
+  switch (status) {
+    case "upcoming":
+      return start > now;
+    case "ongoing":
+      return start <= now && now <= end;
+    case "ended":
+      return end < now;
+    default:
+      return false;
+  }
+};
+
 // getPagedEvents関数は、指定されたURLのクエリパラメータに基づいて、イベントデータをページングして返す関数です。
 export const getPagedEvents = (url: URL): MockEventListResponse => {
   // クエリパラメータからlimit, offset, sort, orderを取得し、適切な値に正規化する
@@ -352,14 +369,40 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
     };
   }
 
-  // キャンセル済みイベント(cancelledAt が設定済み)は一覧から除外する。
-  // バックエンド仕様: 公開イベント一覧は開催予定のみを返し totalCount も絞り込み後件数とする。
-  const activeEvents = mockEvents.filter((event) => !event.cancelledAt);
+  // status クエリパラメータの処理。
+  // 空値は無視し、許容値(upcoming / ongoing / ended)以外は 400 エラーを返す。
+  // 重複は除去し、定義順(upcoming -> ongoing -> ended)へ並べ替える。
+  const VALID_STATUSES = ["upcoming", "ongoing", "ended"];
+  const rawStatuses = url.searchParams
+    .getAll("status")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+  const invalidStatus = rawStatuses.find(
+    (status) => !VALID_STATUSES.includes(status),
+  );
+  if (invalidStatus) {
+    return {
+      events: [],
+      limit,
+      offset,
+      totalCount: 0,
+      error: {
+        code: "invalid_request",
+        message: "開催状況(status)の値が不正です",
+      },
+    };
+  }
+  const statuses = VALID_STATUSES.filter((status) =>
+    rawStatuses.includes(status),
+  );
+
+  // キャンセル済みイベントは除外しない（バックエンド仕様: status は開催状況=時間軸のみを
+  // 表し、キャンセル済みイベントも各 status に混在するため、クライアントは cancelledAt で判別する）。
 
   // 検索キーワードで絞り込む
   const keywordFiltered = keywords.length
-    ? activeEvents.filter((event) => matchesAllKeywords(event, keywords))
-    : activeEvents;
+    ? mockEvents.filter((event) => matchesAllKeywords(event, keywords))
+    : mockEvents;
 
   // タグIDで絞り込む（OR 検索）。q と同時指定の場合は AND になる。
   const filteredEvents = rawTagIds.length
@@ -370,8 +413,15 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
       )
     : keywordFiltered;
 
+  // 開催状況で絞り込む（OR 検索）。q / tagId と同時指定の場合は AND になる。
+  const statusFilteredEvents = statuses.length
+    ? filteredEvents.filter((event) =>
+        statuses.some((status) => matchesStatus(event, status)),
+      )
+    : filteredEvents;
+
   // イベントデータをソートする
-  const sortedEvents = [...filteredEvents].sort((left, right) => {
+  const sortedEvents = [...statusFilteredEvents].sort((left, right) => {
     const leftValue = sort === "event_date" ? left.eventDate : left.createdAt;
     const rightValue =
       sort === "event_date" ? right.eventDate : right.createdAt;
@@ -396,6 +446,6 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
     events,
     limit,
     offset,
-    totalCount: filteredEvents.length,
+    totalCount: statusFilteredEvents.length,
   };
 };
