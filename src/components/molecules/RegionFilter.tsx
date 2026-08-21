@@ -79,7 +79,9 @@ export function RegionFilter({
 
     if (isCurrentlySelected) {
       const allPrefs = region.prefectures.map((p) => p.name);
-      const allCities = region.prefectures.flatMap((p) => p.cities);
+      const allCities = region.prefectures.flatMap((p) =>
+        p.cities.map((c) => c.name),
+      );
       onRegionsChange?.(selectedRegions.filter((r) => r !== regionName));
       onPrefecturesChange?.(
         selectedPrefectures.filter((p) => !allPrefs.includes(p)),
@@ -90,7 +92,7 @@ export function RegionFilter({
         .map((p) => p.name)
         .filter((p) => !selectedPrefectures.includes(p));
       const newCities = region.prefectures
-        .flatMap((p) => p.cities)
+        .flatMap((p) => p.cities.map((c) => c.name))
         .filter((c) => !selectedCities.includes(c));
       onRegionsChange?.([...selectedRegions, regionName]);
       onPrefecturesChange?.([...selectedPrefectures, ...newPrefs]);
@@ -109,9 +111,13 @@ export function RegionFilter({
 
     if (isCurrentlySelected) {
       onPrefecturesChange?.(selectedPrefectures.filter((p) => p !== prefName));
-      onCitiesChange?.(selectedCities.filter((c) => !pref.cities.includes(c)));
+      onCitiesChange?.(
+        selectedCities.filter((c) => !pref.cities.some((city) => city.name === c)),
+      );
     } else {
-      const newCities = pref.cities.filter((c) => !selectedCities.includes(c));
+      const newCities = pref.cities
+        .map((c) => c.name)
+        .filter((c) => !selectedCities.includes(c));
       onPrefecturesChange?.([...selectedPrefectures, prefName]);
       onCitiesChange?.([...selectedCities, ...newCities]);
     }
@@ -124,7 +130,7 @@ export function RegionFilter({
 
       for (const region of REGIONS) {
         for (const pref of region.prefectures) {
-          if (pref.cities.includes(cityName)) {
+          if (pref.cities.some((c) => c.name === cityName)) {
             if (selectedPrefectures.includes(pref.name)) {
               onPrefecturesChange?.(
                 selectedPrefectures.filter((p) => p !== pref.name),
@@ -150,7 +156,9 @@ export function RegionFilter({
     const region = REGIONS.find((r) => r.name === regionName);
     if (!region) return "unchecked";
     const allPrefs = region.prefectures.map((p) => p.name);
-    const allCities = region.prefectures.flatMap((p) => p.cities);
+    const allCities = region.prefectures.flatMap((p) =>
+      p.cities.map((c) => c.name),
+    );
 
     let selectedCount = 0;
     for (const p of allPrefs) {
@@ -176,7 +184,9 @@ export function RegionFilter({
     const pref = region.prefectures.find((p) => p.name === prefName);
     if (!pref) return "unchecked";
 
-    const hasCitySelected = pref.cities.some((c) => selectedCities.includes(c));
+    const hasCitySelected = pref.cities.some((c) =>
+      selectedCities.includes(c.name),
+    );
     if (hasCitySelected) return "indeterminate";
     return "unchecked";
   };
@@ -299,19 +309,21 @@ export function RegionFilter({
                           <div className="ml-[22px] mt-[2px] flex flex-wrap gap-[2px]">
                             {pref.cities.map((city) => {
                               const isCitySelected =
-                                selectedCities.includes(city);
+                                selectedCities.includes(city.name);
                               return (
                                 <button
-                                  key={city}
+                                  key={city.name}
                                   type="button"
-                                  onClick={() => toggleCity(city)}
+                                  onClick={() => toggleCity(city.name)}
                                   className={cn(
                                     "flex items-center h-[22px] bg-transparent px-[8px] text-sm leading-5 text-[#3A4237] font-normal",
                                     isCitySelected && "font-bold",
                                   )}
                                 >
                                   <Checkbox checked={isCitySelected} />
-                                  <span className="ml-[6px]">{city}</span>
+                                  <span className="ml-[6px]">
+                                    {city.name}
+                                  </span>
                                 </button>
                               );
                             })}
