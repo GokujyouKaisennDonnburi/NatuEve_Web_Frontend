@@ -30,7 +30,13 @@ export function CitySelectField({
   );
 
   return (
-    <FormField id={id} label="市区町村" required error={error}>
+    <FormField
+      id={id}
+      label="市区町村"
+      required
+      error={error}
+      hint={disabled ? "都道府県を選ぶと候補が表示されます" : undefined}
+    >
       <SearchSelect
         id={id}
         value={value}
