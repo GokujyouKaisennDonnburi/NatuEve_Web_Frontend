@@ -68,14 +68,14 @@ export function buildLocation(
 }
 
 // イベント一覧の地域フィルターで選択された状態を API の location パラメータへ変換する。
-// ・地域は直接送らず、その配下の都道府県名へ展開する（地方名は event.location に存在しないため）。
 // ・都道府県が選択されている場合は都道府県名を送る。
+//   地域の選択は selectedPrefectures へ配下の都道府県が展開されるため、ここでは
+//   selectedPrefectures を選択の実体として扱う（地域で個別に解除された都道府県は含めない）。
 // ・市区町村が一部だけ選択されている場合は「都道府県名＋市区町村名」を送る（親都道府県名を前置）。
 //   （府中市のように複数の都道府県に同名の市区町村が存在するため、部分一致の誤ヒットを避ける）
 // ・市区町村が全件選択されている場合は、地域マスタと照合して都道府県1件にまとめる。
 // ・最後に重複を除去する。
 export function buildLocationFilters(
-  regions: readonly string[],
   prefectures: readonly string[],
   cities: readonly string[],
 ): string[] {
@@ -83,9 +83,10 @@ export function buildLocationFilters(
 
   for (const region of REGIONS) {
     for (const prefecture of region.prefectures) {
-      // 都道府県が選択されているか（直接選択、または選択した地域の配下）
-      const prefectureSelected =
-        prefectures.includes(prefecture.name) || regions.includes(region.name);
+      // 都道府県が直接選択されているか。
+      // 地域が選択された場合も配下の都道府県は selectedPrefectures へ投入されるため、
+      // ここで地域は参照しない（個別に解除された都道府県は含めない）。
+      const prefectureSelected = prefectures.includes(prefecture.name);
 
       // 地域マスタの全市区町村と照合して、選択済みの市区町村を求める
       const selectedCities = prefecture.cities.filter((city) =>

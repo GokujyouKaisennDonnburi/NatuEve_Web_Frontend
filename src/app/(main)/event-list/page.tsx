@@ -35,7 +35,6 @@ export default function EventListPage() {
   // 絞り込みフィルターの状態（適用済み: 「絞り込み」押下で反映され、APIリクエストに使われる）
   const [appliedTagIds, setAppliedTagIds] = useState<string[]>([]);
   const [appliedStatuses, setAppliedStatuses] = useState<string[]>([]);
-  const [appliedRegions, setAppliedRegions] = useState<string[]>([]);
   const [appliedPrefectures, setAppliedPrefectures] = useState<string[]>([]);
   const [appliedCities, setAppliedCities] = useState<string[]>([]);
 
@@ -47,7 +46,6 @@ export default function EventListPage() {
     searchQuery,
     selectedTagIds: appliedTagIds,
     selectedStatuses: appliedStatuses,
-    regions: appliedRegions,
     prefectures: appliedPrefectures,
     cities: appliedCities,
     itemsPerPage: ITEMS_PER_PAGE,
@@ -112,7 +110,6 @@ export default function EventListPage() {
     setMaxPrice(undefined);
     setAppliedTagIds([]);
     setAppliedStatuses([]);
-    setAppliedRegions([]);
     setAppliedPrefectures([]);
     setAppliedCities([]);
     setFilterResetKey((prev) => prev + 1);
