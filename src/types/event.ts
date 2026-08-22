@@ -129,6 +129,8 @@ export type EventListRequest = {
   keywords?: string[];
   // 絞り込むタグIDの配列（UUID・OR 検索・最大20件）。
   tagIds?: string[];
+  // 絞り込む地域（events.location への部分一致・OR 検索・最大200件）。
+  locations?: string[];
 };
 
 // イベント詳細取得 API のレスポンス DTO。

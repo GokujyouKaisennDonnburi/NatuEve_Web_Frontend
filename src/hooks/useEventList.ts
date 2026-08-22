@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchEventList } from "@/services/event";
 import type { EventItem } from "@/components/organisms/EventCard";
+import { buildLocationFilters } from "@/utils/regionSearch";
 import { resolveEventStatus } from "@/utils/eventStatus";
 
 type UseEventListParams = {
@@ -10,6 +11,10 @@ type UseEventListParams = {
   sortBy: "created_at" | "event_date";
   searchQuery: string;
   selectedTagIds: string[];
+  // 適用済みの地域フィルター（地域・都道府県・市区町村）
+  regions: string[];
+  prefectures: string[];
+  cities: string[];
   itemsPerPage: number;
 };
 
@@ -25,6 +30,9 @@ export function useEventList({
   sortBy,
   searchQuery,
   selectedTagIds,
+  regions,
+  prefectures,
+  cities,
   itemsPerPage,
 }: UseEventListParams): UseEventListReturn {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -55,6 +63,7 @@ export function useEventList({
         }
 
         const tagIds = selectedTagIds.length > 0 ? selectedTagIds : undefined;
+        const locations = buildLocationFilters(regions, prefectures, cities);
 
         const data = await fetchEventList({
           sort: sortBy,
@@ -63,6 +72,7 @@ export function useEventList({
           offset,
           keywords,
           tagIds,
+          locations: locations.length > 0 ? locations : undefined,
         });
 
         if (!cancelled) {
@@ -133,7 +143,16 @@ export function useEventList({
     return () => {
       cancelled = true;
     };
-  }, [currentPage, sortBy, searchQuery, selectedTagIds, itemsPerPage]);
+  }, [
+    currentPage,
+    sortBy,
+    searchQuery,
+    selectedTagIds,
+    regions,
+    prefectures,
+    cities,
+    itemsPerPage,
+  ]);
 
   return { events, totalCount, loading, error };
 }
