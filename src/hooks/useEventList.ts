@@ -11,8 +11,7 @@ type UseEventListParams = {
   sortBy: "created_at" | "event_date";
   searchQuery: string;
   selectedTagIds: string[];
-  // 適用済みの地域フィルター（地域・都道府県・市区町村）
-  regions: string[];
+  // 適用済みの地域フィルター（都道府県・市区町村）
   prefectures: string[];
   cities: string[];
   itemsPerPage: number;
@@ -30,7 +29,6 @@ export function useEventList({
   sortBy,
   searchQuery,
   selectedTagIds,
-  regions,
   prefectures,
   cities,
   itemsPerPage,
@@ -63,7 +61,7 @@ export function useEventList({
         }
 
         const tagIds = selectedTagIds.length > 0 ? selectedTagIds : undefined;
-        const locations = buildLocationFilters(regions, prefectures, cities);
+        const locations = buildLocationFilters(prefectures, cities);
 
         const data = await fetchEventList({
           sort: sortBy,
@@ -148,7 +146,6 @@ export function useEventList({
     sortBy,
     searchQuery,
     selectedTagIds,
-    regions,
     prefectures,
     cities,
     itemsPerPage,
