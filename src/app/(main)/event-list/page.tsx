@@ -35,6 +35,9 @@ export default function EventListPage() {
   // 絞り込みフィルターの状態（適用済み: 「絞り込み」押下で反映され、APIリクエストに使われる）
   const [appliedTagIds, setAppliedTagIds] = useState<string[]>([]);
   const [appliedStatuses, setAppliedStatuses] = useState<string[]>([]);
+  const [appliedRegions, setAppliedRegions] = useState<string[]>([]);
+  const [appliedPrefectures, setAppliedPrefectures] = useState<string[]>([]);
+  const [appliedCities, setAppliedCities] = useState<string[]>([]);
 
   const { tags: allTags } = useTags();
 
@@ -44,9 +47,11 @@ export default function EventListPage() {
     searchQuery,
     selectedTagIds: appliedTagIds,
     selectedStatuses: appliedStatuses,
+    regions: appliedRegions,
+    prefectures: appliedPrefectures,
+    cities: appliedCities,
     itemsPerPage: ITEMS_PER_PAGE,
   });
-
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   // 現在表示中のイベントから使用頻度の高いタグ順に算出する
@@ -107,6 +112,9 @@ export default function EventListPage() {
     setMaxPrice(undefined);
     setAppliedTagIds([]);
     setAppliedStatuses([]);
+    setAppliedRegions([]);
+    setAppliedPrefectures([]);
+    setAppliedCities([]);
     setFilterResetKey((prev) => prev + 1);
     setCurrentPage(1);
   };
@@ -123,9 +131,9 @@ export default function EventListPage() {
   const handleApply = () => {
     setAppliedTagIds(selectedTagIds);
     setAppliedStatuses(selectedStatuses);
+    setAppliedPrefectures(selectedPrefectures);
     setCurrentPage(1);
   };
-
   const hasActiveFilters =
     selectedTagIds.length > 0 ||
     selectedRegions.length > 0 ||

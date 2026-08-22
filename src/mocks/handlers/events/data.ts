@@ -95,6 +95,24 @@ const SAMPLE_TAG_POOL: Array<Array<{ id: string; name: string }>> = [
   ],
 ];
 
+// モックデータの location に付与する都道府県＋市区町村のプレフィックス。
+// イベント作成時の保存形式（都道府県＋市区町村＋施設名）に合わせて、
+// location パラメータによる地域絞り込みを検証できるようにしている。
+const SAMPLE_LOCATION_POOL: string[] = [
+  "東京都新宿区",
+  "神奈川県横浜市",
+  "埼玉県さいたま市",
+  "千葉県千葉市",
+  "大阪府大阪市",
+  "兵庫県神戸市",
+  "京都府京都市",
+  "北海道札幌市",
+  "北海道函館市",
+  "福岡県福岡市",
+  "宮城県仙台市",
+  "長野県長野市",
+];
+
 // ダミーイベントデータの初期値を生成
 const createInitialDummyEvents = (): MockEvent[] => {
   return Array.from({ length: 100 }).map((_, index) => {
@@ -118,10 +136,11 @@ const createInitialDummyEvents = (): MockEvent[] => {
       eventDate: `${yyyy}-${mm}-${dd}T${isMorning ? "10:00:00" : "14:00:00"}+09:00`,
       // 開始から2時間後を終了日時とする（詳細画面の終了日時表示の確認用）。
       endDate: `${yyyy}-${mm}-${dd}T${isMorning ? "12:00:00" : "16:00:00"}+09:00`,
-      location:
+      location: `${SAMPLE_LOCATION_POOL[index % SAMPLE_LOCATION_POOL.length]}${
         index % 2 === 0
           ? "青葉の森公園 (ネイチャーセンター前)"
-          : "月見湖ビオトープ (東口集合)",
+          : "月見湖ビオトープ (東口集合)"
+      }`,
       profileId,
       profile: {
         id: profileId,
@@ -369,7 +388,7 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
     };
   }
 
-  // status クエリパラメータの処理。
+// status クエリパラメータの処理。
   // 空値は無視し、許容値(upcoming / ongoing / ended)以外は 400 エラーを返す。
   // 重複は除去し、定義順(upcoming -> ongoing -> ended)へ並べ替える。
   const VALID_STATUSES = ["upcoming", "ongoing", "ended"];
@@ -396,6 +415,52 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
     rawStatuses.includes(status),
   );
 
+  // location クエリパラメータの処理。
+  // 空値は無視し、1要素255文字超過・重複除去後201件以上は 400 エラーを返す。
+  // 重複は NFKC 正規化＋小文字化した値で判定し、SQL へ渡すのは最初に現れた入力値を使う。
+  const rawLocations = url.searchParams
+    .getAll("location")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  const overLengthLocation = rawLocations.find((value) => value.length > 255);
+  if (overLengthLocation) {
+    return {
+      events: [],
+      limit,
+      offset,
+      totalCount: 0,
+      error: {
+        code: "invalid_request",
+        message: "地域(location)に255文字を超える指定はできません",
+      },
+    };
+  }
+
+  const seenLocations = new Set<string>();
+  const locations: string[] = [];
+  for (const raw of rawLocations) {
+    // 重複は NFKC 正規化＋小文字化した値で判定し、SQL へ渡すのは最初に現れた入力値を使う。
+    const key = normalizeForKeywordSearch(raw);
+    if (seenLocations.has(key)) {
+      continue;
+    }
+    seenLocations.add(key);
+    locations.push(raw);
+  }
+  if (locations.length > 200) {
+    return {
+      events: [],
+      limit,
+      offset,
+      totalCount: 0,
+      error: {
+        code: "invalid_request",
+        message: "地域(location)は200件以内で指定してください",
+      },
+    };
+  }
+
   // キャンセル済みイベントは除外しない（バックエンド仕様: status は開催状況=時間軸のみを
   // 表し、キャンセル済みイベントも各 status に混在するため、クライアントは cancelledAt で判別する）。
 
@@ -413,15 +478,27 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
       )
     : keywordFiltered;
 
-  // 開催状況で絞り込む（OR 検索）。q / tagId と同時指定の場合は AND になる。
+// 開催状況で絞り込む（OR 検索）。q / tagId と同時指定の場合は AND になる。
   const statusFilteredEvents = statuses.length
     ? filteredEvents.filter((event) =>
         statuses.some((status) => matchesStatus(event, status)),
       )
     : filteredEvents;
 
+  // location で絞り込む（OR 検索。events.location への部分一致）。
+  // q / tagId / status と同時指定の場合は AND になる。
+  const locationFiltered = locations.length
+    ? statusFilteredEvents.filter((event) =>
+        locations.some((location) =>
+          normalizeForKeywordSearch(event.location).includes(
+            normalizeForKeywordSearch(location),
+          ),
+        ),
+      )
+    : statusFilteredEvents;
+
   // イベントデータをソートする
-  const sortedEvents = [...statusFilteredEvents].sort((left, right) => {
+const sortedEvents = [...locationFiltered].sort((left, right) => {
     const leftValue = sort === "event_date" ? left.eventDate : left.createdAt;
     const rightValue =
       sort === "event_date" ? right.eventDate : right.createdAt;
@@ -446,6 +523,6 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
     events,
     limit,
     offset,
-    totalCount: statusFilteredEvents.length,
+totalCount: locationFiltered.length,
   };
 };

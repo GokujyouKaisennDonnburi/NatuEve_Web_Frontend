@@ -51,19 +51,32 @@ const buildEventListParams = (request: EventListRequest): URLSearchParams => {
   if (request.offset != null) {
     params.set("offset", request.offset.toString());
   }
+
+  // keywords パラメータは複数指定可能なため、配列をループして append する
   if (request.keywords) {
     for (const keyword of request.keywords) {
       params.append("q", keyword);
     }
   }
+
+  // tagIds パラメータは複数指定可能なため、配列をループして append する
   if (request.tagIds) {
     for (const tagId of request.tagIds) {
       params.append("tagId", tagId);
     }
   }
+
+  // status パラメータは複数指定可能なため、配列をループして append する
   if (request.status) {
     for (const status of request.status) {
       params.append("status", status);
+    }
+  }
+
+  // 地域での絞り込み機能の実装に伴い、locations パラメータを追加
+  if (request.locations) {
+    for (const location of request.locations) {
+      params.append("location", location);
     }
   }
 
