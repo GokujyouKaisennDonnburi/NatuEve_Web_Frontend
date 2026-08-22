@@ -75,6 +75,8 @@ export function buildLocation(
 //   （府中市のように複数の都道府県に同名の市区町村が存在するため、部分一致の誤ヒットを避ける）
 // ・市区町村が全件選択されている場合は、地域マスタと照合して都道府県1件にまとめる。
 // ・最後に重複を除去する。
+// ・全都道府県を網羅する（全国すべて）選択の場合は、絞り込みが意味をなさないため
+//   空配列を返し、呼び出し側で location パラメータ自体を省略させる。
 export function buildLocationFilters(
   prefectures: readonly string[],
   cities: readonly string[],
@@ -108,6 +110,13 @@ export function buildLocationFilters(
         values.add(prefecture.name);
       }
     }
+  }
+
+  // 全都道府県を網羅する場合は location 自体を省略する。部分一致で全都道府県を
+  // 指定しても全件に一致するだけのため、省略しても結果は同じ。
+  const allPrefectures = REGIONS.flatMap((region) => region.prefectures);
+  if (allPrefectures.every((prefecture) => values.has(prefecture.name))) {
+    return [];
   }
 
   return Array.from(values);
