@@ -1,3 +1,5 @@
+import { DAYS_BEFORE_DEADLINE } from "@/constants/config";
+
 // 開催状況の判定に使う日時。
 type EventStatusSource = {
   // 開催日時(RFC3339)。
@@ -7,14 +9,41 @@ type EventStatusSource = {
 };
 
 // 日時だけから判定できる開催状況。値は EventStatusLabel の status と同じ語彙。
-// EventStatusLabel は「期限間近」「受付終了」も持つが、参加人数や受付締切を
-// 知る手段が無いためここでは判定しない。
-// 語彙がずれた場合は EventStatusLabel へ渡す呼び出し側で型エラーになる。
-type ResolvedEventStatus = "open" | "closed";
+// 申込期限のAPIが未実装のため、開催日時(eventDate)の1週間前を「期限間近」とみなす。
+type ResolvedEventStatus = "open" | "few_left" | "closed";
+
+// 開催日時が今日から7日以内（未来）かを、Asia/Tokyo の日付ベースで判定する。
+//
+// 例: 今日が 8/22 の場合、8/29 23:59:59 JST までを「7日以内」とみなす。
+// 時間単位ではなく日付単位で上限を切るため、8/22 09:00 時点で 8/29 23:00 のイベントも
+// 7日以内として扱われる（diffMs が 7*24h を超えても日付が7日後までなら許容）。
+function isDateWithinOneWeek(dateStr: string): boolean {
+  const target = new Date(dateStr);
+
+  if (target.getTime() <= Date.now()) return false;
+
+  // Asia/Tokyo における今日の日付（年・月・日）を取得する。
+  // Intl.DateTimeFormat は実行環境のローカル時刻に依存しない。
+  const formatter = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const [y, m, d] = formatter.format(new Date()).split("/").map(Number);
+
+  // 7日後の 23:59:59.999 JST (= 14:59:59.999 UTC) を上限とする。
+  const deadlineEnd = new Date(
+    Date.UTC(y, m - 1, d + DAYS_BEFORE_DEADLINE, 14, 59, 59, 999),
+  );
+
+  return target.getTime() <= deadlineEnd.getTime();
+}
 
 // イベントの開催状況を判定する共通ルール。
 //
-// 終了日時を過ぎていれば「開催終了」、それ以外は「受付中」とみなす。
+// 終了日時を過ぎていれば「開催終了」、それ以外で開催日時が1週間以内なら「期限間近」、
+// それ以外は「受付中」とみなす。
 // 開始済みで未終了のイベント（開催中）は「受付中」に含める。
 //
 // endDate はイベント一覧 API のレスポンスにも含まれる。省略される呼び出しでは
@@ -25,5 +54,11 @@ export function resolveEventStatus({
   endDate,
 }: Readonly<EventStatusSource>): ResolvedEventStatus {
   const closesAt = new Date(endDate || eventDate);
-  return closesAt < new Date() ? "closed" : "open";
+  if (closesAt < new Date()) {
+    return "closed";
+  }
+  if (isDateWithinOneWeek(eventDate)) {
+    return "few_left";
+  }
+  return "open";
 }
