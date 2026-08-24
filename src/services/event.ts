@@ -61,6 +61,11 @@ const buildEventListParams = (request: EventListRequest): URLSearchParams => {
       params.append("tagId", tagId);
     }
   }
+  if (request.status) {
+    for (const status of request.status) {
+      params.append("status", status);
+    }
+  }
 
   return params;
 };

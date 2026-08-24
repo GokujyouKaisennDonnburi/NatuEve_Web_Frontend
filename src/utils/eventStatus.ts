@@ -17,8 +17,8 @@ type ResolvedEventStatus = "open" | "closed";
 // 終了日時を過ぎていれば「開催終了」、それ以外は「受付中」とみなす。
 // 開始済みで未終了のイベント（開催中）は「受付中」に含める。
 //
-// endDate はイベント詳細 API のレスポンスにのみ存在し、イベント一覧 API には含まれない。
-// そのため endDate を渡さない呼び出しでは eventDate 基準の判定にフォールバックする
+// endDate はイベント一覧 API のレスポンスにも含まれる。省略される呼び出しでは
+// eventDate 基準の判定にフォールバックする
 // （API 側も作成時に endDate が省略された場合は eventDate と同値を補完する）。
 export function resolveEventStatus({
   eventDate,

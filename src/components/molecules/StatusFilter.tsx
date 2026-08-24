@@ -10,12 +10,14 @@ type StatusFilterProps = {
 
 const STATUS_OPTIONS = [
   { id: "upcoming", label: "開催前" },
-  { id: "closed", label: "開催終了" },
+  { id: "ongoing", label: "開催中" },
+  { id: "ended", label: "開催終了" },
 ] as const;
 
-const CHILD_OPTIONS = [
-  { id: "hasReport", label: "レポートあり", parentId: "closed" },
-] as const;
+// TODO: 「レポートあり」絞り込みは未完成のため一時的に無効化
+// const CHILD_OPTIONS = [
+//   { id: "hasReport", label: "レポートあり", parentId: "ended" },
+// ] as const;
 
 function Checkbox({ checked }: { checked: boolean }) {
   return (
@@ -57,13 +59,13 @@ export function StatusFilter({
 
     if (isSelected) {
       next = selectedStatuses.filter((s) => s !== id);
-      if (id === "closed") {
+      if (id === "ended") {
         next = next.filter((s) => s !== "hasReport");
       }
     } else {
       next = [...selectedStatuses, id];
-      if (id === "hasReport" && !next.includes("closed")) {
-        next.push("closed");
+      if (id === "hasReport" && !next.includes("ended")) {
+        next.push("ended");
       }
     }
 
@@ -97,7 +99,8 @@ export function StatusFilter({
               </span>
             </button>
 
-            {option.id === "closed" &&
+            {/* TODO: コメントアウト中 未完成のレポートあり絞り込み
+            {option.id === "ended" &&
               CHILD_OPTIONS.map((child) => (
                 <button
                   key={child.id}
@@ -118,6 +121,7 @@ export function StatusFilter({
                   </span>
                 </button>
               ))}
+            */}
           </div>
         ))}
       </div>

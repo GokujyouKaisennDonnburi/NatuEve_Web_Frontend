@@ -1,10 +1,10 @@
 "use client";
 
 import { FilterIconButton } from "@/components/atoms/FilterIconButton";
-import { SortButton } from "@/components/atoms/SortButton";
 import { Loading } from "@/components/atoms/Loading";
-import { SearchBar } from "@/components/molecules/SearchBar";
+import { SortButton } from "@/components/atoms/SortButton";
 import { Pagination } from "@/components/molecules/Pagination";
+import { SearchBar } from "@/components/molecules/SearchBar";
 import { EventCard } from "@/components/organisms/EventCard";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
@@ -32,8 +32,9 @@ export default function EventListPage() {
   const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
   const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
 
-  // 絞り込みフィルターの状態（適用済み: 「N件を表示」押下で反映され、APIリクエストに使われる）
+  // 絞り込みフィルターの状態（適用済み: 「絞り込み」押下で反映され、APIリクエストに使われる）
   const [appliedTagIds, setAppliedTagIds] = useState<string[]>([]);
+  const [appliedStatuses, setAppliedStatuses] = useState<string[]>([]);
 
   const { tags: allTags } = useTags();
 
@@ -42,6 +43,7 @@ export default function EventListPage() {
     sortBy,
     searchQuery,
     selectedTagIds: appliedTagIds,
+    selectedStatuses: appliedStatuses,
     itemsPerPage: ITEMS_PER_PAGE,
   });
 
@@ -104,6 +106,7 @@ export default function EventListPage() {
     setMinPrice(undefined);
     setMaxPrice(undefined);
     setAppliedTagIds([]);
+    setAppliedStatuses([]);
     setFilterResetKey((prev) => prev + 1);
     setCurrentPage(1);
   };
@@ -116,9 +119,10 @@ export default function EventListPage() {
     resetFilters();
   };
 
-  // 「N件を表示」押下時にドラフト状態を適用済み状態に反映し、APIリクエストをトリガーする
+  // 「絞り込み」押下時にドラフト状態を適用済み状態に反映し、APIリクエストをトリガーする
   const handleApply = () => {
     setAppliedTagIds(selectedTagIds);
+    setAppliedStatuses(selectedStatuses);
     setCurrentPage(1);
   };
 
@@ -203,7 +207,6 @@ export default function EventListPage() {
             maxPrice={maxPrice}
             onMinPriceChange={setMinPrice}
             onMaxPriceChange={setMaxPrice}
-            resultCount={totalCount}
             onClearAll={handleClearAll}
             onClear={handleClear}
             onApply={handleApply}

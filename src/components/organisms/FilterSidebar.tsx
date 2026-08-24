@@ -30,7 +30,6 @@ type FilterSidebarProps = {
   maxPrice: number | undefined;
   onMinPriceChange: (price: number | undefined) => void;
   onMaxPriceChange: (price: number | undefined) => void;
-  resultCount: number;
   onClearAll: () => void;
   onClear: () => void;
   onApply: () => void;
@@ -60,7 +59,6 @@ export function FilterSidebar({
   maxPrice,
   onMinPriceChange,
   onMaxPriceChange,
-  resultCount,
   onClearAll,
   onClear,
   onApply,
@@ -130,7 +128,7 @@ export function FilterSidebar({
           onClick={onApply}
           className="flex-1 h-11 bg-[#97C459] rounded-full text-[15px] font-bold leading-[22px] text-[#1E2C10] text-center cursor-pointer"
         >
-          {resultCount}件を表示
+          絞り込み
         </button>
       </div>
     </div>
