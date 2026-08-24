@@ -1,12 +1,12 @@
 name: AI Review
 
-# PR作成時に OpenCode (Z.AI / GLM) でコードレビューを実行し、PR へレビューコメントを投稿する。
+# PR作成時に OpenCode (OpenCode Go / Qwen3.7 Plus) でコードレビューを実行し、PR へレビューコメントを投稿する。
 # 本ワークフローは Branch Protection の必須チェックには含めない（AIサービス障害時のマージブロック回避）。
 #
 # AI実行基盤・モデルの変更箇所（将来 Copilot / Claude / Gemini に切替する場合）:
 #   1. `uses:` の Action          -> 各サービスの GitHub Action に差し替え
-#   2. `with.model:`              -> `<provider>/<model-id>` 形式で指定
-#   3. `env:` の APIキー            -> 切替先プロバイダのAPIキー Secret に変更
+#   2. `with.model:`              -> `<provider>/<model-id>` 形式で指定（例: opencode-go/qwen3.7-plus）
+#   3. `env:` の APIキー            -> 切替先プロバイダのAPIキー Secret に変更（OpenCode Go / Zen は OPENCODE_API_KEY）
 #   4. opencode.json              -> CI/ローカル共通設定（provider/agentのみ更新）
 #   5. .opencode/agents/code-reviewer.md -> ローカル用 model: を同値に更新
 #   ※ .ai/prompts/code-review.md は AIサービス非依存のため変更不要
@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   ai-review:
-    name: AI Review (OpenCode + GLM)
+    name: AI Review (OpenCode Go + Qwen3.7 Plus)
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -58,9 +58,10 @@ jobs:
         uses: anomalyco/opencode/github@a105350812f05f914c768e468559dbd6bd508d8e
         env:
           # AIプロバイダ変更時はここを差し替え（例: ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY）。
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+          # OpenCode Go / OpenCode Zen は OPENCODE_API_KEY を使用。
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          # モデル変更時はここを差し替え（例: anthropic/claude-sonnet-4-20250514 / openai/gpt-5 / zai/glm-4.7）。
-          # 現在: Z.AI GLM-4.7-Flash（無料, $0.00/$0.00）。機能強化版が必要な場合は glm-4.7 や glm-4.7-flashx($0.07/$0.40)。
-          model: zai/glm-4.7-flash
+          # モデル変更時はここを差し替え（例: anthropic/claude-sonnet-4-20250514 / openai/gpt-5 / opencode-go/qwen3.7-plus）。
+          # 現在: OpenCode Go Qwen3.7 Plus（OpenCode Go サブスク $5/初月・$10/月、$0.40/$1.60 per 1M tokens）。
+          model: opencode-go/qwen3.7-plus
           prompt: ${{ steps.prompt.outputs.body }}
