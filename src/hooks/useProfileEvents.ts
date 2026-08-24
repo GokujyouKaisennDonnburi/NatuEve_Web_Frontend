@@ -50,6 +50,7 @@ export function useProfileEvents(
               : resolveEventStatus({
                   eventDate: apiEvent.eventDate,
                   endDate: apiEvent.endDate,
+                  applicationDeadline: apiEvent.applicationDeadline,
                 });
 
             return {

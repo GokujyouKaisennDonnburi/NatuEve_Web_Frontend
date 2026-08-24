@@ -6,16 +6,18 @@ type EventStatusSource = {
   eventDate: string;
   // 終了日時(RFC3339)。省略時は eventDate を終了日時とみなす。
   endDate?: string;
+  // 申込期限(RFC3339)。未設定(null/undefined)の場合は締切なしとして扱い、
+  // 「期限間近」にはならない。
+  applicationDeadline?: string | null;
 };
 
 // 日時だけから判定できる開催状況。値は EventStatusLabel の status と同じ語彙。
-// 申込期限のAPIが未実装のため、開催日時(eventDate)の1週間前を「期限間近」とみなす。
 type ResolvedEventStatus = "open" | "few_left" | "closed";
 
-// 開催日時が今日から7日以内（未来）かを、Asia/Tokyo の日付ベースで判定する。
+// 指定した日時が今日から7日以内（未来）かを、Asia/Tokyo の日付ベースで判定する。
 //
 // 例: 今日が 8/22 の場合、8/29 23:59:59 JST までを「7日以内」とみなす。
-// 時間単位ではなく日付単位で上限を切るため、8/22 09:00 時点で 8/29 23:00 のイベントも
+// 時間単位ではなく日付単位で上限を切るため、8/22 09:00 時点で 8/29 23:00 の日時も
 // 7日以内として扱われる（diffMs が 7*24h を超えても日付が7日後までなら許容）。
 function isDateWithinOneWeek(dateStr: string): boolean {
   const target = new Date(dateStr);
@@ -42,9 +44,12 @@ function isDateWithinOneWeek(dateStr: string): boolean {
 
 // イベントの開催状況を判定する共通ルール。
 //
-// 終了日時を過ぎていれば「開催終了」、それ以外で開催日時が1週間以内なら「期限間近」、
+// 終了日時を過ぎていれば「開催終了」、それ以外で申込期限が1週間以内なら「期限間近」、
 // それ以外は「受付中」とみなす。
 // 開始済みで未終了のイベント（開催中）は「受付中」に含める。
+//
+// 「期限間近」は申込期限(applicationDeadline)の1週間前から申込期限までを指す。
+// 申込期限が未設定のイベントは締切がないため「期限間近」にはならない。
 //
 // endDate はイベント一覧 API のレスポンスにも含まれる。省略される呼び出しでは
 // eventDate 基準の判定にフォールバックする
@@ -52,12 +57,13 @@ function isDateWithinOneWeek(dateStr: string): boolean {
 export function resolveEventStatus({
   eventDate,
   endDate,
+  applicationDeadline,
 }: Readonly<EventStatusSource>): ResolvedEventStatus {
   const closesAt = new Date(endDate || eventDate);
   if (closesAt < new Date()) {
     return "closed";
   }
-  if (isDateWithinOneWeek(eventDate)) {
+  if (applicationDeadline && isDateWithinOneWeek(applicationDeadline)) {
     return "few_left";
   }
   return "open";
