@@ -21,6 +21,8 @@ export type MockEvent = {
   profileId: string;
   title: string;
   tags?: Array<{ id: string; name: string }>;
+  // 申込期限(RFC3339)。未設定(undefined)の場合は締切なし。
+  applicationDeadline?: string | null;
   // イベントが取りやめになった日時(RFC3339)。未設定(undefined)の場合は開催予定。
   cancelledAt?: string | null;
 };
@@ -130,6 +132,13 @@ const createInitialDummyEvents = (): MockEvent[] => {
     const pMin = String(postedDate.getUTCMinutes()).padStart(2, "0");
     const profileId = `profile-${(index % 6) + 1}`;
 
+    // 申込期限は開催日の3日前 23:59(JST)とする。
+    // 4件に1件は締切なし(undefined)にし、未設定時の表示挙動も検証できるようにしている。
+    const deadlineDate = new Date(base.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const dYyyy = deadlineDate.getUTCFullYear();
+    const dMm = String(deadlineDate.getUTCMonth() + 1).padStart(2, "0");
+    const dDd = String(deadlineDate.getUTCDate()).padStart(2, "0");
+
     return {
       id: toUuid(index + 1),
       title: `${index % 3 === 0 ? "🦆" : index % 3 === 1 ? "🐟" : "🦋"} 森と水の生き物観察ハイク Vol.${index + 1}`,
@@ -154,6 +163,10 @@ const createInitialDummyEvents = (): MockEvent[] => {
       ...(index % 5 === 0
         ? {}
         : { tags: SAMPLE_TAG_POOL[index % SAMPLE_TAG_POOL.length] }),
+      // 4件に1件は締切なしにして、申込期限未設定時のUI挙動を検証できるようにしている。
+      ...(index % 4 === 3
+        ? {}
+        : { applicationDeadline: `${dYyyy}-${dMm}-${dDd}T23:59:59+09:00` }),
       // イベント一覧取得の cancelledAt 絞り込み挙動を検証するため、
       // インデックス 0 と 50 のイベントをキャンセル済みとしてマークする。
       ...(index === 0 || index === 50
