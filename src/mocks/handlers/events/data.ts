@@ -388,7 +388,7 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
     };
   }
 
-// status クエリパラメータの処理。
+  // status クエリパラメータの処理。
   // 空値は無視し、許容値(upcoming / ongoing / ended)以外は 400 エラーを返す。
   // 重複は除去し、定義順(upcoming -> ongoing -> ended)へ並べ替える。
   const VALID_STATUSES = ["upcoming", "ongoing", "ended"];
@@ -478,7 +478,7 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
       )
     : keywordFiltered;
 
-// 開催状況で絞り込む（OR 検索）。q / tagId と同時指定の場合は AND になる。
+  // 開催状況で絞り込む（OR 検索）。q / tagId と同時指定の場合は AND になる。
   const statusFilteredEvents = statuses.length
     ? filteredEvents.filter((event) =>
         statuses.some((status) => matchesStatus(event, status)),
@@ -498,7 +498,7 @@ export const getPagedEvents = (url: URL): MockEventListResponse => {
     : statusFilteredEvents;
 
   // イベントデータをソートする
-const sortedEvents = [...locationFiltered].sort((left, right) => {
+  const sortedEvents = [...locationFiltered].sort((left, right) => {
     const leftValue = sort === "event_date" ? left.eventDate : left.createdAt;
     const rightValue =
       sort === "event_date" ? right.eventDate : right.createdAt;
@@ -523,6 +523,6 @@ const sortedEvents = [...locationFiltered].sort((left, right) => {
     events,
     limit,
     offset,
-totalCount: locationFiltered.length,
+    totalCount: locationFiltered.length,
   };
 };
