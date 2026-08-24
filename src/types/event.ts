@@ -133,6 +133,8 @@ export type EventListRequest = {
   tagIds?: string[];
   // 開催状況で絞り込む（OR 検索）。未指定なら絞り込みなし。
   status?: EventListStatus[];
+  // 絞り込む地域（events.location への部分一致・OR 検索・最大200件）。
+  locations?: string[];
 };
 
 // イベント詳細取得 API のレスポンス DTO。

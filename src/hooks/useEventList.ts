@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchEventList } from "@/services/event";
 import type { EventItem } from "@/components/organisms/EventCard";
+import { fetchEventList } from "@/services/event";
 import type { EventListStatus } from "@/types/event";
 import { resolveEventStatus } from "@/utils/eventStatus";
+import { buildLocationFilters } from "@/utils/regionSearch";
+import { useEffect, useState } from "react";
 
 type UseEventListParams = {
   currentPage: number;
@@ -12,6 +13,9 @@ type UseEventListParams = {
   searchQuery: string;
   selectedTagIds: string[];
   selectedStatuses: string[];
+  // 適用済みの地域フィルター（都道府県・市区町村）
+  prefectures: string[];
+  cities: string[];
   itemsPerPage: number;
 };
 
@@ -28,6 +32,8 @@ export function useEventList({
   searchQuery,
   selectedTagIds,
   selectedStatuses,
+  prefectures,
+  cities,
   itemsPerPage,
 }: UseEventListParams): UseEventListReturn {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -58,6 +64,7 @@ export function useEventList({
         }
 
         const tagIds = selectedTagIds.length > 0 ? selectedTagIds : undefined;
+        const locations = buildLocationFilters(prefectures, cities);
 
         const statuses: EventListStatus[] | undefined =
           selectedStatuses.length > 0
@@ -75,6 +82,7 @@ export function useEventList({
           keywords,
           tagIds,
           status: statuses,
+          locations: locations.length > 0 ? locations : undefined,
         });
 
         if (!cancelled) {
@@ -151,6 +159,8 @@ export function useEventList({
     searchQuery,
     selectedTagIds,
     selectedStatuses,
+    prefectures,
+    cities,
     itemsPerPage,
   ]);
 
