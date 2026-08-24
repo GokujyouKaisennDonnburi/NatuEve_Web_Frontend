@@ -225,7 +225,11 @@ export function EventPostForm({
           title="受付設定"
           description="申し込みの受け付け方を設定します。"
         >
-          <FormField id={getFieldId("capacity")} label="定員数" error={errors.capacity}>
+          <FormField
+            id={getFieldId("capacity")}
+            label="定員数"
+            error={errors.capacity}
+          >
             <UnitInput
               id={getFieldId("capacity")}
               unit="名"

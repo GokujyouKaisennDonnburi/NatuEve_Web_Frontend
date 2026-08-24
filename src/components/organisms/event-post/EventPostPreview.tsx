@@ -104,7 +104,8 @@ export function EventPostPreview({
       capacity: formState.capacity ? Number(formState.capacity) : 0,
       participantCount: 0,
       // 締切なしのときは undefined にして、詳細画面と同じ「なし」表示にする。
-      applicationDeadline: toRfc3339OrEmpty(formState.applicationDeadline) || undefined,
+      applicationDeadline:
+        toRfc3339OrEmpty(formState.applicationDeadline) || undefined,
       externalUrl: formState.applicationUrl || undefined,
       imageUrls: imageObjectUrls,
       imageObjectKeys: [],
