@@ -103,6 +103,8 @@ export function EventPostPreview({
       items,
       capacity: formState.capacity ? Number(formState.capacity) : 0,
       participantCount: 0,
+      // 締切なしのときは undefined にして、詳細画面と同じ「なし」表示にする。
+      applicationDeadline: toRfc3339OrEmpty(formState.applicationDeadline) || undefined,
       externalUrl: formState.applicationUrl || undefined,
       imageUrls: imageObjectUrls,
       imageObjectKeys: [],
@@ -129,6 +131,7 @@ export function EventPostPreview({
   const status = resolveEventStatus({
     eventDate: previewEvent.eventDate,
     endDate: previewEvent.endDate,
+    applicationDeadline: previewEvent.applicationDeadline,
   });
 
   const pdfItems = useMemo(() => {
