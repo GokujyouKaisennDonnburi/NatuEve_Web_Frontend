@@ -3,7 +3,7 @@
 // 都道府県と市（東京都は特別区）を管理する型
 export interface Prefecture {
   readonly name: string;
-  readonly hiragana: readonly string[];
+  readonly hiragana:string[];
   readonly cities: readonly City[];
 }
 
