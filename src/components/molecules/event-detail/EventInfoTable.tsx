@@ -12,6 +12,7 @@ type EventInfoTableProps = {
     | "profile"
     | "eventDate"
     | "endDate"
+    | "applicationDeadline"
     | "location"
     | "externalUrl"
     | "costs"
@@ -92,6 +93,19 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
                     {formatDateTime(event.endDate)}
+                  </td>
+                </tr>
+
+                {/* 申込期限 */}
+                <tr>
+                  <th className="w-44 border-t border-slate-200 py-4 px-4 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700">
+                    申込期限
+                  </th>
+                  <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
+                    {/* 締切なしのイベントは applicationDeadline が空のため「なし」を表示する */}
+                    {event.applicationDeadline
+                      ? formatDateTime(event.applicationDeadline)
+                      : "なし"}
                   </td>
                 </tr>
 
