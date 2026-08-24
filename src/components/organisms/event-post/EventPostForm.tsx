@@ -9,6 +9,8 @@ import { FileDropZone } from "@/components/molecules/FileDropZone";
 import { FormCard } from "@/components/molecules/FormCard";
 import { FormField } from "@/components/molecules/FormField";
 import { UnitInput } from "@/components/molecules/UnitInput";
+import { CitySelectField } from "@/components/molecules/CitySelectField";
+import { PrefectureSelectField } from "@/components/molecules/PrefectureSelectField";
 import { PriceCategoryField } from "@/components/molecules/event-post/PriceCategoryField";
 import { RequiredItemField } from "@/components/molecules/event-post/RequiredItemField";
 import { TagInputField } from "@/components/molecules/event-post/TagInputField";
@@ -126,19 +128,37 @@ export function EventPostForm({
 
       <div id={EVENT_SCHEDULE_SECTION_ID} className="scroll-mt-6">
         <FormCard title="開催情報">
+          <PrefectureSelectField
+            id={getFieldId("prefecture")}
+            value={formState.prefecture}
+            onChange={(prefecture) => {
+              setField("prefecture", prefecture);
+              // 都道府県を変更したときは市区町村の選択値をリセットする
+              setField("city", "");
+            }}
+            error={errors.prefecture}
+          />
+
+          <CitySelectField
+            id={getFieldId("city")}
+            prefecture={formState.prefecture}
+            value={formState.city}
+            onChange={(city) => setField("city", city)}
+            error={errors.city}
+          />
+
           <FormField
-            id={getFieldId("location")}
-            label="開催場所"
-            required
-            error={errors.location}
+            id={getFieldId("address")}
+            label="番地・施設名等"
+            error={errors.address}
           >
             <FormInput
-              id={getFieldId("location")}
+              id={getFieldId("address")}
               maxLength={MAX_TEXT_LENGTH}
-              value={formState.location}
-              onChange={(event) => setField("location", event.target.value)}
-              placeholder="例: 〇〇市民ホール 2F 会議室A"
-              aria-invalid={Boolean(errors.location)}
+              value={formState.address}
+              onChange={(event) => setField("address", event.target.value)}
+              placeholder="例: ○○公園 中央広場"
+              aria-invalid={Boolean(errors.address)}
             />
           </FormField>
 
