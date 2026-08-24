@@ -16,7 +16,7 @@ export interface City {
 // 地域と都道府県のデータを定義するための型
 export interface Region {
   readonly name: string;
-  readonly hiragana: readonly string[];
+  readonly hiragana: string[];
   readonly prefectures: readonly Prefecture[];
 }
 
@@ -105,7 +105,6 @@ export const REGIONS: readonly Region[] = [
           {name:"斜里郡", hiragana:"しゃりぐん"},
           {name:"常呂郡", hiragana:"ところぐん"},
           {name:"紋別郡", hiragana:"もんべつぐん"},
-          {name:"虻田郡", hiragana:"あぶたぐん"},
           {name:"有珠郡", hiragana:"うすぐん"},
           {name:"白老郡", hiragana:"しらおいぐん"},
           {name:"新冠郡", hiragana:"にいかっぷぐん"},
