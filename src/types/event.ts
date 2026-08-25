@@ -31,6 +31,8 @@ export type CreateEventRequest = {
   endDate?: string;
   // 定員（任意・0=未設定・正数=定員）。
   capacity?: number;
+  // 申込期限(RFC3339)（任意・未設定なら締切なし）。
+  applicationDeadline?: string;
   // 関連URL（任意・255文字以内・http/https）。
   externalUrl?: string;
   // 費用内訳（1件以上必須）。
@@ -107,6 +109,8 @@ export type EventListItem = {
   title: string;
   profile: EventListItemProfile;
   tags?: TagItem[];
+  // 申込期限(RFC3339)。未設定(null/undefined)の場合は締切なし。
+  applicationDeadline?: string | null;
   // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
   cancelledAt?: string | null;
 };
@@ -140,6 +144,8 @@ export type EventListRequest = {
 // イベント詳細取得 API のレスポンス DTO。
 export type EventDetailResponse = {
   capacity: number;
+  // 申込期限(RFC3339)。未設定(null/undefined)の場合は締切なしとして扱う。
+  applicationDeadline?: string | null;
   // 参加の取り消し期限(RFC3339)。未設定の場合は期限なしとして扱う。
   cancelDeadline?: string | null;
   costs: EventDetailCost[];

@@ -3,6 +3,7 @@
 export const EVENT_TITLE_SECTION_ID = "event-title";
 export const EVENT_TAGS_SECTION_ID = "event-tags";
 export const EVENT_SCHEDULE_SECTION_ID = "event-schedule";
+export const EVENT_RECEPTION_SECTION_ID = "event-reception";
 export const EVENT_FEE_SECTION_ID = "event-fee";
 export const EVENT_ITEMS_SECTION_ID = "event-items";
 export const EVENT_ATTACHMENTS_SECTION_ID = "event-attachments";
@@ -12,6 +13,7 @@ export const EVENT_POST_TOC_SECTIONS = [
   { id: EVENT_TITLE_SECTION_ID, label: "イベントタイトル" },
   { id: EVENT_TAGS_SECTION_ID, label: "タグ" },
   { id: EVENT_SCHEDULE_SECTION_ID, label: "開催情報" },
+  { id: EVENT_RECEPTION_SECTION_ID, label: "受付設定" },
   { id: EVENT_FEE_SECTION_ID, label: "参加費用" },
   { id: EVENT_ITEMS_SECTION_ID, label: "持ち物" },
   { id: EVENT_ATTACHMENTS_SECTION_ID, label: "添付資料" },

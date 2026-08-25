@@ -94,6 +94,7 @@ export function useEventList({
             const status = resolveEventStatus({
               eventDate: apiEvent.eventDate,
               endDate: apiEvent.endDate,
+              applicationDeadline: apiEvent.applicationDeadline,
             });
 
             return {

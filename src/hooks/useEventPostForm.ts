@@ -34,6 +34,7 @@ export type EventPostFormState = {
   endDateTime: string; // 終了日時
   feeCategoryGroups: PriceCategory[]; // 参加費用のカテゴリと金額の配列
   capacity: string; // 定員数
+  applicationDeadline: string; // 申込期限（空欄なら締切なし）
   applicationUrl: string; // 申し込みURL（空欄ならなちゅいべ内で受付）
   requiredItems: RequiredItem[]; // 持ち物の配列
   tags: TagItem[]; // タグの配列
@@ -50,6 +51,7 @@ export type EventPostFormErrors = {
   endDateTime?: string;
   feeCategoryGroups?: Record<number, string>;
   capacity?: string;
+  applicationDeadline?: string;
   applicationUrl?: string;
   requiredItems?: Record<number, string>;
   tags?: string;
@@ -77,6 +79,7 @@ const INITIAL_STATE: EventPostFormState = {
   // 意図しない費用区分が登録されるため、入力は利用者に委ねる。
   feeCategoryGroups: [{ category: "", amount: "" }],
   capacity: "",
+  applicationDeadline: "",
   applicationUrl: "",
   requiredItems: [],
   tags: [],
@@ -215,6 +218,22 @@ export function useEventPostForm() {
       nextErrors.capacity = "定員数は0以上の整数で入力してください。";
     }
 
+    // 申込期限の検証（入力があるときだけ形式と前後関係を確認する）
+    const trimmedApplicationDeadline = formState.applicationDeadline.trim();
+    if (trimmedApplicationDeadline) {
+      if (!isValidLocalDateTime(trimmedApplicationDeadline)) {
+        nextErrors.applicationDeadline = "申込期限の形式が正しくありません。";
+      } else if (
+        // 開催日時が不正なときは比較できないため、開催日時が妥当な場合のみ前後関係を検証する。
+        !nextErrors.eventDateTime &&
+        new Date(trimmedApplicationDeadline).getTime() >=
+          new Date(formState.eventDateTime.trim()).getTime()
+      ) {
+        nextErrors.applicationDeadline =
+          "申込期限は開催日時より前の日時を指定してください。";
+      }
+    }
+
     // 申し込みURLの検証（入力があるときだけ形式を確認する）
     const trimmedApplicationUrl = formState.applicationUrl.trim();
     if (trimmedApplicationUrl) {
@@ -294,7 +313,8 @@ export function useEventPostForm() {
       const uploadedPdfs = await uploadEventDocuments(formState.eventDocuments);
 
       // フォーム state を本番 API（CreateEventRequest）の契約に合わせて変換する。
-      // 任意項目（capacity / externalUrl / items / objectKeys）は値があるときだけ付与する。
+      // 任意項目（capacity / applicationDeadline / externalUrl / items / objectKeys）は
+      // 値があるときだけ付与する。
       const trimmedCapacity = formState.capacity.trim();
 
       const payload: CreateEventRequest = {
@@ -315,6 +335,12 @@ export function useEventPostForm() {
 
       if (trimmedCapacity) {
         payload.capacity = Number(trimmedCapacity);
+      }
+
+      // 申込期限は空欄のとき JSON に含めない（締切なし）。
+      const trimmedApplicationDeadline = formState.applicationDeadline.trim();
+      if (trimmedApplicationDeadline) {
+        payload.applicationDeadline = toRfc3339(trimmedApplicationDeadline);
       }
 
       const trimmedApplicationUrl = formState.applicationUrl.trim();

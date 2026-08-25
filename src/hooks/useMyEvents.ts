@@ -42,6 +42,7 @@ export function useMyEvents(type: MyEventType): UseMyEventsReturn {
               : resolveEventStatus({
                   eventDate: apiEvent.eventDate,
                   endDate: apiEvent.endDate,
+                  applicationDeadline: apiEvent.applicationDeadline,
                 });
 
             return {

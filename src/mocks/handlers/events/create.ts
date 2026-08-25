@@ -40,6 +40,7 @@ export const eventCreateHandler = http.post(
       endDate?: unknown;
       costs?: unknown;
       capacity?: unknown;
+      applicationDeadline?: unknown;
       externalUrl?: unknown;
       items?: unknown;
       tagIds?: unknown;
@@ -175,6 +176,11 @@ export const eventCreateHandler = http.post(
         avatarUrl: "https://i.pravatar.cc/150?img=1",
       },
       createdAt: new Date().toISOString(),
+      // 申込期限は未指定のとき JSON に含めない(締切なし)。
+      ...(typeof body.applicationDeadline === "string" &&
+      body.applicationDeadline.length > 0
+        ? { applicationDeadline: body.applicationDeadline }
+        : {}),
     };
 
     mockEvents.push(newEvent);

@@ -114,6 +114,7 @@ export function ReportPostPreview({
                 status={resolveEventStatus({
                   eventDate: event.eventDate,
                   endDate: event.endDate,
+                  applicationDeadline: event.applicationDeadline,
                 })}
               />
               <EventTagList tags={event.tags} />

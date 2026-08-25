@@ -14,6 +14,7 @@ import { PrefectureSelectField } from "@/components/molecules/PrefectureSelectFi
 import { PriceCategoryField } from "@/components/molecules/event-post/PriceCategoryField";
 import { RequiredItemField } from "@/components/molecules/event-post/RequiredItemField";
 import { TagInputField } from "@/components/molecules/event-post/TagInputField";
+import { Button } from "@/components/ui/button";
 import { MAX_EVENT_PDF_COUNT, MAX_TEXT_LENGTH } from "@/constants/config";
 import type {
   EventPostFormErrors,
@@ -25,12 +26,14 @@ import {
   MAX_PDF_BYTES,
   validateUploadFile,
 } from "@/utils/upload";
+import { Plus } from "lucide-react";
 
 import {
   EVENT_ATTACHMENTS_SECTION_ID,
   EVENT_FEE_SECTION_ID,
   EVENT_ITEMS_SECTION_ID,
   EVENT_OVERVIEW_SECTION_ID,
+  EVENT_RECEPTION_SECTION_ID,
   EVENT_SCHEDULE_SECTION_ID,
   EVENT_TAGS_SECTION_ID,
   EVENT_TITLE_SECTION_ID,
@@ -47,6 +50,25 @@ const clampDateYear = (value: string) => {
   const normalizedYear = normalizeHalfWidthDigits(yearPart).slice(0, 4);
   return [normalizedYear, ...rest].join("-");
 };
+
+// datetime-local の値を基準に、指定日数前の日時を datetime-local 形式で返す。
+// かんたん設定ボタン（開催2日前・前日・1週間前）で使う。不正な値には空文字を返す。
+const minusDaysToLocalInput = (base: string, days: number): string => {
+  const parsed = new Date(base);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+  parsed.setDate(parsed.getDate() - days);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+};
+
+// かんたん設定ボタンの定義。days は開催日時からの前日数。
+const QUICK_DEADLINE_OPTIONS = [
+  { label: "開催2日前", days: 2 },
+  { label: "前日", days: 1 },
+  { label: "1週間前", days: 7 },
+] as const;
 
 // 上限バイト数の表記は、実際の検証に使う値から作ることでズレを防ぐ
 const toMegabytes = (bytes: number) => Math.floor(bytes / (1024 * 1024));
@@ -195,7 +217,14 @@ export function EventPostForm({
               aria-invalid={Boolean(errors.endDateTime)}
             />
           </FormField>
+        </FormCard>
+      </div>
 
+      <div id={EVENT_RECEPTION_SECTION_ID} className="scroll-mt-6">
+        <FormCard
+          title="受付設定"
+          description="申し込みの受け付け方を設定します。"
+        >
           <FormField
             id={getFieldId("capacity")}
             label="定員数"
@@ -217,6 +246,62 @@ export function EventPostForm({
               placeholder="例: 30"
               aria-invalid={Boolean(errors.capacity)}
             />
+          </FormField>
+
+          <FormField
+            id={getFieldId("applicationDeadline")}
+            label="申し込み締切"
+            description="締切を過ぎると新規の申し込みと参加の取り消しができなくなります。"
+            error={errors.applicationDeadline}
+          >
+            <FormInput
+              id={getFieldId("applicationDeadline")}
+              type="datetime-local"
+              value={formState.applicationDeadline}
+              onChange={(event) =>
+                setField(
+                  "applicationDeadline",
+                  clampDateYear(event.target.value),
+                )
+              }
+              aria-invalid={Boolean(errors.applicationDeadline)}
+            />
+            {/* かんたん設定。開催日時からの相対指定なので、未入力のときは押せないようにする */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-[#A8B1A2]">かんたん設定</span>
+              {QUICK_DEADLINE_OPTIONS.map((option) => (
+                <Button
+                  key={option.label}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-[10px] border-[#CDD4C8] bg-white px-3 text-xs font-bold text-[#3A4237] shadow-[0px_1px_0px_rgba(39,46,36,0.06)]"
+                  disabled={!formState.eventDateTime}
+                  onClick={() =>
+                    setField(
+                      "applicationDeadline",
+                      minusDaysToLocalInput(
+                        formState.eventDateTime,
+                        option.days,
+                      ),
+                    )
+                  }
+                >
+                  <Plus className="h-3 w-3" />
+                  {option.label}
+                </Button>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-[10px] border-[#CDD4C8] bg-white px-3 text-xs font-bold text-[#3A4237] shadow-[0px_1px_0px_rgba(39,46,36,0.06)]"
+                onClick={() => setField("applicationDeadline", "")}
+              >
+                <Plus className="h-3 w-3" />
+                締切なし
+              </Button>
+            </div>
           </FormField>
 
           <FormField

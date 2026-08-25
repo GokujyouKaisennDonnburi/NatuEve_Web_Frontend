@@ -98,10 +98,11 @@ export function EventDetail({
 
   // 開催状況は共通ルールで判定する。詳細 API は endDate を必ず返すため、
   // 開催中（開始済み・未終了）のイベントは「開催終了」にならない。
-  // イベント一覧は endDate を持たないため eventDate 基準のままで、表示が食い違う点に注意。
+  // 「期限間近」は申込期限の1週間前から申込期限までに表示される。
   const status = resolveEventStatus({
     eventDate: event.eventDate,
     endDate: event.endDate,
+    applicationDeadline: event.applicationDeadline,
   });
 
   // ログイン中のユーザーが当該イベントの投稿者（主催者）かどうか
