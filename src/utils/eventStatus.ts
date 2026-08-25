@@ -11,7 +11,7 @@ type EventStatusSource = {
   applicationDeadline?: string | null;
 };
 
-// 日時だけから判定できる開催状況。値は EventStatusLabel の status と同じ語彙。
+// 日時だけから判定できる開催状況。値は "open" , "few_left" , "closed"の３つ
 type ResolvedEventStatus = "open" | "few_left" | "closed";
 
 // 指定した日時が今日から7日以内（未来）かを、Asia/Tokyo の日付ベースで判定する。
