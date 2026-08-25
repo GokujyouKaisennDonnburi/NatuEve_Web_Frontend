@@ -51,6 +51,9 @@ jobs:
           {
             echo "body<<$delimiter"
             cat .ai/prompts/code-review.md
+            # ファイル末尾に改行がない場合、閉じdelimiterが最終行に連結されて
+            # "Matching delimiter not found" になるため、空行を挟んで単独行を保証する。
+            echo ""
             echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
