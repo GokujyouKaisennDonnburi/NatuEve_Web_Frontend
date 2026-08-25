@@ -1,9 +1,9 @@
 "use client";
 
-import { FieldNote } from "@/components/atoms/FieldNote";
 import { OptionalUrlField } from "@/components/molecules/event-post/OptionalUrlField";
 import { FileDropZone } from "@/components/molecules/FileDropZone";
 import { FormCard } from "@/components/molecules/FormCard";
+import { FormField } from "@/components/molecules/FormField";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { validateUploadFile } from "@/utils/upload";
@@ -70,35 +70,25 @@ export function ReportPostForm({
           {!formState.externalUrlEnabled && (
             <div className="space-y-2">
               {/* 活動記録テキスト */}
-              <label
-                htmlFor="content"
-                className="block text-sm font-semibold text-slate-800"
-              >
-                活動した記録 <span className="text-slate-600">*</span>
-              </label>
-
-              <FieldNote>
-                当日の様子、観察できたもの、参加者の反応などを記入してください。
-              </FieldNote>
-
-              <Textarea
+              <FormField
                 id="content"
-                placeholder="例：当日は快晴に恵まれ、21組48名の方にご参加いただきました。木道沿いで例年より多くのヘイケボタルを観察でき、参加された親子からは歓声が上がっていました。水質調査の結果、今年も湿原の水環境が良好に保たれていることが確認できました。"
-                value={formState.content}
-                onChange={(e) =>
-                  setFormState((prev) => ({
-                    ...prev,
-                    content: e.target.value,
-                  }))
-                }
-                className="min-h-32 resize-none border-[#CDD4C8]"
-              />
-
-              {validationErrors.content && (
-                <FieldNote tone="error">{validationErrors.content}</FieldNote>
-              )}
-
-              <FieldNote>{formState.content.length} / 2000文字</FieldNote>
+                label="活動した記録"
+                required
+                error={validationErrors.content}
+              >
+                <Textarea
+                  id="content"
+                  placeholder="当日の様子、観察できたもの、参加者の反応などを記入してください。"
+                  value={formState.content}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      content: e.target.value,
+                    }))
+                  }
+                  className="min-h-32 resize-none border-[#CDD4C8]"
+                />
+              </FormField>
             </div>
           )}
         </CardContent>
