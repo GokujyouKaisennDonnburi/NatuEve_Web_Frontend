@@ -1,45 +1,25 @@
 "use client";
 
-import { Eye, FileText, Image as ImageIcon } from "lucide-react";
+import { Eye } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { FieldNote } from "@/components/atoms/FieldNote";
 import { PillButton } from "@/components/atoms/PillButton";
 import { SegmentControl } from "@/components/atoms/SegmentControl";
 import { useAuthContext } from "@/components/layouts/AuthProvider";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
-import { OptionalUrlField } from "@/components/molecules/event-post/OptionalUrlField";
 import { PageHeader } from "@/components/molecules/PageHeader";
-import {
-  MultiFileField,
-  type FileWithId,
-} from "@/components/molecules/report-post/MultiFileField";
+import type { ReportPostFormState } from "@/components/organisms/report-post/ReportPostForm";
+import { ReportPostForm } from "@/components/organisms/report-post/ReportPostForm";
 import { ReportPostPreview } from "@/components/organisms/report-post/ReportPostPreview";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import { getEventDetail } from "@/services/event";
 import { createReport } from "@/services/report";
 import { uploadFile } from "@/services/upload";
 import type { CreateReportRequest } from "@/types/report";
-import { findUploadValidationError, validateUploadFile } from "@/utils/upload";
-
-// レポート投稿フォームの入力状態を管理する型定義
-type ReportPostFormState = {
-  content: string; // 活動記録の文章
-  reportImages: FileWithId[]; // 活動している様子の画像の配列
-  externalUrlEnabled: boolean; // 外部URLの有効化状態
-  externalUrl: string; // 外部URL
-  reportPdfs: FileWithId[]; // レポート PDF ファイルの配列
-};
+import { findUploadValidationError } from "@/utils/upload";
 
 export default function ReportPostPage() {
   // useSearchParams() を静的プリレンダリング可能にするため
@@ -207,7 +187,7 @@ function ReportPostPageContent() {
   };
 
   // フォーム送信処理
-  const handleSubmit = async (e: React.FormEvent) => {
+  const _handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm() || !eventId) {
@@ -366,166 +346,30 @@ function ReportPostPageContent() {
       )}
 
       {/* メインコンテンツ */}
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        {mode === "edit" ? (
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-200 pb-6">
-              <CardTitle>レポート内容</CardTitle>
-              <CardDescription>
-                外部サイトでレポートを公開している場合は、「外部URL」をONにしてURLを入力してください。
-                <br />
-                外部URLが設定されている場合、詳細画面の「レポート」ボタンから該当ページへ遷移します。
-                <br />
-                公開先がない場合はOFFのまま、活動記録（必須）や画像・PDFを入力してください。
-              </CardDescription>
-            </CardHeader>
+      {mode === "edit" ? (
+        <ReportPostForm
+          formState={formState}
+          validationErrors={validationErrors}
+          setFormState={setFormState}
+        />
+      ) : (
+        <ReportPostPreview formState={formState} event={event} />
+      )}
 
-            <CardContent className="space-y-8 pt-6">
-              {/* 外部URL */}
-              <div>
-                <OptionalUrlField
-                  id="external-url"
-                  toggleId="external-url-toggle"
-                  enabled={formState.externalUrlEnabled}
-                  onEnabledChange={(enabled) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      externalUrlEnabled: enabled,
-                      ...(enabled && {
-                        content: "",
-                        reportImages: [],
-                        reportPdfs: [],
-                      }),
-                    }))
-                  }
-                  url={formState.externalUrl}
-                  onUrlChange={(url) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      externalUrl: url,
-                    }))
-                  }
-                  error={validationErrors.externalUrl}
-                />
-              </div>
-
-              {/* 区切り線 */}
-              <div className="border-t border-slate-200" />
-
-              {!formState.externalUrlEnabled ? (
-                <>
-                  {/* 活動記録テキスト */}
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="content"
-                      className="block text-sm font-semibold text-slate-800"
-                    >
-                      活動した記録 <span className="text-red-600">*</span>
-                    </label>
-                    <FieldNote>
-                      イベント参加時に行った活動内容を詳しく記述してください
-                    </FieldNote>
-                    <Textarea
-                      id="content"
-                      placeholder="例：〇〇について学びました。特に〇〇の部分が印象的でした..."
-                      value={formState.content}
-                      onChange={(e) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          content: e.target.value,
-                        }))
-                      }
-                      className="min-h-32 resize-none"
-                    />
-                    {validationErrors.content && (
-                      <FieldNote tone="error">
-                        {validationErrors.content}
-                      </FieldNote>
-                    )}
-                    <FieldNote>
-                      {formState.content.length} / 2000 文字
-                    </FieldNote>
-                  </div>
-
-                  {/* 区切り線 */}
-                  <div className="border-t border-slate-200" />
-
-                  {/* 画像セクション */}
-                  <div>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                      <ImageIcon className="h-5 w-5 text-teal-600" />
-                      <span>活動している様子の画像</span>
-                    </div>
-                    <MultiFileField
-                      id="report-images"
-                      label="画像を選択"
-                      hint="活動の様子が分かる画像があれば添付してください（最大10枚）"
-                      accept="image/*"
-                      selectedFiles={formState.reportImages}
-                      onSelectedFilesChange={(files) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          reportImages: files,
-                        }))
-                      }
-                      maxFiles={10}
-                      className="mt-4"
-                      error={validationErrors.reportImages}
-                      disabled={formState.externalUrlEnabled}
-                      validate={(file) => validateUploadFile(file, "image")}
-                    />
-                  </div>
-
-                  {/* 区切り線 */}
-                  <div className="border-t border-slate-200" />
-
-                  {/* PDF */}
-                  <div>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                      <FileText className="h-5 w-5 text-teal-600" />
-                      <span>資料PDF</span>
-                    </div>
-                    <MultiFileField
-                      id="report-pdfs"
-                      label="PDF資料"
-                      hint="学習資料やレポート用紙などのPDFがあれば、3つまでアップロード可能です"
-                      accept="application/pdf"
-                      selectedFiles={formState.reportPdfs}
-                      onSelectedFilesChange={(files) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          reportPdfs: files,
-                        }))
-                      }
-                      maxFiles={3}
-                      className="mt-4"
-                      error={validationErrors.reportPdfs}
-                      validate={(file) => validateUploadFile(file, "pdf")}
-                    />
-                  </div>
-                </>
-              ) : null}
-            </CardContent>
-          </Card>
-        ) : (
-          <ReportPostPreview formState={formState} event={event} />
-        )}
-
-        {/* フッター */}
-        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <PillButton
-            tone="outline"
-            type="button"
-            onClick={() => router.back()}
-            disabled={isSubmitting}
-          >
-            キャンセル
-          </PillButton>
-          <PillButton tone="brand" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "投稿中..." : "レポートを投稿"}
-          </PillButton>
-        </div>
-      </form>
+      {/* フッター */}
+      <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <PillButton
+          tone="outline"
+          type="button"
+          onClick={() => router.back()}
+          disabled={isSubmitting}
+        >
+          キャンセル
+        </PillButton>
+        <PillButton tone="brand" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "投稿中..." : "レポートを投稿"}
+        </PillButton>
+      </div>
     </section>
   );
 }

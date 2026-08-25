@@ -5,7 +5,6 @@ import { EventReportList } from "@/components/molecules/event-detail/EventReport
 import { EventTagList } from "@/components/molecules/event-detail/EventTagList";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
-import type { FileWithId } from "@/components/molecules/report-post/MultiFileField";
 import type { ReportDetail } from "@/types/report";
 import { resolveEventStatus } from "@/utils/eventStatus";
 import { Eye } from "lucide-react";
@@ -24,10 +23,10 @@ const formatPostedDate = (value: string): string =>
 // フォーム状態の管理は別issueのため、構造を重複させず必要分だけ受け取る。
 type ReportPostPreviewFormState = {
   content: string;
-  reportImages: FileWithId[];
+  reportImages: File[];
   externalUrlEnabled: boolean;
   externalUrl: string;
-  reportPdfs: FileWithId[];
+  reportPdfs: File[];
 };
 
 type ReportPostPreviewProps = {

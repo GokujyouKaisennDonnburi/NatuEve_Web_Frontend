@@ -25,17 +25,19 @@ export function OptionalUrlField({
   onUrlChange,
 }: Readonly<OptionalUrlFieldProps>) {
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm shadow-slate-100">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-slate-900">外部URL</p>
-          <FieldNote>外部フォームに遷移させる場合に使います。</FieldNote>
-        </div>
+    <div className="space-y-4 rounded-2xl border border-slate-200 bg-[#F8FAF6] p-4 shadow-sm shadow-slate-100">
+      <div className="flex items-center gap-4">
         <TogglePill
           id={toggleId}
           checked={enabled}
           onCheckedChange={onEnabledChange}
         />
+        <div className="min-w-0 space-y-1">
+          <p className="text-sm font-semibold text-slate-900">
+            外部サイトのレポートを使う
+          </p>
+          <FieldNote>オンにすると、以下の記入欄は不要になります。</FieldNote>
+        </div>
       </div>
 
       {/* URL入力欄を表示する部分。enabled が true のときに表示される。 */}
@@ -58,11 +60,7 @@ export function OptionalUrlField({
             onChange={(event) => onUrlChange(event.target.value)}
           />
         </FormField>
-      ) : (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-          OFF の間は外部URLの入力欄を非表示にします。
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
