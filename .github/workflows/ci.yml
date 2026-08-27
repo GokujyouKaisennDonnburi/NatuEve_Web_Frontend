@@ -54,8 +54,8 @@ jobs:
         run: bun run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
-          # NEXT_PUBLIC_* はビルド時（静的プリレンダリング）に必要。
-          # src/lib/supabase.ts がモジュールロード時に必須チェックを行うため、
-          # リポジトリの Variables から注入する。
+          # NEXT_PUBLIC_* は静的プリレンダリング時に getSupabase() が呼ばれた場合に必要。
+          # 遅延初期化（getSupabase()）によりモジュールロード時は不要だが、
+          # 将来サーバ側から呼ばれる可能性に備えリポジトリの Variables から注入する。
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

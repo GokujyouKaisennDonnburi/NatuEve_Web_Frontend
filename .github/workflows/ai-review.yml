@@ -7,8 +7,7 @@ name: AI Review
 #   1. `uses:` の Action          -> 各サービスの GitHub Action に差し替え
 #   2. `with.model:`              -> `<provider>/<model-id>` 形式で指定（例: opencode-go/deepseek-v4-pro）
 #   3. `env:` の APIキー            -> 切替先プロバイダのAPIキー Secret に変更（OpenCode Go / Zen は OPENCODE_API_KEY）
-#   4. opencode.json              -> CI/ローカル共通設定（provider/agentのみ更新）
-#   5. .opencode/agents/code-reviewer.md -> ローカル用 model: を同値に更新
+#   4. opencode.json              -> CI/ローカル共通設定（provider / agent.code-reviewer.model を更新）
 #   ※ .ai/prompts/code-review.md は AIサービス非依存のため変更不要
 #   ※ Branch Protection の必須 status check には含めないこと
 
