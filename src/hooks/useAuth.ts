@@ -1,7 +1,7 @@
 // src/hooks/useAuth.ts
 "use client";
 
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import {
   getMockAuthSession,
   isMockAuthEnabled,
@@ -97,8 +97,8 @@ export function useAuth() {
     }
 
     // 初期セッション確認
-    supabase.auth
-      .getSession()
+    getSupabase()
+      .auth.getSession()
       .then(({ data: { session } }) => {
         setSession(session ? buildSession(session) : null);
       })
@@ -114,7 +114,7 @@ export function useAuth() {
     // セッション変化を監視
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = getSupabase().auth.onAuthStateChange((_event, session) => {
       setSession(session ? buildSession(session) : null);
     });
 

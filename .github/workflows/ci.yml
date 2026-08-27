@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint / Format / Typecheck / Test / Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.21"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint (Biome)
+        run: bun run lint
+
+      - name: Format check (Biome)
+        run: bun run format:check
+
+      - name: Typecheck (tsc --noEmit)
+        run: bun run typecheck
+
+      - name: Test (Vitest)
+        run: bun run test
+
+      - name: Build (Next.js)
+        run: bun run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          # NEXT_PUBLIC_* は静的プリレンダリング時に getSupabase() が呼ばれた場合に必要。
+          # 遅延初期化（getSupabase()）によりモジュールロード時は不要だが、
+          # 将来サーバ側から呼ばれる可能性に備えリポジトリの Variables から注入する。
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
