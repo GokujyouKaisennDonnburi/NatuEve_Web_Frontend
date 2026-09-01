@@ -360,7 +360,8 @@ function ReportPostPageContent() {
           event={event}
           onSubmit={_handleSubmit}
           onCancel={() => router.back()}
-          isSubmitting={isSubmitting} />
+          isSubmitting={isSubmitting}
+        />
       )}
     </section>
   );
