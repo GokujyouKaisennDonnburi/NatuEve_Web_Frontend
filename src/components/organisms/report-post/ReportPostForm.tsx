@@ -1,5 +1,6 @@
 "use client";
 
+import { PillButton } from "@/components/atoms/PillButton";
 import { OptionalUrlField } from "@/components/molecules/event-post/OptionalUrlField";
 import { FileDropZone } from "@/components/molecules/FileDropZone";
 import { FormCard } from "@/components/molecules/FormCard";
@@ -21,15 +22,21 @@ type ReportPostFormProps = {
   formState: ReportPostFormState;
   validationErrors: Record<string, string>;
   setFormState: React.Dispatch<React.SetStateAction<ReportPostFormState>>;
+  onSubmit: (e: React.FormEvent) => void;
+  onCancel: () => void;
+  isSubmitting: boolean;
 };
 
 export function ReportPostForm({
   formState,
   validationErrors,
   setFormState,
+  onSubmit,
+  onCancel,
+  isSubmitting,
 }: Readonly<ReportPostFormProps>) {
   return (
-    <div className="space-y-4">
+    <form onSubmit={onSubmit} noValidate className="space-y-4">
       {/* レポート内容 */}
       <Card className="border-slate-200 bg-white shadow-sm">
         <CardContent className="pt-6">
@@ -141,6 +148,22 @@ export function ReportPostForm({
           />
         </FormCard>
       )}
-    </div>
+
+      {/* 投稿・キャンセルボタン */}
+      <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <PillButton
+          tone="outline"
+          type="button"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          キャンセル
+        </PillButton>
+
+        <PillButton tone="brand" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "投稿中..." : "レポートを投稿"}
+        </PillButton>
+      </div>
+    </form>
   );
 }

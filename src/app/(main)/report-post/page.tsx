@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { PillButton } from "@/components/atoms/PillButton";
 import { SegmentControl } from "@/components/atoms/SegmentControl";
 import { useAuthContext } from "@/components/layouts/AuthProvider";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
@@ -351,25 +350,13 @@ function ReportPostPageContent() {
           formState={formState}
           validationErrors={validationErrors}
           setFormState={setFormState}
+          onSubmit={_handleSubmit}
+          onCancel={() => router.back()}
+          isSubmitting={isSubmitting}
         />
       ) : (
         <ReportPostPreview formState={formState} event={event} />
       )}
-
-      {/* フッター */}
-      <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <PillButton
-          tone="outline"
-          type="button"
-          onClick={() => router.back()}
-          disabled={isSubmitting}
-        >
-          キャンセル
-        </PillButton>
-        <PillButton tone="brand" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "投稿中..." : "レポートを投稿"}
-        </PillButton>
-      </div>
     </section>
   );
 }
