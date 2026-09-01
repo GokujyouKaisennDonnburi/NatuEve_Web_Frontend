@@ -80,7 +80,7 @@ export default function MyPage() {
     // Service を経由してサインアウトする。signOut は画面遷移しないため遷移はここで行う
     try {
       await signOut();
-      router.replace(ROUTES.SIGNIN);
+      router.replace(ROUTES.EVENT_LIST);
     } catch (error) {
       console.error("Sign-out failed", error);
       toast.error("サインアウトに失敗しました。もう一度お試しください。");
