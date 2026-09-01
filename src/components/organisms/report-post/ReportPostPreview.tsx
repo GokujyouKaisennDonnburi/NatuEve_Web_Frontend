@@ -164,7 +164,12 @@ export function ReportPostPreview({
           キャンセル
         </PillButton>
 
-        <PillButton tone="brand" type="button" onClick={() => onSubmit({} as React.FormEvent)} disabled={isSubmitting}>
+        <PillButton
+          tone="brand"
+          type="button"
+          onClick={() => onSubmit({} as React.FormEvent)}
+          disabled={isSubmitting}
+        >
           {isSubmitting ? "投稿中..." : "レポートを投稿"}
         </PillButton>
       </div>
