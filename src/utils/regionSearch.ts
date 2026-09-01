@@ -34,7 +34,7 @@ export function getPrefectureGroups(): RegionOptionGroup[] {
     groupLabel: region.name,
     options: region.prefectures.map((prefecture) => ({
       name: prefecture.name,
-      hiragana: prefecture.hiragana[0] ?? "",
+      hiragana: prefecture.hiragana,
     })),
   }));
 }
