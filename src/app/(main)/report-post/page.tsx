@@ -355,7 +355,12 @@ function ReportPostPageContent() {
           isSubmitting={isSubmitting}
         />
       ) : (
-        <ReportPostPreview formState={formState} event={event} />
+        <ReportPostPreview
+          formState={formState}
+          event={event}
+          onSubmit={_handleSubmit}
+          onCancel={() => router.back()}
+          isSubmitting={isSubmitting} />
       )}
     </section>
   );
