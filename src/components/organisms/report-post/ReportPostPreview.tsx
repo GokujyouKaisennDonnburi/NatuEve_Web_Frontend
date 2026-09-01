@@ -9,7 +9,6 @@ import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import type { ReportDetail } from "@/types/report";
 import { resolveEventStatus } from "@/utils/eventStatus";
 import { Eye } from "lucide-react";
-import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 // 投稿日の表示用に日付だけを整形する
@@ -35,7 +34,7 @@ type ReportPostPreviewProps = {
   formState: ReportPostPreviewFormState;
   // プレビューのヘッダー表示に使うイベント情報。未取得の間は null。
   event: EventDetailType | null;
-  onSubmit: (e: FormEvent) => void;
+  onSubmit: () => void;
   onCancel: () => void;
   isSubmitting: boolean;
 };
@@ -167,7 +166,7 @@ export function ReportPostPreview({
         <PillButton
           tone="brand"
           type="button"
-          onClick={() => onSubmit({} as React.FormEvent)}
+          onClick={onSubmit}
           disabled={isSubmitting}
         >
           {isSubmitting ? "投稿中..." : "レポートを投稿"}

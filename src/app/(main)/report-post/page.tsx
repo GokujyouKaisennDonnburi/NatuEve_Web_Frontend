@@ -186,9 +186,7 @@ function ReportPostPageContent() {
   };
 
   // フォーム送信処理
-  const _handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (!validateForm() || !eventId) {
       return;
     }
@@ -350,7 +348,7 @@ function ReportPostPageContent() {
           formState={formState}
           validationErrors={validationErrors}
           setFormState={setFormState}
-          onSubmit={_handleSubmit}
+          onSubmit={handleSubmit}
           onCancel={() => router.back()}
           isSubmitting={isSubmitting}
         />
@@ -358,7 +356,7 @@ function ReportPostPageContent() {
         <ReportPostPreview
           formState={formState}
           event={event}
-          onSubmit={_handleSubmit}
+          onSubmit={handleSubmit}
           onCancel={() => router.back()}
           isSubmitting={isSubmitting}
         />
