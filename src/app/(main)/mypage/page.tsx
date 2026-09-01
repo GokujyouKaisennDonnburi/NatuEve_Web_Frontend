@@ -5,10 +5,15 @@ import { useCurrentUserContext } from "@/components/layouts/AuthProvider";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
 import { useMyEvents } from "@/hooks/useMyEvents";
+import { signOut } from "@/services/auth";
 import { updateMyProfile } from "@/services/user";
+import { ROUTES } from "@/constants/routes";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function MyPage() {
+  const router = useRouter();
   const {
     user: profile,
     isUserLoading,
@@ -71,6 +76,17 @@ export default function MyPage() {
     setProfile(await updateMyProfile({ description: newDescription }));
   };
 
+  const handleSignOut = async () => {
+    // Service を経由してサインアウトする。signOut は画面遷移しないため遷移はここで行う
+    try {
+      await signOut();
+      router.replace(ROUTES.SIGNIN);
+    } catch (error) {
+      console.error("Sign-out failed", error);
+      toast.error("サインアウトに失敗しました。もう一度お試しください。");
+    }
+  };
+
   return (
     <div className="mx-auto max-w-[1192px] pt-2 space-y-8">
       <BackLink href="/">前の画面にもどる</BackLink>
@@ -87,6 +103,7 @@ export default function MyPage() {
         createdAt={profile.createdAt}
         onUpdateName={handleUpdateName}
         onUpdateDescription={handleUpdateDescription}
+        onSignOut={handleSignOut}
       />
 
       <section>
