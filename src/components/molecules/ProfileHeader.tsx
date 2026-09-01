@@ -16,6 +16,8 @@ type ProfileHeaderProps = {
   onUpdateName?: (newName: string) => Promise<void>;
   onUpdateDescription?: (newDescription: string) => Promise<void>;
   onSignOut?: () => void;
+  // サインアウト処理中に true。ボタンを無効化して多重実行を防ぐ
+  isSigningOut?: boolean;
 };
 
 function formatMemberSince(createdAt?: string): string {
@@ -34,6 +36,7 @@ export function ProfileHeader({
   onUpdateName,
   onUpdateDescription,
   onSignOut,
+  isSigningOut,
 }: ProfileHeaderProps) {
   const [imgError, setImgError] = useState(false);
   const [forceEditName, setForceEditName] = useState(false);
@@ -93,7 +96,7 @@ export function ProfileHeader({
         {/* サインアウトボタン（本人のプロフィールのみ） */}
         {isOwnProfile && onSignOut && (
           <div className="shrink-0">
-            <SignOutButton onClick={onSignOut} />
+            <SignOutButton onClick={onSignOut} disabled={isSigningOut} />
           </div>
         )}
       </div>

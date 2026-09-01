@@ -11,9 +11,13 @@ import { ROUTES } from "@/constants/routes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export default function MyPage() {
   const router = useRouter();
+  // サインアウト処理中フラグ。連打による多重実行を防ぎ、
+  // 処理中はボタンを無効化してローディング表示へ切り替える
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const {
     user: profile,
     isUserLoading,
@@ -44,7 +48,7 @@ export default function MyPage() {
   const eventError = hostedError ?? appliedError ?? participatedError;
   if (eventError) console.error(eventError);
 
-  if (isUserLoading || isEventsLoading) {
+  if (isUserLoading || isEventsLoading || isSigningOut) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-8 h-8 rounded-full bg-slate-300 animate-pulse" />
@@ -78,12 +82,17 @@ export default function MyPage() {
 
   const handleSignOut = async () => {
     // Service を経由してサインアウトする。signOut は画面遷移しないため遷移はここで行う
+    // 実行中は再実行させない（連打対策）
+    if (isSigningOut) return;
+    setIsSigningOut(true);
     try {
       await signOut();
       router.replace(ROUTES.EVENT_LIST);
     } catch (error) {
       console.error("Sign-out failed", error);
       toast.error("サインアウトに失敗しました。もう一度お試しください。");
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
@@ -104,6 +113,7 @@ export default function MyPage() {
         onUpdateName={handleUpdateName}
         onUpdateDescription={handleUpdateDescription}
         onSignOut={handleSignOut}
+        isSigningOut={isSigningOut}
       />
 
       <section>
