@@ -45,7 +45,7 @@ export function OptionalUrlField({
         <FormField
           id={id}
           label="外部URL"
-          required={false}
+          required
           hint="URL は公開前に動作確認しておくと安心です。"
           error={error}
           className="space-y-2"
