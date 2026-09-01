@@ -1,9 +1,10 @@
 import { REGIONS } from "@/constants/regions";
 
 // 候補1件分のデータ。漢字名とひらがなを持ち、どちらからでも検索できるようにする。
+// ひらがなは複数読みに対応するため配列で持つ。
 export type RegionOption = {
   readonly name: string;
-  readonly hiragana: string;
+  readonly hiragana: readonly string[];
 };
 
 // 候補のグループ。都道府県は地域単位、市区町村は都道府県単位でまとめる。
@@ -23,7 +24,7 @@ export const matchesRegionOption = (
   }
   return (
     option.name.toLowerCase().includes(q) ||
-    option.hiragana.toLowerCase().includes(q)
+    option.hiragana.some((hiragana) => hiragana.toLowerCase().includes(q))
   );
 };
 
@@ -49,7 +50,7 @@ export function getCityGroup(prefectureName: string): RegionOptionGroup {
     options:
       prefecture?.cities.map((city) => ({
         name: city.name,
-        hiragana: city.hiragana,
+        hiragana: [city.hiragana],
       })) ?? [],
   };
 }

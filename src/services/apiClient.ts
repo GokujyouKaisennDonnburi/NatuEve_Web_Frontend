@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import {
   getMockAuthSession,
   isMockAuthEnabled,
@@ -57,7 +57,7 @@ export async function apiFetch(
     } else {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await getSupabase().auth.getSession();
 
       // セッションが存在する場合は、AuthorizationヘッダーにBearerトークンを設定
       if (session?.access_token) {

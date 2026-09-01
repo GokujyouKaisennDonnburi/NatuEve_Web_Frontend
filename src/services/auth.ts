@@ -1,5 +1,5 @@
 // src/services/auth.ts
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import {
   MOCK_AUTH_SESSION,
   clearMockAuthSession,
@@ -17,7 +17,7 @@ export async function signInWithGoogle(): Promise<boolean> {
     return true;
   }
 
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await getSupabase().auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: `${window.location.origin}/auth/callback`,
@@ -46,14 +46,14 @@ export async function completeOAuthCallback(): Promise<boolean> {
 
   const code = new URLSearchParams(window.location.search).get("code");
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await getSupabase().auth.exchangeCodeForSession(code);
     if (error) throw error;
   }
 
   const {
     data: { session },
     error,
-  } = await supabase.auth.getSession();
+  } = await getSupabase().auth.getSession();
   if (error) throw error;
 
   return session !== null;
@@ -72,7 +72,7 @@ export function subscribeAuthSession(onEstablished: () => void): () => void {
 
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
+  } = getSupabase().auth.onAuthStateChange((_event, session) => {
     if (session) {
       onEstablished();
     }
@@ -89,6 +89,6 @@ export async function signOut(): Promise<void> {
     return;
   }
 
-  const { error } = await supabase.auth.signOut();
+  const { error } = await getSupabase().auth.signOut();
   if (error) throw error;
 }

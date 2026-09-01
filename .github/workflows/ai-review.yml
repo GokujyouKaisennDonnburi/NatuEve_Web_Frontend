@@ -1,0 +1,76 @@
+name: AI Review
+
+# PR作成時に OpenCode (OpenCode Go / DeepSeek V4 Pro) でコードレビューを実行し、PR へレビューコメントを投稿する。
+# 本ワークフローは Branch Protection の必須チェックには含めない（AIサービス障害時のマージブロック回避）。
+#
+# AI実行基盤・モデルの変更箇所（将来 Copilot / Claude / Gemini に切替する場合）:
+#   1. `uses:` の Action          -> 各サービスの GitHub Action に差し替え
+#   2. `env:` の APIキー            -> 切替先プロバイダのAPIキー Secret に変更（OpenCode Go / Zen は OPENCODE_API_KEY）
+#   3. opencode.json              -> provider / agent.code-reviewer.model を更新（CI の with.model は jq で自動取得）
+#   ※ .ai/prompts/code-review.md は AIサービス非依存のため変更不要
+#   ※ Branch Protection の必須 status check には含めないこと
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ai-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ai-review:
+    name: AI Review (OpenCode Go + DeepSeek V4 Pro)
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # OpenCode Action の最小権限。
+    # レビューコメントは OpenCode GitHub App のインストールトークンで投稿されるため、
+    # ワークフローの GITHUB_TOKEN には書き込み権限は不要。
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: read
+      issues: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Load review prompt
+        id: prompt
+        shell: bash
+        run: |
+          delimiter=$(openssl rand -hex 16)
+
+          {
+            echo "body<<$delimiter"
+            cat .ai/prompts/code-review.md
+            # ファイル末尾に改行がない場合、閉じdelimiterが最終行に連結されて
+            # "Matching delimiter not found" になるため、空行を挟んで単独行を保証する。
+            echo ""
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve review model
+        id: model
+        shell: bash
+        run: |
+          echo "model=$(jq -r '.agent["code-reviewer"].model' opencode.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Run OpenCode review
+        uses: anomalyco/opencode/github@a105350812f05f914c768e468559dbd6bd508d8e
+        env:
+          # AIプロバイダ変更時はここを差し替え（例: ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY）。
+          # OpenCode Go / OpenCode Zen は OPENCODE_API_KEY を使用。
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          # モデルは opencode.json の agent.code-reviewer.model を単一正とし、jq で解決して渡す。
+          # モデル変更時は opencode.json のみを更新する（CI / ローカルが常に同期）。
+          # 現在: OpenCode Go DeepSeek V4 Pro（$1.32/$3.96 per 1M (Peak) / $0.66/$1.98 (Off-Peak)）。
+          # reasoning effort は opencode.json の provider.opencode-go.models.deepseek-v4-pro.options で max を設定。
+          model: ${{ steps.model.outputs.model }}
+          prompt: ${{ steps.prompt.outputs.body }}
