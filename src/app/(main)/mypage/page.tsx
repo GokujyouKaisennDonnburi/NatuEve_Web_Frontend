@@ -15,8 +15,10 @@ import { useState } from "react";
 
 export default function MyPage() {
   const router = useRouter();
-  // サインアウト処理中フラグ。連打による多重実行を防ぎ、
-  // 処理中はボタンを無効化してローディング表示へ切り替える
+  // サインアウト処理中フラグ。ボタン単位で無効化して連打による多重実行を防ぐ。
+  // 成功時は遷移で画面が消えるためフラグを戻さず、失敗時のみ解除する
+  // （フラグを戻すと session クリアにより profile が null になり、
+  // 遷移完了前に「ログインし直してください」が一瞬表示されるため）。
   const [isSigningOut, setIsSigningOut] = useState(false);
   const {
     user: profile,
@@ -48,7 +50,7 @@ export default function MyPage() {
   const eventError = hostedError ?? appliedError ?? participatedError;
   if (eventError) console.error(eventError);
 
-  if (isUserLoading || isEventsLoading || isSigningOut) {
+  if (isUserLoading || isEventsLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-8 h-8 rounded-full bg-slate-300 animate-pulse" />
@@ -82,17 +84,16 @@ export default function MyPage() {
 
   const handleSignOut = async () => {
     // Service を経由してサインアウトする。signOut は画面遷移しないため遷移はここで行う
-    // 実行中は再実行させない（連打対策）
+    // 成功時はフラグを戻さず遷移へ任せ、失敗時のみ解除して再試行できるようにする
     if (isSigningOut) return;
     setIsSigningOut(true);
     try {
       await signOut();
       router.replace(ROUTES.EVENT_LIST);
     } catch (error) {
+      setIsSigningOut(false);
       console.error("Sign-out failed", error);
       toast.error("サインアウトに失敗しました。もう一度お試しください。");
-    } finally {
-      setIsSigningOut(false);
     }
   };
 

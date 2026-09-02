@@ -16,7 +16,6 @@ type ProfileHeaderProps = {
   onUpdateName?: (newName: string) => Promise<void>;
   onUpdateDescription?: (newDescription: string) => Promise<void>;
   onSignOut?: () => void;
-  // サインアウト処理中に true。ボタンを無効化して多重実行を防ぐ
   isSigningOut?: boolean;
 };
 
