@@ -10,6 +10,7 @@ export const ROUTES = {
   REPORT_POST: "/report-post",
   AUTH_CALLBACK: "/auth/callback",
   MYPAGE: "/mypage",
+  ABOUT: "/about",
 
   COMING_SOON: "/coming-soon", // ダミーページ（開発中）
 } as const;
@@ -22,6 +23,7 @@ export const PUBLIC_ROUTES = [
   ROUTES.AUTH_CALLBACK,
   ROUTES.USERS,
   ROUTES.DOCS,
+  ROUTES.ABOUT,
   ROUTES.COMING_SOON,
 ] as const;
 

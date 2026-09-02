@@ -106,7 +106,7 @@ export function SiteHeader() {
             主催者の方へ
           </Link>
           <Link
-            href={ROUTES.COMING_SOON}
+            href={ROUTES.ABOUT}
             className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
           >
             なちゅいべとは
