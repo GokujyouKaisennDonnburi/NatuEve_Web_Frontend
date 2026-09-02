@@ -162,3 +162,19 @@ export function buildApplicationSummary(
       : lines.reduce((total, line) => total + (line.subtotal ?? 0), 0),
   };
 }
+
+// 取り消し期限を過ぎているかどうかを判定する。
+// 未設定・不正な日時は「期限なし」とみなし、取り消しを妨げない。
+// 期限内は取り消し、期限後は欠席連絡と導線が分かれるため、
+// 申し込み内容モーダルと参加ボタンの双方から同じ判定を参照する。
+export function isCancelDeadlinePassed(
+  deadline: string | null | undefined,
+): boolean {
+  if (!deadline) return false;
+
+  const parsed = new Date(deadline);
+
+  if (Number.isNaN(parsed.getTime())) return false;
+
+  return parsed.getTime() < Date.now();
+}

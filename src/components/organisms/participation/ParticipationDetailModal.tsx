@@ -13,7 +13,10 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import type { EventDetailCost } from "@/types/event";
 import type { ParticipantEntry } from "@/types/participate";
 import { formatFullDateTime, formatMonthDayTime } from "@/utils/date";
-import { buildApplicationSummary } from "@/utils/participation";
+import {
+  buildApplicationSummary,
+  isCancelDeadlinePassed,
+} from "@/utils/participation";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef } from "react";
 
@@ -46,18 +49,6 @@ type ParticipationDetailModalProps = {
   // 重なっている間はこちらを閉じさせない（手前のモーダルだけが Escape に反応する）。
   isBlocked?: boolean;
 };
-
-// 取り消し期限を過ぎているかどうかを判定する。
-// 未設定・不正な日時は「期限なし」とみなし、取り消しを妨げない。
-function isDeadlinePassed(deadline: string | null | undefined): boolean {
-  if (!deadline) return false;
-
-  const parsed = new Date(deadline);
-
-  if (Number.isNaN(parsed.getTime())) return false;
-
-  return parsed.getTime() < Date.now();
-}
 
 // 申し込み内容モーダル。
 //
@@ -113,11 +104,11 @@ export function ParticipationDetailModal({
     return buildApplicationSummary(eventCosts, participants);
   }, [participants, eventCosts]);
 
-  const isExpired = isDeadlinePassed(cancelDeadline);
+  const isExpired = isCancelDeadlinePassed(cancelDeadline);
 
   // 期限は API から返る想定だが、パースできない値だと
   // 「取り消しは — までになっています。」という不自然な文言になるため、
-  // 日時として読める場合だけ案内帯を出す（isDeadlinePassed の判定とも揃う）。
+  // 日時として読める場合だけ案内帯を出す（isCancelDeadlinePassed の判定とも揃う）。
   const deadlineLabel = formatMonthDayTime(cancelDeadline ?? "");
   const hasDeadline = deadlineLabel !== "—";
 

@@ -2,15 +2,23 @@
 
 import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { showCompletionToast } from "@/components/molecules/CompletionToast";
+import { ParticipationAbsenceModal } from "@/components/organisms/participation/ParticipationAbsenceModal";
 import { ParticipationCancelConfirmModal } from "@/components/organisms/participation/ParticipationCancelConfirmModal";
 import { ParticipationDetailModal } from "@/components/organisms/participation/ParticipationDetailModal";
 import { ParticipationModal } from "@/components/organisms/participation/ParticipationModal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { leaveEvent } from "@/services/participate";
+import { leaveEvent, reportAbsence } from "@/services/participate";
 import type { EventDetailCost } from "@/types/event";
-import type { ParticipantEntry } from "@/types/participate";
-import { LeaveError, LeaveErrorCode } from "@/types/participate";
+import type { AbsenceReason, ParticipantEntry } from "@/types/participate";
+import {
+  AbsenceError,
+  AbsenceErrorCode,
+  LeaveError,
+  LeaveErrorCode,
+} from "@/types/participate";
+import { formatMonthDayTime } from "@/utils/date";
+import { isCancelDeadlinePassed } from "@/utils/participation";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -80,6 +88,14 @@ const handleLeaveError = (error: unknown) => {
       case LeaveErrorCode.InvalidRequest:
         toast.error(error.message || "リクエストが不正です。");
         return;
+      // 申込期限を過ぎたイベントは取り消せない（欠席連絡の導線へ誘導する）。
+      // 期限の判定はサーバー側が正となるため、クライアントの判定とずれた場合にここへ来る。
+      case LeaveErrorCode.DeadlinePassed:
+        toast.error(
+          error.message ||
+            "申込期限を過ぎています。主催者へ欠席を連絡してください。",
+        );
+        return;
       default:
         toast.error(error.message);
         return;
@@ -88,6 +104,51 @@ const handleLeaveError = (error: unknown) => {
 
   console.error("参加キャンセルに失敗しました。", error);
   toast.error("参加キャンセルに失敗しました。時間をおいて再度お試しください。");
+};
+
+// 欠席連絡のエラーを種別ごとにトーストへ振り分ける
+const handleAbsenceError = (error: unknown) => {
+  if (error instanceof AbsenceError) {
+    switch (error.code) {
+      // イベント不存在 または 未参加
+      case AbsenceErrorCode.NotFound:
+        toast.error(
+          error.message || "イベントが見つからない、または参加していません。",
+        );
+        return;
+      case AbsenceErrorCode.Unauthorized:
+        toast.error(error.message || "認証が必要です。");
+        return;
+      case AbsenceErrorCode.InvalidRequest:
+        toast.error(error.message || "リクエストが不正です。");
+        return;
+      // 申込期限内は取り消しで対応できるため、そちらへ誘導する。
+      // 期限の判定はサーバー側が正となるため、クライアントの判定とずれた場合にここへ来る。
+      case AbsenceErrorCode.BeforeDeadline:
+        toast.error(
+          error.message ||
+            "申込期限内のため、申し込みの取り消しからお手続きください。",
+        );
+        return;
+      case AbsenceErrorCode.EventEnded:
+        toast.error(
+          error.message || "イベントは終了しているため、欠席を連絡できません。",
+        );
+        return;
+      case AbsenceErrorCode.EventCancelled:
+        toast.error(
+          error.message ||
+            "イベントが取りやめになっているため、欠席を連絡できません。",
+        );
+        return;
+      default:
+        toast.error(error.message);
+        return;
+    }
+  }
+
+  console.error("欠席の連絡に失敗しました。", error);
+  toast.error("欠席の連絡に失敗しました。時間をおいて再度お試しください。");
 };
 
 // 参加申し込みボタンコンポーネント
@@ -125,6 +186,19 @@ export function EventParticipationButton({
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   // 参加キャンセル送信中フラグ
   const [isCancelSubmitting, setIsCancelSubmitting] = useState(false);
+  // 欠席連絡モーダル（理由選択）の開閉状態
+  const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
+  // 欠席の最終確認モーダルの開閉状態
+  const [isAbsenceConfirmOpen, setIsAbsenceConfirmOpen] = useState(false);
+  // 選択された欠席理由。任意選択のため未選択なら null。
+  const [absenceReason, setAbsenceReason] = useState<AbsenceReason | null>(
+    null,
+  );
+  // 欠席連絡送信中フラグ
+  const [isAbsenceSubmitting, setIsAbsenceSubmitting] = useState(false);
+
+  // 取り消し期限を過ぎているかどうか。期限内は取り消し、期限後は欠席連絡に導線が分かれる。
+  const isCancelDeadlineOver = isCancelDeadlinePassed(cancelDeadline);
 
   // 定員・残り人数の計算（残り = capacity - participantCount、swagger 準拠）
   const effectiveCapacity =
@@ -172,6 +246,59 @@ export function EventParticipationButton({
     if (disabled || isSessionLoading || isFull || receptionClosed) return;
 
     setIsModalOpen(true);
+  };
+
+  // 申し込み内容モーダルの赤ボタン押下時の分岐。
+  // 期限内は取り消しの確認へ、期限を過ぎている場合は欠席連絡へ進む。
+  const handleRequestCancel = () => {
+    if (isCancelDeadlineOver) {
+      setIsAbsenceModalOpen(true);
+      return;
+    }
+
+    setIsCancelModalOpen(true);
+  };
+
+  // 欠席理由を受け取り、最終確認へ進む。理由は未選択（null）でも進める。
+  const handleRequestAbsenceConfirm = (reason: AbsenceReason | null) => {
+    setAbsenceReason(reason);
+    setIsAbsenceConfirmOpen(true);
+  };
+
+  // 欠席連絡モーダルを閉じる。選択中の理由も破棄する。
+  const handleCloseAbsenceModal = () => {
+    setIsAbsenceModalOpen(false);
+    setAbsenceReason(null);
+  };
+
+  // 欠席連絡の確定。成功したら重ねたモーダルをすべて閉じ、完了トーストを出す。
+  const handleConfirmAbsence = () => {
+    if (isAbsenceSubmitting) return;
+
+    setIsAbsenceSubmitting(true);
+
+    void (async () => {
+      try {
+        // reason は任意。未選択の場合は送らずに欠席だけを伝える。
+        await reportAbsence(
+          eventId,
+          absenceReason ? { reason: absenceReason } : {},
+        );
+
+        showCompletionToast("イベントを欠席しました。");
+
+        setIsAbsenceConfirmOpen(false);
+        setIsAbsenceModalOpen(false);
+        setIsDetailModalOpen(false);
+        setAbsenceReason(null);
+        onCancelSuccess?.();
+      } catch (error) {
+        // 失敗時はモーダルを開いたままにして、やり直せるようにする
+        handleAbsenceError(error);
+      } finally {
+        setIsAbsenceSubmitting(false);
+      }
+    })();
   };
 
   // 取り消しの確定。成功したら確認・申し込み内容の両方を閉じ、完了トーストを出す。
@@ -228,11 +355,18 @@ export function EventParticipationButton({
             <Button
               type="button"
               variant="outline"
-              disabled={disabled || isSessionLoading || isCancelSubmitting}
+              disabled={
+                disabled ||
+                isSessionLoading ||
+                isCancelSubmitting ||
+                isAbsenceSubmitting
+              }
               onClick={handleCancelClick}
               className="h-10 w-[140px] shrink-0 rounded-full border-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#9ABD5A]/10 focus-visible:ring-[#9ABD5A] disabled:opacity-50 sm:h-11 sm:w-[160px] sm:text-sm"
             >
-              {isCancelSubmitting ? "送信中…" : "内容の確認・取り消し"}
+              {isCancelSubmitting || isAbsenceSubmitting
+                ? "送信中…"
+                : "内容の確認・取り消し"}
             </Button>
           </>
         ) : (
@@ -326,8 +460,10 @@ export function EventParticipationButton({
         cancelDeadline={cancelDeadline}
         participants={participationDetail?.participants}
         eventCosts={costs}
-        onRequestCancel={() => setIsCancelModalOpen(true)}
-        isBlocked={isCancelModalOpen}
+        onRequestCancel={handleRequestCancel}
+        isBlocked={
+          isCancelModalOpen || isAbsenceModalOpen || isAbsenceConfirmOpen
+        }
       />
 
       {/* 取り消し確認モーダル。申し込み内容モーダルの上に重ねて表示する。 */}
@@ -337,6 +473,26 @@ export function EventParticipationButton({
         isSubmitting={isCancelSubmitting}
         onConfirm={handleConfirmCancel}
         onClose={() => setIsCancelModalOpen(false)}
+      />
+
+      {/* 欠席連絡モーダル。期限を過ぎている場合に、取り消しの代わりに理由を選んで連絡する。 */}
+      <ParticipationAbsenceModal
+        isOpen={isAbsenceModalOpen}
+        eventTitle={eventTitle}
+        deadlineLabel={formatMonthDayTime(cancelDeadline ?? "")}
+        isBlocked={isAbsenceConfirmOpen}
+        onSubmit={handleRequestAbsenceConfirm}
+        onClose={handleCloseAbsenceModal}
+      />
+
+      {/* 欠席の最終確認モーダル。欠席連絡モーダルの上に重ねて表示する。 */}
+      <ParticipationCancelConfirmModal
+        variant="absence"
+        isOpen={isAbsenceConfirmOpen}
+        eventTitle={eventTitle}
+        isSubmitting={isAbsenceSubmitting}
+        onConfirm={handleConfirmAbsence}
+        onClose={() => setIsAbsenceConfirmOpen(false)}
       />
     </>
   );
