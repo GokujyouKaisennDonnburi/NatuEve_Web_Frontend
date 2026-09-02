@@ -34,11 +34,7 @@ export function SignOutButton({
       ) : (
         <LogOut className="size-6" strokeWidth={2.5} />
       )}
-      <span
-        className="font-['Zen_Kaku_Gothic_New']"
-        role="status"
-        aria-live="polite"
-      >
+      <span className="font-['Zen_Kaku_Gothic_New']" role="status">
         {disabled ? "サインアウト中..." : "サインアウト"}
       </span>
     </Button>

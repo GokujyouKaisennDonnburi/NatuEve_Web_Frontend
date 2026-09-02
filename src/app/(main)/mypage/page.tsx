@@ -110,11 +110,14 @@ export default function MyPage() {
     }
 
     // 遷移に失敗してもセッションは消滅済みのためフラグは解除せず、
-    // スピナーを維持して「ログインし直してください」の表示を防ぐ
+    // スピナーを維持して「ログインし直してください」の表示を防ぐ。
+    // 万一遷移が失敗したときに操作不能なデッドエンドを避けるため、
+    // フルリロードによる遷移へフォールバックする
     try {
       router.replace(ROUTES.EVENT_LIST);
     } catch (error) {
       console.error("Navigation after sign-out failed", error);
+      window.location.href = ROUTES.EVENT_LIST;
     }
   };
 
