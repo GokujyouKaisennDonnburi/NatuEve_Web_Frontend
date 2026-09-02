@@ -2,6 +2,7 @@
 // POST /api/v1/events/:id/leave
 // ログイン参加者が参加を取り消す。要認証。リクエストボディは不要。匿名参加は対象外。
 // 未認証・未知トークンは 401、イベント不存在 または 未参加は 404 not_found となる。
+// 申込期限を過ぎたイベントは取り消せず 409 deadline_passed を返す（欠席連絡 API を使う）。
 // 参加行を削除し、参加状態ログへ action=leave を1件追記する。
 import { HttpResponse, http } from "msw";
 
@@ -61,6 +62,28 @@ export const eventLeaveHandler = http.post(
         },
         { status: 404 },
       );
+    }
+
+    // 申込期限を過ぎている場合は取り消しを受け付けず、欠席連絡 API へ誘導する。
+    // 期限なし（cancelDeadline 未設定）のイベントは従来どおり取り消せる。
+    const cancelDeadline = mockEventDetails.get(id)?.cancelDeadline;
+    if (cancelDeadline) {
+      const deadline = new Date(cancelDeadline);
+      if (
+        !Number.isNaN(deadline.getTime()) &&
+        deadline.getTime() < Date.now()
+      ) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: "deadline_passed",
+              message:
+                "申込期限を過ぎています。欠席連絡 API を利用してください",
+            },
+          },
+          { status: 409 },
+        );
+      }
     }
 
     // 参加記録を削除してキャンセル完了

@@ -2,15 +2,15 @@
 // 共有するメモリ内状態と、その生成・操作ロジックを定義する。
 // MSW はプロセス内状態のためリロードでリセットされる前提。
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
-import type { EventMemberProfile } from "@/types/participate";
+import type { AbsenceReason, EventMemberProfile } from "@/types/participate";
 
 import { TOKEN_TO_PROFILE } from "./auth";
 
 // participation-logs エンドポイントが返す参加履歴1件分の型。
-// 直近のアクション（join / leave）とその日時、申込人数を保持する。
+// 直近のアクション（join / leave / absence）とその日時、申込人数を保持する。
 // members/me エンドポイントは、この履歴から自分の申込内容を引く。
 export type MockParticipationLog = {
-  action: "join" | "leave";
+  action: "join" | "leave" | "absence";
   // 参加申込人数（代表者を含む）。leave の場合は undefined として扱う。
   partySize?: number;
   // カテゴリ別の参加人数内訳。join 時に記録し、leave では undefined として扱う。
@@ -18,6 +18,9 @@ export type MockParticipationLog = {
   // 申込時に入力された名前とメールアドレス。join 時のみ記録する。
   username?: string;
   mailAddress?: string;
+  // 欠席理由と補足。absence 時のみ記録する。
+  reason?: AbsenceReason;
+  detail?: string;
   // 申込日時(RFC3339)。join 時のみ記録し、取り消し後は持ち越さない。
   createdAt?: string;
   updatedAt: string;
