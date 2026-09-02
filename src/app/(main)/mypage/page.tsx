@@ -95,16 +95,26 @@ export default function MyPage() {
 
   const handleSignOut = async () => {
     // Service を経由してサインアウトする。signOut は画面遷移しないため遷移はここで行う
-    // 成功時はフラグを戻さず遷移へ任せ、失敗時のみ解除して再試行できるようにする
+    // サインアウトの失敗（フラグ解除して再試行）と、その後の遷移の失敗（セッションは
+    // 消滅済みのため解除できない）を混同しないよう try を分けている
     if (isSigningOut) return;
     setIsSigningOut(true);
+
     try {
       await signOut();
-      router.replace(ROUTES.EVENT_LIST);
     } catch (error) {
       setIsSigningOut(false);
       console.error("Sign-out failed", error);
       toast.error("サインアウトに失敗しました。もう一度お試しください。");
+      return;
+    }
+
+    // 遷移に失敗してもセッションは消滅済みのためフラグは解除せず、
+    // スピナーを維持して「ログインし直してください」の表示を防ぐ
+    try {
+      router.replace(ROUTES.EVENT_LIST);
+    } catch (error) {
+      console.error("Navigation after sign-out failed", error);
     }
   };
 
