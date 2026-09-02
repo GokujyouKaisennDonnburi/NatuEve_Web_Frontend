@@ -1,5 +1,8 @@
 import { apiFetch } from "@/services/apiClient";
 import type {
+  AbsenceErrorBody,
+  AbsenceRequest,
+  AbsenceResponse,
   EventMembersResponse,
   GetEventMembersErrorBody,
   GetMyEventApplicationErrorBody,
@@ -13,6 +16,7 @@ import type {
   ParticipationLogsResponse,
 } from "@/types/participate";
 import {
+  AbsenceError,
   LeaveError,
   MyEventApplicationError,
   ParticipateError,
@@ -215,4 +219,48 @@ export async function getMyEventApplication(
   }
 
   return (await response.json()) as MyEventApplicationResponse;
+}
+
+// 欠席連絡 API（POST /api/v1/events/{eventId}/absence）を呼ぶ（要認証）。
+//
+// 申込期限を過ぎたイベントで、参加を取り消したうえで主催者へ欠席を伝える。
+// 期限内の取り消しは leaveEvent が担当し、こちらは期限後の導線でのみ使う。
+// 未認証は 401、イベント不存在・未参加は 404、reason / detail の不正は 400 となる。
+// APIエラー・通信エラーは AbsenceError を送出し、呼び出し側で判別できるようにする。
+export async function reportAbsence(
+  eventId: string,
+  payload: AbsenceRequest,
+): Promise<AbsenceResponse> {
+  const response = await apiFetch(
+    `/api/v1/events/${encodeURIComponent(eventId)}/absence`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    // バックエンドは { error: { code, message } } 形式でエラー詳細を返す。
+    // code を取得して呼び出し側で 404 NotFound 等を判別できるようにする。
+    let code = "internal_error";
+    let message: string | undefined;
+    try {
+      const body = (await response.json()) as AbsenceErrorBody;
+      code = body?.error?.code ?? code;
+      message = body?.error?.message;
+    } catch {
+      // JSON 以外のボディは無視する
+    }
+
+    throw new AbsenceError(
+      code,
+      message ?? `欠席の連絡に失敗しました (Status: ${response.status})`,
+      response.status,
+    );
+  }
+
+  return (await response.json()) as AbsenceResponse;
 }

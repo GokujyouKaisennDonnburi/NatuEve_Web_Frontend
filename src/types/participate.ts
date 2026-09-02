@@ -120,8 +120,10 @@ export type GetEventMembersErrorBody = ParticipateEventErrorBody;
 // 認証ユーザー自身の、指定イベントに対する最新の参加状態を取得する。要認証。
 // 履歴がない場合は action=null, participating=false, updatedAt=null となる（200）。
 
-// 参加状態のアクション種別。"join"（参加）/ "leave"（参加キャンセル）/ null（履歴なし）。
-export type ParticipationAction = "join" | "leave" | null;
+// 参加状態のアクション種別。
+// "join"（参加）/ "leave"（参加キャンセル）/ "absence"（申込期限後の欠席連絡）/
+// null（履歴なし）。leave と absence はどちらも「参加していない」状態を表す。
+export type ParticipationAction = "join" | "leave" | "absence" | null;
 
 // 参加状態レスポンスDTO。
 export type ParticipationLogsResponse = {
@@ -185,6 +187,9 @@ export const LeaveErrorCode = {
   InvalidRequest: "invalid_request",
   Unauthorized: "unauthorized",
   NotFound: "not_found",
+  // 申込期限を過ぎたイベントの取り消し（409）。
+  // 期限後は取り消せないため、代わりに欠席連絡 API を使う。
+  DeadlinePassed: "deadline_passed",
   InternalError: "internal_error",
 } as const;
 
@@ -251,6 +256,83 @@ export class MyEventApplicationError extends Error {
   constructor(code: string, message: string, status: number) {
     super(message);
     this.name = "MyEventApplicationError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
+// 欠席連絡 API（POST /api/v1/events/{id}/absence）の DTO 群。
+// 申込期限を過ぎた参加者が、主催者へ欠席を連絡する。要認証。
+// 参加行を削除し、参加状態ログへ action=absence を1件追記したうえで、
+// 主催者宛に欠席連絡メールが非同期で送られる（レスポンスには含まれない）。
+// 期限を過ぎたイベントの取り消しは leave ではなくこちらを使う（leave は 409 になる）。
+// 逆に期限内・開催終了後・取りやめ済みのイベントは 409 となる。
+// 申込期限が未設定のイベントは「期限前」に当たらないため、開催終了までいつでも呼べる。
+
+// 欠席理由の選択肢。表示ラベルは UI 側で対応付ける。
+export const ABSENCE_REASONS = [
+  "illness",
+  "family",
+  "weather_transport",
+  "other",
+] as const;
+
+// 欠席理由。
+export type AbsenceReason = (typeof ABSENCE_REASONS)[number];
+
+// 欠席連絡エンドポイントへのリクエストボディ DTO。
+// reason / detail はどちらも任意で、理由を選ばずに欠席だけを伝えることもできる。
+// ボディ自体は必須のため、どちらも指定しない場合は {} を送る。
+export type AbsenceRequest = {
+  // 欠席理由（任意）。未選択なら送信しない（省略・null・空文字はいずれも未指定扱い）。
+  reason?: AbsenceReason;
+  // 欠席理由の補足（任意・trim 後200文字以内）。未入力なら送信しない。
+  detail?: string;
+};
+
+// 欠席連絡エンドポイントのレスポンス DTO。
+export type AbsenceResponse = {
+  // 欠席連絡を受け付けたイベントID。
+  eventId: string;
+  // 連絡したユーザーのプロフィールID。
+  profileId: string;
+  // 実行されたアクション。本エンドポイントでは常に "absence"。
+  action: "absence";
+  // 受け付けた欠席理由。未指定の場合は null。
+  reason: AbsenceReason | null;
+  // 受け付けた補足（trim 済み）。未指定の場合は null。
+  detail: string | null;
+  // 受領日時(RFC3339)。
+  createdAt: string;
+};
+
+// 欠席連絡APIのエラーレスポンスボディDTO。
+export type AbsenceErrorBody = ParticipateEventErrorBody;
+
+// 欠席連絡APIのエラーコード（ハンドリングで区別するもの）。
+// 404 not_found はイベント不存在 または 未参加の両方をカバーする。
+export const AbsenceErrorCode = {
+  InvalidRequest: "invalid_request",
+  Unauthorized: "unauthorized",
+  NotFound: "not_found",
+  // 申込期限前（409）。期限内は取り消し（leave）で対応する。
+  BeforeDeadline: "before_deadline",
+  // 開催終了後（409）。
+  EventEnded: "event_ended",
+  // イベントが取りやめ済み（409）。
+  EventCancelled: "event_cancelled",
+  InternalError: "internal_error",
+} as const;
+
+// 欠席連絡APIのエラー。code を保持し、呼び出し側で 404 NotFound 等を判別できるようにする。
+export class AbsenceError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  // コンストラクタ
+  constructor(code: string, message: string, status: number) {
+    super(message);
+    this.name = "AbsenceError";
     this.code = code;
     this.status = status;
   }
