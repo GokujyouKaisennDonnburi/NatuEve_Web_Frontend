@@ -50,6 +50,22 @@ export default function MyPage() {
   const eventError = hostedError ?? appliedError ?? participatedError;
   if (eventError) console.error(eventError);
 
+  // プロフィール取得に失敗した状態でトップページへ戻る際にもセッションを破棄する。
+  // トップページ到達時にはサインアウト済みであることが要件のため破棄の完了を待って遷移する。
+  // 破棄に失敗してもユーザーの意図は画面を離れることなので遷移は続行する
+  const handleBackToTopWithSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Sign-out failed", error);
+    }
+
+    router.push(ROUTES.HOME);
+  };
+
   if (isUserLoading || isEventsLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -76,7 +92,15 @@ export default function MyPage() {
         <p className="text-slate-500">
           ユーザー情報が取得できませんでした。ログインし直してください。
         </p>
-        <Link href="/" className="text-sm text-emerald-600 hover:underline">
+        <Link
+          href={ROUTES.HOME}
+          className="text-sm text-emerald-600 hover:underline"
+          onClick={(e) => {
+            // サインアウト完了後に遷移させるため Link の既定ナビゲーションを抑止する
+            e.preventDefault();
+            void handleBackToTopWithSignOut();
+          }}
+        >
           トップページに戻る
         </Link>
       </div>
