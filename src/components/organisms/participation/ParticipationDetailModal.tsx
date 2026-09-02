@@ -39,7 +39,8 @@ type ParticipationDetailModalProps = {
   // イベントの費用カテゴリ。申し込み内訳と突合して1名あたりの参加費を補う。
   // 申込内容 API は金額を返さないため、金額の出所はこちらだけになる。
   eventCosts?: EventDetailCost[];
-  // 「申し込みを取り消す」押下時に呼ぶ。確認モーダルの表示は呼び出し側が担当する
+  // 「申し込みを取り消す」「欠席を連絡する」押下時に呼ぶ。
+  // 確認モーダルの表示は呼び出し側が担当する
   onRequestCancel: () => void;
   // 取り消し確認モーダルなど、手前に別のモーダルが重なっているかどうか。
   // 重なっている間はこちらを閉じさせない（手前のモーダルだけが Escape に反応する）。
@@ -61,7 +62,8 @@ function isDeadlinePassed(deadline: string | null | undefined): boolean {
 // 申し込み内容モーダル。
 //
 // 参加済みユーザーが自分の申込内容（日時・場所・参加費）を確認し、
-// 取り消し期限内であれば「申し込みを取り消す」から確認モーダルへ進める。
+// 取り消し期限内は「申し込みを取り消す」、期限切れ後は「欠席を連絡する」から
+// 確認モーダルへ進める。
 export function ParticipationDetailModal({
   isOpen,
   onOpenChange,
@@ -232,14 +234,14 @@ export function ParticipationDetailModal({
               >
                 閉じる
               </Button>
+              {/* 期限切れ後は自分で取り消せないため、主催者への欠席連絡へ導線を変える */}
               <Button
                 type="button"
                 variant="outline"
-                disabled={isExpired}
                 onClick={onRequestCancel}
-                className="h-11 rounded-full border-(--danger) px-8 font-semibold text-(--danger) hover:bg-(--danger-soft) hover:text-(--danger) disabled:border-slate-200 disabled:text-slate-300"
+                className="h-11 rounded-full border-(--danger) px-8 font-semibold text-(--danger) hover:bg-(--danger-soft) hover:text-(--danger)"
               >
-                申し込みを取り消す
+                {isExpired ? "欠席を連絡する" : "申し込みを取り消す"}
               </Button>
             </div>
           </CardContent>

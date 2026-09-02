@@ -1,7 +1,10 @@
 // このファイルは、参加・キャンセル・参加者一覧周りのハンドラー間で
 // 共有するメモリ内状態と、その生成・操作ロジックを定義する。
 // MSW はプロセス内状態のためリロードでリセットされる前提。
+import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import type { EventMemberProfile } from "@/types/participate";
+
+import { TOKEN_TO_PROFILE } from "./auth";
 
 // participation-logs エンドポイントが返す参加履歴1件分の型。
 // 直近のアクション（join / leave）とその日時、申込人数を保持する。
@@ -112,4 +115,60 @@ export const seedEventMembers = (
   const participants = eventParticipants.get(eventId) ?? new Set<string>();
   participants.add(`anon:seed-${eventId}`);
   eventParticipants.set(eventId, participants);
+};
+
+// ログイン中のモックユーザー自身の申し込みをシードする。
+// 参加履歴のキーは join エンドポイントと同じ raw token とし、
+// participation-logs / members/me / members のいずれから見ても
+// 「本人が申し込み済み」と読める状態を作る。
+// 申込期限を過ぎたイベントの申し込み内容モーダルのように、
+// その場では作れない状態を申し込み操作なしで確認するために使う。
+export const seedMyParticipation = (
+  eventId: string,
+  {
+    appliedAt,
+    participants,
+  }: {
+    // 申込日時(RFC3339)。申し込み内容モーダルの「申し込み日時」に出る。
+    appliedAt: string;
+    // カテゴリ別の申込内訳。イベント詳細の costs[] と突合されるため、
+    // 金額を表示したい場合は costs[] と同じカテゴリ名を指定する。
+    participants: Array<{ category: string; headCount: number }>;
+  },
+): void => {
+  const token = MOCK_AUTH_SESSION.token;
+  const profile = TOKEN_TO_PROFILE[token];
+  if (!profile) return;
+
+  const partySize = participants.reduce(
+    (total, participant) => total + participant.headCount,
+    0,
+  );
+  const username = profile.displayName;
+  const mailAddress = MOCK_AUTH_SESSION.email ?? "";
+
+  // 重複参加チェック（409 Conflict）と参加中判定の元になる参加者キー。
+  const participantKeys = eventParticipants.get(eventId) ?? new Set<string>();
+  participantKeys.add(token);
+  eventParticipants.set(eventId, participantKeys);
+
+  const logs =
+    participationLogs.get(eventId) ?? new Map<string, MockParticipationLog>();
+  logs.set(token, {
+    action: "join",
+    partySize,
+    participants,
+    username,
+    mailAddress,
+    createdAt: appliedAt,
+    updatedAt: appliedAt,
+  });
+  participationLogs.set(eventId, logs);
+
+  // 主催者向けの参加者一覧にも同じ申し込みを載せ、参加組数・合計人数を合わせる。
+  const members = eventMembers.get(eventId) ?? [];
+  eventMembers.set(eventId, [
+    ...members,
+    { username, mailAddress, partySize, profile, createdAt: appliedAt },
+  ]);
 };
