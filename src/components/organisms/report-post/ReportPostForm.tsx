@@ -22,7 +22,7 @@ type ReportPostFormProps = {
   formState: ReportPostFormState;
   validationErrors: Record<string, string>;
   setFormState: React.Dispatch<React.SetStateAction<ReportPostFormState>>;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: () => void;
   onCancel: () => void;
   isSubmitting: boolean;
 };
@@ -36,7 +36,14 @@ export function ReportPostForm({
   isSubmitting,
 }: Readonly<ReportPostFormProps>) {
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-4">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+      noValidate
+      className="space-y-4"
+    >
       {/* レポート内容 */}
       <Card className="border-slate-200 bg-white shadow-sm">
         <CardContent className="pt-6">
