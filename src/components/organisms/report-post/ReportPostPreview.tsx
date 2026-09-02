@@ -98,7 +98,7 @@ export function ReportPostPreview({
     event?.organizerAvatarUrl ?? event?.profile?.avatarUrl;
 
   return (
-    <div className="space-y-4">
+    <form onSubmit={onSubmit} noValidate className="space-y-4">
       <div className="space-y-6 rounded-2xl border border-slate-300 p-6 shadow-sm">
         {/* プレビュー注釈 */}
         <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5">
@@ -163,15 +163,10 @@ export function ReportPostPreview({
           キャンセル
         </PillButton>
 
-        <PillButton
-          tone="brand"
-          type="button"
-          onClick={onSubmit}
-          disabled={isSubmitting}
-        >
+        <PillButton tone="brand" type="submit" disabled={isSubmitting}>
           {isSubmitting ? "投稿中..." : "レポートを投稿"}
         </PillButton>
       </div>
-    </div>
+    </form>
   );
 }
