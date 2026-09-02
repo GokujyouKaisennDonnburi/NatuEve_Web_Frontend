@@ -60,6 +60,17 @@ export default function MyPage() {
 
   // 未ログイン、または /api/v1/me の取得に失敗した場合
   if (!profile) {
+    // サインアウト成功後は session クリアによりここに到達する。
+    // router.replace の遷移完了まではスピナーを維持し、
+    // 「ログインし直してください」が一瞬表示されるのを防ぐ
+    if (isSigningOut) {
+      return (
+        <div className="flex items-center justify-center py-16">
+          <div className="w-8 h-8 rounded-full bg-slate-300 animate-pulse" />
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16">
         <p className="text-slate-500">
