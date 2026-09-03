@@ -115,14 +115,6 @@ const handleAbsenceError = (error: unknown) => {
       case AbsenceErrorCode.InvalidRequest:
         toast.error(error.message || "リクエストが不正です。");
         return;
-      // 申込期限内は取り消しで対応できるため、そちらへ誘導する。
-      // 期限の判定はサーバー側が正となるため、クライアントの判定とずれた場合にここへ来る。
-      case AbsenceErrorCode.BeforeDeadline:
-        toast.error(
-          error.message ||
-            "申込期限内のため、申し込みの取り消しからお手続きください。",
-        );
-        return;
       case AbsenceErrorCode.EventEnded:
         toast.error(
           error.message || "イベントは終了しているため、欠席を連絡できません。",
@@ -285,6 +277,25 @@ export function EventParticipationButton({
         setAbsenceReason(null);
         onCancelSuccess?.();
       } catch (error) {
+        // クライアントの期限判定がサーバーとずれて 409 になった場合は、
+        // 取り消しの導線へ引き継いでユーザーが詰まないようにする。
+        // 期限切れ時に欠席連絡へ引き継ぐ leave 側の処理と対称の扱い。
+        if (
+          error instanceof AbsenceError &&
+          error.code === AbsenceErrorCode.BeforeDeadline
+        ) {
+          toast.error(
+            error.message ||
+              "申込期限内のため、申し込みの取り消しからお手続きください。",
+          );
+
+          setIsAbsenceConfirmOpen(false);
+          setIsAbsenceModalOpen(false);
+          setAbsenceReason(null);
+          setIsCancelModalOpen(true);
+          return;
+        }
+
         // 失敗時はモーダルを開いたままにして、やり直せるようにする
         handleAbsenceError(error);
       } finally {
