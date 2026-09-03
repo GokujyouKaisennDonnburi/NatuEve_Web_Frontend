@@ -72,7 +72,7 @@ export function TermsOfServiceModal({
       >
         <Card className="flex max-h-[85vh] flex-col overflow-hidden rounded-3xl border-slate-200 bg-white shadow-xl">
           {/* ヘッダー（タイトルは中央、閉じるボタンは右上） */}
-          <div className="relative shrink-0 px-12 py-8">
+          <div className="relative shrink-0 px-12 py-4">
             <h2
               id="terms-of-service-modal-title"
               className="text-center text-3xl font-bold text-slate-950"
@@ -86,7 +86,7 @@ export function TermsOfServiceModal({
               size="icon"
               aria-label="利用規約モーダルを閉じる"
               onClick={handleClose}
-              className="absolute top-6 right-6 size-11 rounded-full border-slate-200 bg-white text-slate-600 shadow-md hover:bg-slate-50"
+              className="absolute top-3 right-6 size-11 rounded-full border-slate-200 bg-white text-slate-600 shadow-md hover:bg-slate-50"
             >
               <X className="size-5" />
             </Button>
