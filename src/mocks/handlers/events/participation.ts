@@ -11,9 +11,9 @@ import { TOKEN_TO_PROFILE } from "./auth";
 // members/me エンドポイントは、この履歴から自分の申込内容を引く。
 export type MockParticipationLog = {
   action: "join" | "leave" | "absence";
-  // 参加申込人数（代表者を含む）。leave の場合は undefined として扱う。
+  // 参加申込人数（代表者を含む）。leave / absence の場合は undefined として扱う。
   partySize?: number;
-  // カテゴリ別の参加人数内訳。join 時に記録し、leave では undefined として扱う。
+  // カテゴリ別の参加人数内訳。join 時に記録し、leave / absence では undefined として扱う。
   participants?: Array<{ category: string; headCount: number }>;
   // 申込時に入力された名前とメールアドレス。join 時のみ記録する。
   username?: string;
