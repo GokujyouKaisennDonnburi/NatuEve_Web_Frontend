@@ -1,6 +1,7 @@
 "use client";
 
 import { EditPillButton } from "@/components/atoms/EditPillButton";
+import { SignOutButton } from "@/components/atoms/SignOutButton";
 import { InlineTextField } from "@/components/molecules/InlineTextField";
 import { InlineTextareaField } from "@/components/molecules/InlineTextareaField";
 import Image from "next/image";
@@ -14,6 +15,8 @@ type ProfileHeaderProps = {
   createdAt?: string;
   onUpdateName?: (newName: string) => Promise<void>;
   onUpdateDescription?: (newDescription: string) => Promise<void>;
+  onSignOut?: () => void;
+  isSigningOut?: boolean;
 };
 
 function formatMemberSince(createdAt?: string): string {
@@ -31,6 +34,8 @@ export function ProfileHeader({
   createdAt,
   onUpdateName,
   onUpdateDescription,
+  onSignOut,
+  isSigningOut,
 }: ProfileHeaderProps) {
   const [imgError, setImgError] = useState(false);
   const [forceEditName, setForceEditName] = useState(false);
@@ -86,6 +91,13 @@ export function ProfileHeader({
             </p>
           )}
         </div>
+
+        {/* サインアウトボタン（本人のプロフィールのみ） */}
+        {isOwnProfile && onSignOut && (
+          <div className="shrink-0">
+            <SignOutButton onClick={onSignOut} disabled={isSigningOut} />
+          </div>
+        )}
       </div>
 
       {/* 区切り線 */}

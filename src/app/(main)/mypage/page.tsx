@@ -5,10 +5,21 @@ import { useCurrentUserContext } from "@/components/layouts/AuthProvider";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
 import { useMyEvents } from "@/hooks/useMyEvents";
+import { signOut } from "@/services/auth";
 import { updateMyProfile } from "@/services/user";
+import { ROUTES } from "@/constants/routes";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useState } from "react";
 
 export default function MyPage() {
+  const router = useRouter();
+  // サインアウト処理中フラグ。ボタン単位で無効化して連打による多重実行を防ぐ。
+  // 成功時は遷移で画面が消えるためフラグを戻さず、失敗時のみ解除する
+  // （フラグを戻すと session クリアにより profile が null になり、
+  // 遷移完了前に「ログインし直してください」が一瞬表示されるため）。
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const {
     user: profile,
     isUserLoading,
@@ -39,6 +50,22 @@ export default function MyPage() {
   const eventError = hostedError ?? appliedError ?? participatedError;
   if (eventError) console.error(eventError);
 
+  // プロフィール取得に失敗した状態でトップページへ戻る際にもセッションを破棄する。
+  // トップページ到達時にはサインアウト済みであることが要件のため破棄の完了を待って遷移する。
+  // 破棄に失敗してもユーザーの意図は画面を離れることなので遷移は続行する
+  const handleBackToTopWithSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Sign-out failed", error);
+    }
+
+    router.push(ROUTES.HOME);
+  };
+
   if (isUserLoading || isEventsLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -49,12 +76,31 @@ export default function MyPage() {
 
   // 未ログイン、または /api/v1/me の取得に失敗した場合
   if (!profile) {
+    // サインアウト成功後は session クリアによりここに到達する。
+    // router.replace の遷移完了まではスピナーを維持し、
+    // 「ログインし直してください」が一瞬表示されるのを防ぐ
+    if (isSigningOut) {
+      return (
+        <div className="flex items-center justify-center py-16">
+          <div className="w-8 h-8 rounded-full bg-slate-300 animate-pulse" />
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16">
         <p className="text-slate-500">
           ユーザー情報が取得できませんでした。ログインし直してください。
         </p>
-        <Link href="/" className="text-sm text-emerald-600 hover:underline">
+        <Link
+          href={ROUTES.HOME}
+          className="text-sm text-emerald-600 hover:underline"
+          onClick={(e) => {
+            // サインアウト完了後に遷移させるため Link の既定ナビゲーションを抑止する
+            e.preventDefault();
+            void handleBackToTopWithSignOut();
+          }}
+        >
           トップページに戻る
         </Link>
       </div>
@@ -69,6 +115,34 @@ export default function MyPage() {
   const handleUpdateDescription = async (newDescription: string) => {
     // Service を経由して自己紹介を更新（更新後のプロフィール全体が返る）
     setProfile(await updateMyProfile({ description: newDescription }));
+  };
+
+  const handleSignOut = async () => {
+    // Service を経由してサインアウトする。signOut は画面遷移しないため遷移はここで行う
+    // サインアウトの失敗（フラグ解除して再試行）と、その後の遷移の失敗（セッションは
+    // 消滅済みのため解除できない）を混同しないよう try を分けている
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+
+    try {
+      await signOut();
+    } catch (error) {
+      setIsSigningOut(false);
+      console.error("Sign-out failed", error);
+      toast.error("サインアウトに失敗しました。もう一度お試しください。");
+      return;
+    }
+
+    // 遷移に失敗してもセッションは消滅済みのためフラグは解除せず、
+    // スピナーを維持して「ログインし直してください」の表示を防ぐ。
+    // 万一遷移が失敗したときに操作不能なデッドエンドを避けるため、
+    // フルリロードによる遷移へフォールバックする
+    try {
+      router.replace(ROUTES.EVENT_LIST);
+    } catch (error) {
+      console.error("Navigation after sign-out failed", error);
+      window.location.href = ROUTES.EVENT_LIST;
+    }
   };
 
   return (
@@ -87,6 +161,8 @@ export default function MyPage() {
         createdAt={profile.createdAt}
         onUpdateName={handleUpdateName}
         onUpdateDescription={handleUpdateDescription}
+        onSignOut={handleSignOut}
+        isSigningOut={isSigningOut}
       />
 
       <section>
