@@ -88,12 +88,24 @@ export const eventAbsenceHandler = http.post(
     }
 
     // リクエストボディは必須（中身が空の {} は可）。JSON として読めない場合は 400。
-    let body: { reason?: unknown; detail?: unknown };
+    let parsedBody: unknown;
     try {
-      body = (await request.json()) as { reason?: unknown; detail?: unknown };
+      parsedBody = await request.json();
     } catch {
       return invalidRequestResponse("リクエストボディが不正です");
     }
+
+    // null・配列・スカラーが来ても後続のフィールド参照で落ちないよう、
+    // オブジェクトであることを確認してから読み進める。
+    if (
+      typeof parsedBody !== "object" ||
+      parsedBody === null ||
+      Array.isArray(parsedBody)
+    ) {
+      return invalidRequestResponse("リクエストボディが不正です");
+    }
+
+    const body = parsedBody as { reason?: unknown; detail?: unknown };
 
     // reason は任意。省略・null・空文字はいずれも「未指定」として扱い、
     // それ以外の値は既定の選択肢に含まれるかを検証する。
