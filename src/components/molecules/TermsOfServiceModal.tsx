@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { TERMS_OF_SERVICE } from "@/constants/termsOfService";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { X } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 // 利用規約モーダルのプロパティ
 type TermsOfServiceModalProps = {
@@ -26,8 +26,16 @@ export function TermsOfServiceModal({
   // モーダル表示中は背景スクロールをロックし、Escapeで閉じる
   useScrollLock(isOpen);
 
+  // 本文のスクロール領域
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!isOpen) return;
+
+    // 開くたびに本文を先頭までスクロールして戻す
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -85,7 +93,10 @@ export function TermsOfServiceModal({
           </div>
 
           {/* 本文（ウィンドウ内スクロール） */}
-          <div className="space-y-10 overflow-y-auto px-10 pb-12">
+          <div
+            ref={scrollRef}
+            className="min-h-0 space-y-10 overflow-y-auto px-10 pb-12"
+          >
             {TERMS_OF_SERVICE.preamble.map((paragraph) => (
               <p key={paragraph} className="text-base leading-8 text-slate-800">
                 {paragraph}
