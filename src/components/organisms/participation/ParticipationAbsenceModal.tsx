@@ -6,7 +6,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils";
 import type { AbsenceReason } from "@/types/participate";
 import { TriangleAlert } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef } from "react";
 
 // 欠席理由の選択肢。value は欠席連絡 API の reason に対応する。
 const ABSENCE_REASON_OPTIONS: ReadonlyArray<{
@@ -28,9 +28,13 @@ type ParticipationAbsenceModalProps = {
   // 最終確認モーダルが手前に重なっているかどうか。
   // 重なっている間はこちらを閉じさせない（手前のモーダルだけが Escape に反応する）。
   isBlocked?: boolean;
-  // 「欠席を連絡する」押下時に、選択された欠席理由を渡して呼ぶ。
-  // 理由は任意選択のため未選択なら null を渡す。最終確認の表示は呼び出し側が担当する。
-  onSubmit: (reason: AbsenceReason | null) => void;
+  // 選択中の欠席理由。任意選択のため未選択は null。
+  // 送信時に必要なのは呼び出し側なので、状態は呼び出し側で保持する（単一の情報源）。
+  reason: AbsenceReason | null;
+  // 理由の選択・解除で呼ぶ
+  onReasonChange: (reason: AbsenceReason | null) => void;
+  // 「欠席を連絡する」押下時に呼ぶ。最終確認の表示は呼び出し側が担当する。
+  onSubmit: () => void;
   // 「やめる」「背景」「Escape」で呼ぶ
   onClose: () => void;
 };
@@ -45,13 +49,13 @@ export function ParticipationAbsenceModal({
   eventTitle,
   deadlineLabel,
   isBlocked = false,
+  reason,
+  onReasonChange,
   onSubmit,
   onClose,
 }: Readonly<ParticipationAbsenceModalProps>) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
-  // 選択中の欠席理由。任意入力のため未選択（null）のまま送信できる。
-  const [reason, setReason] = useState<AbsenceReason | null>(null);
 
   // 手前に最終確認モーダルが重なっている間は閉じない。
   // Escape は両方のモーダルが独立に拾うため、
@@ -64,14 +68,6 @@ export function ParticipationAbsenceModal({
 
   // モーダル表示中は背景スクロールをロックする
   useScrollLock(isOpen);
-
-  // 閉じたときに選択をリセットし、開き直したときへ持ち越さないようにする。
-  // 最終確認から「やめる」で戻る間は開いたままなので、選択はそのまま残る。
-  useEffect(() => {
-    if (isOpen) return;
-
-    setReason(null);
-  }, [isOpen]);
 
   // 開いた直後と、手前の最終確認モーダルが閉じた直後にフォーカスを引き取る。
   useEffect(() => {
@@ -168,7 +164,7 @@ export function ParticipationAbsenceModal({
                       type="button"
                       aria-pressed={isSelected}
                       onClick={() =>
-                        setReason(isSelected ? null : option.value)
+                        onReasonChange(isSelected ? null : option.value)
                       }
                       className={cn(
                         "inline-flex h-9 cursor-pointer items-center rounded-full border px-4 text-sm transition-colors",
@@ -196,7 +192,7 @@ export function ParticipationAbsenceModal({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onSubmit(reason)}
+                onClick={onSubmit}
                 className="h-11 rounded-full border-(--danger) px-8 font-semibold text-(--danger) hover:bg-(--danger-soft) hover:text-(--danger)"
               >
                 欠席を連絡する

@@ -65,10 +65,13 @@ export const eventLeaveHandler = http.post(
     }
 
     // 申込期限を過ぎている場合は取り消しを受け付けず、欠席連絡 API へ誘導する。
-    // 期限なし（cancelDeadline 未設定）のイベントは従来どおり取り消せる。
-    const cancelDeadline = mockEventDetails.get(id)?.cancelDeadline;
-    if (cancelDeadline) {
-      const deadline = new Date(cancelDeadline);
+    // 期限の基準は実 API と同じく申込期限（cancelDeadline があればそちらを優先）。
+    // 期限なしのイベントは従来どおり取り消せる。
+    const eventDetail = mockEventDetails.get(id);
+    const deadlineValue =
+      eventDetail?.cancelDeadline ?? eventDetail?.applicationDeadline;
+    if (deadlineValue) {
+      const deadline = new Date(deadlineValue);
       if (
         !Number.isNaN(deadline.getTime()) &&
         deadline.getTime() < Date.now()

@@ -15,7 +15,7 @@ import type { ParticipantEntry } from "@/types/participate";
 import { formatFullDateTime, formatMonthDayTime } from "@/utils/date";
 import {
   buildApplicationSummary,
-  isCancelDeadlinePassed,
+  isParticipationDeadlinePassed,
 } from "@/utils/participation";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef } from "react";
@@ -35,8 +35,9 @@ type ParticipationDetailModalProps = {
   endDate: string;
   // 開催場所
   location: string;
-  // 取り消し期限(RFC3339)。未設定なら案内帯を出さない
-  cancelDeadline?: string | null;
+  // 取り消し・欠席連絡の期限(RFC3339)。未設定なら案内帯を出さない。
+  // バックエンドの判定基準に合わせて申込期限（applicationDeadline）を渡す。
+  participationDeadline?: string | null;
   // カテゴリ別の申し込み内訳。未取得なら参加費ブロックごと出さない
   participants?: ParticipantEntry[];
   // イベントの費用カテゴリ。申し込み内訳と突合して1名あたりの参加費を補う。
@@ -64,7 +65,7 @@ export function ParticipationDetailModal({
   eventDate,
   endDate,
   location,
-  cancelDeadline,
+  participationDeadline,
   participants,
   eventCosts,
   onRequestCancel,
@@ -104,12 +105,12 @@ export function ParticipationDetailModal({
     return buildApplicationSummary(eventCosts, participants);
   }, [participants, eventCosts]);
 
-  const isExpired = isCancelDeadlinePassed(cancelDeadline);
+  const isExpired = isParticipationDeadlinePassed(participationDeadline);
 
   // 期限は API から返る想定だが、パースできない値だと
   // 「取り消しは — までになっています。」という不自然な文言になるため、
-  // 日時として読める場合だけ案内帯を出す（isCancelDeadlinePassed の判定とも揃う）。
-  const deadlineLabel = formatMonthDayTime(cancelDeadline ?? "");
+  // 日時として読める場合だけ案内帯を出す（isParticipationDeadlinePassed の判定とも揃う）。
+  const deadlineLabel = formatMonthDayTime(participationDeadline ?? "");
   const hasDeadline = deadlineLabel !== "—";
 
   // モーダル表示中は背景スクロールをロックする

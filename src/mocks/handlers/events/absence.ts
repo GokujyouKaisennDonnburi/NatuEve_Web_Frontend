@@ -139,9 +139,12 @@ export const eventAbsenceHandler = http.post(
     }
 
     // 申込期限内は取り消し（leave）で対応できるため、欠席連絡は受け付けない。
+    // 期限の基準は実 API と同じく申込期限（cancelDeadline があればそちらを優先）。
     // 期限が未設定のイベントは「期限前」に当たらず、開催終了まで受け付ける。
-    if (eventDetail.cancelDeadline) {
-      const deadline = new Date(eventDetail.cancelDeadline);
+    const deadlineValue =
+      eventDetail.cancelDeadline ?? eventDetail.applicationDeadline;
+    if (deadlineValue) {
+      const deadline = new Date(deadlineValue);
       if (
         !Number.isNaN(deadline.getTime()) &&
         Date.now() < deadline.getTime()

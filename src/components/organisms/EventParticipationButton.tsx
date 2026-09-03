@@ -18,7 +18,7 @@ import {
   LeaveErrorCode,
 } from "@/types/participate";
 import { formatMonthDayTime } from "@/utils/date";
-import { isCancelDeadlinePassed } from "@/utils/participation";
+import { isParticipationDeadlinePassed } from "@/utils/participation";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -46,8 +46,9 @@ type EventParticipationButtonProps = {
   eventLocation: string;
   // 申し込み内容モーダルのヘッダーに出す主催者名
   organizerName?: string;
-  // 参加の取り消し期限(RFC3339)。未設定の場合は期限なしとして扱う。
-  cancelDeadline?: string | null;
+  // 参加の取り消し・欠席連絡の期限(RFC3339)。未設定の場合は期限なしとして扱う。
+  // バックエンドの判定基準に合わせて申込期限（applicationDeadline）を渡す。
+  participationDeadline?: string | null;
   // イベントの参加費用カテゴリ。人数選択の行として表示する。
   costs: EventDetailCost[] | undefined;
   disabled?: boolean; // 主催者自身のイベントなどで、参加申し込みを無効化するためのフラグ
@@ -87,14 +88,6 @@ const handleLeaveError = (error: unknown) => {
         return;
       case LeaveErrorCode.InvalidRequest:
         toast.error(error.message || "リクエストが不正です。");
-        return;
-      // 申込期限を過ぎたイベントは取り消せない（欠席連絡の導線へ誘導する）。
-      // 期限の判定はサーバー側が正となるため、クライアントの判定とずれた場合にここへ来る。
-      case LeaveErrorCode.DeadlinePassed:
-        toast.error(
-          error.message ||
-            "申込期限を過ぎています。主催者へ欠席を連絡してください。",
-        );
         return;
       default:
         toast.error(error.message);
@@ -164,7 +157,7 @@ export function EventParticipationButton({
   eventEndDate,
   eventLocation,
   organizerName,
-  cancelDeadline,
+  participationDeadline,
   costs,
   disabled,
   capacity,
@@ -197,8 +190,8 @@ export function EventParticipationButton({
   // 欠席連絡送信中フラグ
   const [isAbsenceSubmitting, setIsAbsenceSubmitting] = useState(false);
 
-  // 取り消し期限を過ぎているかどうか。期限内は取り消し、期限後は欠席連絡に導線が分かれる。
-  const isCancelDeadlineOver = isCancelDeadlinePassed(cancelDeadline);
+  // 期限を過ぎているかどうか。期限内は取り消し、期限後は欠席連絡に導線が分かれる。
+  const isDeadlineOver = isParticipationDeadlinePassed(participationDeadline);
 
   // 定員・残り人数の計算（残り = capacity - participantCount、swagger 準拠）
   const effectiveCapacity =
@@ -251,7 +244,7 @@ export function EventParticipationButton({
   // 申し込み内容モーダルの赤ボタン押下時の分岐。
   // 期限内は取り消しの確認へ、期限を過ぎている場合は欠席連絡へ進む。
   const handleRequestCancel = () => {
-    if (isCancelDeadlineOver) {
+    if (isDeadlineOver) {
       setIsAbsenceModalOpen(true);
       return;
     }
@@ -259,9 +252,8 @@ export function EventParticipationButton({
     setIsCancelModalOpen(true);
   };
 
-  // 欠席理由を受け取り、最終確認へ進む。理由は未選択（null）でも進める。
-  const handleRequestAbsenceConfirm = (reason: AbsenceReason | null) => {
-    setAbsenceReason(reason);
+  // 最終確認へ進む。理由は未選択（null）でも進める。
+  const handleRequestAbsenceConfirm = () => {
     setIsAbsenceConfirmOpen(true);
   };
 
@@ -317,6 +309,22 @@ export function EventParticipationButton({
         setIsDetailModalOpen(false);
         onCancelSuccess?.();
       } catch (error) {
+        // クライアントの期限判定がサーバーとずれて 409 になった場合は、
+        // ユーザーが詰まないよう欠席連絡モーダルへ引き継ぐ。
+        if (
+          error instanceof LeaveError &&
+          error.code === LeaveErrorCode.DeadlinePassed
+        ) {
+          toast.error(
+            error.message ||
+              "申込期限を過ぎています。主催者へ欠席を連絡してください。",
+          );
+
+          setIsCancelModalOpen(false);
+          setIsAbsenceModalOpen(true);
+          return;
+        }
+
         // 失敗時はモーダルを開いたままにして、やり直せるようにする
         handleLeaveError(error);
       } finally {
@@ -457,7 +465,7 @@ export function EventParticipationButton({
         eventDate={eventDate}
         endDate={eventEndDate}
         location={eventLocation}
-        cancelDeadline={cancelDeadline}
+        participationDeadline={participationDeadline}
         participants={participationDetail?.participants}
         eventCosts={costs}
         onRequestCancel={handleRequestCancel}
@@ -479,8 +487,10 @@ export function EventParticipationButton({
       <ParticipationAbsenceModal
         isOpen={isAbsenceModalOpen}
         eventTitle={eventTitle}
-        deadlineLabel={formatMonthDayTime(cancelDeadline ?? "")}
+        deadlineLabel={formatMonthDayTime(participationDeadline ?? "")}
         isBlocked={isAbsenceConfirmOpen}
+        reason={absenceReason}
+        onReasonChange={setAbsenceReason}
         onSubmit={handleRequestAbsenceConfirm}
         onClose={handleCloseAbsenceModal}
       />
