@@ -10,4 +10,6 @@ export const signinStyles = {
   legalText: "text-xs text-slate-500 text-center leading-6",
   legalLink:
     "underline decoration-slate-400 underline-offset-2 hover:text-slate-700",
+  legalLinkButton:
+    "cursor-pointer underline decoration-slate-400 underline-offset-2 hover:text-slate-700",
 };

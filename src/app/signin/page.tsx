@@ -11,7 +11,9 @@ import {
 import { ROUTES } from "@/constants/routes";
 import { signInWithGoogle } from "@/services/auth";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
+import { TermsOfServiceModal } from "@/components/molecules/TermsOfServiceModal";
 import { signinStyles } from "./signinStyles";
 
 /**
@@ -24,6 +26,7 @@ import { signinStyles } from "./signinStyles";
 export default function SignInPage() {
   const appName = "Google";
   const router = useRouter();
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
 
   // Googleサインインボタンのクリックハンドラ
   const handleGoogleSignIn = async () => {
@@ -61,9 +64,13 @@ export default function SignInPage() {
 
           <p className={signinStyles.legalText}>
             続行することで、
-            <span className={signinStyles.legalLink} aria-disabled="true">
+            <button
+              type="button"
+              onClick={() => setIsTermsOpen(true)}
+              className={signinStyles.legalLinkButton}
+            >
               利用規約
-            </span>
+            </button>
             と
             <span className={signinStyles.legalLink} aria-disabled="true">
               プライバシーポリシー
@@ -72,6 +79,8 @@ export default function SignInPage() {
           </p>
         </CardContent>
       </Card>
+
+      <TermsOfServiceModal isOpen={isTermsOpen} onOpenChange={setIsTermsOpen} />
     </div>
   );
 }
