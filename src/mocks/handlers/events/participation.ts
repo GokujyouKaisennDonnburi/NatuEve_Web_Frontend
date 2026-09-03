@@ -56,6 +56,13 @@ export const eventMembers = new Map<string, MockEventMember[]>();
 // 既にキャンセル済みのイベントに対する再呼び出しは 409 を返す。
 export const cancelledEventIds = new Set<string>();
 
+// 指定の参加者キーがそのイベントに参加中かどうかを判定する。
+// 「参加中」の情報源は参加履歴（直近のアクションが join か）に一本化し、
+// leave / absence / members-me が同じ基準で 404 を返せるようにする。
+// 参加者キーは join エンドポイントの登録に合わせ、ログイン参加なら raw token を渡す。
+export const isJoined = (eventId: string, participantKey: string): boolean =>
+  participationLogs.get(eventId)?.get(participantKey)?.action === "join";
+
 // 新規作成イベントに参加者モックデータをシードする。
 // 主催者画面の動作確認用で、ログイン参加・匿名参加（profile: null）を混在させることで
 // 参加組数 / 合計参加人数 / 匿名表示の検証を網羅できるようにしている。

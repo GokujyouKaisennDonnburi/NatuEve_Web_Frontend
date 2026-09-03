@@ -60,7 +60,8 @@ export const eventMyApplicationHandler = http.get(
     }
 
     // 参加履歴は join エンドポイントが raw token をキーに登録するため、ここでも raw token で引く。
-    // 直近が leave（取り消し済み）・履歴なし（未申込）はどちらも「参加していない」として扱う。
+    // 直近が leave / absence・履歴なし（未申込）はどちらも「参加していない」として扱う。
+    // 判定基準は participation.ts の isJoined と同じで、こちらは続けてログの中身も使う。
     const log = participationLogs.get(id)?.get(token);
     if (log?.action !== "join") {
       return notFoundResponse("このイベントに参加していません");

@@ -19,6 +19,7 @@ import type { MockParticipationLog } from "./participation";
 import {
   eventMembers,
   eventParticipants,
+  isJoined,
   participationLogs,
 } from "./participation";
 import { mockEventDetails } from "./data";
@@ -81,9 +82,8 @@ export const eventAbsenceHandler = http.post(
     }
 
     // 参加履歴は join エンドポイントが raw token をキーに登録するため、ここでも raw token で引く。
-    // 直近が join でなければ「参加していない」として 404 を返す（members/me と同じ判定）。
-    const logs = participationLogs.get(id);
-    if (logs?.get(token)?.action !== "join") {
+    // 直近が join でなければ「参加していない」として 404 を返す（leave / members-me と同じ判定）。
+    if (!isJoined(id, token)) {
       return notFoundResponse("このイベントに参加していません");
     }
 
@@ -175,6 +175,8 @@ export const eventAbsenceHandler = http.post(
     participants?.delete(token);
 
     // 参加履歴には理由・補足も残す。leave と同様に partySize / participants は持ち越さない。
+    const logs =
+      participationLogs.get(id) ?? new Map<string, MockParticipationLog>();
     const nextLog: MockParticipationLog = {
       action: "absence",
       reason,

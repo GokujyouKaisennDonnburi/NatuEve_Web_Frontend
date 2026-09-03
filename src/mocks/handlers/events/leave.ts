@@ -10,6 +10,7 @@ import type { MockParticipationLog } from "./participation";
 import {
   eventMembers,
   eventParticipants,
+  isJoined,
   participationLogs,
 } from "./participation";
 import { mockEventDetails } from "./data";
@@ -49,10 +50,10 @@ export const eventLeaveHandler = http.post(
       );
     }
 
-    // 未参加チェック：eventParticipants にトークンが登録されていなければ 404 not_found。
-    const participants = eventParticipants.get(id);
+    // 未参加チェック：参加履歴の直近が join でなければ 404 not_found。
+    // 判定は isJoined に寄せ、absence / members-me と同じ基準に揃える。
     const participantKey = token;
-    if (!participants?.has(participantKey)) {
+    if (!isJoined(id, participantKey)) {
       return HttpResponse.json(
         {
           error: {
@@ -91,8 +92,7 @@ export const eventLeaveHandler = http.post(
 
     // 参加記録を削除してキャンセル完了
     const canceledAt = new Date().toISOString();
-    participants.delete(participantKey);
-    eventParticipants.set(id, participants);
+    eventParticipants.get(id)?.delete(participantKey);
 
     // participation-logs エンドポイントが返す参加履歴を記録する。
     // partySize / participants（申し込み内訳）は持ち越さない。取り消し後は
