@@ -52,8 +52,7 @@ export const eventLeaveHandler = http.post(
 
     // 未参加チェック：参加履歴の直近が join でなければ 404 not_found。
     // 判定は isJoined に寄せ、absence / members-me と同じ基準に揃える。
-    const participantKey = token;
-    if (!isJoined(id, participantKey)) {
+    if (!isJoined(id, token)) {
       return HttpResponse.json(
         {
           error: {
@@ -92,14 +91,14 @@ export const eventLeaveHandler = http.post(
 
     // 参加記録を削除してキャンセル完了
     const canceledAt = new Date().toISOString();
-    eventParticipants.get(id)?.delete(participantKey);
+    eventParticipants.get(id)?.delete(token);
 
     // participation-logs エンドポイントが返す参加履歴を記録する。
     // partySize / participants（申し込み内訳）は持ち越さない。取り消し後は
     // 「参加していない」状態として扱うため、あえて指定せず undefined のままにする。
     const logs =
       participationLogs.get(id) ?? new Map<string, MockParticipationLog>();
-    logs.set(participantKey, { action: "leave", updatedAt: canceledAt });
+    logs.set(token, { action: "leave", updatedAt: canceledAt });
     participationLogs.set(id, logs);
 
     // eventMembers からも該当レコードを削除する。

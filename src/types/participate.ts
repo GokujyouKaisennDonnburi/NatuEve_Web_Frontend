@@ -131,7 +131,7 @@ export type ParticipationLogsResponse = {
   action: ParticipationAction;
   // 現在のユーザーがこのイベントに参加中かどうか。
   participating: boolean;
-  // 直近の参加申込人数（代表者を含む）。参加履歴がない、または直近が leave の場合は undefined。
+  // 直近の参加申込人数（代表者を含む）。参加履歴がない、または直近が leave / absence の場合は undefined。
   partySize?: number;
   // 直近のアクション日時(RFC3339)。履歴がない場合は null。
   updatedAt: string | null;

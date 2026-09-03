@@ -69,7 +69,7 @@ type EventParticipationButtonProps = {
   partySize?: number;
   // 参加申し込み成功後に呼ばれるコールバック。参加状態の再取得をトリガーする。
   onParticipateSuccess?: () => void;
-  // 参加キャンセル成功後に呼ばれるコールバック。参加状態の再取得をトリガーする。
+  // 参加キャンセル・欠席連絡の成功後に呼ばれるコールバック。参加状態の再取得をトリガーする。
   onCancelSuccess?: () => void;
 };
 
@@ -181,9 +181,21 @@ export function EventParticipationButton({
   );
   // 欠席連絡送信中フラグ
   const [isAbsenceSubmitting, setIsAbsenceSubmitting] = useState(false);
+  // 409 応答でサーバーが教えてくれた実際の期限状態。
+  // "beforeDeadline" = 期限内（取り消しが正）/ "deadlinePassed" = 期限後（欠席連絡が正）。
+  // クライアント側の判定がずれていた場合に、赤ボタンの分岐とラベルをサーバー基準へ補正する。
+  // 補正は保持し続け、次の 409 で上書きされる（時間経過で実態が変わっても自己修復する）。
+  const [serverDeadlineState, setServerDeadlineState] = useState<
+    "beforeDeadline" | "deadlinePassed" | null
+  >(null);
 
-  // 期限を過ぎているかどうか。期限内は取り消し、期限後は欠席連絡に導線が分かれる。
-  const isDeadlineOver = isParticipationDeadlinePassed(participationDeadline);
+  // 期限を過ぎているかどうか。サーバー応答による補正を優先し、未補正の間は
+  // クライアント側の判定を使う。期限内は取り消し、期限後は欠席連絡に導線が分かれる。
+  const isDeadlineOver =
+    serverDeadlineState === "beforeDeadline"
+      ? false
+      : serverDeadlineState === "deadlinePassed" ||
+        isParticipationDeadlinePassed(participationDeadline);
 
   // 定員・残り人数の計算（残り = capacity - participantCount、swagger 準拠）
   const effectiveCapacity =
@@ -278,12 +290,15 @@ export function EventParticipationButton({
         onCancelSuccess?.();
       } catch (error) {
         // クライアントの期限判定がサーバーとずれて 409 になった場合は、
-        // 取り消しの導線へ引き継いでユーザーが詰まないようにする。
+        // 取り消しの導線へ引き継いでユーザーが詰まらないようにする。
         // 期限切れ時に欠席連絡へ引き継ぐ leave 側の処理と対称の扱い。
         if (
           error instanceof AbsenceError &&
           error.code === AbsenceErrorCode.BeforeDeadline
         ) {
+          // サーバー判定は期限内。以後は取り消し導線を優先して案内する。
+          setServerDeadlineState("beforeDeadline");
+
           toast.error(
             error.message ||
               "申込期限内のため、申し込みの取り消しからお手続きください。",
@@ -321,11 +336,14 @@ export function EventParticipationButton({
         onCancelSuccess?.();
       } catch (error) {
         // クライアントの期限判定がサーバーとずれて 409 になった場合は、
-        // ユーザーが詰まないよう欠席連絡モーダルへ引き継ぐ。
+        // ユーザーが詰まらないよう欠席連絡モーダルへ引き継ぐ。
         if (
           error instanceof LeaveError &&
           error.code === LeaveErrorCode.DeadlinePassed
         ) {
+          // サーバー判定は期限後。以後は欠席連絡導線を優先して案内する。
+          setServerDeadlineState("deadlinePassed");
+
           toast.error(
             error.message ||
               "申込期限を過ぎています。主催者へ欠席を連絡してください。",
@@ -477,6 +495,7 @@ export function EventParticipationButton({
         endDate={eventEndDate}
         location={eventLocation}
         participationDeadline={participationDeadline}
+        deadlineOver={isDeadlineOver}
         participants={participationDetail?.participants}
         eventCosts={costs}
         onRequestCancel={handleRequestCancel}

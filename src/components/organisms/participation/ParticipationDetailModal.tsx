@@ -38,6 +38,9 @@ type ParticipationDetailModalProps = {
   // 取り消し・欠席連絡の期限(RFC3339)。未設定なら案内帯を出さない。
   // バックエンドの判定基準に合わせて申込期限（applicationDeadline）を渡す。
   participationDeadline?: string | null;
+  // 期限後判定の上書き値。サーバーの 409 応答で期限の実際の状態が判明した場合に渡す。
+  // 未指定なら従来どおり participationDeadline からクライアント側で判定する。
+  deadlineOver?: boolean;
   // カテゴリ別の申し込み内訳。未取得なら参加費ブロックごと出さない
   participants?: ParticipantEntry[];
   // イベントの費用カテゴリ。申し込み内訳と突合して1名あたりの参加費を補う。
@@ -66,6 +69,7 @@ export function ParticipationDetailModal({
   endDate,
   location,
   participationDeadline,
+  deadlineOver,
   participants,
   eventCosts,
   onRequestCancel,
@@ -105,7 +109,10 @@ export function ParticipationDetailModal({
     return buildApplicationSummary(eventCosts, participants);
   }, [participants, eventCosts]);
 
-  const isExpired = isParticipationDeadlinePassed(participationDeadline);
+  // 期限後判定。サーバー応答による上書き（deadlineOver）を優先し、
+  // 未指定の間はクライアント側の判定を使う。案内帯と赤ボタンのラベルの双方に使う。
+  const isExpired =
+    deadlineOver ?? isParticipationDeadlinePassed(participationDeadline);
 
   // 期限は API から返る想定だが、パースできない値だと
   // 「取り消しは — までになっています。」という不自然な文言になるため、
