@@ -50,7 +50,11 @@ export default function SignInPage() {
 
   return (
     <div className={signinStyles.page}>
-      <Card className={signinStyles.card}>
+      {/* モーダル表示中は背景コンテンツを支援技術の読み上げ対象外にする */}
+      <Card
+        aria-hidden={isTermsOpen || undefined}
+        className={signinStyles.card}
+      >
         <CardHeader className={signinStyles.cardHeader}>
           <CardTitle className={signinStyles.title}>なちゅぽ～たる</CardTitle>
           <CardDescription className={signinStyles.description}>
