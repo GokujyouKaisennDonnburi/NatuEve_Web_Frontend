@@ -484,7 +484,6 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
             {
               text: "本サービスの利用に伴い運営が取得する個人情報の取り扱いについては、別途定める「プライバシーポリシー」に従います。",
             },
-            { text: "プライバシーポリシー：【URLを記入】" },
           ],
         },
       ],
