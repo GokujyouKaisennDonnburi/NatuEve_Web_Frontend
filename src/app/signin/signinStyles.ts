@@ -11,5 +11,5 @@ export const signinStyles = {
   legalLink:
     "underline decoration-slate-400 underline-offset-2 hover:text-slate-700",
   legalLinkButton:
-    "cursor-pointer underline decoration-slate-400 underline-offset-2 hover:text-slate-700",
+    "cursor-pointer rounded underline decoration-slate-400 underline-offset-2 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/50",
 };
