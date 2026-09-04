@@ -555,9 +555,8 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
           title: "",
           numbered: false,
           items: [
-            { text: "制定日：【YYYY年MM月DD日】" },
-            { text: "最終改定日：【YYYY年MM月DD日】" },
-            { text: "なお、内容には更新を伴う可能性があるものとします。" },
+            { text: "制定日：【2026年09月04日】" },
+            { text: "最終改定日：【2026年09月04日】" },
           ],
         },
       ],
