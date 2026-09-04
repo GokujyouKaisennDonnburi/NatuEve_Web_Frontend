@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TERMS_OF_SERVICE } from "@/constants/termsOfService";
+import type { TermsItem } from "@/constants/termsOfService";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
@@ -12,6 +13,83 @@ type TermsOfServiceModalProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 };
+
+// 描画用に一意なIDを付与した項（keyの安定化のため。文面データ自体は変更しない）
+type KeyedTermsChild = { id: string; text: string };
+
+type KeyedTermsItem = Omit<TermsItem, "children"> & {
+  id: string;
+  children?: KeyedTermsChild[];
+};
+
+type KeyedTermsArticle = Omit<
+  (typeof TERMS_OF_SERVICE)["sections"][number]["articles"][number],
+  "items"
+> & { id: string; items: KeyedTermsItem[] };
+
+type KeyedTermsSection = Omit<
+  (typeof TERMS_OF_SERVICE)["sections"][number],
+  "articles"
+> & { id: string; number: number; articles: KeyedTermsArticle[] };
+
+// lint の noArrayIndexKey 対策として、静的な文面データに描画用の一意なIDと章番号を付与する
+// 静的データのためIDの生成にindexを用いても問題ない
+const keyedPreamble = TERMS_OF_SERVICE.preamble.map((paragraph, index) => ({
+  id: `preamble-${index}`,
+  text: paragraph,
+}));
+
+const keyedSections: KeyedTermsSection[] = TERMS_OF_SERVICE.sections.map(
+  (section, sectionIndex) => ({
+    ...section,
+    id: `section-${sectionIndex}`,
+    number: sectionIndex + 1,
+    articles: section.articles.map((article, articleIndex) => ({
+      ...article,
+      id: `section-${sectionIndex}-article-${articleIndex}`,
+      items: article.items.map((item, itemIndex) => ({
+        ...item,
+        id: `section-${sectionIndex}-article-${articleIndex}-item-${itemIndex}`,
+        children: item.children?.map((child, childIndex) => ({
+          id: `section-${sectionIndex}-article-${articleIndex}-item-${itemIndex}-child-${childIndex}`,
+          text: child,
+        })),
+      })),
+    })),
+  }),
+);
+
+// 番号なしの箇条書きを描画する
+const renderUnorderedList = (items: KeyedTermsItem[]) => (
+  <ul className="list-disc space-y-2 pl-5">
+    {items.map((item) => (
+      <li key={item.id} className="text-sm leading-7 text-slate-800">
+        {item.text}
+      </li>
+    ))}
+  </ul>
+);
+
+// 番号付きの項を描画する（ネストした箇条書きを含む）
+const renderOrderedList = (items: KeyedTermsItem[]) => (
+  <ol className="list-decimal space-y-2 pl-5">
+    {items.map((item) => (
+      <li key={item.id} className="text-sm leading-7 text-slate-800">
+        {item.text}
+
+        {item.children ? (
+          <ul className="list-disc space-y-2 pl-5 pt-2">
+            {item.children.map((child) => (
+              <li key={child.id} className="text-sm leading-7 text-slate-800">
+                {child.text}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </li>
+    ))}
+  </ol>
+);
 
 // 利用規約モーダル（プライバシーポリシーモーダルと同一レイアウト）
 export function TermsOfServiceModal({
@@ -29,6 +107,10 @@ export function TermsOfServiceModal({
   // 本文のスクロール領域
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // フォーカス管理用の参照
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -37,9 +119,46 @@ export function TermsOfServiceModal({
       scrollRef.current.scrollTop = 0;
     }
 
+    // 開いた時のフォーカスを記憶し、閉じるボタンへ移動する
+    // （スクリーンリーダーにダイアログ内容を通知させるため）
+    const previousFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    previousFocus?.blur();
+    closeButtonRef.current?.focus();
+
+    const getFocusableElements = () => {
+      if (!dialogRef.current) return [];
+
+      return Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         handleClose();
+        return;
+      }
+
+      // Tab移動がダイアログ外へ抜けないようにフォーカスをループさせる
+      if (event.key === "Tab") {
+        const focusableElements = getFocusableElements();
+        if (focusableElements.length === 0) return;
+
+        const first = focusableElements[0];
+        const last = focusableElements[focusableElements.length - 1];
+
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     };
 
@@ -47,6 +166,9 @@ export function TermsOfServiceModal({
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+
+      // 閉じた時にトリガーへフォーカスを戻す
+      previousFocus?.focus();
     };
   }, [isOpen, handleClose]);
 
@@ -65,6 +187,7 @@ export function TermsOfServiceModal({
       />
 
       <div
+        ref={dialogRef}
         className="relative w-full max-w-2xl"
         role="dialog"
         aria-modal="true"
@@ -81,6 +204,7 @@ export function TermsOfServiceModal({
             </h2>
 
             <Button
+              ref={closeButtonRef}
               type="button"
               variant="outline"
               size="icon"
@@ -97,20 +221,26 @@ export function TermsOfServiceModal({
             ref={scrollRef}
             className="min-h-0 space-y-10 overflow-y-auto px-10 pb-12"
           >
-            {TERMS_OF_SERVICE.preamble.map((paragraph) => (
-              <p key={paragraph} className="text-base leading-8 text-slate-800">
-                {paragraph}
+            {keyedPreamble.map((paragraph) => (
+              <p
+                key={paragraph.id}
+                className="text-base leading-8 text-slate-800"
+              >
+                {paragraph.text}
               </p>
             ))}
 
-            {TERMS_OF_SERVICE.sections.map((section) => (
-              <section key={section.heading} className="space-y-6">
+            {keyedSections.map((section) => (
+              <section key={section.id} className="space-y-6">
+                {/* 章番号はデータ側で採番せず、描画時に生成する */}
                 <h3 className="text-2xl font-bold text-slate-950">
-                  {section.heading}
+                  {section.numbered === false
+                    ? section.heading
+                    : `${section.number}. ${section.heading}`}
                 </h3>
 
                 {section.articles.map((article) => (
-                  <div key={article.title} className="space-y-4">
+                  <div key={article.id} className="space-y-4">
                     {article.title ? (
                       <h4 className="text-lg font-bold text-slate-900">
                         {article.title}
@@ -123,42 +253,12 @@ export function TermsOfServiceModal({
                       </p>
                     ) : null}
 
-                    {article.numbered === false ? (
-                      <ul className="list-disc space-y-2 pl-5">
-                        {article.items.map((item) => (
-                          <li
-                            key={item.text}
-                            className="text-sm leading-7 text-slate-800"
-                          >
-                            {item.text}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <ol className="list-decimal space-y-2 pl-5">
-                        {article.items.map((item) => (
-                          <li
-                            key={item.text}
-                            className="text-sm leading-7 text-slate-800"
-                          >
-                            {item.text}
-
-                            {item.children ? (
-                              <ul className="list-disc space-y-2 pl-5 pt-2">
-                                {item.children.map((child) => (
-                                  <li
-                                    key={child}
-                                    className="text-sm leading-7 text-slate-800"
-                                  >
-                                    {child}
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : null}
-                          </li>
-                        ))}
-                      </ol>
-                    )}
+                    {/* 項がある場合のみリストを描画する（leadのみの条で空リストが残らないようにする） */}
+                    {article.items.length > 0
+                      ? article.numbered === false
+                        ? renderUnorderedList(article.items)
+                        : renderOrderedList(article.items)
+                      : null}
                   </div>
                 ))}
               </section>
