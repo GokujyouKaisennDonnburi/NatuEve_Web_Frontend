@@ -10,9 +10,18 @@ import {
 } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import { signInWithGoogle } from "@/services/auth";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import { signinStyles } from "./signinStyles";
+
+// 利用規約の全文（約20KB）をサインイン画面の初回ロードに含めないため遅延読み込みする
+const TermsOfServiceModal = dynamic(() =>
+  import("@/components/molecules/TermsOfServiceModal").then(
+    (m) => m.TermsOfServiceModal,
+  ),
+);
 
 /**
  * Googleサインインのみのシンプルなサインイン画面。
@@ -24,6 +33,7 @@ import { signinStyles } from "./signinStyles";
 export default function SignInPage() {
   const appName = "Google";
   const router = useRouter();
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
 
   // Googleサインインボタンのクリックハンドラ
   const handleGoogleSignIn = async () => {
@@ -40,7 +50,11 @@ export default function SignInPage() {
 
   return (
     <div className={signinStyles.page}>
-      <Card className={signinStyles.card}>
+      {/* モーダル表示中は背景コンテンツを支援技術の読み上げ対象外にする */}
+      <Card
+        aria-hidden={isTermsOpen || undefined}
+        className={signinStyles.card}
+      >
         <CardHeader className={signinStyles.cardHeader}>
           <CardTitle className={signinStyles.title}>なちゅぽ～たる</CardTitle>
           <CardDescription className={signinStyles.description}>
@@ -61,9 +75,13 @@ export default function SignInPage() {
 
           <p className={signinStyles.legalText}>
             続行することで、
-            <span className={signinStyles.legalLink} aria-disabled="true">
+            <button
+              type="button"
+              onClick={() => setIsTermsOpen(true)}
+              className={signinStyles.legalLinkButton}
+            >
               利用規約
-            </span>
+            </button>
             と
             <span className={signinStyles.legalLink} aria-disabled="true">
               プライバシーポリシー
@@ -72,6 +90,11 @@ export default function SignInPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* 利用規約モーダルは開いた時にのみ読み込む（遅延読み込み） */}
+      {isTermsOpen ? (
+        <TermsOfServiceModal isOpen onOpenChange={setIsTermsOpen} />
+      ) : null}
     </div>
   );
 }
