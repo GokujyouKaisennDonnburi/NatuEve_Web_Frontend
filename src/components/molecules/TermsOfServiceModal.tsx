@@ -3,7 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TERMS_OF_SERVICE } from "@/constants/termsOfService";
-import type { TermsItem } from "@/constants/termsOfService";
+import type {
+  TermsArticle,
+  TermsItem,
+  TermsSection,
+} from "@/constants/termsOfService";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
@@ -22,15 +26,16 @@ type KeyedTermsItem = Omit<TermsItem, "children"> & {
   children?: KeyedTermsChild[];
 };
 
-type KeyedTermsArticle = Omit<
-  (typeof TERMS_OF_SERVICE)["sections"][number]["articles"][number],
-  "items"
-> & { id: string; items: KeyedTermsItem[] };
+type KeyedTermsArticle = Omit<TermsArticle, "items"> & {
+  id: string;
+  items: KeyedTermsItem[];
+};
 
-type KeyedTermsSection = Omit<
-  (typeof TERMS_OF_SERVICE)["sections"][number],
-  "articles"
-> & { id: string; number: number; articles: KeyedTermsArticle[] };
+type KeyedTermsSection = Omit<TermsSection, "articles"> & {
+  id: string;
+  number: number;
+  articles: KeyedTermsArticle[];
+};
 
 // lint の noArrayIndexKey 対策として、静的な文面データに描画用の一意なIDと章番号を付与する
 // 静的データのためIDの生成にindexを用いても問題ない
@@ -152,10 +157,23 @@ export function TermsOfServiceModal({
         const first = focusableElements[0];
         const last = focusableElements[focusableElements.length - 1];
 
-        if (event.shiftKey && document.activeElement === first) {
+        // ダイアログ内判定を先に行い、外にフォーカスが残る場合は内側へ戻す
+        // （背景のオーバーレイボタン等が activeElement になるケースへの防御）
+        const activeElement = document.activeElement;
+        const isInsideDialog =
+          activeElement instanceof HTMLElement &&
+          dialogRef.current?.contains(activeElement) === true;
+
+        if (!isInsideDialog) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+          return;
+        }
+
+        if (event.shiftKey && activeElement === first) {
           event.preventDefault();
           last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
+        } else if (!event.shiftKey && activeElement === last) {
           event.preventDefault();
           first.focus();
         }
@@ -212,7 +230,7 @@ export function TermsOfServiceModal({
               onClick={handleClose}
               className="absolute top-3 right-6 size-11 rounded-full border-slate-200 bg-white text-slate-600 shadow-md hover:bg-slate-50"
             >
-              <X className="size-5" />
+              <X aria-hidden="true" className="size-5" />
             </Button>
           </div>
 
@@ -234,7 +252,7 @@ export function TermsOfServiceModal({
               <section key={section.id} className="space-y-6">
                 {/* 章番号はデータ側で採番せず、描画時に生成する */}
                 <h3 className="text-2xl font-bold text-slate-950">
-                  {section.numbered === false
+                  {section.showHeadingNumber === false
                     ? section.heading
                     : `${section.number}. ${section.heading}`}
                 </h3>

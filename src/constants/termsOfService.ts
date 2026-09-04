@@ -8,11 +8,12 @@ export type TermsItem = {
 };
 
 // 条（前置き段落と番号付きの項で構成される）
+// title は省略可（制定日・改定日など条見出しを持たない箇所）
 export type TermsArticle = {
-  title: string;
+  title?: string;
   lead?: string;
   items: TermsItem[];
-  // false の場合は箇条書きとして表示する（制定日・改定日など番号が不要な箇所）
+  // false の場合は項を箇条書きとして表示する（番号が不要な箇所）
   numbered?: boolean;
 };
 
@@ -20,7 +21,7 @@ export type TermsArticle = {
 export type TermsSection = {
   heading: string;
   // false の場合は見出し番号を付与しない（制定日・改定日など番号が不要な章）
-  numbered?: boolean;
+  showHeadingNumber?: boolean;
   articles: TermsArticle[];
 };
 
@@ -551,10 +552,9 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
     },
     {
       heading: "制定・改定日",
-      numbered: false,
+      showHeadingNumber: false,
       articles: [
         {
-          title: "",
           numbered: false,
           items: [
             { text: "制定日：2026年9月4日" },
