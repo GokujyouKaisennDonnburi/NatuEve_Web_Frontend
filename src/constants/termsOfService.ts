@@ -13,8 +13,8 @@ export type TermsArticle = {
   title?: string;
   lead?: string;
   items: TermsItem[];
-  // false の場合は項を箇条書きとして表示する（番号が不要な箇所）
-  numbered?: boolean;
+  // 項のリスト形式。未指定の場合は番号付き（ordered）
+  layout?: "ordered" | "unordered";
 };
 
 // 章
@@ -555,7 +555,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       showHeadingNumber: false,
       articles: [
         {
-          numbered: false,
+          layout: "unordered",
           items: [
             { text: "制定日：2026年9月4日" },
             { text: "最終改定日：2026年9月4日" },

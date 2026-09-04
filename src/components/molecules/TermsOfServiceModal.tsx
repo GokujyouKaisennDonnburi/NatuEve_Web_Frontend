@@ -195,10 +195,10 @@ export function TermsOfServiceModal({
 
   return (
     <div className="fixed inset-0 z-50 flex h-screen items-center justify-center px-4 py-6">
-      {/* 背景クリックで閉じる */}
+      {/* 背景クリックで閉じる（装飾的なクリック領域のため支援技術の読み上げ対象外とする） */}
       <button
         type="button"
-        aria-label="利用規約モーダルを閉じる"
+        aria-hidden="true"
         className="absolute inset-0 cursor-default bg-black/50"
         onClick={handleClose}
         tabIndex={-1}
@@ -234,10 +234,13 @@ export function TermsOfServiceModal({
             </Button>
           </div>
 
-          {/* 本文（ウィンドウ内スクロール） */}
-          <div
+          {/* 本文（ウィンドウ内スクロール。キーボード操作でスクロールできるようフォーカス可能にする） */}
+          <section
             ref={scrollRef}
-            className="min-h-0 space-y-10 overflow-y-auto px-10 pb-12"
+            aria-label="利用規約の本文"
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: 長文の本文を矢印キー等でスクロールできるようにするため（WAI-ARIA APGのスクロール可能領域の推奨に基づく）
+            tabIndex={0}
+            className="min-h-0 space-y-10 overflow-y-auto px-10 pb-12 focus-visible:outline-none"
           >
             {keyedPreamble.map((paragraph) => (
               <p
@@ -272,16 +275,15 @@ export function TermsOfServiceModal({
                     ) : null}
 
                     {/* 項がある場合のみリストを描画する（leadのみの条で空リストが残らないようにする） */}
-                    {article.items.length > 0
-                      ? article.numbered === false
+                    {article.items.length > 0 &&
+                      (article.layout === "unordered"
                         ? renderUnorderedList(article.items)
-                        : renderOrderedList(article.items)
-                      : null}
+                        : renderOrderedList(article.items))}
                   </div>
                 ))}
               </section>
             ))}
-          </div>
+          </section>
         </Card>
       </div>
     </div>
