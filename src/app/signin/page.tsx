@@ -9,11 +9,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
+// 利用規約の全文（約20KB）をサインイン画面の初回ロードに含めないため遅延読み込みする
+const TermsOfServiceModal = dynamic(() =>
+  import("@/components/molecules/TermsOfServiceModal").then(
+    (m) => m.TermsOfServiceModal,
+  ),
+);
 import { signInWithGoogle } from "@/services/auth";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { TermsOfServiceModal } from "@/components/molecules/TermsOfServiceModal";
 import { signinStyles } from "./signinStyles";
 
 /**
@@ -80,7 +86,10 @@ export default function SignInPage() {
         </CardContent>
       </Card>
 
-      <TermsOfServiceModal isOpen={isTermsOpen} onOpenChange={setIsTermsOpen} />
+      {/* 利用規約モーダルは開いた時にのみ読み込む（遅延読み込み） */}
+      {isTermsOpen ? (
+        <TermsOfServiceModal isOpen onOpenChange={setIsTermsOpen} />
+      ) : null}
     </div>
   );
 }
