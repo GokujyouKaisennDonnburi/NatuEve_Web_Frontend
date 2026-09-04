@@ -19,6 +19,8 @@ export type TermsArticle = {
 // 章
 export type TermsSection = {
   heading: string;
+  // false の場合は見出し番号を付与しない（制定日・改定日など番号が不要な章）
+  numbered?: boolean;
   articles: TermsArticle[];
 };
 
@@ -35,13 +37,13 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
   ],
   sections: [
     {
-      heading: "1. 総則",
+      heading: "総則",
       articles: [
         {
           title: "第1条（適用）",
           items: [
             {
-              text: "本規約は、本サースの運営者（以下「運営」といいます）と、本サービスを利用するすべての方（以下「利用者」といいます）との間に適用されます。",
+              text: "本規約は、本サービスの運営者（以下「運営」といいます）と、本サービスを利用するすべての方（以下「利用者」といいます）との間に適用されます。",
             },
             {
               text: "本サービスの利用に関して、運営が別途定める投稿ガイドラインその他のガイドライン、ヘルプ、注意事項等（以下「ガイドライン等」といいます）は、本規約の一部を構成するものとします。",
@@ -68,7 +70,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "2. 定義",
+      heading: "定義",
       articles: [
         {
           title: "第3条（定義）",
@@ -106,7 +108,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "3. 利用登録",
+      heading: "利用登録",
       articles: [
         {
           title: "第4条（利用登録）",
@@ -137,7 +139,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "4. アカウント管理",
+      heading: "アカウント管理",
       articles: [
         {
           title: "第5条（アカウントの管理）",
@@ -159,7 +161,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "5. イベントの作成・参加",
+      heading: "イベントの作成・参加",
       articles: [
         {
           title: "第6条（イベントの作成）",
@@ -221,7 +223,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "6. 投稿コンテンツ",
+      heading: "投稿コンテンツ",
       articles: [
         {
           title: "第9条（投稿コンテンツ）",
@@ -255,7 +257,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "7. 禁止事項",
+      heading: "禁止事項",
       articles: [
         {
           title: "第10条（禁止事項）",
@@ -313,7 +315,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "8. イベントに関する責任",
+      heading: "イベントに関する責任",
       articles: [
         {
           title: "第11条（イベントに関する責任）",
@@ -344,7 +346,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "9. 知的財産権",
+      heading: "知的財産権",
       articles: [
         {
           title: "第12条（知的財産権）",
@@ -372,7 +374,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "10. 利用停止・投稿削除・アカウント削除",
+      heading: "利用停止・投稿削除・アカウント削除",
       articles: [
         {
           title: "第13条（利用停止等）",
@@ -404,7 +406,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "11. サービスの変更・停止",
+      heading: "サービスの変更・停止",
       articles: [
         {
           title: "第14条（サービスの変更・停止）",
@@ -426,7 +428,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "12. 免責事項",
+      heading: "免責事項",
       articles: [
         {
           title: "第15条（免責）",
@@ -457,7 +459,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "13. 損害賠償",
+      heading: "損害賠償",
       articles: [
         {
           title: "第16条（損害賠償）",
@@ -476,7 +478,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "14. 個人情報",
+      heading: "個人情報",
       articles: [
         {
           title: "第17条（個人情報の取扱い）",
@@ -489,7 +491,7 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
       ],
     },
     {
-      heading: "15. 規約変更・準拠法等",
+      heading: "規約変更・準拠法等",
       articles: [
         {
           title: "第18条（本規約の変更）",
@@ -549,13 +551,14 @@ export const TERMS_OF_SERVICE: TermsOfServiceContent = {
     },
     {
       heading: "制定・改定日",
+      numbered: false,
       articles: [
         {
           title: "",
           numbered: false,
           items: [
-            { text: "制定日：【2026年09月04日】" },
-            { text: "最終改定日：【2026年09月04日】" },
+            { text: "制定日：2026年9月4日" },
+            { text: "最終改定日：2026年9月4日" },
           ],
         },
       ],
