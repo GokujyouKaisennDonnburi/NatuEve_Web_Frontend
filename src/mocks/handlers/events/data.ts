@@ -1,6 +1,6 @@
 // このファイルは、MSW ハンドラー間で共有するイベントの型・モックデータ・
 // 検索ロジックを定義する。MSW はプロセス内状態のためリロードでリセットされる前提。
-import { seedEventMembers } from "./participation";
+import { seedEventMembers, seedMyParticipation } from "./participation";
 
 // MockProfile型は、イベントのプロフィール情報を表す型です。
 export type MockProfile = {
@@ -176,8 +176,37 @@ const createInitialDummyEvents = (): MockEvent[] => {
   });
 };
 
-// メモリ内でイベント一覧を管理する（初期値はダミーイベント）
-export const mockEvents: MockEvent[] = createInitialDummyEvents();
+// 申込期限（2026-09-01）を過ぎている一方、開催日（2026-09-30）はまだ先という
+// イベントの固定モック。モックユーザー自身の申し込み（2026-08-30）もシードして、
+// 「期限を過ぎてからの取り消し」を申し込み操作なしで確認できるようにしている。
+// 生成ロジックの index に依存させたくないため、固定値で1件だけ用意する。
+const DEADLINE_PASSED_EVENT_ID = toUuid(200);
+
+// 上記イベントの申込期限。取り消し期限も同じ日時に揃える。
+const DEADLINE_PASSED_DEADLINE = "2026-09-01T23:59:59+09:00";
+
+const createDeadlinePassedEvent = (): MockEvent => ({
+  id: DEADLINE_PASSED_EVENT_ID,
+  title: "🍂 六甲山系の外来植物駆除ボランティア（申込期限切れ確認用）",
+  eventDate: "2026-09-30T09:00:00+09:00",
+  endDate: "2026-09-30T12:00:00+09:00",
+  location: "兵庫県神戸市 六甲山系 記念碑台",
+  profileId: "profile-1",
+  profile: {
+    id: "profile-1",
+    displayName: "みずべ保全ネットワーク",
+    avatarUrl: "https://i.pravatar.cc/150?img=1",
+  },
+  createdAt: "2026-08-01T09:00:00+09:00",
+  tags: SAMPLE_TAG_POOL[0],
+  applicationDeadline: DEADLINE_PASSED_DEADLINE,
+});
+
+// メモリ内でイベント一覧を管理する（初期値はダミーイベント＋期限切れ確認用の固定イベント）
+export const mockEvents: MockEvent[] = [
+  ...createInitialDummyEvents(),
+  createDeadlinePassedEvent(),
+];
 
 const createDefaultMockEventDetail = (
   event: MockEvent,
@@ -247,6 +276,10 @@ const createDefaultMockEventDetail = (
 // 期限切れ表示を確認できるよう、1件だけ明らかに過去の日時を固定で設定する
 // (index === 1 のイベント。id: 00000000-0000-4000-8000-000000000002)。
 const buildCancelDeadline = (event: MockEvent, index: number): string => {
+  // 期限切れ確認用の固定イベントは、申込期限と同じ日時を取り消し期限とする。
+  if (event.id === DEADLINE_PASSED_EVENT_ID) {
+    return DEADLINE_PASSED_DEADLINE;
+  }
   if (index === 1) {
     return "2024-01-01T23:59:59+09:00";
   }
@@ -266,6 +299,17 @@ seedEventMembers(toUuid(100), 30); // 満員
 seedEventMembers(toUuid(99), 24); // 残りわずか
 seedEventMembers(toUuid(98), 15); // 余裕あり
 seedEventMembers(toUuid(97), 0); // 参加者なし
+
+// 期限切れ確認用イベントには、モックユーザー自身の申し込みをシードする。
+// 申込期限（2026-09-01）より前の 2026-08-30 に申し込んだ状態とし、
+// ログイン直後から「申し込み済み」→ 期限を過ぎた申し込み内容モーダルへ進める。
+seedMyParticipation(DEADLINE_PASSED_EVENT_ID, {
+  appliedAt: "2026-08-30T20:14:00+09:00",
+  participants: [
+    { category: "大人", headCount: 2 },
+    { category: "子ども", headCount: 1 },
+  ],
+});
 
 // 検索対象フィールドを収集する。
 // 検索対象: title / location / profile.displayName(主催者) /

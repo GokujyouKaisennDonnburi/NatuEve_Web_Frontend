@@ -11,6 +11,7 @@ type ParticipationCancelNoticeProps = {
 };
 
 // 取り消し期限の案内帯。期限内はオレンジ、期限切れは赤で注意を促す。
+// 期限切れ後は自分で取り消せないため、主催者への欠席連絡を促す文面に切り替える。
 export function ParticipationCancelNotice({
   deadlineLabel,
   isExpired,
@@ -38,8 +39,12 @@ export function ParticipationCancelNotice({
       >
         {isExpired ? (
           <>
-            <p>期限（{deadlineLabel}）を過ぎています。</p>
-            <p>やむを得ない事情の場合は、主催者の指示に従ってください。</p>
+            <p className="font-semibold">
+              期限（{deadlineLabel}）を過ぎています
+            </p>
+            <p className="mt-2 text-center text-xs">
+              参加できない場合は、主催者へ欠席の旨をお伝えください。
+            </p>
           </>
         ) : (
           <>
