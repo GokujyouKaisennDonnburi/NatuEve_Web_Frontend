@@ -2,22 +2,25 @@
 // 共有するメモリ内状態と、その生成・操作ロジックを定義する。
 // MSW はプロセス内状態のためリロードでリセットされる前提。
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
-import type { EventMemberProfile } from "@/types/participate";
+import type { AbsenceReason, EventMemberProfile } from "@/types/participate";
 
 import { TOKEN_TO_PROFILE } from "./auth";
 
 // participation-logs エンドポイントが返す参加履歴1件分の型。
-// 直近のアクション（join / leave）とその日時、申込人数を保持する。
+// 直近のアクション（join / leave / absence）とその日時、申込人数を保持する。
 // members/me エンドポイントは、この履歴から自分の申込内容を引く。
 export type MockParticipationLog = {
-  action: "join" | "leave";
-  // 参加申込人数（代表者を含む）。leave の場合は undefined として扱う。
+  action: "join" | "leave" | "absence";
+  // 参加申込人数（代表者を含む）。leave / absence の場合は undefined として扱う。
   partySize?: number;
-  // カテゴリ別の参加人数内訳。join 時に記録し、leave では undefined として扱う。
+  // カテゴリ別の参加人数内訳。join 時に記録し、leave / absence では undefined として扱う。
   participants?: Array<{ category: string; headCount: number }>;
   // 申込時に入力された名前とメールアドレス。join 時のみ記録する。
   username?: string;
   mailAddress?: string;
+  // 欠席理由と補足。absence 時のみ記録する。
+  reason?: AbsenceReason;
+  detail?: string;
   // 申込日時(RFC3339)。join 時のみ記録し、取り消し後は持ち越さない。
   createdAt?: string;
   updatedAt: string;
@@ -52,6 +55,13 @@ export const eventMembers = new Map<string, MockEventMember[]>();
 // キャンセル済みイベントIDの記録: POST /api/v1/events/{id}/cancel の非冪等性を表現するため、
 // 既にキャンセル済みのイベントに対する再呼び出しは 409 を返す。
 export const cancelledEventIds = new Set<string>();
+
+// 指定の参加者キーがそのイベントに参加中かどうかを判定する。
+// 「参加中」の情報源は参加履歴（直近のアクションが join か）に一本化し、
+// leave / absence / members-me が同じ基準で 404 を返せるようにする。
+// 参加者キーは join エンドポイントの登録に合わせ、ログイン参加なら raw token を渡す。
+export const isJoined = (eventId: string, participantKey: string): boolean =>
+  participationLogs.get(eventId)?.get(participantKey)?.action === "join";
 
 // 新規作成イベントに参加者モックデータをシードする。
 // 主催者画面の動作確認用で、ログイン参加・匿名参加（profile: null）を混在させることで

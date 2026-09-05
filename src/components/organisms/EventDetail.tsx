@@ -350,7 +350,11 @@ export function EventDetail({
             eventEndDate={event.endDate}
             eventLocation={event.location}
             organizerName={organizerName}
-            cancelDeadline={event.cancelDeadline}
+            // 取り消し・欠席連絡の期限。バックエンドの判定基準は申込期限のため
+            // applicationDeadline を使い、将来 cancelDeadline が返る場合はそちらを優先する。
+            participationDeadline={
+              event.cancelDeadline ?? event.applicationDeadline
+            }
             costs={event.costs}
             capacity={event.capacity}
             participantCount={event.participantCount}

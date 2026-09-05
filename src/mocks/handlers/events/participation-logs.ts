@@ -4,6 +4,8 @@
 // 申し込み内容（カテゴリ別内訳・申込日時）は members/me が担当する。
 // 未認証・未知トークンは 401、イベント不存在は 404 not_found（swagger準拠）。
 // 履歴がない場合は action=null, participating=false, updatedAt=null を返す（200）。
+// action は join / leave / absence（期限後の欠席連絡）のいずれかで、
+// participating は join のときだけ true になる。
 import { HttpResponse, http } from "msw";
 
 import { participationLogs } from "./participation";

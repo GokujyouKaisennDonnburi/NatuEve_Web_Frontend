@@ -176,20 +176,31 @@ const createInitialDummyEvents = (): MockEvent[] => {
   });
 };
 
-// 申込期限（2026-09-01）を過ぎている一方、開催日（2026-09-30）はまだ先という
-// イベントの固定モック。モックユーザー自身の申し込み（2026-08-30）もシードして、
-// 「期限を過ぎてからの取り消し」を申し込み操作なしで確認できるようにしている。
+// 申込期限を過ぎている一方、開催日はまだ先というイベントの固定モック。
+// モックユーザー自身の申し込みもシードして、「期限を過ぎてからの取り消し」を
+// 申し込み操作なしで確認できるようにしている。
 // 生成ロジックの index に依存させたくないため、固定値で1件だけ用意する。
 const DEADLINE_PASSED_EVENT_ID = toUuid(200);
 
-// 上記イベントの申込期限。取り消し期限も同じ日時に揃える。
-const DEADLINE_PASSED_DEADLINE = "2026-09-01T23:59:59+09:00";
+// 日付を固定値にすると、時間の経過で開催終了済みになり
+// （欠席連絡 API が 409 event_ended を返す状態になり）確認できなくなるため、
+// 読み込み時刻を基準にした相対日時で組み立てる。
+const daysFromNow = (days: number): string =>
+  new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+
+// 申込期限は1日前（＝期限切れ）、開催は30日後、申し込みは3日前とする。
+const DEADLINE_PASSED_DEADLINE = daysFromNow(-1);
+const DEADLINE_PASSED_EVENT_DATE = daysFromNow(30);
+const DEADLINE_PASSED_END_DATE = new Date(
+  Date.parse(DEADLINE_PASSED_EVENT_DATE) + 3 * 60 * 60 * 1000,
+).toISOString();
+const DEADLINE_PASSED_APPLIED_AT = daysFromNow(-3);
 
 const createDeadlinePassedEvent = (): MockEvent => ({
   id: DEADLINE_PASSED_EVENT_ID,
   title: "🍂 六甲山系の外来植物駆除ボランティア（申込期限切れ確認用）",
-  eventDate: "2026-09-30T09:00:00+09:00",
-  endDate: "2026-09-30T12:00:00+09:00",
+  eventDate: DEADLINE_PASSED_EVENT_DATE,
+  endDate: DEADLINE_PASSED_END_DATE,
   location: "兵庫県神戸市 六甲山系 記念碑台",
   profileId: "profile-1",
   profile: {
@@ -197,7 +208,7 @@ const createDeadlinePassedEvent = (): MockEvent => ({
     displayName: "みずべ保全ネットワーク",
     avatarUrl: "https://i.pravatar.cc/150?img=1",
   },
-  createdAt: "2026-08-01T09:00:00+09:00",
+  createdAt: daysFromNow(-30),
   tags: SAMPLE_TAG_POOL[0],
   applicationDeadline: DEADLINE_PASSED_DEADLINE,
 });
@@ -275,10 +286,14 @@ const createDefaultMockEventDetail = (
 // 基本は開催日当日の 23:59(JST)を期限とするが、「申し込み内容モーダル」で
 // 期限切れ表示を確認できるよう、1件だけ明らかに過去の日時を固定で設定する
 // (index === 1 のイベント。id: 00000000-0000-4000-8000-000000000002)。
-const buildCancelDeadline = (event: MockEvent, index: number): string => {
-  // 期限切れ確認用の固定イベントは、申込期限と同じ日時を取り消し期限とする。
+const buildCancelDeadline = (
+  event: MockEvent,
+  index: number,
+): string | null => {
+  // 期限切れ確認用の固定イベントだけは、実 API と同じく cancelDeadline を返さない。
+  // 期限は applicationDeadline だけで表現され、その状態での画面挙動を確認できる。
   if (event.id === DEADLINE_PASSED_EVENT_ID) {
-    return DEADLINE_PASSED_DEADLINE;
+    return null;
   }
   if (index === 1) {
     return "2024-01-01T23:59:59+09:00";
@@ -301,10 +316,10 @@ seedEventMembers(toUuid(98), 15); // 余裕あり
 seedEventMembers(toUuid(97), 0); // 参加者なし
 
 // 期限切れ確認用イベントには、モックユーザー自身の申し込みをシードする。
-// 申込期限（2026-09-01）より前の 2026-08-30 に申し込んだ状態とし、
+// 申込期限より前（3日前）に申し込んだ状態とし、
 // ログイン直後から「申し込み済み」→ 期限を過ぎた申し込み内容モーダルへ進める。
 seedMyParticipation(DEADLINE_PASSED_EVENT_ID, {
-  appliedAt: "2026-08-30T20:14:00+09:00",
+  appliedAt: DEADLINE_PASSED_APPLIED_AT,
   participants: [
     { category: "大人", headCount: 2 },
     { category: "子ども", headCount: 1 },

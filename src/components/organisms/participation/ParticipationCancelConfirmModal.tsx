@@ -3,32 +3,60 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { cn } from "@/lib/utils";
 import { TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useId, useRef } from "react";
+
+// 用途ごとの文言と重ね順。
+// 期限内の取り消しと、期限後の欠席連絡で同じ確認モーダルを使い分ける。
+const CONFIRM_VARIANTS = {
+  cancel: {
+    title: "申し込みを取り消しますか？",
+    // 本文はイベント名に続けて表示する
+    description: "の申込を取り消します。",
+    confirmLabel: "取り消す",
+    closeLabel: "申し込み取り消し確認を閉じる",
+    // 申し込み内容モーダル（z-50）の上に重ねる
+    overlayZIndex: "z-[60]",
+  },
+  absence: {
+    title: "イベントを欠席しますか？",
+    description: "のイベントを欠席します。",
+    confirmLabel: "欠席する",
+    closeLabel: "欠席確認を閉じる",
+    // 欠席連絡モーダル（z-[60]）の上に重ねる
+    overlayZIndex: "z-[70]",
+  },
+} as const;
+
+type ParticipationCancelConfirmVariant = keyof typeof CONFIRM_VARIANTS;
 
 type ParticipationCancelConfirmModalProps = {
   isOpen: boolean;
   // イベント名。本文に埋め込む
   eventTitle: string;
-  // 取り消し送信中かどうか。true の間は閉じさせない
+  // 確認の用途。期限内の取り消しは "cancel"、期限後の欠席連絡は "absence"。
+  variant?: ParticipationCancelConfirmVariant;
+  // 送信中かどうか。true の間は閉じさせない
   isSubmitting: boolean;
-  // 「取り消す」押下時に呼ぶ
+  // 「取り消す」「欠席する」押下時に呼ぶ
   onConfirm: () => void;
   // 「やめる」「背景」「Escape」で呼ぶ
   onClose: () => void;
 };
 
-// 申込取り消しの最終確認モーダル。
+// 参加の取り消し・欠席連絡の最終確認モーダル。
 //
-// 申し込み内容モーダルの上に重ねて表示するため、z-50 の申し込み内容モーダルより
-// 手前に来るよう z-[60] を使う。
+// 直前のモーダルの上に重ねて表示するため、用途に応じた z-index を variant から引く。
 export function ParticipationCancelConfirmModal({
   isOpen,
   eventTitle,
+  variant = "cancel",
   isSubmitting,
   onConfirm,
   onClose,
 }: Readonly<ParticipationCancelConfirmModalProps>) {
+  const texts = CONFIRM_VARIANTS[variant];
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -72,11 +100,16 @@ export function ParticipationCancelConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex h-screen items-center justify-center px-4">
+    <div
+      className={cn(
+        "fixed inset-0 flex h-screen items-center justify-center px-4",
+        texts.overlayZIndex,
+      )}
+    >
       {/* 背景クリックで閉じる */}
       <button
         type="button"
-        aria-label="申し込み取り消し確認を閉じる"
+        aria-label={texts.closeLabel}
         className="absolute inset-0 cursor-default bg-black/50"
         onClick={handleClose}
         tabIndex={-1}
@@ -101,10 +134,10 @@ export function ParticipationCancelConfirmModal({
 
               <div className="space-y-0.5">
                 <h2 id={titleId} className="text-lg font-bold text-slate-900">
-                  申し込みを取り消しますか？
+                  {texts.title}
                 </h2>
                 <p className="text-sm text-slate-600">
-                  「{eventTitle}」の申込を取り消します。
+                  「{eventTitle}」{texts.description}
                   <br />
                   この操作は取り消せません。
                 </p>
@@ -118,7 +151,7 @@ export function ParticipationCancelConfirmModal({
                 onClick={onConfirm}
                 className="h-11 rounded-full bg-(--danger) px-8 font-semibold text-white hover:bg-(--danger-hover) disabled:opacity-60"
               >
-                {isSubmitting ? "送信中…" : "取り消す"}
+                {isSubmitting ? "送信中…" : texts.confirmLabel}
               </Button>
               <Button
                 type="button"

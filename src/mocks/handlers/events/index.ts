@@ -1,4 +1,5 @@
 // このファイルは、events/ 配下の各機能単位ハンドラーを集約し eventHandlers を公開する。
+import { eventAbsenceHandler } from "./absence";
 import { eventCancelHandler } from "./cancel";
 import { eventCreateHandler } from "./create";
 import { eventDetailHandler } from "./detail";
@@ -23,4 +24,5 @@ export const eventHandlers = [
   eventMyApplicationHandler,
   eventParticipationLogsHandler,
   eventLeaveHandler,
+  eventAbsenceHandler,
 ];

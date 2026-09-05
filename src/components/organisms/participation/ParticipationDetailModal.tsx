@@ -13,7 +13,10 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import type { EventDetailCost } from "@/types/event";
 import type { ParticipantEntry } from "@/types/participate";
 import { formatFullDateTime, formatMonthDayTime } from "@/utils/date";
-import { buildApplicationSummary } from "@/utils/participation";
+import {
+  buildApplicationSummary,
+  isParticipationDeadlinePassed,
+} from "@/utils/participation";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef } from "react";
 
@@ -32,8 +35,12 @@ type ParticipationDetailModalProps = {
   endDate: string;
   // 開催場所
   location: string;
-  // 取り消し期限(RFC3339)。未設定なら案内帯を出さない
-  cancelDeadline?: string | null;
+  // 取り消し・欠席連絡の期限(RFC3339)。未設定なら案内帯を出さない。
+  // バックエンドの判定基準に合わせて申込期限（applicationDeadline）を渡す。
+  participationDeadline?: string | null;
+  // 期限後判定の上書き値。サーバーの 409 応答で期限の実際の状態が判明した場合に渡す。
+  // 未指定なら従来どおり participationDeadline からクライアント側で判定する。
+  deadlineOver?: boolean;
   // カテゴリ別の申し込み内訳。未取得なら参加費ブロックごと出さない
   participants?: ParticipantEntry[];
   // イベントの費用カテゴリ。申し込み内訳と突合して1名あたりの参加費を補う。
@@ -46,18 +53,6 @@ type ParticipationDetailModalProps = {
   // 重なっている間はこちらを閉じさせない（手前のモーダルだけが Escape に反応する）。
   isBlocked?: boolean;
 };
-
-// 取り消し期限を過ぎているかどうかを判定する。
-// 未設定・不正な日時は「期限なし」とみなし、取り消しを妨げない。
-function isDeadlinePassed(deadline: string | null | undefined): boolean {
-  if (!deadline) return false;
-
-  const parsed = new Date(deadline);
-
-  if (Number.isNaN(parsed.getTime())) return false;
-
-  return parsed.getTime() < Date.now();
-}
 
 // 申し込み内容モーダル。
 //
@@ -73,7 +68,8 @@ export function ParticipationDetailModal({
   eventDate,
   endDate,
   location,
-  cancelDeadline,
+  participationDeadline,
+  deadlineOver,
   participants,
   eventCosts,
   onRequestCancel,
@@ -113,12 +109,15 @@ export function ParticipationDetailModal({
     return buildApplicationSummary(eventCosts, participants);
   }, [participants, eventCosts]);
 
-  const isExpired = isDeadlinePassed(cancelDeadline);
+  // 期限後判定。サーバー応答による上書き（deadlineOver）を優先し、
+  // 未指定の間はクライアント側の判定を使う。案内帯と赤ボタンのラベルの双方に使う。
+  const isExpired =
+    deadlineOver ?? isParticipationDeadlinePassed(participationDeadline);
 
   // 期限は API から返る想定だが、パースできない値だと
   // 「取り消しは — までになっています。」という不自然な文言になるため、
-  // 日時として読める場合だけ案内帯を出す（isDeadlinePassed の判定とも揃う）。
-  const deadlineLabel = formatMonthDayTime(cancelDeadline ?? "");
+  // 日時として読める場合だけ案内帯を出す（isParticipationDeadlinePassed の判定とも揃う）。
+  const deadlineLabel = formatMonthDayTime(participationDeadline ?? "");
   const hasDeadline = deadlineLabel !== "—";
 
   // モーダル表示中は背景スクロールをロックする
