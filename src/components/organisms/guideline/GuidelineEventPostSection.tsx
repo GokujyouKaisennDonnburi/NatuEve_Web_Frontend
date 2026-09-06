@@ -1,8 +1,13 @@
 import { CalendarDays, ListChecks } from "lucide-react";
 
+import { FormInput } from "@/components/atoms/FormInput";
+import { FormTextarea } from "@/components/atoms/FormTextarea";
 import { SectionBadge } from "@/components/atoms/about/SectionBadge";
 import { SectionTitle } from "@/components/atoms/about/SectionTitle";
+import { FormCard } from "@/components/molecules/FormCard";
+import { FormField } from "@/components/molecules/FormField";
 import { AboutCard } from "@/components/molecules/about/AboutCard";
+import { MAX_TEXT_LENGTH } from "@/constants/config";
 
 const EVENT_INFO_ITEMS = [
   "イベントの目的",
@@ -12,42 +17,42 @@ const EVENT_INFO_ITEMS = [
   "その他、参加者に必要な情報",
 ];
 
-// 入力欄の仮画像プレースホルダー
-function InputPlaceholder({ label }: { label: string }) {
+// 実フォーム（EventPostForm）と同じ構成の見本入力欄。
+// どちらも value/onChange を持たない非制御入力のため、入力はできるがどこにも保存されない。
+function EventTitleFieldExample() {
   return (
-    <div className="my-5 rounded-xl border-2 border-dashed border-[#C8D9AB] bg-[#FAFBF7] p-6">
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="rounded bg-[#EEF5DF] px-2 py-0.5 text-[11px] font-bold text-[#5C781E]">
-            {label}
-          </span>
-          <span className="rounded bg-[#D97706] px-2 py-0.5 text-[11px] font-bold text-white">
-            必須
-          </span>
-        </div>
-        <div className="h-10 rounded-lg border border-[#DCE8C8] bg-white" />
-      </div>
-      <p className="mt-3 text-center text-xs text-[#85A928]">※画像は仮です</p>
+    <div className="my-5">
+      <FormCard>
+        <FormField id="guideline-event-title" label="イベントタイトル" required>
+          <FormInput
+            id="guideline-event-title"
+            maxLength={MAX_TEXT_LENGTH}
+            placeholder="例: 里山観察ワークショップ"
+          />
+        </FormField>
+      </FormCard>
     </div>
   );
 }
 
-// テキストエリアの仮画像プレースホルダー
-function TextareaPlaceholder({ label }: { label: string }) {
+function EventOverviewFieldExample() {
   return (
-    <div className="my-5 rounded-xl border-2 border-dashed border-[#C8D9AB] bg-[#FAFBF7] p-6">
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="rounded bg-[#EEF5DF] px-2 py-0.5 text-[11px] font-bold text-[#5C781E]">
-            {label}
-          </span>
-          <span className="rounded bg-[#D97706] px-2 py-0.5 text-[11px] font-bold text-white">
-            必須
-          </span>
-        </div>
-        <div className="h-28 rounded-lg border border-[#DCE8C8] bg-white" />
-      </div>
-      <p className="mt-3 text-center text-xs text-[#85A928]">※画像は仮です</p>
+    <div className="my-5">
+      <FormCard>
+        <FormField
+          id="guideline-event-overview"
+          label="イベント概要"
+          required
+          description="一覧やカードに表示される紹介文です。"
+        >
+          <FormTextarea
+            id="guideline-event-overview"
+            rows={5}
+            className="max-h-60 resize-y overflow-y-auto"
+            placeholder="一日のスケジュールや、イベントで何を行うかを書きましょう。"
+          />
+        </FormField>
+      </FormCard>
     </div>
   );
 }
@@ -70,7 +75,7 @@ export function GuidelineEventPostSection() {
             </span>
             イベントタイトルを分かりやすく設定する
           </h3>
-          <InputPlaceholder label="イベントタイトル" />
+          <EventTitleFieldExample />
           <p className="text-base leading-[1.8] text-[#333]">
             イベントタイトルは、イベントの内容が参加者に伝わるよう、具体的で分かりやすい名称を設定してください。
           </p>
@@ -86,7 +91,7 @@ export function GuidelineEventPostSection() {
             </span>
             イベント内容を具体的に記載する
           </h3>
-          <TextareaPlaceholder label="イベント概要" />
+          <EventOverviewFieldExample />
           <p className="text-base leading-[1.8] text-[#333]">
             イベントの説明には、可能な範囲で以下の情報を記載してください。
           </p>
