@@ -8,8 +8,6 @@ export const signinStyles = {
   button:
     "w-full h-12 rounded-[1rem] border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98]",
   legalText: "text-xs text-slate-500 text-center leading-6",
-  legalLink:
-    "underline decoration-slate-400 underline-offset-2 hover:text-slate-700",
   legalLinkButton:
     "cursor-pointer rounded underline decoration-slate-400 underline-offset-2 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/50",
 };
