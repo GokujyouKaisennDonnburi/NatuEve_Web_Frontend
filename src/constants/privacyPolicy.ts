@@ -418,7 +418,10 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
       articles: [
         {
           layout: "unordered",
-          items: [{ text: "制定日：2026年9月7日" }, { text: "最終改定日：2026年9月7日" }],
+          items: [
+            { text: "制定日：2026年9月7日" },
+            { text: "最終改定日：2026年9月7日" },
+          ],
         },
       ],
     },
