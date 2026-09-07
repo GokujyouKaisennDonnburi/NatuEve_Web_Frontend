@@ -14,7 +14,7 @@ import { ItemsFieldExample } from "@/components/organisms/guideline/fieldExample
 import { PriceFieldExample } from "@/components/organisms/guideline/fieldExamples/PriceFieldExample";
 import { ReceptionFieldExample } from "@/components/organisms/guideline/fieldExamples/ReceptionFieldExample";
 import { ScheduleFieldExample } from "@/components/organisms/guideline/fieldExamples/ScheduleFieldExample";
-import { VideoPlaceholder } from "@/components/organisms/guideline/fieldExamples/VideoPlaceholder";
+import { TagInputVideoExample } from "@/components/organisms/guideline/fieldExamples/TagInputVideoExample";
 
 const PROHIBITED_URL_ITEMS = [
   "不正なサイト",
@@ -54,7 +54,7 @@ export function GuidelineEventPostSection() {
 
         <section>
           <SubsectionHeading number="3.2">イベントタグの設定</SubsectionHeading>
-          <VideoPlaceholder />
+          <TagInputVideoExample />
           <p className={paragraph}>
             イベントの内容と関係のあるタグを設定してください。
           </p>
