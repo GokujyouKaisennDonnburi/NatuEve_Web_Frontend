@@ -43,8 +43,8 @@ const PRINCIPLES: Principle[] = [
 export function GuidelinePrinciplesSection() {
   return (
     <AboutCard>
-      <SectionBadge icon={Lightbulb}>基本的な考え方</SectionBadge>
-      <SectionTitle>投稿にあたって意識すること</SectionTitle>
+      <SectionBadge icon={Lightbulb}>2</SectionBadge>
+      <SectionTitle>基本的な考え方</SectionTitle>
       <p className="mb-6 text-base leading-[1.8] text-[#333]">
         投稿にあたっては、以下の3つの観点を意識してください。
       </p>
@@ -71,6 +71,9 @@ export function GuidelinePrinciplesSection() {
           </div>
         ))}
       </div>
+      <p className="mt-6 text-base font-bold text-[#3B5220]">
+        上記の内容を、投稿する前に一度確認してください。
+      </p>
     </AboutCard>
   );
 }
