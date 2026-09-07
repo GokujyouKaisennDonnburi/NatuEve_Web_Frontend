@@ -79,7 +79,7 @@ export function SiteFooter() {
               </li>
               <li>
                 <Link
-                  href={ROUTES.COMING_SOON}
+                  href={ROUTES.GUIDELINE}
                   className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   ガイドライン
