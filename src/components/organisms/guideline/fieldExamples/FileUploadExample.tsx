@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { FormCard } from "@/components/molecules/FormCard";
 import { FileDropZone } from "@/components/molecules/FileDropZone";
 import { MAX_EVENT_PDF_COUNT } from "@/constants/config";
@@ -17,12 +19,14 @@ type FileUploadExampleProps = {
 const toMegabytes = (bytes: number) => Math.floor(bytes / (1024 * 1024));
 
 // 実フォームの「イベント画像／イベント資料」ブロックと同じ構成の見本。
-// ファイル選択はできるが、onFilesChange に何も流れないため一覧へは反映されない（保存もされない）。
-// §3 と §6 で同じ見本を掲載するため、idPrefix で id の衝突を避ける。
+// 選択したファイルはローカル状態に反映されるが、アップロード処理につながらないためどこにも送信されない。
+// 3.10（画像）と 3.11（資料）で同じ見本を掲載するため、idPrefix で id の衝突を避ける。
 export function FileUploadExample({
   variant,
   idPrefix,
 }: Readonly<FileUploadExampleProps>) {
+  const [files, setFiles] = useState<File[]>([]);
+
   if (variant === "image") {
     return (
       <div className="my-5">
@@ -35,8 +39,8 @@ export function FileUploadExample({
           <FileDropZone
             id={`${idPrefix}-event-image`}
             accept="image/jpeg,image/png"
-            files={[]}
-            onFilesChange={() => {}}
+            files={files}
+            onFilesChange={setFiles}
             promptLabel="クリックまたはドラッグで画像をアップロード"
             hint={`1ファイル ${toMegabytes(MAX_IMAGE_BYTES)}MB まで`}
             validate={(file) => validateUploadFile(file, "image")}
@@ -55,8 +59,8 @@ export function FileUploadExample({
         <FileDropZone
           id={`${idPrefix}-event-documents`}
           accept="application/pdf"
-          files={[]}
-          onFilesChange={() => {}}
+          files={files}
+          onFilesChange={setFiles}
           maxFiles={MAX_EVENT_PDF_COUNT}
           promptLabel="クリックまたはドラッグでPDFをアップロード"
           hint={`1ファイル ${toMegabytes(MAX_PDF_BYTES)}MB まで`}
