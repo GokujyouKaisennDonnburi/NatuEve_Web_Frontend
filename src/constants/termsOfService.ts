@@ -1,37 +1,8 @@
+import type { LegalDocumentContent } from "@/types/legalDocument";
+
 // 利用規約モーダルで表示する文面データ
 // 文言はモーダルコンポーネントに直書きせず、ここで一元管理する
-
-// 番号付きの項（ネストした箇条書きを持てる）
-export type TermsItem = {
-  text: string;
-  children?: string[];
-};
-
-// 条（前置き段落と番号付きの項で構成される）
-// title は省略可（制定日・改定日など条見出しを持たない箇所）
-export type TermsArticle = {
-  title?: string;
-  lead?: string;
-  items: TermsItem[];
-  // 項のリスト形式。未指定の場合は番号付き（ordered）
-  layout?: "ordered" | "unordered";
-};
-
-// 章
-export type TermsSection = {
-  heading: string;
-  // false の場合は見出し番号を付与しない（制定日・改定日など番号が不要な章）
-  showHeadingNumber?: boolean;
-  articles: TermsArticle[];
-};
-
-export type TermsOfServiceContent = {
-  title: string;
-  preamble: string[];
-  sections: TermsSection[];
-};
-
-export const TERMS_OF_SERVICE: TermsOfServiceContent = {
+export const TERMS_OF_SERVICE: LegalDocumentContent = {
   title: "利用規約",
   preamble: [
     "本利用規約（以下「本規約」といいます）は、なちゅいべ（以下「本サービス」といいます）の利用条件を定めるものです。",

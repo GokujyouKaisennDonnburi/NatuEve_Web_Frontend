@@ -23,6 +23,13 @@ const TermsOfServiceModal = dynamic(() =>
   ),
 );
 
+// プライバシーポリシーも長文のため、モーダルを開いた時にのみ読み込む
+const PrivacyPolicyModal = dynamic(() =>
+  import("@/components/molecules/PrivacyPolicyModal").then(
+    (m) => m.PrivacyPolicyModal,
+  ),
+);
+
 /**
  * Googleサインインのみのシンプルなサインイン画面。
  *
@@ -34,6 +41,7 @@ export default function SignInPage() {
   const appName = "Google";
   const router = useRouter();
   const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [isPrivacyPolicyOpen, setIsPrivacyPolicyOpen] = useState(false);
 
   // Googleサインインボタンのクリックハンドラ
   const handleGoogleSignIn = async () => {
@@ -52,7 +60,7 @@ export default function SignInPage() {
     <div className={signinStyles.page}>
       {/* モーダル表示中は背景コンテンツを支援技術の読み上げ対象外にする */}
       <Card
-        aria-hidden={isTermsOpen || undefined}
+        aria-hidden={isTermsOpen || isPrivacyPolicyOpen || undefined}
         className={signinStyles.card}
       >
         <CardHeader className={signinStyles.cardHeader}>
@@ -83,9 +91,13 @@ export default function SignInPage() {
               利用規約
             </button>
             と
-            <span className={signinStyles.legalLink} aria-disabled="true">
+            <button
+              type="button"
+              onClick={() => setIsPrivacyPolicyOpen(true)}
+              className={signinStyles.legalLinkButton}
+            >
               プライバシーポリシー
-            </span>
+            </button>
             に同意したことになります。
           </p>
         </CardContent>
@@ -94,6 +106,11 @@ export default function SignInPage() {
       {/* 利用規約モーダルは開いた時にのみ読み込む（遅延読み込み） */}
       {isTermsOpen ? (
         <TermsOfServiceModal isOpen onOpenChange={setIsTermsOpen} />
+      ) : null}
+
+      {/* プライバシーポリシーモーダルも開いた時にのみ読み込む（遅延読み込み） */}
+      {isPrivacyPolicyOpen ? (
+        <PrivacyPolicyModal isOpen onOpenChange={setIsPrivacyPolicyOpen} />
       ) : null}
     </div>
   );
