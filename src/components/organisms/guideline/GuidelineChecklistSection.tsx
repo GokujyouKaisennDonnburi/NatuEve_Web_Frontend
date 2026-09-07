@@ -3,6 +3,7 @@ import { ClipboardCheck } from "lucide-react";
 import { SectionBadge } from "@/components/atoms/about/SectionBadge";
 import { SectionTitle } from "@/components/atoms/about/SectionTitle";
 import { AboutCard } from "@/components/molecules/about/AboutCard";
+import { ChecklistGroup } from "@/components/molecules/guideline/ChecklistGroup";
 
 const CHECKLIST_GROUPS = [
   {
@@ -56,28 +57,11 @@ export function GuidelineChecklistSection() {
       </p>
       <div className="space-y-6">
         {CHECKLIST_GROUPS.map((group) => (
-          <div
+          <ChecklistGroup
             key={group.title}
-            className="rounded-[14px] border border-[#DCE8C8] bg-[#FAFBF7] p-5"
-          >
-            <h3 className="mb-3 text-lg font-bold text-[#2D401A]">
-              {group.title}
-            </h3>
-            <ul className="space-y-2.5">
-              {group.items.map((item) => (
-                <li
-                  key={item}
-                  className="flex items-start gap-3 text-base text-[#333]"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="mt-[5px] size-[18px] shrink-0 rounded-[5px] border-2 border-[#85A928] bg-white"
-                  />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
+            title={group.title}
+            items={group.items}
+          />
         ))}
       </div>
     </AboutCard>
