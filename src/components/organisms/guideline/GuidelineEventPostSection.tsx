@@ -123,31 +123,39 @@ export function GuidelineEventPostSection() {
 
         <section>
           <SubsectionHeading number="3.6">
-            定員・申込期限を正確に設定する
+            定員を正確に設定する
           </SubsectionHeading>
-          <ReceptionFieldExample idPrefix="guideline-3-6" />
+          <ReceptionFieldExample variant="capacity" idPrefix="guideline-3-6" />
           <BlockNote title="受付設定">
             <p>イベントの参加受付に必要な情報を設定してください。</p>
             <p>
               定員を設定する場合は、実際に受け入れられる人数と一致させてください。
             </p>
+          </BlockNote>
+          <p className={paragraph}>
+            定員に達した場合には、参加申込を受け付けられないことがあります。
+          </p>
+        </section>
+
+        <section>
+          <SubsectionHeading number="3.7">
+            申込期限を正確に設定する
+          </SubsectionHeading>
+          <ReceptionFieldExample variant="deadline" idPrefix="guideline-3-7" />
+          <BlockNote title="受付設定">
+            <p>イベントの参加受付に必要な情報を設定してください。</p>
             <p>
               申し込み締切を設定する場合は、実際の受付終了日時と一致させてください。
             </p>
           </BlockNote>
-          <div className="space-y-2">
-            <p className={paragraph}>
-              定員や申込期限を設定する場合は、実際の受付条件と一致するようにしてください。
-            </p>
-            <p className={paragraph}>
-              定員に達した場合や申込期限を過ぎた場合には、参加申込を受け付けられないことがあります。
-            </p>
-          </div>
+          <p className={paragraph}>
+            申込期限を過ぎた場合には、参加申込を受け付けられないことがあります。
+          </p>
         </section>
 
         <section>
-          <SubsectionHeading number="3.7">関連URLを確認する</SubsectionHeading>
-          <ApplicationUrlFieldExample idPrefix="guideline-3-7" />
+          <SubsectionHeading number="3.8">関連URLを確認する</SubsectionHeading>
+          <ApplicationUrlFieldExample idPrefix="guideline-3-8" />
           <BlockNote title="申し込みURL">
             <p>
               外部サイトで参加申込を受け付ける場合は、正しいURLを設定してください。
@@ -166,7 +174,7 @@ export function GuidelineEventPostSection() {
         </section>
 
         <section>
-          <SubsectionHeading number="3.8">
+          <SubsectionHeading number="3.9">
             持ち物を分かりやすく設定する
           </SubsectionHeading>
           <ItemsFieldExample />
@@ -187,10 +195,10 @@ export function GuidelineEventPostSection() {
         </section>
 
         <section>
-          <SubsectionHeading number="3.9">
+          <SubsectionHeading number="3.10">
             イベント画像を適切に使用する
           </SubsectionHeading>
-          <FileUploadExample variant="image" idPrefix="guideline-3-9" />
+          <FileUploadExample variant="image" idPrefix="guideline-3-10" />
           <BlockNote title="イベント画像">
             <p>
               イベントの内容を分かりやすく伝えるための画像をアップロードできます。
@@ -210,10 +218,10 @@ export function GuidelineEventPostSection() {
         </section>
 
         <section>
-          <SubsectionHeading number="3.10">
+          <SubsectionHeading number="3.11">
             イベント資料を適切に使用する
           </SubsectionHeading>
-          <FileUploadExample variant="pdf" idPrefix="guideline-3-10" />
+          <FileUploadExample variant="pdf" idPrefix="guideline-3-11" />
           <BlockNote title="イベント資料">
             <p>
               イベントに必要な資料や参加者へ提供するPDF等をアップロードできます。
@@ -236,10 +244,10 @@ export function GuidelineEventPostSection() {
         </section>
 
         <section>
-          <SubsectionHeading number="3.11">
+          <SubsectionHeading number="3.12">
             イベント概要を分かりやすく記載する
           </SubsectionHeading>
-          <EventOverviewFieldExample idPrefix="guideline-3-11" />
+          <EventOverviewFieldExample idPrefix="guideline-3-12" />
           <BlockNote title="イベント概要">
             <p>
               イベントの目的や内容、対象者、注意事項など、参加者に伝えたい情報を具体的に記載してください。
@@ -256,7 +264,7 @@ export function GuidelineEventPostSection() {
         </section>
 
         <section>
-          <SubsectionHeading number="3.12">
+          <SubsectionHeading number="3.13">
             システム上の制限を守る
           </SubsectionHeading>
           <div className="space-y-2">
@@ -270,7 +278,7 @@ export function GuidelineEventPostSection() {
         </section>
 
         <section>
-          <SubsectionHeading number="3.13">
+          <SubsectionHeading number="3.14">
             開催中止・変更時の対応
           </SubsectionHeading>
           <div className="space-y-2">
@@ -288,7 +296,7 @@ export function GuidelineEventPostSection() {
         </section>
 
         <section>
-          <SubsectionHeading number="3.14">
+          <SubsectionHeading number="3.15">
             誤解を招く表現を避ける
           </SubsectionHeading>
           <div className="space-y-2">
