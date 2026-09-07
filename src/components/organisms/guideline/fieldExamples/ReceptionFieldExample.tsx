@@ -5,7 +5,6 @@ import { FormCard } from "@/components/molecules/FormCard";
 import { FormField } from "@/components/molecules/FormField";
 import { UnitInput } from "@/components/molecules/UnitInput";
 import { Button } from "@/components/ui/button";
-import { MAX_TEXT_LENGTH } from "@/constants/config";
 
 type ReceptionFieldExampleProps = {
   idPrefix?: string;
@@ -73,20 +72,6 @@ export function ReceptionFieldExample({
               締切なし
             </Button>
           </div>
-        </FormField>
-
-        <FormField
-          id={`${idPrefix}-application-url`}
-          label="申し込みURL"
-          description="外部フォームに遷移させる場合に使います。"
-        >
-          <FormInput
-            id={`${idPrefix}-application-url`}
-            type="url"
-            inputMode="url"
-            maxLength={MAX_TEXT_LENGTH}
-            placeholder="https://（なちゅいべ内で受付する場合は空欄）"
-          />
         </FormField>
       </FormCard>
     </div>
