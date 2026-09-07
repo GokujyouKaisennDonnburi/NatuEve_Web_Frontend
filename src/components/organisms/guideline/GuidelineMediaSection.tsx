@@ -10,7 +10,6 @@ import {
   PersonalInfoCheckGraphic,
   PhotoConsentGraphic,
 } from "@/components/organisms/guideline/fieldExamples/AttentionGraphic";
-import { FileUploadExample } from "@/components/organisms/guideline/fieldExamples/FileUploadExample";
 
 const PERSONAL_INFO_ITEMS = [
   "氏名",
@@ -47,7 +46,6 @@ export function GuidelineMediaSection() {
       <div className="space-y-10">
         <section>
           <SubsectionHeading number="6.1">対応形式・サイズ</SubsectionHeading>
-          <FileUploadExample variant="image" idPrefix="guideline-6-1" />
           <p className={paragraph}>
             画像、PDFその他のファイルについては、本サービス上に表示される対応形式・サイズ等の制限に従ってください。
           </p>
@@ -69,7 +67,6 @@ export function GuidelineMediaSection() {
 
         <section>
           <SubsectionHeading number="6.3">顔写真・肖像</SubsectionHeading>
-          <FileUploadExample variant="image" idPrefix="guideline-6-3" />
           <PhotoConsentGraphic />
           <div className="space-y-2">
             <p className={paragraph}>
@@ -97,7 +94,6 @@ export function GuidelineMediaSection() {
 
         <section>
           <SubsectionHeading number="6.5">URL</SubsectionHeading>
-          <FileUploadExample variant="pdf" idPrefix="guideline-6-5" />
           <div className="space-y-2">
             <p className={paragraph}>
               掲載する外部URLは、リンク先の内容が適切であることを事前に確認してください。
@@ -112,7 +108,6 @@ export function GuidelineMediaSection() {
           <SubsectionHeading number="6.6">
             ファイルの内容を確認する
           </SubsectionHeading>
-          <FileUploadExample variant="pdf" idPrefix="guideline-6-6" />
           <div className="my-5">
             <HighlightBanner>
               アップロード前にファイルの中身を確認しましょう。
