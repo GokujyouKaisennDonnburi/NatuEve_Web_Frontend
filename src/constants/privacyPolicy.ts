@@ -23,10 +23,10 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
         {
           layout: "unordered",
           items: [
-            { text: "事業者名：" },
-            { text: "所在地：" },
-            { text: "個人情報取扱責任者：" },
-            { text: "お問い合わせ窓口：" },
+            { text: "事業者名：NatuPortal" },
+            { text: "所在地：兵庫県" },
+            { text: "個人情報取扱責任者：極上海鮮どんぶり" },
+            { text: "お問い合わせ窓口：natueve-info@natuportal.org" },
           ],
         },
       ],
@@ -407,9 +407,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
           ],
           layout: "unordered",
           items: [
-            { text: "事業者名：NatuPortal" },
             { text: "メールアドレス：natueve-info@natuportal.org" },
-            { text: "所在地：兵庫県" },
             { text: "個人情報取扱責任者：極上海鮮どんぶり" },
           ],
         },
@@ -420,7 +418,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
       articles: [
         {
           layout: "unordered",
-          items: [{ text: "制定日：2026年9月7日" }, { text: "最終改定日：" }],
+          items: [{ text: "制定日：2026年9月7日" }, { text: "最終改定日：2026年9月7日" }],
         },
       ],
     },
