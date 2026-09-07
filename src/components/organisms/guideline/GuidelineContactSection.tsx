@@ -15,7 +15,7 @@ export function GuidelineContactSection() {
         本ガイドラインに関するお問い合わせは、本サービスのお問い合わせ窓口までご連絡ください。
       </p>
       <div className="mt-5 rounded-[14px] border border-dashed border-[#C8D9AB] bg-[#FAFBF7] p-5 text-base leading-[1.8] text-[#333]">
-        <p>メールアドレス：natueve-info@natuportal.org </p>
+        <p>メールアドレス：natueve-info@natuportal.org</p>
         {/* <p>その他のお問い合わせ方法：【必要に応じて記入】</p> */}
         <div className="mt-4 border-t border-[#E2EBD3] pt-4">
           <p>制定日：2026年9月7日</p>

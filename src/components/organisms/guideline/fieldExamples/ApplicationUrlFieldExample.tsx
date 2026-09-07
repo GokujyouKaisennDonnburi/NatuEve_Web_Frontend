@@ -7,7 +7,7 @@ type ApplicationUrlFieldExampleProps = {
   idPrefix?: string;
 };
 
-// 実フォームの「申し込みURL」入力欄と同じ構成の見本（3.7 関連URL で掲載）。
+// 実フォームの「申し込みURL」入力欄と同じ構成の見本（3.8 関連URL で掲載）。
 // value/onChange を持たない非制御入力のため、入力はできるがどこにも保存されない。
 export function ApplicationUrlFieldExample({
   idPrefix = "guideline",
