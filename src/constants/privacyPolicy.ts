@@ -408,7 +408,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
           layout: "unordered",
           items: [
             { text: "事業者名：NatuPortal" },
-            { text: "メールアドレス：natuportal.admin@gmail.com" },
+            { text: "メールアドレス：natueve-info@natuportal.org" },
             { text: "所在地：兵庫県" },
             { text: "個人情報取扱責任者：極上海鮮どんぶり" },
           ],
