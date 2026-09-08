@@ -31,11 +31,13 @@ import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
+import { useDeadlineRefresh } from "@/hooks/useDeadlineRefresh";
 import { useEventMembers } from "@/hooks/useEventMembers";
 import { useMyEventApplication } from "@/hooks/useMyEventApplication";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
 import { resolveEventStatus } from "@/utils/eventStatus";
+import { isParticipationDeadlinePassed } from "@/utils/participation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -104,6 +106,19 @@ export function EventDetail({
     endDate: event.endDate,
     applicationDeadline: event.applicationDeadline,
   });
+
+  // 申込期限を過ぎているかどうか。開催終了と並ぶ、参加申し込みを締め切る条件。
+  // 取り消し・欠席連絡の期限（cancelDeadline を優先する participationDeadline）とは
+  // 別の判定のため、ここでは applicationDeadline を直接見る。
+  // 期限未設定のイベントは締切なしとして扱い、開催終了までは申し込める。
+  const applicationDeadlinePassed = isParticipationDeadlinePassed(
+    event.applicationDeadline,
+  );
+
+  // 上の判定は現在時刻に依存するため、ページを開いたままでは期限を過ぎても
+  // 「参加を申し込む」が押せるまま残ってしまう。申込期限・終了日時を跨いだ時点で
+  // 再描画し、表示と操作可否を実際の時刻に追随させる。
+  useDeadlineRefresh([event.applicationDeadline, event.endDate]);
 
   // ログイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(
@@ -361,7 +376,8 @@ export function EventDetail({
             participating={participating}
             participationDetail={participationDetail}
             partySize={myApplication?.partySize}
-            receptionClosed={status === "closed"}
+            // 開催終了、または申込期限を過ぎている場合は申し込みを締め切る
+            receptionClosed={status === "closed" || applicationDeadlinePassed}
             onParticipateSuccess={() => {
               refetchParticipation();
               onEventRefetch?.();
