@@ -31,6 +31,7 @@ import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
+import { useDeadlineRefresh } from "@/hooks/useDeadlineRefresh";
 import { useEventMembers } from "@/hooks/useEventMembers";
 import { useMyEventApplication } from "@/hooks/useMyEventApplication";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
@@ -39,7 +40,7 @@ import { resolveEventStatus } from "@/utils/eventStatus";
 import { isParticipationDeadlinePassed } from "@/utils/participation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 // 投稿日の表示用に日付だけを整形する
 const formatPostedDate = (value: string): string =>
@@ -115,31 +116,9 @@ export function EventDetail({
   );
 
   // 上の判定は現在時刻に依存するため、ページを開いたままでは期限を過ぎても
-  // 「参加を申し込む」が押せるまま残ってしまう。次の境目（未来にある申込期限・終了日時の
-  // うち最も近いもの）で一度だけ再描画し、表示と操作可否を実際の時刻に追随させる。
-  // now は再描画の契機を作るためだけの状態で、表示には使わない。
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const nextBoundary = [event.applicationDeadline, event.endDate]
-      .map((value) => (value ? Date.parse(value) : Number.NaN))
-      .filter((time) => Number.isFinite(time) && time > now)
-      .sort((a, b) => a - b)[0];
-
-    if (nextBoundary === undefined) return;
-
-    // 境目ちょうどでは判定が切り替わらないことがあるため、1秒余裕を持たせる。
-    const delay = nextBoundary - now + 1_000;
-
-    // setTimeout の遅延は 32bit 符号付き整数を超えると即時発火してしまう（約24.8日以上先）。
-    // その場合はタイマーを張らず、遠い境目は再訪時の判定に委ねる。
-    if (delay > 2_147_483_647) return;
-
-    // 申込期限を跨いだあとは、次の境目（終了日時）へタイマーを張り直す。
-    const timer = setTimeout(() => setNow(Date.now()), delay);
-
-    return () => clearTimeout(timer);
-  }, [now, event.applicationDeadline, event.endDate]);
+  // 「参加を申し込む」が押せるまま残ってしまう。申込期限・終了日時を跨いだ時点で
+  // 再描画し、表示と操作可否を実際の時刻に追随させる。
+  useDeadlineRefresh([event.applicationDeadline, event.endDate]);
 
   // ログイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(
