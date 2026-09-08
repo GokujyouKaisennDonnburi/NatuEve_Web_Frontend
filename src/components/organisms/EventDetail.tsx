@@ -36,7 +36,6 @@ import { useMyEventApplication } from "@/hooks/useMyEventApplication";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import type { ReportDetail } from "@/types/report";
 import { resolveEventStatus } from "@/utils/eventStatus";
-import { isParticipationDeadlinePassed } from "@/utils/participation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -106,13 +105,11 @@ export function EventDetail({
     applicationDeadline: event.applicationDeadline,
   });
 
-  // 申込期限を過ぎているかどうか。開催終了と並ぶ、参加申し込みを締め切る条件。
-  // 取り消し・欠席連絡の期限（cancelDeadline を優先する participationDeadline）とは
-  // 別の判定のため、ここでは applicationDeadline を直接見る。
-  // 期限未設定のイベントは締切なしとして扱い、開催終了までは申し込める。
-  const applicationDeadlinePassed = isParticipationDeadlinePassed(
-    event.applicationDeadline,
-  );
+  // 参加申し込みを締め切る状況かどうか。開催終了（endDate 経過）と受付終了（申込期限経過）の2つ。
+  // 取り消し・欠席連絡の期限（cancelDeadline を優先する participationDeadline）とは別の判定で、
+  // ステータスバッジと同じ基準を使うため、バッジとボタンの表示が食い違わない。
+  const receptionClosed =
+    status === "closed" || status === "ended_registration";
 
   // ログイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(
@@ -370,8 +367,7 @@ export function EventDetail({
             participating={participating}
             participationDetail={participationDetail}
             partySize={myApplication?.partySize}
-            // 開催終了、または申込期限を過ぎている場合は申し込みを締め切る
-            receptionClosed={status === "closed" || applicationDeadlinePassed}
+            receptionClosed={receptionClosed}
             onParticipateSuccess={() => {
               refetchParticipation();
               onEventRefetch?.();
