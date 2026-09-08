@@ -57,7 +57,7 @@ type EventParticipationButtonProps = {
   // 現在申込中の合計参加人数。未設定時は 0 として扱う。残り人数は capacity - participantCount で算出する。
   participantCount?: number;
   // 受付終了フラグ。true のとき参加申し込みボタンを無効化し「受付終了」と表示する。
-  // 現状は開催終了時（endDate 経過）で判定するが、将来は申込期限の導入を予定している。
+  // 開催終了時（endDate 経過）または申込期限（applicationDeadline）超過で立てる。
   receptionClosed?: boolean;
   // 現在のユーザーが当該イベントに参加中かどうか。true の場合は参加キャンセルボタンを表示する。
   participating?: boolean;
@@ -220,7 +220,7 @@ export function EventParticipationButton({
     remaining <= Math.min(effectiveCapacity * 0.2, 10);
 
   // 未参加ボタンの文言。受付終了が最優先で、次に満員を優先する。
-  // 受付終了の判定基準は現状開催終了時だが、将来は申込期限の導入を予定している。
+  // 申込期限を過ぎたイベントは満員かどうかに関係なく申し込めないため、先に「受付終了」を出す。
   const buttonLabel = receptionClosed
     ? "受付終了"
     : isFull
