@@ -15,7 +15,7 @@ import type { ParticipantEntry } from "@/types/participate";
 import { formatFullDateTime, formatMonthDayTime } from "@/utils/date";
 import {
   buildApplicationSummary,
-  isParticipationDeadlinePassed,
+  isDeadlinePassed,
 } from "@/utils/participation";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef } from "react";
@@ -111,12 +111,11 @@ export function ParticipationDetailModal({
 
   // 期限後判定。サーバー応答による上書き（deadlineOver）を優先し、
   // 未指定の間はクライアント側の判定を使う。案内帯と赤ボタンのラベルの双方に使う。
-  const isExpired =
-    deadlineOver ?? isParticipationDeadlinePassed(participationDeadline);
+  const isExpired = deadlineOver ?? isDeadlinePassed(participationDeadline);
 
   // 期限は API から返る想定だが、パースできない値だと
   // 「取り消しは — までになっています。」という不自然な文言になるため、
-  // 日時として読める場合だけ案内帯を出す（isParticipationDeadlinePassed の判定とも揃う）。
+  // 日時として読める場合だけ案内帯を出す（isDeadlinePassed の判定とも揃う）。
   const deadlineLabel = formatMonthDayTime(participationDeadline ?? "");
   const hasDeadline = deadlineLabel !== "—";
 

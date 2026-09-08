@@ -163,16 +163,16 @@ export function buildApplicationSummary(
   };
 }
 
-// 参加の取り消し・欠席連絡の期限を過ぎているかどうかを判定する。
-// 未設定・不正な日時は「期限なし」とみなし、取り消しを妨げない。
-// 期限内は取り消し、期限後は欠席連絡と導線が分かれるため、
-// 申し込み内容モーダルと参加ボタンの双方から同じ判定を参照する。
+// 渡された期限を過ぎているかどうかを判定する。どの期限かは呼び出し側が引数で示す。
+// 未設定・不正な日時は「期限なし」とみなし、操作を妨げない。
 //
-// 渡す期限はバックエンドの判定基準（申込期限 = applicationDeadline）に揃える。
+// 用途は2つある。
+// - 申込期限(applicationDeadline): 受付終了の判定。ステータスバッジと参加申し込みボタンが参照する。
+// - 取り消し・欠席連絡の期限: 期限内は取り消し、期限後は欠席連絡と導線が分かれる。
+//   バックエンドの判定基準が申込期限のため、こちらにも applicationDeadline を渡している。
+//
 // ここでの判定はあくまで UI の分岐で、実際の可否はサーバーの応答が正となる。
-export function isParticipationDeadlinePassed(
-  deadline: string | null | undefined,
-): boolean {
+export function isDeadlinePassed(deadline: string | null | undefined): boolean {
   if (!deadline) return false;
 
   const parsed = new Date(deadline);

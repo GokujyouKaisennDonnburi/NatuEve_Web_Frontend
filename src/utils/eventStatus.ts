@@ -1,5 +1,5 @@
 import { DAYS_BEFORE_DEADLINE } from "@/constants/config";
-import { isParticipationDeadlinePassed } from "@/utils/participation";
+import { isDeadlinePassed } from "@/utils/participation";
 
 // 開催状況の判定に使う日時。
 type EventStatusSource = {
@@ -71,7 +71,7 @@ export function resolveEventStatus({
     return "closed";
   }
   // 開催前・開催中でも、申込期限を過ぎていればもう申し込めないため「受付終了」とする。
-  if (isParticipationDeadlinePassed(applicationDeadline)) {
+  if (isDeadlinePassed(applicationDeadline)) {
     return "ended_registration";
   }
   if (applicationDeadline && isDateWithinOneWeek(applicationDeadline)) {
