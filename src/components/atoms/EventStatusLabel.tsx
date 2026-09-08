@@ -1,14 +1,14 @@
 import { cn } from "@/lib/utils";
-
-type EventStatus = "open" | "few_left" | "ended_registration" | "closed";
+import type { ResolvedEventStatus } from "@/utils/eventStatus";
 
 type EventStatusLabelProps = {
-  status: EventStatus;
+  status: ResolvedEventStatus;
   className?: string;
 };
 
+// 受付終了と開催終了は「もう申し込めない」点で同じ扱いのため、配色も揃える。
 const statusConfig: Record<
-  EventStatus,
+  ResolvedEventStatus,
   { label: string; bgClass: string; textClass: string }
 > = {
   open: {

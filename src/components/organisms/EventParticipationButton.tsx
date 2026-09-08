@@ -18,7 +18,7 @@ import {
   LeaveErrorCode,
 } from "@/types/participate";
 import { formatMonthDayTime } from "@/utils/date";
-import { isParticipationDeadlinePassed } from "@/utils/participation";
+import { isDeadlinePassed } from "@/utils/participation";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -195,7 +195,7 @@ export function EventParticipationButton({
     serverDeadlineState === "beforeDeadline"
       ? false
       : serverDeadlineState === "deadlinePassed" ||
-        isParticipationDeadlinePassed(participationDeadline);
+        isDeadlinePassed(participationDeadline);
 
   // 定員・残り人数の計算（残り = capacity - participantCount、swagger 準拠）
   const effectiveCapacity =

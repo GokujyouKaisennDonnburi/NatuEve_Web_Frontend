@@ -4,6 +4,7 @@ import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { FilterTag } from "@/components/atoms/FilterTag";
 import { Button } from "@/components/ui/button";
 import type { TagItem } from "@/types/tag";
+import type { ResolvedEventStatus } from "@/utils/eventStatus";
 import { ROUTES } from "@/constants/routes";
 import { MapPin } from "lucide-react";
 import Image from "next/image";
@@ -20,7 +21,7 @@ export type EventItem = {
   hostName: string;
   hostAvatarUrl: string;
   tags?: TagItem[];
-  status: "open" | "few_left" | "closed";
+  status: ResolvedEventStatus;
 };
 
 type EventCardProps = {

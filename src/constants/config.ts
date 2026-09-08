@@ -14,5 +14,5 @@ export const MAX_TEXT_LENGTH = 255;
 // 1イベントに添付できるPDFの上限。
 export const MAX_EVENT_PDF_COUNT = 3;
 
-// 「期限間近」と判定する開催日までの残り日数。
+// 「期限間近」と判定する申込期限までの残り日数（判定は applicationDeadline 基準）。
 export const DAYS_BEFORE_DEADLINE = 7;
