@@ -7,6 +7,7 @@ import { FormCard } from "@/components/molecules/FormCard";
 import { FormField } from "@/components/molecules/FormField";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { preventImplicitSubmit } from "@/utils/form";
 import { validateUploadFile } from "@/utils/upload";
 import type React from "react";
 
@@ -41,6 +42,7 @@ export function ReportPostForm({
         e.preventDefault();
         onSubmit();
       }}
+      onKeyDown={preventImplicitSubmit}
       noValidate
       className="space-y-4"
     >
