@@ -98,4 +98,30 @@ describe("RegionFilter", () => {
     expect(isIndeterminate(filterButton("北海道"))).toBe(true);
     expect(isChecked(filterButton("札幌市"))).toBe(true);
   });
+
+  it("解除した市区町村を再選択すると都道府県・地方のチェックが復活する", () => {
+    render(<Harness />);
+
+    fireEvent.click(filterButton("東北"));
+    expect(isChecked(filterButton("福島県"))).toBe(true);
+
+    fireEvent.click(filterButton("伊達市"));
+    expect(isIndeterminate(filterButton("福島県"))).toBe(true);
+    expect(isIndeterminate(filterButton("東北"))).toBe(true);
+
+    fireEvent.click(filterButton("伊達市"));
+    expect(isChecked(filterButton("福島県"))).toBe(true);
+    expect(isChecked(filterButton("東北"))).toBe(true);
+  });
+
+  it("地方選択後に都道府県を1つ解除すると地方のチェックも外れる", () => {
+    render(<Harness />);
+
+    fireEvent.click(filterButton("東北"));
+    expect(isChecked(filterButton("東北"))).toBe(true);
+
+    fireEvent.click(filterButton("福島県"));
+    expect(isChecked(filterButton("福島県"))).toBe(false);
+    expect(isIndeterminate(filterButton("東北"))).toBe(true);
+  });
 });

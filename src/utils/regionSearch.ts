@@ -141,8 +141,35 @@ export type RegionSelection = {
 // 地方・都道府県行のチェック状態（全選択・部分選択・未選択）。
 export type RegionNodeStatus = "checked" | "indeterminate" | "unchecked";
 
-// 地方の選択を反転する。選択時は配下の都道府県・市区町村を全て選択へ展開し、
-// 解除時は配下を全て解除する。
+// 市区町村の選択状態から都道府県・地方の選択状態を再計算する。
+// 「配下が全て選択済みなら上位もチェック、1つでも欠ければ上位は解除」という条件を
+// すべての操作後に満たすことで、上位チェックと実際の選択内容の不整合を防ぐ。
+// 市区町村を持たない都道府県は市区町村から導出できないため、明示的な選択を維持する。
+function syncAncestorSelection(
+  currentPrefectures: readonly string[],
+  cities: readonly string[],
+): { regions: string[]; prefectures: string[] } {
+  const prefectures = REGIONS.flatMap((region) =>
+    region.prefectures.flatMap((prefecture) => {
+      const selected =
+        prefecture.cities.length === 0
+          ? currentPrefectures.includes(prefecture.name)
+          : prefecture.cities.every((city) =>
+              cities.includes(buildCityKey(prefecture.name, city.name)),
+            );
+      return selected ? [prefecture.name] : [];
+    }),
+  );
+  const regions = REGIONS.flatMap((region) =>
+    region.prefectures.every((p) => prefectures.includes(p.name))
+      ? [region.name]
+      : [],
+  );
+  return { regions, prefectures };
+}
+
+// 地方の選択を反転する。選択時は配下の市区町村を全て選択へ展開し、解除時は全て解除する。
+// 都道府県・地方の選択状態は syncAncestorSelection で配下の選択状況から再計算する。
 export function toggleRegionInState(
   selection: RegionSelection,
   regionName: string,
@@ -150,33 +177,30 @@ export function toggleRegionInState(
   const region = REGIONS.find((r) => r.name === regionName);
   if (!region) return selection;
 
-  if (selection.regions.includes(regionName)) {
-    const allPrefs = region.prefectures.map((p) => p.name);
-    const allCityKeys = region.prefectures.flatMap((p) =>
-      p.cities.map((c) => buildCityKey(p.name, c.name)),
-    );
-    return {
-      regions: selection.regions.filter((r) => r !== regionName),
-      prefectures: selection.prefectures.filter((p) => !allPrefs.includes(p)),
-      cities: selection.cities.filter((c) => !allCityKeys.includes(c)),
-    };
-  }
+  const regionCityKeys = region.prefectures.flatMap((p) =>
+    p.cities.map((c) => buildCityKey(p.name, c.name)),
+  );
+  // 市区町村を持たない都道府県は市区町村経由で選択できないため、直接反転させる
+  const lonePrefNames = region.prefectures
+    .filter((p) => p.cities.length === 0)
+    .map((p) => p.name);
 
-  const newPrefs = region.prefectures
-    .map((p) => p.name)
-    .filter((p) => !selection.prefectures.includes(p));
-  const newCityKeys = region.prefectures
-    .flatMap((p) => p.cities.map((c) => buildCityKey(p.name, c.name)))
-    .filter((c) => !selection.cities.includes(c));
+  const isCurrentlySelected = selection.regions.includes(regionName);
+  const cities = isCurrentlySelected
+    ? selection.cities.filter((c) => !regionCityKeys.includes(c))
+    : [...new Set([...selection.cities, ...regionCityKeys])];
+  const currentPrefectures = isCurrentlySelected
+    ? selection.prefectures.filter((p) => !lonePrefNames.includes(p))
+    : [...new Set([...selection.prefectures, ...lonePrefNames])];
+
   return {
-    regions: [...selection.regions, regionName],
-    prefectures: [...selection.prefectures, ...newPrefs],
-    cities: [...selection.cities, ...newCityKeys],
+    ...syncAncestorSelection(currentPrefectures, cities),
+    cities,
   };
 }
 
-// 都道府県の選択を反転する。選択時は配下の市区町村を全て選択へ展開し、
-// 解除時は配下を全て解除する。
+// 都道府県の選択を反転する。選択時は配下の市区町村を全て選択へ展開し、解除時は全て解除する。
+// 地方の選択状態は syncAncestorSelection で配下の選択状況から再計算する。
 export function togglePrefectureInState(
   selection: RegionSelection,
   prefName: string,
@@ -186,57 +210,42 @@ export function togglePrefectureInState(
   );
   if (!prefecture) return selection;
 
-  if (selection.prefectures.includes(prefName)) {
-    return {
-      regions: selection.regions,
-      prefectures: selection.prefectures.filter((p) => p !== prefName),
-      cities: selection.cities.filter(
-        (c) =>
-          !prefecture.cities.some(
-            (city) => buildCityKey(prefName, city.name) === c,
-          ),
-      ),
-    };
-  }
+  const prefCityKeys = prefecture.cities.map((c) =>
+    buildCityKey(prefName, c.name),
+  );
+  const isCurrentlySelected = selection.prefectures.includes(prefName);
+  const cities = isCurrentlySelected
+    ? selection.cities.filter((c) => !prefCityKeys.includes(c))
+    : [...new Set([...selection.cities, ...prefCityKeys])];
+  // 市区町村を持たない都道府県は市区町村経由で選択できないため、直接反転させる
+  const currentPrefectures =
+    prefCityKeys.length > 0
+      ? selection.prefectures
+      : isCurrentlySelected
+        ? selection.prefectures.filter((p) => p !== prefName)
+        : [...selection.prefectures, prefName];
 
-  const newCityKeys = prefecture.cities
-    .map((c) => buildCityKey(prefName, c.name))
-    .filter((c) => !selection.cities.includes(c));
   return {
-    regions: selection.regions,
-    prefectures: [...selection.prefectures, prefName],
-    cities: [...selection.cities, ...newCityKeys],
+    ...syncAncestorSelection(currentPrefectures, cities),
+    cities,
   };
 }
 
-// 市区町村の選択を反転する。解除した市区町村の親の都道府県・地方は
-// 全選択の条件を満たさなくなるため、選択から併せて外す。
+// 市区町村の選択を反転する。都道府県・地方の選択状態は syncAncestorSelection で
+// 配下の選択状況から再計算するため、全選択時の昇格・一部解除時の解除が自動的に追従する。
 export function toggleCityInState(
   selection: RegionSelection,
   prefName: string,
   cityName: string,
 ): RegionSelection {
   const cityKey = buildCityKey(prefName, cityName);
-  if (!selection.cities.includes(cityKey)) {
-    return {
-      regions: selection.regions,
-      prefectures: selection.prefectures,
-      cities: [...selection.cities, cityKey],
-    };
-  }
+  const cities = selection.cities.includes(cityKey)
+    ? selection.cities.filter((c) => c !== cityKey)
+    : [...selection.cities, cityKey];
 
-  const region = REGIONS.find((r) =>
-    r.prefectures.some((p) => p.name === prefName),
-  );
-  if (!region) return selection;
   return {
-    regions: selection.regions.includes(region.name)
-      ? selection.regions.filter((r) => r !== region.name)
-      : selection.regions,
-    prefectures: selection.prefectures.includes(prefName)
-      ? selection.prefectures.filter((p) => p !== prefName)
-      : selection.prefectures,
-    cities: selection.cities.filter((c) => c !== cityKey),
+    ...syncAncestorSelection(selection.prefectures, cities),
+    cities,
   };
 }
 
