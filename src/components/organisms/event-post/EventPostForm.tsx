@@ -5,12 +5,12 @@ import { useEffect, useId, useRef } from "react";
 import { FormInput } from "@/components/atoms/FormInput";
 import { FormTextarea } from "@/components/atoms/FormTextarea";
 import { PaymentAlertNote } from "@/components/atoms/event-post/PaymentAlertNote";
+import { CitySelectField } from "@/components/molecules/CitySelectField";
 import { FileDropZone } from "@/components/molecules/FileDropZone";
 import { FormCard } from "@/components/molecules/FormCard";
 import { FormField } from "@/components/molecules/FormField";
-import { UnitInput } from "@/components/molecules/UnitInput";
-import { CitySelectField } from "@/components/molecules/CitySelectField";
 import { PrefectureSelectField } from "@/components/molecules/PrefectureSelectField";
+import { UnitInput } from "@/components/molecules/UnitInput";
 import { PriceCategoryField } from "@/components/molecules/event-post/PriceCategoryField";
 import { RequiredItemField } from "@/components/molecules/event-post/RequiredItemField";
 import { TagInputField } from "@/components/molecules/event-post/TagInputField";
@@ -117,7 +117,7 @@ export function EventPostForm({
 
   return (
     <div ref={containerRef} className="space-y-4">
-      <div id={EVENT_TITLE_SECTION_ID} className="scroll-mt-6">
+      <div id={EVENT_TITLE_SECTION_ID} className="scroll-mt-24">
         <FormCard>
           <FormField
             id={getFieldId("eventName")}
