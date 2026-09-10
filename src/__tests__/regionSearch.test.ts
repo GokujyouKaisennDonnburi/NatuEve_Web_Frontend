@@ -6,10 +6,9 @@ const cityKeysOf = (prefectureName: string): string[] => {
   const prefecture = REGIONS.flatMap((region) => region.prefectures).find(
     (p) => p.name === prefectureName,
   );
-  return (
-    prefecture?.cities.map((city) =>
-      buildCityKey(prefecture.name, city.name),
-    ) ?? []
+  if (!prefecture) return [];
+  return prefecture.cities.map((city) =>
+    buildCityKey(prefecture.name, city.name),
   );
 };
 
