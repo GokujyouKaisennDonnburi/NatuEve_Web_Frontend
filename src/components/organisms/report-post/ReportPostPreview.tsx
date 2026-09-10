@@ -8,6 +8,7 @@ import type { EventDetailType } from "@/components/molecules/event-detail/types"
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import type { ReportDetail } from "@/types/report";
 import { resolveEventStatus } from "@/utils/eventStatus";
+import { preventImplicitSubmit } from "@/utils/form";
 import { Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -97,12 +98,14 @@ export function ReportPostPreview({
   const organizerAvatarUrl =
     event?.organizerAvatarUrl ?? event?.profile?.avatarUrl;
 
+  // 単一行 input で Enter を押した際の暗黙の送信を止める（type="submit" ボタンによる意図的な送信は残す）
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit();
       }}
+      onKeyDown={preventImplicitSubmit}
       noValidate
       className="space-y-4"
     >

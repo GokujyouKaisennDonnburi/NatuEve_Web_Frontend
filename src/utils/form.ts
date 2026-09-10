@@ -1,7 +1,9 @@
 import type { KeyboardEvent } from "react";
 
 // Enter を押しても既定の動作を残す input の type。
-// file はファイル選択ダイアログ、submit / button / reset / image はボタンとしての実行を壊さないため。
+// file は Enter でファイル選択ダイアログが開くため。
+// submit / button / reset / image は現状どのフォームでも使っていないが、
+// 後から入ったときに Enter で押せなくなる事故を防ぐため安全側に倒して除外しておく。
 const KEEP_DEFAULT_INPUT_TYPES = new Set([
   "file",
   "submit",

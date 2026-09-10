@@ -7,6 +7,7 @@ import { FormCard } from "@/components/molecules/FormCard";
 import { FormField } from "@/components/molecules/FormField";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { preventImplicitSubmit } from "@/utils/form";
 import { validateUploadFile } from "@/utils/upload";
 import type React from "react";
 
@@ -35,12 +36,14 @@ export function ReportPostForm({
   onCancel,
   isSubmitting,
 }: Readonly<ReportPostFormProps>) {
+  // 単一行 input で Enter を押した際の暗黙の送信を止める（type="submit" ボタンによる意図的な送信は残す）
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit();
       }}
+      onKeyDown={preventImplicitSubmit}
       noValidate
       className="space-y-4"
     >

@@ -26,7 +26,7 @@ function TestForm() {
 }
 
 describe("preventImplicitSubmit", () => {
-  it("テキスト input で Enter を押すと暗黙の送信を止める", () => {
+  it("テキスト input の Enter では preventDefault される（暗黙の送信を止める）", () => {
     render(<TestForm />);
     const result = fireEvent.keyDown(screen.getByLabelText("タイトル"), {
       key: "Enter",
@@ -34,7 +34,7 @@ describe("preventImplicitSubmit", () => {
     expect(result).toBe(false);
   });
 
-  it("textarea で Enter を押しても改行を残すため止めない", () => {
+  it("textarea の Enter では preventDefault されない（改行を残すため）", () => {
     render(<TestForm />);
     const result = fireEvent.keyDown(screen.getByLabelText("本文"), {
       key: "Enter",
@@ -42,7 +42,7 @@ describe("preventImplicitSubmit", () => {
     expect(result).toBe(true);
   });
 
-  it("type=submit のボタンで Enter を押してもキーボードで投稿できるよう止めない", () => {
+  it("type=submit のボタンの Enter では preventDefault されない（キーボードで投稿できるようにするため）", () => {
     render(<TestForm />);
     const result = fireEvent.keyDown(screen.getByText("送信"), {
       key: "Enter",
@@ -50,7 +50,7 @@ describe("preventImplicitSubmit", () => {
     expect(result).toBe(true);
   });
 
-  it("type=file の input で Enter を押しても止めない", () => {
+  it("type=file の input の Enter では preventDefault されない（ファイル選択ダイアログを残すため）", () => {
     render(<TestForm />);
     const result = fireEvent.keyDown(screen.getByLabelText("添付ファイル"), {
       key: "Enter",
@@ -58,7 +58,7 @@ describe("preventImplicitSubmit", () => {
     expect(result).toBe(true);
   });
 
-  it("IME 変換確定の Enter（isComposing: true）では止めない", () => {
+  it("IME 変換確定の Enter（isComposing: true）では preventDefault されない", () => {
     render(<TestForm />);
     const result = fireEvent.keyDown(screen.getByLabelText("タイトル"), {
       key: "Enter",
@@ -67,7 +67,7 @@ describe("preventImplicitSubmit", () => {
     expect(result).toBe(true);
   });
 
-  it("Enter 以外のキーでは止めない", () => {
+  it("Enter 以外のキーでは preventDefault されない", () => {
     render(<TestForm />);
     const result = fireEvent.keyDown(screen.getByLabelText("タイトル"), {
       key: "a",
