@@ -69,7 +69,7 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="w-full border-b border-slate-200/80 bg-white">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white">
       <div className="relative mx-auto flex h-14 w-full max-w-6xl items-center px-4 sm:px-8 lg:px-10">
         {/* ロゴとサイト名 */}
         <div className="flex items-center gap-0.5">
