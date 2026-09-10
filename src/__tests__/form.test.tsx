@@ -10,7 +10,8 @@ afterEach(() => {
 });
 
 // preventImplicitSubmit の動作確認用の小さな form。
-// テキスト input / textarea / submit ボタン / file input を含める。
+// 暗黙の送信が起きる type（text / datetime-local / type 省略）と、
+// 起きない type（file / checkbox）、textarea、submit ボタンを並べている。
 function TestForm() {
   return (
     <form
@@ -18,8 +19,11 @@ function TestForm() {
       onSubmit={(event) => event.preventDefault()}
     >
       <input type="text" aria-label="タイトル" />
+      <input aria-label="タグ" />
+      <input type="datetime-local" aria-label="開催日時" />
       <textarea aria-label="本文" />
       <input type="file" aria-label="添付ファイル" />
+      <input type="checkbox" aria-label="必須の持ち物" />
       <button type="submit">送信</button>
     </form>
   );
@@ -29,6 +33,22 @@ describe("preventImplicitSubmit", () => {
   it("テキスト input の Enter では preventDefault される（暗黙の送信を止める）", () => {
     render(<TestForm />);
     const result = fireEvent.keyDown(screen.getByLabelText("タイトル"), {
+      key: "Enter",
+    });
+    expect(result).toBe(false);
+  });
+
+  it("type を書いていない input の Enter でも preventDefault される", () => {
+    render(<TestForm />);
+    const result = fireEvent.keyDown(screen.getByLabelText("タグ"), {
+      key: "Enter",
+    });
+    expect(result).toBe(false);
+  });
+
+  it("datetime-local の Enter では preventDefault される", () => {
+    render(<TestForm />);
+    const result = fireEvent.keyDown(screen.getByLabelText("開催日時"), {
       key: "Enter",
     });
     expect(result).toBe(false);
@@ -50,9 +70,17 @@ describe("preventImplicitSubmit", () => {
     expect(result).toBe(true);
   });
 
-  it("type=file の input の Enter では preventDefault されない（ファイル選択ダイアログを残すため）", () => {
+  it("type=file の input の Enter では preventDefault されない", () => {
     render(<TestForm />);
     const result = fireEvent.keyDown(screen.getByLabelText("添付ファイル"), {
+      key: "Enter",
+    });
+    expect(result).toBe(true);
+  });
+
+  it("checkbox の Enter では preventDefault されない（暗黙の送信を起こさないため）", () => {
+    render(<TestForm />);
+    const result = fireEvent.keyDown(screen.getByLabelText("必須の持ち物"), {
       key: "Enter",
     });
     expect(result).toBe(true);
