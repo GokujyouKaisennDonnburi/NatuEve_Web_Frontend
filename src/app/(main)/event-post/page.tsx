@@ -19,6 +19,7 @@ import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
+import { preventImplicitSubmit } from "@/utils/form";
 
 type PostMode = "edit" | "preview";
 
@@ -71,7 +72,13 @@ export default function EventPostPage() {
           />
         }
       />
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      {/* 単一行 input で Enter を押した際の暗黙の送信を止める（type="submit" ボタンによる意図的な送信は残す） */}
+      <form
+        onSubmit={handleSubmit}
+        onKeyDown={preventImplicitSubmit}
+        noValidate
+        className="space-y-4"
+      >
         <div className="flex flex-col gap-8 lg:flex-row">
           {mode === "edit" ? (
             <aside className="hidden shrink-0 lg:block lg:w-44">
