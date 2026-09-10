@@ -94,7 +94,7 @@ export function PageToc({ sections, className }: Readonly<PageTocProps>) {
   }
 
   return (
-    <nav aria-label="目次" className={cn("sticky top-8", className)}>
+    <nav aria-label="目次" className={cn("sticky top-20", className)}>
       <p className="mb-3 px-3 text-sm font-semibold text-slate-800">目次</p>
       <ul className="space-y-1">
         {sections.map((section) => {
