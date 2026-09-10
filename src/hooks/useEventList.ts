@@ -53,6 +53,8 @@ export function useEventList({
         const offset = (currentPage - 1) * itemsPerPage;
         const order = sortBy === "event_date" ? "asc" : "desc";
 
+        // 検索クエリが空・空白のみの場合は keywords を未指定にして、
+        // キーワードなしの通常の一覧取得とする
         let keywords: string[] | undefined;
         if (searchQuery) {
           keywords = searchQuery
