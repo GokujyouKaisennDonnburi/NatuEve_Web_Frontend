@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { useId, useState } from "react";
 
 type SearchBarProps = {
@@ -33,10 +33,6 @@ export function SearchBar({
     }
   };
 
-  const clearInput = () => {
-    setValue("");
-  };
-
   return (
     <div
       className={cn(
@@ -59,21 +55,14 @@ export function SearchBar({
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          // right-[91px] は検索ボタン領域分の余白。テキストボックスが
-          // 検索ボタンの下に重なるのを防ぎ、検索ボタンの判定を優先させる
-          className="absolute left-[47px] right-[91px] top-1/2 -translate-y-1/2 h-[23px] border-0 bg-transparent p-0 text-[15px] leading-[22px] text-[#757575] placeholder:text-[#757575] shadow-none focus-visible:ring-0 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
+          // w-auto で ui/input の w-full を打ち消さないと absolute 時に
+          // right-[91px] が無視され、テキストボックスが検索ボタンの下まで
+          // 重なって検索ボタンを押せなくなる。
+          // right-[91px] は検索ボタン領域分の余白で、テキストボックス右端
+          // (= ネイティブのクリアボタン位置) を検索ボタンの左側に固定する
+          className="absolute left-[47px] right-[91px] w-auto top-1/2 -translate-y-1/2 h-[23px] border-0 bg-transparent p-0 text-[15px] leading-[22px] text-[#757575] placeholder:text-[#757575] shadow-none focus-visible:ring-0 [&::-webkit-search-decoration]:hidden"
           autoComplete="off"
         />
-        {value !== "" && (
-          <button
-            type="button"
-            onClick={clearInput}
-            aria-label="検索条件をクリア"
-            className="absolute right-[91px] top-1/2 -translate-y-1/2 inline-flex h-[20px] w-[20px] items-center justify-center rounded-full bg-[#A8B1A2] text-white transition hover:bg-[#8A9484] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#97C459]/50"
-          >
-            <X className="h-[12px] w-[12px]" />
-          </button>
-        )}
       </div>
       <Button
         type="button"
