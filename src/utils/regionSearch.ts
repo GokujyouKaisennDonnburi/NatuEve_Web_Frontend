@@ -68,12 +68,19 @@ export function buildLocation(
     .join("");
 }
 
+// 市区町村を都道府県とセットで一意に識別するためのキーを返す。
+// 府中市や伊達市のように複数の都道府県に同名の市区町村が存在するため、親都道府県名を前置する。
+// location パラメータ（例: 福島県伊達市）と同じ形式で表現する。
+export function buildCityKey(prefecture: string, city: string): string {
+  return `${prefecture}${city}`;
+}
+
 // イベント一覧の地域フィルターで選択された状態を API の location パラメータへ変換する。
 // ・都道府県が選択されている場合は都道府県名を送る。
 //   地域の選択は selectedPrefectures へ配下の都道府県が展開されるため、ここでは
 //   selectedPrefectures を選択の実体として扱う（地域で個別に解除された都道府県は含めない）。
 // ・市区町村が一部だけ選択されている場合は「都道府県名＋市区町村名」を送る（親都道府県名を前置）。
-//   （府中市のように複数の都道府県に同名の市区町村が存在するため、部分一致の誤ヒットを避ける）
+//   選択状態も buildCityKey のキーで管理するため、同名の市区町村でも都道府県ごとに区別できる。
 // ・市区町村が全件選択されている場合は、地域マスタと照合して都道府県1件にまとめる。
 // ・最後に重複を除去する。
 // ・全都道府県を網羅する（全国すべて）選択の場合は、絞り込みが意味をなさないため
@@ -93,7 +100,7 @@ export function buildLocationFilters(
 
       // 地域マスタの全市区町村と照合して、選択済みの市区町村を求める
       const selectedCities = prefecture.cities.filter((city) =>
-        cities.includes(city.name),
+        cities.includes(buildCityKey(prefecture.name, city.name)),
       );
 
       if (
