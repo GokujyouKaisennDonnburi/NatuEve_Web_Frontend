@@ -32,16 +32,26 @@ export function TagInputField({
   error,
 }: Readonly<TagInputFieldProps>) {
   const [draft, setDraft] = useState("");
+  // 作成 API の往復だけでなく、409 後に一覧を取り直す間も操作を止めたい。
+  // useCreateTag の isSubmitting は作成 API が終わった時点で false に戻るため、
+  // リカバリまで含めた「追加処理中」はこちらで持つ。
+  const [isAdding, setIsAdding] = useState(false);
   const { isSubmitting, submit } = useCreateTag();
-  const { tags: allTags, isLoading: isTagsLoading } = useTags();
+  const {
+    tags: allTags,
+    isLoading: isTagsLoading,
+    addTag,
+    refetch: refetchTags,
+  } = useTags();
   const trimmedDraft = draft.trim();
   const normalizedDraft = normalize(trimmedDraft);
   // 追加済みタグとの重複は、大文字小文字や全角半角の違いを無視して判定する
   const normalizedTagNames = new Set(tags.map((t) => normalize(t.name)));
   const isDuplicate =
     trimmedDraft.length > 0 && normalizedTagNames.has(normalizedDraft);
+  const isBusy = isSubmitting || isAdding;
   // 件数の上限はトーストで知らせるため、追加ボタンは無効化しない
-  const isAddDisabled = !trimmedDraft || isDuplicate || isSubmitting;
+  const isAddDisabled = !trimmedDraft || isDuplicate || isBusy;
   const helperId = `${id}-helper`;
 
   const latestTagsRef = useRef(tags);
@@ -67,13 +77,53 @@ export function TagInputField({
     return false;
   };
 
+  // 409 duplicate_tag のリカバリ。サーバーには存在するが手元の一覧に無いことがあるため、
+  // 見つからなければ一覧を取り直してから探す。409 のレスポンスボディは
+  // { error: { code, message } } のみで既存タグの id を含まないので、一覧から引くしかない。
+  const addExistingTag = async (name: string) => {
+    const normalizedName = normalize(name);
+    const findExisting = (candidates: TagItem[]) =>
+      candidates.find((t) => normalize(t.name) === normalizedName);
+
+    let existing = findExisting(allTags);
+    if (!existing) {
+      try {
+        existing = findExisting(await refetchTags());
+      } catch (caughtError) {
+        console.error("タグ一覧の再取得に失敗しました。", caughtError);
+      }
+    }
+
+    if (!existing) {
+      toast.error(MESSAGES.TAG_ADD_FAILED);
+      return;
+    }
+
+    // ここまでに await を挟んでいるので、追加可否は最新の tags でもう一度見る。
+    // handleSuggestionSelect と同じ判定を通し、上限超過や重複をすり抜けさせない。
+    if (rejectWhenCountExceeded()) {
+      return;
+    }
+    const alreadyAdded = latestTagsRef.current.some(
+      (t) => t.id === existing.id,
+    );
+    if (!alreadyAdded) {
+      onTagsChange([...latestTagsRef.current, existing]);
+    }
+    setDraft("");
+  };
+
   const handleAdd = async () => {
     if (isAddDisabled || rejectWhenCountExceeded()) {
       return;
     }
     const name = trimmedDraft;
+    setIsAdding(true);
     try {
       const created = await submit(name);
+      // 作成したタグを一覧にも反映する。これが無いと、追加 → 削除 → 同名を再追加したときに
+      // 候補にも重複判定にも現れず、409 を踏んでから探し直すことになる。
+      addTag(created);
       onTagsChange([
         ...latestTagsRef.current,
         { id: created.id, name: created.name },
@@ -84,13 +134,7 @@ export function TagInputField({
         caughtError instanceof TagError &&
         caughtError.code === TagErrorCode.DuplicateTag
       ) {
-        const existing = allTags.find(
-          (t) => normalize(t.name) === normalize(name),
-        );
-        if (existing) {
-          onTagsChange([...latestTagsRef.current, existing]);
-          setDraft("");
-        }
+        await addExistingTag(name);
         return;
       }
       console.error("タグの作成に失敗しました。", caughtError);
@@ -99,6 +143,8 @@ export function TagInputField({
           ? caughtError.message
           : "タグの作成に失敗しました。時間をおいて再度お試しください。",
       );
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -167,7 +213,7 @@ export function TagInputField({
                 onKeyDown={onKeyDown}
                 onFocus={onFocus}
                 placeholder="タグを入力（例: 野鳥）"
-                disabled={isSubmitting}
+                disabled={isBusy}
                 aria-invalid={Boolean(error) || isDuplicate}
                 aria-describedby={isDuplicate ? helperId : undefined}
                 aria-expanded={showDropdown}
@@ -187,7 +233,7 @@ export function TagInputField({
           disabled={isAddDisabled}
           className="h-11 shrink-0"
         >
-          {isSubmitting ? "追加中…" : "追加"}
+          {isBusy ? "追加中…" : "追加"}
         </AddItemButton>
       </div>
 
