@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { Region } from "@/constants/regions";
 import { REGIONS } from "@/constants/regions";
+import { buildCityKey } from "@/utils/regionSearch";
 import { ChevronDown } from "lucide-react";
 
 type RegionFilterProps = {
@@ -79,24 +80,24 @@ export function RegionFilter({
 
     if (isCurrentlySelected) {
       const allPrefs = region.prefectures.map((p) => p.name);
-      const allCities = region.prefectures.flatMap((p) =>
-        p.cities.map((c) => c.name),
+      const allCityKeys = region.prefectures.flatMap((p) =>
+        p.cities.map((c) => buildCityKey(p.name, c.name)),
       );
       onRegionsChange?.(selectedRegions.filter((r) => r !== regionName));
       onPrefecturesChange?.(
         selectedPrefectures.filter((p) => !allPrefs.includes(p)),
       );
-      onCitiesChange?.(selectedCities.filter((c) => !allCities.includes(c)));
+      onCitiesChange?.(selectedCities.filter((c) => !allCityKeys.includes(c)));
     } else {
       const newPrefs = region.prefectures
         .map((p) => p.name)
         .filter((p) => !selectedPrefectures.includes(p));
-      const newCities = region.prefectures
-        .flatMap((p) => p.cities.map((c) => c.name))
+      const newCityKeys = region.prefectures
+        .flatMap((p) => p.cities.map((c) => buildCityKey(p.name, c.name)))
         .filter((c) => !selectedCities.includes(c));
       onRegionsChange?.([...selectedRegions, regionName]);
       onPrefecturesChange?.([...selectedPrefectures, ...newPrefs]);
-      onCitiesChange?.([...selectedCities, ...newCities]);
+      onCitiesChange?.([...selectedCities, ...newCityKeys]);
     }
     onToggleRegion?.(regionName);
   };
@@ -113,42 +114,41 @@ export function RegionFilter({
       onPrefecturesChange?.(selectedPrefectures.filter((p) => p !== prefName));
       onCitiesChange?.(
         selectedCities.filter(
-          (c) => !pref.cities.some((city) => city.name === c),
+          (c) =>
+            !pref.cities.some(
+              (city) => buildCityKey(prefName, city.name) === c,
+            ),
         ),
       );
     } else {
-      const newCities = pref.cities
-        .map((c) => c.name)
+      const newCityKeys = pref.cities
+        .map((c) => buildCityKey(prefName, c.name))
         .filter((c) => !selectedCities.includes(c));
       onPrefecturesChange?.([...selectedPrefectures, prefName]);
-      onCitiesChange?.([...selectedCities, ...newCities]);
+      onCitiesChange?.([...selectedCities, ...newCityKeys]);
     }
     onTogglePrefecture?.(prefName);
   };
 
-  const toggleCity = (cityName: string) => {
-    if (selectedCities.includes(cityName)) {
-      onCitiesChange?.(selectedCities.filter((c) => c !== cityName));
+  const toggleCity = (prefName: string, cityName: string) => {
+    const cityKey = buildCityKey(prefName, cityName);
+    if (selectedCities.includes(cityKey)) {
+      onCitiesChange?.(selectedCities.filter((c) => c !== cityKey));
 
-      for (const region of REGIONS) {
-        for (const pref of region.prefectures) {
-          if (pref.cities.some((c) => c.name === cityName)) {
-            if (selectedPrefectures.includes(pref.name)) {
-              onPrefecturesChange?.(
-                selectedPrefectures.filter((p) => p !== pref.name),
-              );
-            }
-            if (selectedRegions.includes(region.name)) {
-              onRegionsChange?.(
-                selectedRegions.filter((r) => r !== region.name),
-              );
-            }
-            return;
-          }
-        }
+      const region = REGIONS.find((r) =>
+        r.prefectures.some((p) => p.name === prefName),
+      );
+      if (!region) return;
+      if (selectedPrefectures.includes(prefName)) {
+        onPrefecturesChange?.(
+          selectedPrefectures.filter((p) => p !== prefName),
+        );
+      }
+      if (selectedRegions.includes(region.name)) {
+        onRegionsChange?.(selectedRegions.filter((r) => r !== region.name));
       }
     } else {
-      onCitiesChange?.([...selectedCities, cityName]);
+      onCitiesChange?.([...selectedCities, cityKey]);
     }
   };
 
@@ -158,15 +158,15 @@ export function RegionFilter({
     const region = REGIONS.find((r) => r.name === regionName);
     if (!region) return "unchecked";
     const allPrefs = region.prefectures.map((p) => p.name);
-    const allCities = region.prefectures.flatMap((p) =>
-      p.cities.map((c) => c.name),
+    const allCityKeys = region.prefectures.flatMap((p) =>
+      p.cities.map((c) => buildCityKey(p.name, c.name)),
     );
 
     let selectedCount = 0;
     for (const p of allPrefs) {
       if (selectedPrefectures.includes(p)) selectedCount++;
     }
-    for (const c of allCities) {
+    for (const c of allCityKeys) {
       if (selectedCities.includes(c)) selectedCount++;
     }
 
@@ -187,7 +187,7 @@ export function RegionFilter({
     if (!pref) return "unchecked";
 
     const hasCitySelected = pref.cities.some((c) =>
-      selectedCities.includes(c.name),
+      selectedCities.includes(buildCityKey(prefName, c.name)),
     );
     if (hasCitySelected) return "indeterminate";
     return "unchecked";
@@ -299,13 +299,15 @@ export function RegionFilter({
                           <div className="ml-[22px] mt-[2px] flex flex-wrap gap-[2px]">
                             {pref.cities.map((city) => {
                               const isCitySelected = selectedCities.includes(
-                                city.name,
+                                buildCityKey(pref.name, city.name),
                               );
                               return (
                                 <button
                                   key={city.name}
                                   type="button"
-                                  onClick={() => toggleCity(city.name)}
+                                  onClick={() =>
+                                    toggleCity(pref.name, city.name)
+                                  }
                                   className={cn(
                                     "flex items-center h-[22px] bg-transparent px-[8px] text-sm leading-5 text-[#3A4237] font-normal",
                                     isCitySelected && "font-bold",
