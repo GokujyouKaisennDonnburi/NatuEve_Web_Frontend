@@ -109,6 +109,22 @@ describe("togglePrefectureInState", () => {
     expect(next.prefectures).toEqual([]);
     expect(next.cities).toEqual([]);
   });
+
+  it("配下の都道府県を個別に全て選択すると地方のチェックが付く", () => {
+    const next = prefNamesOf("東北").reduce(
+      (selection, prefName) => togglePrefectureInState(selection, prefName),
+      EMPTY,
+    );
+    expect(next.regions).toContain("東北");
+  });
+
+  it("地方選択後に都道府県を1つ解除すると地方のチェックも外れる", () => {
+    const selected = toggleRegionInState(EMPTY, "東北");
+    const next = togglePrefectureInState(selected, "福島県");
+    expect(next.prefectures).not.toContain("福島県");
+    expect(next.prefectures).toContain("青森県");
+    expect(next.regions).not.toContain("東北");
+  });
 });
 
 describe("toggleCityInState", () => {
@@ -129,6 +145,17 @@ describe("toggleCityInState", () => {
     expect(next.cities).not.toContain("北海道伊達市");
     expect(next.prefectures).toEqual([]);
     expect(next.regions).toEqual([]);
+  });
+
+  it("解除した市区町村を再選択すると都道府県と地方のチェックが復活する", () => {
+    const selected = toggleRegionInState(EMPTY, "東北");
+    const deselected = toggleCityInState(selected, "福島県", "伊達市");
+    expect(deselected.prefectures).not.toContain("福島県");
+    expect(deselected.regions).not.toContain("東北");
+
+    const reselected = toggleCityInState(deselected, "福島県", "伊達市");
+    expect(reselected.prefectures).toContain("福島県");
+    expect(reselected.regions).toContain("東北");
   });
 });
 
