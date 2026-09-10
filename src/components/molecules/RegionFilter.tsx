@@ -3,7 +3,15 @@
 import { cn } from "@/lib/utils";
 import type { Region } from "@/constants/regions";
 import { REGIONS } from "@/constants/regions";
-import { buildCityKey } from "@/utils/regionSearch";
+import {
+  buildCityKey,
+  getPrefectureStatus,
+  getRegionStatus,
+  toggleCityInState,
+  togglePrefectureInState,
+  toggleRegionInState,
+  type RegionSelection,
+} from "@/utils/regionSearch";
 import { ChevronDown } from "lucide-react";
 
 type RegionFilterProps = {
@@ -72,125 +80,31 @@ export function RegionFilter({
   onTogglePrefecture,
   className,
 }: Readonly<RegionFilterProps>) {
+  const selection: RegionSelection = {
+    regions: selectedRegions,
+    prefectures: selectedPrefectures,
+    cities: selectedCities,
+  };
+
+  // 純粋関数で算出した次の選択状態をそのまま親へ渡す
+  const applySelection = (next: RegionSelection) => {
+    onRegionsChange?.(next.regions);
+    onPrefecturesChange?.(next.prefectures);
+    onCitiesChange?.(next.cities);
+  };
+
   const toggleRegion = (regionName: string) => {
-    const region = REGIONS.find((r) => r.name === regionName);
-    if (!region) return;
-
-    const isCurrentlySelected = selectedRegions.includes(regionName);
-
-    if (isCurrentlySelected) {
-      const allPrefs = region.prefectures.map((p) => p.name);
-      const allCityKeys = region.prefectures.flatMap((p) =>
-        p.cities.map((c) => buildCityKey(p.name, c.name)),
-      );
-      onRegionsChange?.(selectedRegions.filter((r) => r !== regionName));
-      onPrefecturesChange?.(
-        selectedPrefectures.filter((p) => !allPrefs.includes(p)),
-      );
-      onCitiesChange?.(selectedCities.filter((c) => !allCityKeys.includes(c)));
-    } else {
-      const newPrefs = region.prefectures
-        .map((p) => p.name)
-        .filter((p) => !selectedPrefectures.includes(p));
-      const newCityKeys = region.prefectures
-        .flatMap((p) => p.cities.map((c) => buildCityKey(p.name, c.name)))
-        .filter((c) => !selectedCities.includes(c));
-      onRegionsChange?.([...selectedRegions, regionName]);
-      onPrefecturesChange?.([...selectedPrefectures, ...newPrefs]);
-      onCitiesChange?.([...selectedCities, ...newCityKeys]);
-    }
+    applySelection(toggleRegionInState(selection, regionName));
     onToggleRegion?.(regionName);
   };
 
-  const togglePrefecture = (regionName: string, prefName: string) => {
-    const region = REGIONS.find((r) => r.name === regionName);
-    if (!region) return;
-    const pref = region.prefectures.find((p) => p.name === prefName);
-    if (!pref) return;
-
-    const isCurrentlySelected = selectedPrefectures.includes(prefName);
-
-    if (isCurrentlySelected) {
-      onPrefecturesChange?.(selectedPrefectures.filter((p) => p !== prefName));
-      onCitiesChange?.(
-        selectedCities.filter(
-          (c) =>
-            !pref.cities.some(
-              (city) => buildCityKey(prefName, city.name) === c,
-            ),
-        ),
-      );
-    } else {
-      const newCityKeys = pref.cities
-        .map((c) => buildCityKey(prefName, c.name))
-        .filter((c) => !selectedCities.includes(c));
-      onPrefecturesChange?.([...selectedPrefectures, prefName]);
-      onCitiesChange?.([...selectedCities, ...newCityKeys]);
-    }
+  const togglePrefecture = (prefName: string) => {
+    applySelection(togglePrefectureInState(selection, prefName));
     onTogglePrefecture?.(prefName);
   };
 
   const toggleCity = (prefName: string, cityName: string) => {
-    const cityKey = buildCityKey(prefName, cityName);
-    if (selectedCities.includes(cityKey)) {
-      onCitiesChange?.(selectedCities.filter((c) => c !== cityKey));
-
-      const region = REGIONS.find((r) =>
-        r.prefectures.some((p) => p.name === prefName),
-      );
-      if (!region) return;
-      if (selectedPrefectures.includes(prefName)) {
-        onPrefecturesChange?.(
-          selectedPrefectures.filter((p) => p !== prefName),
-        );
-      }
-      if (selectedRegions.includes(region.name)) {
-        onRegionsChange?.(selectedRegions.filter((r) => r !== region.name));
-      }
-    } else {
-      onCitiesChange?.([...selectedCities, cityKey]);
-    }
-  };
-
-  const getRegionStatus = (
-    regionName: string,
-  ): "checked" | "indeterminate" | "unchecked" => {
-    const region = REGIONS.find((r) => r.name === regionName);
-    if (!region) return "unchecked";
-    const allPrefs = region.prefectures.map((p) => p.name);
-    const allCityKeys = region.prefectures.flatMap((p) =>
-      p.cities.map((c) => buildCityKey(p.name, c.name)),
-    );
-
-    let selectedCount = 0;
-    for (const p of allPrefs) {
-      if (selectedPrefectures.includes(p)) selectedCount++;
-    }
-    for (const c of allCityKeys) {
-      if (selectedCities.includes(c)) selectedCount++;
-    }
-
-    if (selectedRegions.includes(regionName)) return "checked";
-    if (selectedCount > 0) return "indeterminate";
-    return "unchecked";
-  };
-
-  const getPrefStatus = (
-    prefName: string,
-  ): "checked" | "indeterminate" | "unchecked" => {
-    if (selectedPrefectures.includes(prefName)) return "checked";
-    const region = REGIONS.find((r) =>
-      r.prefectures.some((p) => p.name === prefName),
-    );
-    if (!region) return "unchecked";
-    const pref = region.prefectures.find((p) => p.name === prefName);
-    if (!pref) return "unchecked";
-
-    const hasCitySelected = pref.cities.some((c) =>
-      selectedCities.includes(buildCityKey(prefName, c.name)),
-    );
-    if (hasCitySelected) return "indeterminate";
-    return "unchecked";
+    applySelection(toggleCityInState(selection, prefName, cityName));
   };
 
   return (
@@ -201,7 +115,7 @@ export function RegionFilter({
 
       <div className="space-y-[2px]">
         {REGIONS.map((region: Region) => {
-          const regionStatus = getRegionStatus(region.name);
+          const regionStatus = getRegionStatus(selection, region.name);
           const isRegionExpanded = expandedRegions.includes(region.name);
 
           return (
@@ -246,7 +160,10 @@ export function RegionFilter({
               {isRegionExpanded && (
                 <div className="ml-[22px] mt-[2px] space-y-[2px]">
                   {region.prefectures.map((pref) => {
-                    const prefStatus = getPrefStatus(pref.name);
+                    const prefStatus = getPrefectureStatus(
+                      selection,
+                      pref.name,
+                    );
                     const isPrefExpanded = expandedPrefectures.includes(
                       pref.name,
                     );
@@ -256,9 +173,7 @@ export function RegionFilter({
                         <div className="relative w-full h-[22px]">
                           <button
                             type="button"
-                            onClick={() =>
-                              togglePrefecture(region.name, pref.name)
-                            }
+                            onClick={() => togglePrefecture(pref.name)}
                             className="flex items-center w-full h-full bg-transparent pl-[8px] pr-[18px] text-left cursor-pointer"
                           >
                             <Checkbox
