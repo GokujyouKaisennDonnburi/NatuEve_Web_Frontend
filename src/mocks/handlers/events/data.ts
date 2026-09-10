@@ -118,13 +118,26 @@ const SAMPLE_LOCATION_POOL: string[] = [
 // ダミーイベントデータの初期値を生成
 const createInitialDummyEvents = (): MockEvent[] => {
   return Array.from({ length: 100 }).map((_, index) => {
-    const base = new Date(Date.UTC(2026, 5, 22 + index));
+    // 現在日時を基準に相対的な開催日を生成する。
+    // 3件に1件は終了済み（過去開催）、残りは開催前とし、時間の経過後も
+    // 開催状況(status)絞り込みや「開催日が近い順」ソートの挙動を検証できるようにしている。
+    const dayOffset = index % 3 === 0 ? -(index + 1) : index + 1;
+    const base = new Date(Date.now() + dayOffset * 24 * 60 * 60 * 1000);
     const yyyy = base.getUTCFullYear();
     const mm = String(base.getUTCMonth() + 1).padStart(2, "0");
     const dd = String(base.getUTCDate()).padStart(2, "0");
     const isMorning = index % 2 === 0;
 
-    const postedDate = new Date(Date.UTC(2026, 1, 1 + index, 7 - 9, index * 5)); // JSTの7時はUTCだと-9時間
+    // 投稿日時は開催日の (index + 1) 日前とし、createdAt も広くばらす。
+    const postedDate = new Date(
+      Date.UTC(
+        base.getUTCFullYear(),
+        base.getUTCMonth(),
+        base.getUTCDate() - (index + 1),
+        7 - 9,
+        index * 5,
+      ),
+    ); // JSTの7時はUTCだと-9時間
     const pYyyy = postedDate.getUTCFullYear();
     const pMm = String(postedDate.getUTCMonth() + 1).padStart(2, "0");
     const pDd = String(postedDate.getUTCDate()).padStart(2, "0");
@@ -213,10 +226,32 @@ const createDeadlinePassedEvent = (): MockEvent => ({
   applicationDeadline: DEADLINE_PASSED_DEADLINE,
 });
 
-// メモリ内でイベント一覧を管理する（初期値はダミーイベント＋期限切れ確認用の固定イベント）
+// 開催中（開始済み・未終了）の確認用固定イベント。
+// 開始1時間前・終了2時間後を現在時刻基準の相対日時とすることで、
+// 時間の経過に関係なく status=ongoing に該当するイベントを1件保証する。
+const ONGOING_EVENT_ID = toUuid(201);
+
+const createOngoingEvent = (): MockEvent => ({
+  id: ONGOING_EVENT_ID,
+  title: "🌿 井の頭池の水辺の生き物観察会（開催中確認用）",
+  eventDate: daysFromNow(-1 / 24),
+  endDate: daysFromNow(2 / 24),
+  location: "東京都武蔵野市 井の頭恩賜公園 井の頭池",
+  profileId: "profile-2",
+  profile: {
+    id: "profile-2",
+    displayName: "みどりの会",
+    avatarUrl: "https://i.pravatar.cc/150?img=3",
+  },
+  createdAt: daysFromNow(-7),
+  tags: SAMPLE_TAG_POOL[1],
+});
+
+// メモリ内でイベント一覧を管理する（初期値はダミーイベント＋確認用の固定イベント）
 export const mockEvents: MockEvent[] = [
   ...createInitialDummyEvents(),
   createDeadlinePassedEvent(),
+  createOngoingEvent(),
 ];
 
 const createDefaultMockEventDetail = (
