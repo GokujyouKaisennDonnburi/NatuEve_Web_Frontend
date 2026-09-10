@@ -68,13 +68,26 @@ export function useEventList({
         const tagIds = selectedTagIds.length > 0 ? selectedTagIds : undefined;
         const locations = buildLocationFilters(prefectures, cities);
 
+        const validSelectedStatuses: EventListStatus[] = selectedStatuses.filter(
+          (s): s is EventListStatus =>
+            s === "upcoming" || s === "ongoing" || s === "ended",
+        );
+
+        // 「開催日が近い順」では終了日が過ぎていないイベントのみを対象とするため、
+        // 開催前(upcoming)・開催中(ongoing)を常に status に含める。
+        // ユーザーが開催状況フィルターを選択している場合は和集合とする。
         const statuses: EventListStatus[] | undefined =
-          selectedStatuses.length > 0
-            ? selectedStatuses.filter(
-                (s): s is EventListStatus =>
-                  s === "upcoming" || s === "ongoing" || s === "ended",
+          sortBy === "event_date"
+            ? Array.from(
+                new Set<EventListStatus>([
+                  "upcoming",
+                  "ongoing",
+                  ...validSelectedStatuses,
+                ]),
               )
-            : undefined;
+            : validSelectedStatuses.length > 0
+              ? validSelectedStatuses
+              : undefined;
 
         const data = await fetchEventList({
           sort: sortBy,
@@ -113,22 +126,11 @@ export function useEventList({
             };
           });
 
-          const sortedEvents =
-            sortBy === "event_date"
-              ? [...mappedEvents].sort((a, b) => {
-                  const now = new Date();
-                  const aDate = new Date(a.eventDate);
-                  const bDate = new Date(b.eventDate);
-                  const aFuture = aDate >= now;
-                  const bFuture = bDate >= now;
-                  if (aFuture !== bFuture) {
-                    return aFuture ? -1 : 1;
-                  }
-                  return aDate.getTime() - bDate.getTime();
-                })
-              : mappedEvents;
-
-          setEvents(sortedEvents);
+          // 順序は API（sort / order / status クエリ）が保証するため、
+          // レスポンスをそのまま表示に使う。クライアント側での再ソートは
+          // ページングされた現在ページしか並べ替えられず、ページをまたいだ
+          // 順序が破綻するため行わない。
+          setEvents(mappedEvents);
           setTotalCount(
             data.totalCount - (data.events.length - visibleApiEvents.length),
           );
