@@ -98,6 +98,7 @@ export function ReportPostPreview({
   const organizerAvatarUrl =
     event?.organizerAvatarUrl ?? event?.profile?.avatarUrl;
 
+  // 編集側の form と揃えて共通のガードを付けている（この画面に input はまだない）
   return (
     <form
       onSubmit={(e) => {
