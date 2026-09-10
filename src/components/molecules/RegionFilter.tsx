@@ -1,6 +1,10 @@
 "use client";
 
+import { useId } from "react";
+
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import type { Region } from "@/constants/regions";
 import { REGIONS } from "@/constants/regions";
 import {
@@ -10,6 +14,7 @@ import {
   toggleCityInState,
   togglePrefectureInState,
   toggleRegionInState,
+  type RegionNodeStatus,
   type RegionSelection,
 } from "@/utils/regionSearch";
 import { ChevronDown } from "lucide-react";
@@ -28,44 +33,19 @@ type RegionFilterProps = {
   className?: string;
 };
 
-function Checkbox({
-  checked,
-  indeterminate,
-}: {
-  checked: boolean;
-  indeterminate?: boolean;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center justify-center w-4 h-4 rounded-[3px] border shrink-0",
-        checked || indeterminate
-          ? "bg-[#97C459] border-[#97C459]"
-          : "bg-white border-[#CDD4C8]",
-      )}
-    >
-      {indeterminate ? (
-        <span className="w-2 h-[2px] bg-white rounded-full" />
-      ) : checked ? (
-        <svg
-          width="10"
-          height="8"
-          viewBox="0 0 10 8"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M1 4L3.5 6.5L9 1"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      ) : null}
-    </span>
-  );
-}
+// チェック状態（全選択・部分選択・未選択）を Checkbox の checked 値へ変換する
+const toCheckedState = (
+  status: RegionNodeStatus,
+): boolean | "indeterminate" => {
+  if (status === "checked") return true;
+  if (status === "indeterminate") return "indeterminate";
+  return false;
+};
+
+// サイドバーの既存デザインに合わせたチェックボックスの見た目
+// （未選択: 白地にグレー枠、全選択・部分選択: 緑地）
+const CHECKBOX_CLASS =
+  "cursor-pointer rounded-[3px] border-[#CDD4C8] bg-white shadow-none data-[state=checked]:border-[#97C459] data-[state=checked]:bg-[#97C459] data-[state=checked]:text-white data-[state=indeterminate]:border-[#97C459] data-[state=indeterminate]:bg-[#97C459] data-[state=indeterminate]:text-white";
 
 export function RegionFilter({
   selectedRegions = [],
@@ -80,6 +60,8 @@ export function RegionFilter({
   onTogglePrefecture,
   className,
 }: Readonly<RegionFilterProps>) {
+  // チェックボックスと Label を id/htmlFor で関連付けるための接頭辞
+  const filterId = useId();
   const selection: RegionSelection = {
     regions: selectedRegions,
     prefectures: selectedPrefectures,
@@ -117,27 +99,26 @@ export function RegionFilter({
         {REGIONS.map((region: Region) => {
           const regionStatus = getRegionStatus(selection, region.name);
           const isRegionExpanded = expandedRegions.includes(region.name);
+          // 地方と都道府県が同名（北海道）でも id が重複しないよう階層種別を含める
+          const regionCheckboxId = `${filterId}-region-${region.name}`;
 
           return (
             <div key={region.name}>
               <div className="relative w-full h-[22px]">
-                <button
-                  type="button"
-                  onClick={() => toggleRegion(region.name)}
-                  className="flex items-center w-full h-full bg-transparent pl-[8px] pr-[18px] text-left cursor-pointer"
-                >
+                <div className="flex items-center w-full h-full pl-[8px] pr-[18px]">
                   <Checkbox
-                    checked={regionStatus === "checked"}
-                    indeterminate={regionStatus === "indeterminate"}
+                    id={regionCheckboxId}
+                    checked={toCheckedState(regionStatus)}
+                    onCheckedChange={() => toggleRegion(region.name)}
+                    className={CHECKBOX_CLASS}
                   />
-                  <span
-                    className={cn(
-                      "flex-1 ml-[6px] text-sm leading-5 text-[#3A4237] font-bold",
-                    )}
+                  <Label
+                    htmlFor={regionCheckboxId}
+                    className="flex-1 ml-[6px] text-sm leading-5 text-[#3A4237] font-bold cursor-pointer"
                   >
                     {region.name}
-                  </span>
-                </button>
+                  </Label>
+                </div>
 
                 <button
                   type="button"
@@ -167,30 +148,32 @@ export function RegionFilter({
                     const isPrefExpanded = expandedPrefectures.includes(
                       pref.name,
                     );
+                    const prefCheckboxId = `${filterId}-pref-${pref.name}`;
 
                     return (
                       <div key={pref.name}>
                         <div className="relative w-full h-[22px]">
-                          <button
-                            type="button"
-                            onClick={() => togglePrefecture(pref.name)}
-                            className="flex items-center w-full h-full bg-transparent pl-[8px] pr-[18px] text-left cursor-pointer"
-                          >
+                          <div className="flex items-center w-full h-full pl-[8px] pr-[18px]">
                             <Checkbox
-                              checked={prefStatus === "checked"}
-                              indeterminate={prefStatus === "indeterminate"}
+                              id={prefCheckboxId}
+                              checked={toCheckedState(prefStatus)}
+                              onCheckedChange={() =>
+                                togglePrefecture(pref.name)
+                              }
+                              className={CHECKBOX_CLASS}
                             />
-                            <span
+                            <Label
+                              htmlFor={prefCheckboxId}
                               className={cn(
-                                "flex-1 ml-[6px] text-sm leading-5 text-[#3A4237]",
+                                "flex-1 ml-[6px] text-sm leading-5 text-[#3A4237] cursor-pointer",
                                 prefStatus !== "unchecked"
                                   ? "font-bold"
                                   : "font-normal",
                               )}
                             >
                               {pref.name}
-                            </span>
-                          </button>
+                            </Label>
+                          </div>
 
                           <button
                             type="button"
@@ -216,21 +199,30 @@ export function RegionFilter({
                               const isCitySelected = selectedCities.includes(
                                 buildCityKey(pref.name, city.name),
                               );
+                              const cityCheckboxId = `${filterId}-city-${pref.name}-${city.name}`;
                               return (
-                                <button
+                                <div
                                   key={city.name}
-                                  type="button"
-                                  onClick={() =>
-                                    toggleCity(pref.name, city.name)
-                                  }
-                                  className={cn(
-                                    "flex items-center h-[22px] bg-transparent px-[8px] text-sm leading-5 text-[#3A4237] font-normal",
-                                    isCitySelected && "font-bold",
-                                  )}
+                                  className="flex items-center h-[22px] px-[8px]"
                                 >
-                                  <Checkbox checked={isCitySelected} />
-                                  <span className="ml-[6px]">{city.name}</span>
-                                </button>
+                                  <Checkbox
+                                    id={cityCheckboxId}
+                                    checked={isCitySelected}
+                                    onCheckedChange={() =>
+                                      toggleCity(pref.name, city.name)
+                                    }
+                                    className={CHECKBOX_CLASS}
+                                  />
+                                  <Label
+                                    htmlFor={cityCheckboxId}
+                                    className={cn(
+                                      "ml-[6px] text-sm leading-5 text-[#3A4237] cursor-pointer",
+                                      isCitySelected && "font-bold",
+                                    )}
+                                  >
+                                    {city.name}
+                                  </Label>
+                                </div>
                               );
                             })}
                           </div>
