@@ -20,9 +20,9 @@ const buildResponse = (
   totalCount,
 });
 
-const defaultParams = {
+const defaultParams: Parameters<typeof useEventList>[0] = {
   currentPage: 1,
-  sortBy: "created_at" as const,
+  sortBy: "created_at",
   searchQuery: "",
   selectedTagIds: [],
   selectedStatuses: [],
@@ -97,7 +97,7 @@ describe("useEventList", () => {
 
     rerender({
       ...defaultParams,
-      sortBy: "event_date" as const,
+      sortBy: "event_date",
       selectedTagIds: ["tag-1"],
       selectedStatuses: ["upcoming"],
     });
