@@ -56,8 +56,10 @@ export function SearchBar({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           // w-auto で ui/input の w-full を打ち消さないと absolute 時に
-          // right-[54px] が無視され、テキストボックスが検索ボタンの下まで
+          // right-[10px] が無視され、テキストボックスが検索ボタンの下まで
           // 重なって検索ボタンを押せなくなる。
+          // right-[10px] はテキストボックス右端(= ネイティブのクリアボタン
+          // (×)の描画位置)を検索ボタンの左端に隣接させるための余白
           className="absolute left-[47px] right-[10px] w-auto top-1/2 -translate-y-1/2 h-[23px] border-0 bg-transparent p-0 text-[15px] leading-[22px] text-[#757575] placeholder:text-[#757575] shadow-none focus-visible:ring-0 [&::-webkit-search-decoration]:hidden"
           autoComplete="off"
         />
