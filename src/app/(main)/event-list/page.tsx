@@ -17,6 +17,8 @@ type SortOption = "created_at" | "event_date";
 export default function EventListPage() {
   const [sortBy, setSortBy] = useState<SortOption>("created_at");
   const [currentPage, setCurrentPage] = useState(1);
+  // 適用済みの検索クエリ。SearchBar の onSearch（検索ボタン押下 / Enter）でのみ更新されるため、
+  // 入力中の値では API は呼ばれない
   const [searchQuery, setSearchQuery] = useState("");
   const ITEMS_PER_PAGE = 15;
 
@@ -82,7 +84,7 @@ export default function EventListPage() {
     setCurrentPage(1);
   };
 
-  // 検索クエリの変更を処理する関数
+  // 検索ボタン押下（または Enter）時にのみ呼ばれ、適用済み検索クエリを更新して一覧を再取得する
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setCurrentPage(1);
