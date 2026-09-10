@@ -98,7 +98,6 @@ export function ReportPostPreview({
   const organizerAvatarUrl =
     event?.organizerAvatarUrl ?? event?.profile?.avatarUrl;
 
-  // 単一行 input で Enter を押した際の暗黙の送信を止める（type="submit" ボタンによる意図的な送信は残す）
   return (
     <form
       onSubmit={(e) => {
