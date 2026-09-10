@@ -129,3 +129,158 @@ export function buildLocationFilters(
 
   return Array.from(values);
 }
+
+// 地域フィルターの選択状態（地方・都道府県・市区町村の選択キー）。
+// 市区町村は同名の市区町村を都道府県ごとに区別するため、buildCityKey の複合キーで保持する。
+export type RegionSelection = {
+  regions: string[];
+  prefectures: string[];
+  cities: string[];
+};
+
+// 地方・都道府県行のチェック状態（全選択・部分選択・未選択）。
+export type RegionNodeStatus = "checked" | "indeterminate" | "unchecked";
+
+// 地方の選択を反転する。選択時は配下の都道府県・市区町村を全て選択へ展開し、
+// 解除時は配下を全て解除する。
+export function toggleRegionInState(
+  selection: RegionSelection,
+  regionName: string,
+): RegionSelection {
+  const region = REGIONS.find((r) => r.name === regionName);
+  if (!region) return selection;
+
+  if (selection.regions.includes(regionName)) {
+    const allPrefs = region.prefectures.map((p) => p.name);
+    const allCityKeys = region.prefectures.flatMap((p) =>
+      p.cities.map((c) => buildCityKey(p.name, c.name)),
+    );
+    return {
+      regions: selection.regions.filter((r) => r !== regionName),
+      prefectures: selection.prefectures.filter((p) => !allPrefs.includes(p)),
+      cities: selection.cities.filter((c) => !allCityKeys.includes(c)),
+    };
+  }
+
+  const newPrefs = region.prefectures
+    .map((p) => p.name)
+    .filter((p) => !selection.prefectures.includes(p));
+  const newCityKeys = region.prefectures
+    .flatMap((p) => p.cities.map((c) => buildCityKey(p.name, c.name)))
+    .filter((c) => !selection.cities.includes(c));
+  return {
+    regions: [...selection.regions, regionName],
+    prefectures: [...selection.prefectures, ...newPrefs],
+    cities: [...selection.cities, ...newCityKeys],
+  };
+}
+
+// 都道府県の選択を反転する。選択時は配下の市区町村を全て選択へ展開し、
+// 解除時は配下を全て解除する。
+export function togglePrefectureInState(
+  selection: RegionSelection,
+  prefName: string,
+): RegionSelection {
+  const prefecture = REGIONS.flatMap((region) => region.prefectures).find(
+    (p) => p.name === prefName,
+  );
+  if (!prefecture) return selection;
+
+  if (selection.prefectures.includes(prefName)) {
+    return {
+      regions: selection.regions,
+      prefectures: selection.prefectures.filter((p) => p !== prefName),
+      cities: selection.cities.filter(
+        (c) =>
+          !prefecture.cities.some(
+            (city) => buildCityKey(prefName, city.name) === c,
+          ),
+      ),
+    };
+  }
+
+  const newCityKeys = prefecture.cities
+    .map((c) => buildCityKey(prefName, c.name))
+    .filter((c) => !selection.cities.includes(c));
+  return {
+    regions: selection.regions,
+    prefectures: [...selection.prefectures, prefName],
+    cities: [...selection.cities, ...newCityKeys],
+  };
+}
+
+// 市区町村の選択を反転する。解除した市区町村の親の都道府県・地方は
+// 全選択の条件を満たさなくなるため、選択から併せて外す。
+export function toggleCityInState(
+  selection: RegionSelection,
+  prefName: string,
+  cityName: string,
+): RegionSelection {
+  const cityKey = buildCityKey(prefName, cityName);
+  if (!selection.cities.includes(cityKey)) {
+    return {
+      regions: selection.regions,
+      prefectures: selection.prefectures,
+      cities: [...selection.cities, cityKey],
+    };
+  }
+
+  const region = REGIONS.find((r) =>
+    r.prefectures.some((p) => p.name === prefName),
+  );
+  if (!region) return selection;
+  return {
+    regions: selection.regions.includes(region.name)
+      ? selection.regions.filter((r) => r !== region.name)
+      : selection.regions,
+    prefectures: selection.prefectures.includes(prefName)
+      ? selection.prefectures.filter((p) => p !== prefName)
+      : selection.prefectures,
+    cities: selection.cities.filter((c) => c !== cityKey),
+  };
+}
+
+// 地方行のチェック状態を返す。地方として選択済みなら全選択、配下の
+// 都道府県・市区町村が1つでも選択済みなら部分選択、それ以外は未選択。
+export function getRegionStatus(
+  selection: RegionSelection,
+  regionName: string,
+): RegionNodeStatus {
+  const region = REGIONS.find((r) => r.name === regionName);
+  if (!region) return "unchecked";
+  const allPrefs = region.prefectures.map((p) => p.name);
+  const allCityKeys = region.prefectures.flatMap((p) =>
+    p.cities.map((c) => buildCityKey(p.name, c.name)),
+  );
+
+  let selectedCount = 0;
+  for (const p of allPrefs) {
+    if (selection.prefectures.includes(p)) selectedCount++;
+  }
+  for (const c of allCityKeys) {
+    if (selection.cities.includes(c)) selectedCount++;
+  }
+
+  if (selection.regions.includes(regionName)) return "checked";
+  if (selectedCount > 0) return "indeterminate";
+  return "unchecked";
+}
+
+// 都道府県行のチェック状態を返す。都道府県として選択済みなら全選択、
+// 配下の市区町村が1つでも選択済みなら部分選択、それ以外は未選択。
+export function getPrefectureStatus(
+  selection: RegionSelection,
+  prefName: string,
+): RegionNodeStatus {
+  if (selection.prefectures.includes(prefName)) return "checked";
+  const prefecture = REGIONS.flatMap((region) => region.prefectures).find(
+    (p) => p.name === prefName,
+  );
+  if (!prefecture) return "unchecked";
+
+  const hasCitySelected = prefecture.cities.some((c) =>
+    selection.cities.includes(buildCityKey(prefName, c.name)),
+  );
+  if (hasCitySelected) return "indeterminate";
+  return "unchecked";
+}
