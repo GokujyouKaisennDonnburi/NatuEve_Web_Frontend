@@ -175,7 +175,7 @@ export default function EventListPage() {
       {/* Two-column: Filter sidebar + Event list */}
       <div className="flex items-start gap-[36px]">
         {/* Filter sidebar */}
-        <aside className="w-[342px] shrink-0 sticky top-8">
+        <aside className="w-[342px] shrink-0 sticky top-20">
           <FilterSidebar
             allTags={allTags}
             frequentTags={frequentTags}

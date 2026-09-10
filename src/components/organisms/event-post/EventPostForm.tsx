@@ -5,12 +5,12 @@ import { useEffect, useId, useRef } from "react";
 import { FormInput } from "@/components/atoms/FormInput";
 import { FormTextarea } from "@/components/atoms/FormTextarea";
 import { PaymentAlertNote } from "@/components/atoms/event-post/PaymentAlertNote";
+import { CitySelectField } from "@/components/molecules/CitySelectField";
 import { FileDropZone } from "@/components/molecules/FileDropZone";
 import { FormCard } from "@/components/molecules/FormCard";
 import { FormField } from "@/components/molecules/FormField";
-import { UnitInput } from "@/components/molecules/UnitInput";
-import { CitySelectField } from "@/components/molecules/CitySelectField";
 import { PrefectureSelectField } from "@/components/molecules/PrefectureSelectField";
+import { UnitInput } from "@/components/molecules/UnitInput";
 import { PriceCategoryField } from "@/components/molecules/event-post/PriceCategoryField";
 import { RequiredItemField } from "@/components/molecules/event-post/RequiredItemField";
 import { TagInputField } from "@/components/molecules/event-post/TagInputField";
@@ -117,7 +117,7 @@ export function EventPostForm({
 
   return (
     <div ref={containerRef} className="space-y-4">
-      <div id={EVENT_TITLE_SECTION_ID} className="scroll-mt-6">
+      <div id={EVENT_TITLE_SECTION_ID} className="scroll-mt-20">
         <FormCard>
           <FormField
             id={getFieldId("eventName")}
@@ -137,7 +137,7 @@ export function EventPostForm({
         </FormCard>
       </div>
 
-      <div id={EVENT_TAGS_SECTION_ID} className="scroll-mt-6">
+      <div id={EVENT_TAGS_SECTION_ID} className="scroll-mt-20">
         <FormCard>
           <TagInputField
             id={getFieldId("tags")}
@@ -148,7 +148,7 @@ export function EventPostForm({
         </FormCard>
       </div>
 
-      <div id={EVENT_SCHEDULE_SECTION_ID} className="scroll-mt-6">
+      <div id={EVENT_SCHEDULE_SECTION_ID} className="scroll-mt-20">
         <FormCard title="開催情報">
           <PrefectureSelectField
             id={getFieldId("prefecture")}
@@ -220,7 +220,7 @@ export function EventPostForm({
         </FormCard>
       </div>
 
-      <div id={EVENT_RECEPTION_SECTION_ID} className="scroll-mt-6">
+      <div id={EVENT_RECEPTION_SECTION_ID} className="scroll-mt-20">
         <FormCard
           title="受付設定"
           description="申し込みの受け付け方を設定します。"
@@ -326,7 +326,7 @@ export function EventPostForm({
         </FormCard>
       </div>
 
-      <div id={EVENT_FEE_SECTION_ID} className="scroll-mt-6">
+      <div id={EVENT_FEE_SECTION_ID} className="scroll-mt-20">
         <FormCard
           title="参加費用"
           required
@@ -343,7 +343,7 @@ export function EventPostForm({
         </FormCard>
       </div>
 
-      <div id={EVENT_ITEMS_SECTION_ID} className="scroll-mt-6">
+      <div id={EVENT_ITEMS_SECTION_ID} className="scroll-mt-20">
         <FormCard
           title="持ち物"
           description="「必須」にチェックした持ち物は、参加者向けに強調表示されます。"
@@ -356,7 +356,7 @@ export function EventPostForm({
         </FormCard>
       </div>
 
-      <div id={EVENT_ATTACHMENTS_SECTION_ID} className="scroll-mt-6 space-y-4">
+      <div id={EVENT_ATTACHMENTS_SECTION_ID} className="scroll-mt-20 space-y-4">
         <FormCard
           title="イベント画像"
           description={
@@ -391,7 +391,7 @@ export function EventPostForm({
         </FormCard>
       </div>
 
-      <div id={EVENT_OVERVIEW_SECTION_ID} className="scroll-mt-6">
+      <div id={EVENT_OVERVIEW_SECTION_ID} className="scroll-mt-20">
         <FormCard>
           <FormField
             id={getFieldId("eventContent")}
