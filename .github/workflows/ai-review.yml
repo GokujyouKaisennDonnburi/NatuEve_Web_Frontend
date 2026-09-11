@@ -21,7 +21,10 @@ concurrency:
 jobs:
   ai-review:
     name: AI Review (OpenCode Go + DeepSeek V4 Pro)
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # forkからのPRでは実行しない。加えて、AIエージェントbot自身がpushしたコミット（例: /oc による
+    # 自動コミット）も対象外にする。OpenCode Actionはイベント発行者の権限をチェックするが、GitHub App の
+    # botユーザーはcollaborator権限として解決されず（permission: none）、実行が失敗するため。
+    if: "github.event.pull_request.head.repo.full_name == github.repository && !endsWith(github.actor, '[bot]')"
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
