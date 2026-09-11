@@ -54,12 +54,21 @@ export function TagInputField({
   const helperId = `${id}-helper`;
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const fieldRef = useRef<HTMLDivElement>(null);
   // disabled の間はブラウザがフォーカスを body へ外すため、処理が終わったら
   // 入力欄へ戻す。Enter で続けてタグを足す操作を Tab なしで繰り返せるようにする。
+  //
+  // ただし無条件に戻すとフォーカスを奪ってしまう。処理中も他の項目は操作できるので、
+  // ユーザーがタイトル欄などへ移って入力していることがある。フォーカスが外れたまま
+  // （body）か、このタグ項目の中に残っているときだけ戻す。
   const wasBusyRef = useRef(false);
   useEffect(() => {
     if (wasBusyRef.current && !isBusy) {
-      inputRef.current?.focus();
+      const active = document.activeElement;
+      const isFocusLoose = !active || active === document.body;
+      if (isFocusLoose || fieldRef.current?.contains(active)) {
+        inputRef.current?.focus();
+      }
     }
     wasBusyRef.current = isBusy;
   }, [isBusy]);
@@ -198,7 +207,7 @@ export function TagInputField({
         </ul>
       ) : null}
 
-      <div className="flex gap-2">
+      <div className="flex gap-2" ref={fieldRef}>
         <div className="relative flex-1">
           <TagAutocomplete
             allTags={allTags}

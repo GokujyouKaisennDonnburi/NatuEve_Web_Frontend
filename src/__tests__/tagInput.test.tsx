@@ -50,6 +50,17 @@ function Harness() {
   return <TagInputField id="tags" tags={tags} onTagsChange={setTags} />;
 }
 
+// 投稿フォームにはタグ以外の項目も並ぶ。処理中に他項目へ移れる状況を再現する。
+function HarnessWithOtherField() {
+  const [tags, setTags] = useState<TagItem[]>([]);
+  return (
+    <>
+      <TagInputField id="tags" tags={tags} onTagsChange={setTags} />
+      <input aria-label="タイトル" />
+    </>
+  );
+}
+
 // 送信中はラベルが "追加中…" に変わり同じ参照では掴めないので、都度クエリし直す。
 const getAddButton = () => screen.getByRole("button", { name: "追加" });
 
@@ -183,6 +194,29 @@ describe("TagInputField", () => {
 
     await screen.findByText("散歩");
     await waitFor(() => expect(input).toHaveFocus());
+  });
+
+  it("処理中に他の項目へ移っていたら、完了してもフォーカスを奪わない", async () => {
+    // タグ入力欄だけが disabled になり、タイトル欄などは操作できる。無条件に
+    // フォーカスを戻すと、入力中の別項目から引き剥がしてしまう。
+    mockedGetTags.mockResolvedValueOnce({ tags: [] });
+    render(<HarnessWithOtherField />);
+    await waitFor(() => expect(mockedGetTags).toHaveBeenCalledTimes(1));
+
+    const input = screen.getByLabelText("タグ");
+    const title = screen.getByLabelText("タイトル");
+
+    mockedCreateTag.mockResolvedValueOnce({ id: "tag-1", name: "散歩" });
+    fireEvent.change(input, { target: { value: "散歩" } });
+    fireEvent.click(getAddButton());
+
+    // 待っている間にタイトル欄へ移って入力を始める
+    title.focus();
+    expect(title).toHaveFocus();
+
+    await screen.findByText("散歩");
+    expect(title).toHaveFocus();
+    expect(input).not.toHaveFocus();
   });
 
   it("409 リカバリ中は候補ドロップダウンも閉じ、意図しないタグが入らない", async () => {
