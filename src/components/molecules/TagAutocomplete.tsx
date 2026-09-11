@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn, normalizeTagName } from "@/lib/utils";
 import type { TagItem } from "@/types/tag";
 
 type TagAutocompleteRenderInputProps = {
@@ -35,12 +35,13 @@ type TagAutocompleteProps = {
   onCreate?: (trimmedDraft: string) => void;
   canCreate?: boolean;
   isLoading?: boolean;
+  // 親が処理中などで操作を受け付けたくない状態。候補を閉じて選択を止める。
+  // 入力欄だけ disabled にしても、開いたままの候補はクリックできてしまうため。
+  disabled?: boolean;
   listboxId?: string;
   className?: string;
   renderInput: (props: TagAutocompleteRenderInputProps) => ReactNode;
 };
-
-const normalize = (value: string) => value.normalize("NFKC").toLowerCase();
 
 // タグ入力のオートコンプリート（入力欄+候補ドロップダウン+キーボード操作+クリック外出力閉じ処理）。
 //
@@ -55,6 +56,7 @@ export function TagAutocomplete({
   onCreate,
   canCreate = false,
   isLoading = false,
+  disabled = false,
   listboxId = "tag-autocomplete-listbox",
   className,
   renderInput,
@@ -64,23 +66,26 @@ export function TagAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const trimmedDraft = value.trim();
-  const normalizedDraft = normalize(trimmedDraft);
+  const normalizedDraft = normalizeTagName(trimmedDraft);
 
   // 入力値で全タグから候補を絞り込む。選択済みのタグは候補に含めない。
   const suggestions = normalizedDraft
     ? allTags.filter(
         (tag) =>
           !selectedIds.includes(tag.id) &&
-          normalize(tag.name).includes(normalizedDraft),
+          normalizeTagName(tag.name).includes(normalizedDraft),
       )
     : [];
 
   const hasCreateAction = canCreate && onCreate != null;
   const createIndex = hasCreateAction ? suggestions.length : -1;
   const optionCount = suggestions.length + (hasCreateAction ? 1 : 0);
-  const showDropdown = isOpen && optionCount > 0;
+  const showDropdown = !disabled && isOpen && optionCount > 0;
 
   const handleSuggestionSelect = (tag: TagItem) => {
+    if (disabled) {
+      return;
+    }
     // 上限超過などで受け付けられなかった場合は入力値を保持する
     if (!onSelect(tag)) {
       return;
@@ -95,6 +100,11 @@ export function TagAutocomplete({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    // 呼び出し元が入力欄まで disabled にするとは限らないので、ここでも止める。
+    // ドロップダウンを閉じるだけでは Enter で onCreate が発火しうる。
+    if (disabled) {
+      return;
+    }
     if (event.key === "Enter") {
       if (event.nativeEvent.isComposing) {
         return;
@@ -111,7 +121,7 @@ export function TagAutocomplete({
 
       // 入力が既存タグと完全一致するか、候補が1つだけなら自動選択
       const exactMatch = suggestions.find(
-        (s) => normalize(s.name) === normalizedDraft,
+        (s) => normalizeTagName(s.name) === normalizedDraft,
       );
       if (exactMatch) {
         handleSuggestionSelect(exactMatch);
