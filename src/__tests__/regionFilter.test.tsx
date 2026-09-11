@@ -36,10 +36,11 @@ function Harness({
   );
 }
 
-// チェックボックス行を取得する。
-// 北海道は地域名と都道府県名が同一のため、先頭要素を地域行として扱う。
+// チェックボックス行を名前で取得する。
+// 地方行はアクセシブルネームに（地方）が付くため都道府県行と区別できる。
+// 同名の市区町村が複数表示される場合は getAllByRole を直接使う。
 const filterCheckbox = (name: string): HTMLElement =>
-  screen.getAllByRole("checkbox", { name })[0];
+  screen.getByRole("checkbox", { name });
 
 // 部分選択（indeterminate）かを判定する。
 const isIndeterminate = (element: HTMLElement): boolean =>
@@ -53,11 +54,11 @@ describe("RegionFilter", () => {
   it("地域を選択しても同名の市区町村を持つ別の地域・都道府県は部分選択にならない", () => {
     render(<Harness />);
 
-    fireEvent.click(filterCheckbox("北海道"));
+    fireEvent.click(filterCheckbox("北海道（地方）"));
 
-    expect(isChecked(filterCheckbox("北海道"))).toBe(true);
-    expect(isIndeterminate(filterCheckbox("北海道"))).toBe(false);
-    expect(isIndeterminate(filterCheckbox("東北"))).toBe(false);
+    expect(isChecked(filterCheckbox("北海道（地方）"))).toBe(true);
+    expect(isIndeterminate(filterCheckbox("北海道（地方）"))).toBe(false);
+    expect(isIndeterminate(filterCheckbox("東北（地方）"))).toBe(false);
     expect(isIndeterminate(filterCheckbox("福島県"))).toBe(false);
   });
 
@@ -77,7 +78,7 @@ describe("RegionFilter", () => {
     fireEvent.click(dateCheckboxes[1]);
 
     expect(isIndeterminate(filterCheckbox("福島県"))).toBe(true);
-    expect(isIndeterminate(filterCheckbox("北海道"))).toBe(false);
+    expect(isIndeterminate(filterCheckbox("北海道（地方）"))).toBe(false);
     expect(
       isChecked(screen.getAllByRole("checkbox", { name: "伊達市" })[0]),
     ).toBe(false);
@@ -95,33 +96,33 @@ describe("RegionFilter", () => {
 
     fireEvent.click(filterCheckbox("伊達市"));
 
-    expect(isIndeterminate(filterCheckbox("北海道"))).toBe(true);
+    expect(isIndeterminate(filterCheckbox("北海道（地方）"))).toBe(true);
     expect(isChecked(filterCheckbox("札幌市"))).toBe(true);
   });
 
   it("解除した市区町村を再選択すると都道府県・地方のチェックが復活する", () => {
     render(<Harness />);
 
-    fireEvent.click(filterCheckbox("東北"));
+    fireEvent.click(filterCheckbox("東北（地方）"));
     expect(isChecked(filterCheckbox("福島県"))).toBe(true);
 
     fireEvent.click(filterCheckbox("伊達市"));
     expect(isIndeterminate(filterCheckbox("福島県"))).toBe(true);
-    expect(isIndeterminate(filterCheckbox("東北"))).toBe(true);
+    expect(isIndeterminate(filterCheckbox("東北（地方）"))).toBe(true);
 
     fireEvent.click(filterCheckbox("伊達市"));
     expect(isChecked(filterCheckbox("福島県"))).toBe(true);
-    expect(isChecked(filterCheckbox("東北"))).toBe(true);
+    expect(isChecked(filterCheckbox("東北（地方）"))).toBe(true);
   });
 
   it("地方選択後に都道府県を1つ解除すると地方のチェックも外れる", () => {
     render(<Harness />);
 
-    fireEvent.click(filterCheckbox("東北"));
-    expect(isChecked(filterCheckbox("東北"))).toBe(true);
+    fireEvent.click(filterCheckbox("東北（地方）"));
+    expect(isChecked(filterCheckbox("東北（地方）"))).toBe(true);
 
     fireEvent.click(filterCheckbox("福島県"));
     expect(isChecked(filterCheckbox("福島県"))).toBe(false);
-    expect(isIndeterminate(filterCheckbox("東北"))).toBe(true);
+    expect(isIndeterminate(filterCheckbox("東北（地方）"))).toBe(true);
   });
 });
