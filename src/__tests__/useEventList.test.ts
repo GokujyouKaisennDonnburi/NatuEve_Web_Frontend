@@ -150,6 +150,21 @@ describe("useEventList", () => {
     expect(request.status).toEqual(["upcoming", "ongoing"]);
   });
 
+  it("「開催日が近い順」では終了済み(ended)のみの選択でも ended を除外した status でリクエストする", async () => {
+    renderHook(() =>
+      useEventList({
+        ...defaultParams,
+        sortBy: "event_date",
+        selectedStatuses: ["ended"],
+      }),
+    );
+
+    await waitFor(() => expect(mockFetchEventList).toHaveBeenCalledTimes(1));
+
+    const request = mockFetchEventList.mock.calls[0][0];
+    expect(request.status).toEqual(["upcoming", "ongoing"]);
+  });
+
   it("「投稿が新しい順」の場合は開催状況フィルターの選択がそのまま status になる", async () => {
     renderHook(() =>
       useEventList({

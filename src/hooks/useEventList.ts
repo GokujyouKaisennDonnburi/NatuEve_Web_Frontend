@@ -76,14 +76,16 @@ export function useEventList({
 
         // 「開催日が近い順」では終了日が過ぎていないイベントのみを対象とするため、
         // 開催前(upcoming)・開催中(ongoing)を常に status に含める。
-        // ユーザーが開催状況フィルターを選択している場合は和集合とする。
+        // ユーザーが開催状況フィルターを選択している場合は和集合とするが、
+        // 終了済み(ended)を含めると「終了日が過ぎていない」という条件が
+        // 無効化されるため除去する。
         const statuses: EventListStatus[] | undefined =
           sortBy === "event_date"
             ? Array.from(
                 new Set<EventListStatus>([
                   "upcoming",
                   "ongoing",
-                  ...validSelectedStatuses,
+                  ...validSelectedStatuses.filter((s) => s !== "ended"),
                 ]),
               )
             : validSelectedStatuses.length > 0
