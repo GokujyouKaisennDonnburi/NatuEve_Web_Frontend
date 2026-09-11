@@ -106,6 +106,35 @@ describe("TagInputField", () => {
     expect(mockedGetTags).toHaveBeenCalledTimes(2);
   });
 
+  it("一覧の取得中に作成したタグは、その取得が後から完了しても候補に残る", async () => {
+    // 初回取得より後に始まった作成が先に終わると、取得結果で素直に置き換えた場合に
+    // 作成したタグが候補から消え、同名を再入力するとまた 409 を踏むことになる。
+    let resolveInitial: (value: { tags: TagItem[] }) => void = () => {};
+    mockedGetTags.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveInitial = resolve;
+      }),
+    );
+    render(<Harness />);
+    await waitFor(() => expect(mockedGetTags).toHaveBeenCalledTimes(1));
+
+    const input = screen.getByLabelText("タグ");
+    mockedCreateTag.mockResolvedValueOnce({ id: "tag-1", name: "散歩" });
+    fireEvent.change(input, { target: { value: "散歩" } });
+    fireEvent.click(getAddButton());
+    await screen.findByText("散歩");
+
+    // 初回取得が、作成したタグを含まない一覧で後から完了する
+    resolveInitial({ tags: [{ id: "tag-9", name: "野鳥" }] });
+    await waitFor(() => expect(input).not.toBeDisabled());
+
+    // 削除して再入力しても、作成済みとして候補に出る（新規作成の行は出ない）
+    fireEvent.click(screen.getByRole("button", { name: "タグ「散歩」を削除" }));
+    fireEvent.change(input, { target: { value: "散歩" } });
+    await screen.findByRole("option", { name: "散歩" });
+    expect(screen.queryByText("「散歩」を追加")).not.toBeInTheDocument();
+  });
+
   it("409 リカバリで一覧を取り直している間も、入力欄と追加ボタンは操作できない", async () => {
     // 作成 API が終わった時点で操作を解禁すると、取り直しの往復中に別のタグを
     // 追加でき、上限（MAX_TAG_COUNT）超過や重複をすり抜けさせてしまう。
