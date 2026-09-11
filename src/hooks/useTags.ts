@@ -28,6 +28,9 @@ export function useTags(): UseTagsState {
   // 取得の世代。StrictMode の二重マウントや、初回取得と 409 リカバリの再取得が
   // 競合したときに、先に始まって後から返ってきた結果で最新を上書きしないようにする。
   const requestIdRef = useRef(0);
+  // addTag で手元に足したタグ。取得の往復中に作成された分はレスポンスに含まれない
+  // ことがあり、素直に置き換えると候補から消えてしまうため、取得結果へ混ぜ戻す。
+  const locallyAddedRef = useRef<TagItem[]>([]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -45,15 +48,26 @@ export function useTags(): UseTagsState {
     setIsLoading(true);
     try {
       const response = await getTags();
+      // 取得を始めた後に作成したタグはレスポンスに含まれないことがある。落とすと
+      // 候補から消え、同名を再入力したときにまた 409 を踏むことになる。
+      const fetchedIds = new Set(response.tags.map((tag) => tag.id));
+      const missing = locallyAddedRef.current.filter(
+        (tag) => !fetchedIds.has(tag.id),
+      );
+      const merged =
+        missing.length > 0 ? [...response.tags, ...missing] : response.tags;
+
       if (isLatest()) {
-        setTags(response.tags);
+        setTags(merged);
         setError(null);
       }
       // 呼び出し側は自分が投げた取得の結果を使うので、世代に関わらず返す。
-      return response.tags;
+      return merged;
     } catch (caught) {
       if (isLatest()) {
-        setError(caught as Error);
+        // error state は Error 型で持つ。Error 以外が throw されても型と実体が
+        // 食い違わないよう包み直す（呼び出し側へは元の値のまま伝える）。
+        setError(caught instanceof Error ? caught : new Error(String(caught)));
       }
       throw caught;
     } finally {
@@ -70,6 +84,9 @@ export function useTags(): UseTagsState {
   }, [refetch]);
 
   const addTag = useCallback((tag: TagItem) => {
+    if (!locallyAddedRef.current.some((current) => current.id === tag.id)) {
+      locallyAddedRef.current = [...locallyAddedRef.current, tag];
+    }
     setTags((prev) =>
       prev.some((current) => current.id === tag.id) ? prev : [...prev, tag],
     );

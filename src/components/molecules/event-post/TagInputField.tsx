@@ -82,7 +82,10 @@ export function TagInputField({
   // { error: { code, message } } のみで既存タグの id を含まないので、一覧から引くしかない。
   const addExistingTag = async (name: string) => {
     const normalizedName = normalize(name);
+    // 正規化だけで照合すると、サーバーに正規化後は同じで表記の違うタグが複数ある場合に
+    // 入力とは別のタグを拾いうる。完全一致があればそちらを優先する。
     const findExisting = (candidates: TagItem[]) =>
+      candidates.find((t) => t.name === name) ??
       candidates.find((t) => normalize(t.name) === normalizedName);
 
     let existing = findExisting(allTags);
@@ -141,7 +144,7 @@ export function TagInputField({
       toast.error(
         caughtError instanceof Error
           ? caughtError.message
-          : "タグの作成に失敗しました。時間をおいて再度お試しください。",
+          : MESSAGES.TAG_ADD_FAILED,
       );
     } finally {
       setIsAdding(false);
