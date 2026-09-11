@@ -110,7 +110,9 @@ describe("useEventList", () => {
     const request = mockFetchEventList.mock.calls[1][0];
     expect(request.sort).toBe("event_date");
     expect(request.tagIds).toEqual(["tag-1"]);
-    expect(request.status).toEqual(["upcoming"]);
+    // 「開催日が近い順」では終了日が過ぎていないイベントのみを対象にするため、
+    // ユーザー選択の upcoming に加えて ongoing が常に含まれる
+    expect(request.status).toEqual(["upcoming", "ongoing"]);
   });
 
   it("「投稿が新しい順」の場合は order=desc で、status 未選択なら status をリクエストに含まない", async () => {

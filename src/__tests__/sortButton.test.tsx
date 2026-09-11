@@ -16,7 +16,10 @@ describe("SortButton", () => {
       <SortButton options={options} value="created_at" onChange={() => {}} />,
     );
 
-    expect(screen.getByText("投稿が新しい順")).toBeInTheDocument();
+    // 選択中の値は option にも同名のテキストが存在するため、表示テキストの span に限定して検証する
+    expect(
+      screen.getByText("投稿が新しい順", { selector: "span" }),
+    ).toBeInTheDocument();
   });
 
   it("セレクトの変更で選択した値が onChange に渡される", () => {
