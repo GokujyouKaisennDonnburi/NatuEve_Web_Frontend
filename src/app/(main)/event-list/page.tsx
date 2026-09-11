@@ -131,6 +131,7 @@ export default function EventListPage() {
     setAppliedTagIds(selectedTagIds);
     setAppliedStatuses(selectedStatuses);
     setAppliedPrefectures(selectedPrefectures);
+    setAppliedCities(selectedCities);
     setCurrentPage(1);
   };
   const hasActiveFilters =

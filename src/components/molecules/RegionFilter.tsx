@@ -1,8 +1,22 @@
 "use client";
 
+import { useId } from "react";
+
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import type { Region } from "@/constants/regions";
 import { REGIONS } from "@/constants/regions";
+import {
+  buildCityKey,
+  getPrefectureStatus,
+  getRegionStatus,
+  toggleCityInState,
+  togglePrefectureInState,
+  toggleRegionInState,
+  type RegionNodeStatus,
+  type RegionSelection,
+} from "@/utils/regionFilterState";
 import { ChevronDown } from "lucide-react";
 
 type RegionFilterProps = {
@@ -19,44 +33,19 @@ type RegionFilterProps = {
   className?: string;
 };
 
-function Checkbox({
-  checked,
-  indeterminate,
-}: {
-  checked: boolean;
-  indeterminate?: boolean;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center justify-center w-4 h-4 rounded-[3px] border shrink-0",
-        checked || indeterminate
-          ? "bg-[#97C459] border-[#97C459]"
-          : "bg-white border-[#CDD4C8]",
-      )}
-    >
-      {indeterminate ? (
-        <span className="w-2 h-[2px] bg-white rounded-full" />
-      ) : checked ? (
-        <svg
-          width="10"
-          height="8"
-          viewBox="0 0 10 8"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M1 4L3.5 6.5L9 1"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      ) : null}
-    </span>
-  );
-}
+// チェック状態（全選択・部分選択・未選択）を Checkbox の checked 値へ変換する
+const toCheckedState = (
+  status: RegionNodeStatus,
+): boolean | "indeterminate" => {
+  if (status === "checked") return true;
+  if (status === "indeterminate") return "indeterminate";
+  return false;
+};
+
+// サイドバーの既存デザインに合わせたチェックボックスの見た目
+// （未選択: 白地にグレー枠、全選択・部分選択: 緑地）
+const CHECKBOX_CLASS =
+  "cursor-pointer rounded-[3px] border-[#CDD4C8] bg-white shadow-none data-[state=checked]:border-[#97C459] data-[state=checked]:bg-[#97C459] data-[state=checked]:text-white data-[state=indeterminate]:border-[#97C459] data-[state=indeterminate]:bg-[#97C459] data-[state=indeterminate]:text-white";
 
 export function RegionFilter({
   selectedRegions = [],
@@ -71,126 +60,33 @@ export function RegionFilter({
   onTogglePrefecture,
   className,
 }: Readonly<RegionFilterProps>) {
+  // チェックボックスと Label を id/htmlFor で関連付けるための接頭辞
+  const filterId = useId();
+  const selection: RegionSelection = {
+    regions: selectedRegions,
+    prefectures: selectedPrefectures,
+    cities: selectedCities,
+  };
+
+  // 純粋関数で算出した次の選択状態をそのまま親へ渡す
+  const applySelection = (next: RegionSelection) => {
+    onRegionsChange?.(next.regions);
+    onPrefecturesChange?.(next.prefectures);
+    onCitiesChange?.(next.cities);
+  };
+
   const toggleRegion = (regionName: string) => {
-    const region = REGIONS.find((r) => r.name === regionName);
-    if (!region) return;
-
-    const isCurrentlySelected = selectedRegions.includes(regionName);
-
-    if (isCurrentlySelected) {
-      const allPrefs = region.prefectures.map((p) => p.name);
-      const allCities = region.prefectures.flatMap((p) =>
-        p.cities.map((c) => c.name),
-      );
-      onRegionsChange?.(selectedRegions.filter((r) => r !== regionName));
-      onPrefecturesChange?.(
-        selectedPrefectures.filter((p) => !allPrefs.includes(p)),
-      );
-      onCitiesChange?.(selectedCities.filter((c) => !allCities.includes(c)));
-    } else {
-      const newPrefs = region.prefectures
-        .map((p) => p.name)
-        .filter((p) => !selectedPrefectures.includes(p));
-      const newCities = region.prefectures
-        .flatMap((p) => p.cities.map((c) => c.name))
-        .filter((c) => !selectedCities.includes(c));
-      onRegionsChange?.([...selectedRegions, regionName]);
-      onPrefecturesChange?.([...selectedPrefectures, ...newPrefs]);
-      onCitiesChange?.([...selectedCities, ...newCities]);
-    }
+    applySelection(toggleRegionInState(selection, regionName));
     onToggleRegion?.(regionName);
   };
 
-  const togglePrefecture = (regionName: string, prefName: string) => {
-    const region = REGIONS.find((r) => r.name === regionName);
-    if (!region) return;
-    const pref = region.prefectures.find((p) => p.name === prefName);
-    if (!pref) return;
-
-    const isCurrentlySelected = selectedPrefectures.includes(prefName);
-
-    if (isCurrentlySelected) {
-      onPrefecturesChange?.(selectedPrefectures.filter((p) => p !== prefName));
-      onCitiesChange?.(
-        selectedCities.filter(
-          (c) => !pref.cities.some((city) => city.name === c),
-        ),
-      );
-    } else {
-      const newCities = pref.cities
-        .map((c) => c.name)
-        .filter((c) => !selectedCities.includes(c));
-      onPrefecturesChange?.([...selectedPrefectures, prefName]);
-      onCitiesChange?.([...selectedCities, ...newCities]);
-    }
+  const togglePrefecture = (prefName: string) => {
+    applySelection(togglePrefectureInState(selection, prefName));
     onTogglePrefecture?.(prefName);
   };
 
-  const toggleCity = (cityName: string) => {
-    if (selectedCities.includes(cityName)) {
-      onCitiesChange?.(selectedCities.filter((c) => c !== cityName));
-
-      for (const region of REGIONS) {
-        for (const pref of region.prefectures) {
-          if (pref.cities.some((c) => c.name === cityName)) {
-            if (selectedPrefectures.includes(pref.name)) {
-              onPrefecturesChange?.(
-                selectedPrefectures.filter((p) => p !== pref.name),
-              );
-            }
-            if (selectedRegions.includes(region.name)) {
-              onRegionsChange?.(
-                selectedRegions.filter((r) => r !== region.name),
-              );
-            }
-            return;
-          }
-        }
-      }
-    } else {
-      onCitiesChange?.([...selectedCities, cityName]);
-    }
-  };
-
-  const getRegionStatus = (
-    regionName: string,
-  ): "checked" | "indeterminate" | "unchecked" => {
-    const region = REGIONS.find((r) => r.name === regionName);
-    if (!region) return "unchecked";
-    const allPrefs = region.prefectures.map((p) => p.name);
-    const allCities = region.prefectures.flatMap((p) =>
-      p.cities.map((c) => c.name),
-    );
-
-    let selectedCount = 0;
-    for (const p of allPrefs) {
-      if (selectedPrefectures.includes(p)) selectedCount++;
-    }
-    for (const c of allCities) {
-      if (selectedCities.includes(c)) selectedCount++;
-    }
-
-    if (selectedRegions.includes(regionName)) return "checked";
-    if (selectedCount > 0) return "indeterminate";
-    return "unchecked";
-  };
-
-  const getPrefStatus = (
-    prefName: string,
-  ): "checked" | "indeterminate" | "unchecked" => {
-    if (selectedPrefectures.includes(prefName)) return "checked";
-    const region = REGIONS.find((r) =>
-      r.prefectures.some((p) => p.name === prefName),
-    );
-    if (!region) return "unchecked";
-    const pref = region.prefectures.find((p) => p.name === prefName);
-    if (!pref) return "unchecked";
-
-    const hasCitySelected = pref.cities.some((c) =>
-      selectedCities.includes(c.name),
-    );
-    if (hasCitySelected) return "indeterminate";
-    return "unchecked";
+  const toggleCity = (prefName: string, cityName: string) => {
+    applySelection(toggleCityInState(selection, prefName, cityName));
   };
 
   return (
@@ -201,29 +97,31 @@ export function RegionFilter({
 
       <div className="space-y-[2px]">
         {REGIONS.map((region: Region) => {
-          const regionStatus = getRegionStatus(region.name);
+          const regionStatus = getRegionStatus(selection, region.name);
           const isRegionExpanded = expandedRegions.includes(region.name);
+          // 地方と都道府県が同名（北海道）でも id が重複しないよう階層種別を含める
+          const regionCheckboxId = `${filterId}-region-${region.name}`;
 
           return (
             <div key={region.name}>
               <div className="relative w-full h-[22px]">
-                <button
-                  type="button"
-                  onClick={() => toggleRegion(region.name)}
-                  className="flex items-center w-full h-full bg-transparent pl-[8px] pr-[18px] text-left cursor-pointer"
-                >
+                <div className="flex items-center w-full h-full pl-[8px] pr-[18px]">
+                  {/* 北海道のように都道府県と同名の地方ではスクリーンリーダーで階層を
+                      区別できないため、地方行のアクセシブルネームには（地方）を付与する */}
                   <Checkbox
-                    checked={regionStatus === "checked"}
-                    indeterminate={regionStatus === "indeterminate"}
+                    id={regionCheckboxId}
+                    aria-label={`${region.name}（地方）`}
+                    checked={toCheckedState(regionStatus)}
+                    onCheckedChange={() => toggleRegion(region.name)}
+                    className={CHECKBOX_CLASS}
                   />
-                  <span
-                    className={cn(
-                      "flex-1 ml-[6px] text-sm leading-5 text-[#3A4237] font-bold",
-                    )}
+                  <Label
+                    htmlFor={regionCheckboxId}
+                    className="flex-1 ml-[6px] text-sm leading-5 text-[#3A4237] font-bold cursor-pointer"
                   >
                     {region.name}
-                  </span>
-                </button>
+                  </Label>
+                </div>
 
                 <button
                   type="button"
@@ -231,7 +129,7 @@ export function RegionFilter({
                     e.stopPropagation();
                     onToggleRegion?.(region.name);
                   }}
-                  aria-label={`${region.name} を展開`}
+                  aria-label={`${region.name}（地方）を展開`}
                   className="absolute top-0 right-[8px] flex items-center justify-center w-[10px] h-full bg-transparent border-none p-0 cursor-pointer"
                 >
                   <ChevronDown
@@ -246,36 +144,39 @@ export function RegionFilter({
               {isRegionExpanded && (
                 <div className="ml-[22px] mt-[2px] space-y-[2px]">
                   {region.prefectures.map((pref) => {
-                    const prefStatus = getPrefStatus(pref.name);
+                    const prefStatus = getPrefectureStatus(
+                      selection,
+                      pref.name,
+                    );
                     const isPrefExpanded = expandedPrefectures.includes(
                       pref.name,
                     );
+                    const prefCheckboxId = `${filterId}-pref-${pref.name}`;
 
                     return (
                       <div key={pref.name}>
                         <div className="relative w-full h-[22px]">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              togglePrefecture(region.name, pref.name)
-                            }
-                            className="flex items-center w-full h-full bg-transparent pl-[8px] pr-[18px] text-left cursor-pointer"
-                          >
+                          <div className="flex items-center w-full h-full pl-[8px] pr-[18px]">
                             <Checkbox
-                              checked={prefStatus === "checked"}
-                              indeterminate={prefStatus === "indeterminate"}
+                              id={prefCheckboxId}
+                              checked={toCheckedState(prefStatus)}
+                              onCheckedChange={() =>
+                                togglePrefecture(pref.name)
+                              }
+                              className={CHECKBOX_CLASS}
                             />
-                            <span
+                            <Label
+                              htmlFor={prefCheckboxId}
                               className={cn(
-                                "flex-1 ml-[6px] text-sm leading-5 text-[#3A4237]",
+                                "flex-1 ml-[6px] text-sm leading-5 text-[#3A4237] cursor-pointer",
                                 prefStatus !== "unchecked"
                                   ? "font-bold"
                                   : "font-normal",
                               )}
                             >
                               {pref.name}
-                            </span>
-                          </button>
+                            </Label>
+                          </div>
 
                           <button
                             type="button"
@@ -299,21 +200,38 @@ export function RegionFilter({
                           <div className="ml-[22px] mt-[2px] flex flex-wrap gap-[2px]">
                             {pref.cities.map((city) => {
                               const isCitySelected = selectedCities.includes(
-                                city.name,
+                                buildCityKey(pref.name, city.name),
                               );
+                              const cityCheckboxId = `${filterId}-city-${pref.name}-${city.name}`;
                               return (
-                                <button
+                                <div
                                   key={city.name}
-                                  type="button"
-                                  onClick={() => toggleCity(city.name)}
-                                  className={cn(
-                                    "flex items-center h-[22px] bg-transparent px-[8px] text-sm leading-5 text-[#3A4237] font-normal",
-                                    isCitySelected && "font-bold",
-                                  )}
+                                  className="flex items-center h-[22px] px-[8px]"
                                 >
-                                  <Checkbox checked={isCitySelected} />
-                                  <span className="ml-[6px]">{city.name}</span>
-                                </button>
+                                  {/* 同名の市区町村（伊達市など）は都道府県ごとに区別するため、
+                                      アクセシブルネームには都道府県名を前置する */}
+                                  <Checkbox
+                                    id={cityCheckboxId}
+                                    aria-label={buildCityKey(
+                                      pref.name,
+                                      city.name,
+                                    )}
+                                    checked={isCitySelected}
+                                    onCheckedChange={() =>
+                                      toggleCity(pref.name, city.name)
+                                    }
+                                    className={CHECKBOX_CLASS}
+                                  />
+                                  <Label
+                                    htmlFor={cityCheckboxId}
+                                    className={cn(
+                                      "ml-[6px] text-sm leading-5 text-[#3A4237] font-normal cursor-pointer",
+                                      isCitySelected && "font-bold",
+                                    )}
+                                  >
+                                    {city.name}
+                                  </Label>
+                                </div>
                               );
                             })}
                           </div>
