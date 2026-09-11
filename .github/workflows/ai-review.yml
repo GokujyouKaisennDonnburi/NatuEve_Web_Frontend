@@ -1,6 +1,6 @@
 name: AI Review
 
-# PR作成時に OpenCode (OpenCode Go / DeepSeek V4 Pro) でコードレビューを実行し、PR へレビューコメントを投稿する。
+# PR作成時に OpenCode (OpenCode Go / DeepSeek V4.1 Flash) でコードレビューを実行し、PR へレビューコメントを投稿する。
 # 本ワークフローは Branch Protection の必須チェックには含めない（AIサービス障害時のマージブロック回避）。
 #
 # AI実行基盤・モデルの変更箇所（将来 Copilot / Claude / Gemini に切替する場合）:
@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   ai-review:
-    name: AI Review (OpenCode Go + DeepSeek V4 Pro)
+    name: AI Review (OpenCode Go + DeepSeek V4.1 Flash)
     # forkからのPRでは実行しない。加えて、AIエージェントbot自身がpushしたコミット（例: /oc による
     # 自動コミット）も対象外にする。OpenCode Actionはイベント発行者の権限をチェックするが、GitHub App の
     # botユーザーはcollaborator権限として解決されず（permission: none）、実行が失敗するため。
@@ -73,7 +73,7 @@ jobs:
         with:
           # モデルは opencode.json の agent.code-reviewer.model を単一正とし、jq で解決して渡す。
           # モデル変更時は opencode.json のみを更新する（CI / ローカルが常に同期）。
-          # 現在: OpenCode Go DeepSeek V4 Pro（$1.32/$3.96 per 1M (Peak) / $0.66/$1.98 (Off-Peak)）。
-          # reasoning effort は opencode.json の provider.opencode-go.models.deepseek-v4-pro.options で max を設定。
+          # 現在: OpenCode Go DeepSeek V4.1 Flash。
+          # reasoning effort は opencode.json の provider.opencode-go.models.deepseek-v4.1-flash.options で max を設定。
           model: ${{ steps.model.outputs.model }}
           prompt: ${{ steps.prompt.outputs.body }}
