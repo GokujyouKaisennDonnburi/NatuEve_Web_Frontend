@@ -131,10 +131,13 @@ export function buildLocationFilters(
 }
 
 // 地域フィルターの選択状態（地方・都道府県・市区町村の選択キー）。
-// 市区町村は同名の市区町村を都道府県ごとに区別するため、buildCityKey の複合キーで保持する。
 export type RegionSelection = {
   regions: string[];
   prefectures: string[];
+  // 市区町村は buildCityKey が生成する「都道府県名＋市区町村名」の複合キーで、
+  // 同名の市区町村を都道府県ごとに区別する。
+  // ブランド型などで名義型化せず string のまま扱うのは、selectedPrefectures 等の
+  // 既存の選択状態設計（意味を持つ文字列を素の string で保持）との一貫性を優先するため。
   cities: string[];
 };
 
