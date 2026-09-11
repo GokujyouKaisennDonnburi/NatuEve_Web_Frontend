@@ -164,6 +164,36 @@ describe("TagInputField", () => {
     expect(input).not.toBeDisabled();
   });
 
+  it("409 リカバリ中は候補ドロップダウンも閉じ、意図しないタグが入らない", async () => {
+    // 入力欄だけ disabled にしても、開いたままの候補はクリックできてしまう。
+    // その状態で候補を選ぶと、リカバリが追加するタグと合わせて 2 件入ってしまう。
+    const input = await renderAndWaitForTags([{ id: "tag-9", name: "散歩道" }]);
+
+    mockedCreateTag.mockRejectedValueOnce(duplicateTagError());
+    let resolveRefetch: (value: { tags: TagItem[] }) => void = () => {};
+    mockedGetTags.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRefetch = resolve;
+      }),
+    );
+
+    // 「散歩」は部分一致で「散歩道」を候補に出すので、押した時点では候補が開いている
+    fireEvent.change(input, { target: { value: "散歩" } });
+    expect(screen.getByRole("option", { name: "散歩道" })).toBeInTheDocument();
+    fireEvent.click(getAddButton());
+
+    // リカバリ中は候補ごと閉じる
+    await waitFor(() => expect(mockedGetTags).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("option", { name: "散歩道" })).toBeNull();
+
+    resolveRefetch({ tags: [{ id: "tag-1", name: "散歩" }] });
+
+    await screen.findByText("散歩");
+    // 入るのは意図した「散歩」だけ
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.queryByText("散歩道")).not.toBeInTheDocument();
+  });
+
   it("作成成功後に削除して同名を再入力すると、新規作成ではなく既存候補として出る", async () => {
     const input = await renderAndWaitForTags([]);
 

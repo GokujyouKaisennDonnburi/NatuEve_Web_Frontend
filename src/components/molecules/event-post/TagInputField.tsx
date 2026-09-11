@@ -14,6 +14,7 @@ import { MESSAGES } from "@/constants/messages";
 import { useCreateTag } from "@/hooks/useCreateTag";
 import { useRowIds } from "@/hooks/useRowIds";
 import { useTags } from "@/hooks/useTags";
+import { normalizeTagName } from "@/lib/utils";
 import { TagError, TagErrorCode, type TagItem } from "@/types/tag";
 
 type TagInputFieldProps = {
@@ -22,8 +23,6 @@ type TagInputFieldProps = {
   onTagsChange: (tags: TagItem[]) => void;
   error?: string;
 };
-
-const normalize = (value: string) => value.normalize("NFKC").toLowerCase();
 
 export function TagInputField({
   id,
@@ -44,9 +43,9 @@ export function TagInputField({
     refetch: refetchTags,
   } = useTags();
   const trimmedDraft = draft.trim();
-  const normalizedDraft = normalize(trimmedDraft);
+  const normalizedDraft = normalizeTagName(trimmedDraft);
   // 追加済みタグとの重複は、大文字小文字や全角半角の違いを無視して判定する
-  const normalizedTagNames = new Set(tags.map((t) => normalize(t.name)));
+  const normalizedTagNames = new Set(tags.map((t) => normalizeTagName(t.name)));
   const isDuplicate =
     trimmedDraft.length > 0 && normalizedTagNames.has(normalizedDraft);
   const isBusy = isSubmitting || isAdding;
@@ -65,7 +64,7 @@ export function TagInputField({
   const canCreate =
     trimmedDraft.length > 0 &&
     !isDuplicate &&
-    !allTags.some((t) => normalize(t.name) === normalizedDraft);
+    !allTags.some((t) => normalizeTagName(t.name) === normalizedDraft);
 
   // 件数の上限に達しているかを判定し、達していればトーストで知らせる。
   // 同じ id を渡してトーストを積み上げず 1 件に保つ。
@@ -81,12 +80,12 @@ export function TagInputField({
   // 見つからなければ一覧を取り直してから探す。409 のレスポンスボディは
   // { error: { code, message } } のみで既存タグの id を含まないので、一覧から引くしかない。
   const addExistingTag = async (name: string) => {
-    const normalizedName = normalize(name);
+    const normalizedName = normalizeTagName(name);
     // 正規化だけで照合すると、サーバーに正規化後は同じで表記の違うタグが複数ある場合に
     // 入力とは別のタグを拾いうる。完全一致があればそちらを優先する。
     const findExisting = (candidates: TagItem[]) =>
       candidates.find((t) => t.name === name) ??
-      candidates.find((t) => normalize(t.name) === normalizedName);
+      candidates.find((t) => normalizeTagName(t.name) === normalizedName);
 
     let existing = findExisting(allTags);
     if (!existing) {
@@ -199,6 +198,7 @@ export function TagInputField({
             onCreate={handleAdd}
             canCreate={canCreate}
             isLoading={isTagsLoading}
+            disabled={isBusy}
             listboxId={`${id}-listbox`}
             renderInput={({
               value,
