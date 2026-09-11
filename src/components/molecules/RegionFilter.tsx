@@ -106,8 +106,11 @@ export function RegionFilter({
             <div key={region.name}>
               <div className="relative w-full h-[22px]">
                 <div className="flex items-center w-full h-full pl-[8px] pr-[18px]">
+                  {/* 北海道のように都道府県と同名の地方ではスクリーンリーダーで階層を
+                      区別できないため、地方行のアクセシブルネームには（地方）を付与する */}
                   <Checkbox
                     id={regionCheckboxId}
+                    aria-label={`${region.name}（地方）`}
                     checked={toCheckedState(regionStatus)}
                     onCheckedChange={() => toggleRegion(region.name)}
                     className={CHECKBOX_CLASS}
