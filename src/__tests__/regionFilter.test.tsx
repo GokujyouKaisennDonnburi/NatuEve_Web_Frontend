@@ -37,8 +37,8 @@ function Harness({
 }
 
 // チェックボックス行を名前で取得する。
-// 地方行はアクセシブルネームに（地方）が付くため都道府県行と区別できる。
-// 同名の市区町村が複数表示される場合は getAllByRole を直接使う。
+// 地方行は「○○（地方）」、市区町村は「都道府県名＋市区町村名」の
+// アクセシブルネームを持つため、階層や同名を区別して取得できる。
 const filterCheckbox = (name: string): HTMLElement =>
   screen.getByRole("checkbox", { name });
 
@@ -71,17 +71,17 @@ describe("RegionFilter", () => {
       />,
     );
 
-    const dateCheckboxes = screen.getAllByRole("checkbox", { name: "伊達市" });
-    expect(dateCheckboxes).toHaveLength(2);
+    // 複合キー名で両方の都道府県の伊達市を取得し、同名の市区町村が
+    // 両方存在することを確認する
+    const hokkaidoDate = filterCheckbox("北海道伊達市");
+    const fukushimaDate = filterCheckbox("福島県伊達市");
 
     // 福島県側の伊達市を選択する
-    fireEvent.click(dateCheckboxes[1]);
+    fireEvent.click(fukushimaDate);
 
     expect(isIndeterminate(filterCheckbox("福島県"))).toBe(true);
     expect(isIndeterminate(filterCheckbox("北海道（地方）"))).toBe(false);
-    expect(
-      isChecked(screen.getAllByRole("checkbox", { name: "伊達市" })[0]),
-    ).toBe(false);
+    expect(isChecked(hokkaidoDate)).toBe(false);
   });
 
   it("北海道の伊達市の選択を解除すると北海道側だけが解除される", () => {
@@ -94,10 +94,10 @@ describe("RegionFilter", () => {
       />,
     );
 
-    fireEvent.click(filterCheckbox("伊達市"));
+    fireEvent.click(filterCheckbox("北海道伊達市"));
 
     expect(isIndeterminate(filterCheckbox("北海道（地方）"))).toBe(true);
-    expect(isChecked(filterCheckbox("札幌市"))).toBe(true);
+    expect(isChecked(filterCheckbox("北海道札幌市"))).toBe(true);
   });
 
   it("解除した市区町村を再選択すると都道府県・地方のチェックが復活する", () => {
@@ -106,11 +106,11 @@ describe("RegionFilter", () => {
     fireEvent.click(filterCheckbox("東北（地方）"));
     expect(isChecked(filterCheckbox("福島県"))).toBe(true);
 
-    fireEvent.click(filterCheckbox("伊達市"));
+    fireEvent.click(filterCheckbox("福島県伊達市"));
     expect(isIndeterminate(filterCheckbox("福島県"))).toBe(true);
     expect(isIndeterminate(filterCheckbox("東北（地方）"))).toBe(true);
 
-    fireEvent.click(filterCheckbox("伊達市"));
+    fireEvent.click(filterCheckbox("福島県伊達市"));
     expect(isChecked(filterCheckbox("福島県"))).toBe(true);
     expect(isChecked(filterCheckbox("東北（地方）"))).toBe(true);
   });

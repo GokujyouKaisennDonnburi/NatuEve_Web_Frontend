@@ -208,8 +208,14 @@ export function RegionFilter({
                                   key={city.name}
                                   className="flex items-center h-[22px] px-[8px]"
                                 >
+                                  {/* 同名の市区町村（伊達市など）は都道府県ごとに区別するため、
+                                      アクセシブルネームには都道府県名を前置する */}
                                   <Checkbox
                                     id={cityCheckboxId}
+                                    aria-label={buildCityKey(
+                                      pref.name,
+                                      city.name,
+                                    )}
                                     checked={isCitySelected}
                                     onCheckedChange={() =>
                                       toggleCity(pref.name, city.name)
