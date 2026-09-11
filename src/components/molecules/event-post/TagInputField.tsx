@@ -53,6 +53,17 @@ export function TagInputField({
   const isAddDisabled = !trimmedDraft || isDuplicate || isBusy;
   const helperId = `${id}-helper`;
 
+  const inputRef = useRef<HTMLInputElement>(null);
+  // disabled の間はブラウザがフォーカスを body へ外すため、処理が終わったら
+  // 入力欄へ戻す。Enter で続けてタグを足す操作を Tab なしで繰り返せるようにする。
+  const wasBusyRef = useRef(false);
+  useEffect(() => {
+    if (wasBusyRef.current && !isBusy) {
+      inputRef.current?.focus();
+    }
+    wasBusyRef.current = isBusy;
+  }, [isBusy]);
+
   const latestTagsRef = useRef(tags);
   useEffect(() => {
     latestTagsRef.current = tags;
@@ -211,6 +222,7 @@ export function TagInputField({
             }) => (
               <FormInput
                 id={id}
+                ref={inputRef}
                 value={value}
                 onChange={onChange}
                 onKeyDown={onKeyDown}

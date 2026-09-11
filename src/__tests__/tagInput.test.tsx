@@ -164,6 +164,27 @@ describe("TagInputField", () => {
     expect(input).not.toBeDisabled();
   });
 
+  it("追加が終わると入力欄へフォーカスが戻る", async () => {
+    // 処理中は入力欄を disabled にするため、ブラウザはフォーカスを body へ外す。
+    // 戻さないと、キーボードで続けてタグを足すたびに Tab で拾い直すことになる。
+    // jsdom は disabled でフォーカスを外さないので、その一手を手で補う。
+    const input = await renderAndWaitForTags([]);
+    input.focus();
+
+    mockedCreateTag.mockResolvedValueOnce({ id: "tag-1", name: "散歩" });
+    fireEvent.change(input, { target: { value: "散歩" } });
+
+    // 追加ボタンを押すとブラウザではフォーカスが外れる。jsdom はそうしないので、
+    // ボタン側へ移して「入力欄にフォーカスが無い」状況を作る。
+    const addButton = getAddButton();
+    addButton.focus();
+    expect(input).not.toHaveFocus();
+    fireEvent.click(addButton);
+
+    await screen.findByText("散歩");
+    await waitFor(() => expect(input).toHaveFocus());
+  });
+
   it("409 リカバリ中は候補ドロップダウンも閉じ、意図しないタグが入らない", async () => {
     // 入力欄だけ disabled にしても、開いたままの候補はクリックできてしまう。
     // その状態で候補を選ぶと、リカバリが追加するタグと合わせて 2 件入ってしまう。

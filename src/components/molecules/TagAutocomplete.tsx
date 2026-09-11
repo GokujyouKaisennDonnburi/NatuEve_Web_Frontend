@@ -100,6 +100,11 @@ export function TagAutocomplete({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    // 呼び出し元が入力欄まで disabled にするとは限らないので、ここでも止める。
+    // ドロップダウンを閉じるだけでは Enter で onCreate が発火しうる。
+    if (disabled) {
+      return;
+    }
     if (event.key === "Enter") {
       if (event.nativeEvent.isComposing) {
         return;
