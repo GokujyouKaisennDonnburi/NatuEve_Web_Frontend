@@ -129,7 +129,7 @@ export function RegionFilter({
                     e.stopPropagation();
                     onToggleRegion?.(region.name);
                   }}
-                  aria-label={`${region.name} を展開`}
+                  aria-label={`${region.name}（地方）を展開`}
                   className="absolute top-0 right-[8px] flex items-center justify-center w-[10px] h-full bg-transparent border-none p-0 cursor-pointer"
                 >
                   <ChevronDown
