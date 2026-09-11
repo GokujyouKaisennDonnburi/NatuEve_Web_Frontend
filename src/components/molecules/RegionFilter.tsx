@@ -16,7 +16,7 @@ import {
   toggleRegionInState,
   type RegionNodeStatus,
   type RegionSelection,
-} from "@/utils/regionSearch";
+} from "@/utils/regionFilterState";
 import { ChevronDown } from "lucide-react";
 
 type RegionFilterProps = {

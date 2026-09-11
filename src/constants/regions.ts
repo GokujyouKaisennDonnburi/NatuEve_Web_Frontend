@@ -1571,3 +1571,9 @@ export const REGIONS: readonly Region[] = [
     ],
   },
 ];
+
+// 全都道府県を地方階層なしでフラットに並べた一覧。
+// 地方単位での走査が不要な照合・検索で利用する。
+export const ALL_PREFECTURES: readonly Prefecture[] = REGIONS.flatMap(
+  (region) => region.prefectures,
+);

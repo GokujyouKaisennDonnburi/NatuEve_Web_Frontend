@@ -9,7 +9,7 @@ import {
   togglePrefectureInState,
   toggleRegionInState,
   type RegionSelection,
-} from "@/utils/regionSearch";
+} from "@/utils/regionFilterState";
 
 const EMPTY: RegionSelection = { regions: [], prefectures: [], cities: [] };
 
