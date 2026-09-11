@@ -216,7 +216,7 @@ export function RegionFilter({
                                   <Label
                                     htmlFor={cityCheckboxId}
                                     className={cn(
-                                      "ml-[6px] text-sm leading-5 text-[#3A4237] cursor-pointer",
+                                      "ml-[6px] text-sm leading-5 text-[#3A4237] font-normal cursor-pointer",
                                       isCitySelected && "font-bold",
                                     )}
                                   >
