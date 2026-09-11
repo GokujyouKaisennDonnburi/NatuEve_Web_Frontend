@@ -114,9 +114,7 @@ describe("useEventList", () => {
   });
 
   it("「投稿が新しい順」の場合は order=desc で、status 未選択なら status をリクエストに含まない", async () => {
-    renderHook(() =>
-      useEventList({ ...defaultParams, sortBy: "created_at" }),
-    );
+    renderHook(() => useEventList({ ...defaultParams, sortBy: "created_at" }));
 
     await waitFor(() => expect(mockFetchEventList).toHaveBeenCalledTimes(1));
 
@@ -127,9 +125,7 @@ describe("useEventList", () => {
   });
 
   it("「開催日が近い順」の場合は order=asc かつ status に upcoming / ongoing を含む", async () => {
-    renderHook(() =>
-      useEventList({ ...defaultParams, sortBy: "event_date" }),
-    );
+    renderHook(() => useEventList({ ...defaultParams, sortBy: "event_date" }));
 
     await waitFor(() => expect(mockFetchEventList).toHaveBeenCalledTimes(1));
 

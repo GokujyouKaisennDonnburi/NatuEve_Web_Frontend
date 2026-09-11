@@ -25,10 +25,9 @@ describe("SortButton", () => {
       <SortButton options={options} value="created_at" onChange={onChange} />,
     );
 
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "並び替え" }),
-      { target: { value: "event_date" } },
-    );
+    fireEvent.change(screen.getByRole("combobox", { name: "並び替え" }), {
+      target: { value: "event_date" },
+    });
 
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith("event_date");

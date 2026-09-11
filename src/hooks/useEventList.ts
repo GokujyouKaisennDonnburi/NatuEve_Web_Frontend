@@ -68,10 +68,11 @@ export function useEventList({
         const tagIds = selectedTagIds.length > 0 ? selectedTagIds : undefined;
         const locations = buildLocationFilters(prefectures, cities);
 
-        const validSelectedStatuses: EventListStatus[] = selectedStatuses.filter(
-          (s): s is EventListStatus =>
-            s === "upcoming" || s === "ongoing" || s === "ended",
-        );
+        const validSelectedStatuses: EventListStatus[] =
+          selectedStatuses.filter(
+            (s): s is EventListStatus =>
+              s === "upcoming" || s === "ongoing" || s === "ended",
+          );
 
         // 「開催日が近い順」では終了日が過ぎていないイベントのみを対象とするため、
         // 開催前(upcoming)・開催中(ongoing)を常に status に含める。
