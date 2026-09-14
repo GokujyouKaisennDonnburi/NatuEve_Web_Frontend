@@ -74,22 +74,16 @@ export function useEventList({
               s === "upcoming" || s === "ongoing" || s === "ended",
           );
 
-        // 「開催日が近い順」では終了日が過ぎていないイベントのみを対象とするため、
-        // 開催前(upcoming)・開催中(ongoing)を常に status に含める。
-        // ユーザーが開催状況フィルターを選択している場合は和集合とするが、
-        // 終了済み(ended)を含めると「終了日が過ぎていない」という条件が
-        // 無効化されるため除去する。
+        // 「開催日が近い順」では、ユーザーが開催状況を選択していない場合に限り、
+        // 終了日が過ぎていないイベントのみを対象にするため upcoming/ongoing を指定する。
+        // 明示的に選択されている場合はその選択（ended を含む）を優先する。
+        // 選択状態と結果が一致させないと、サイドバーのチェックが選択中のまま
+        // 結果から ended が除外され、UI 表示と結果が矛盾するためである。
         const statuses: EventListStatus[] | undefined =
-          sortBy === "event_date"
-            ? Array.from(
-                new Set<EventListStatus>([
-                  "upcoming",
-                  "ongoing",
-                  ...validSelectedStatuses.filter((s) => s !== "ended"),
-                ]),
-              )
-            : validSelectedStatuses.length > 0
-              ? validSelectedStatuses
+          validSelectedStatuses.length > 0
+            ? validSelectedStatuses
+            : sortBy === "event_date"
+              ? ["upcoming", "ongoing"]
               : undefined;
 
         const data = await fetchEventList({

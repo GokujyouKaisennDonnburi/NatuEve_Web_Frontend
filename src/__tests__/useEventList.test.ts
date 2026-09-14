@@ -35,8 +35,10 @@ const defaultParams: Parameters<typeof useEventList>[0] = {
 // - 検索クエリが空・空白のみの場合は keywords なしの通常の一覧取得になる
 // - 検索クエリがある場合は空白区切りで keywords 化して取得する
 // - ソート・絞り込み・ページネーションによる再取得は従来どおり動作する
-// - 「開催日が近い順」では終了日が過ぎていないイベントのみを対象にするため、
-//   status に upcoming / ongoing を常に含める
+// - 「開催日が近い順」では開催状況を未選択の場合、終了日が過ぎていない
+//   イベントのみを対象にするため status に upcoming / ongoing を指定する。
+//   明示的な選択がある場合はその選択（ended を含む）を優先し、
+//   サイドバーのチェック状態と結果の一致を保つ
 // - 表示順序は API（sort / order / status クエリ）が保証するため、
 //   クライアント側で再ソートは行わない
 describe("useEventList", () => {
@@ -110,9 +112,8 @@ describe("useEventList", () => {
     const request = mockFetchEventList.mock.calls[1][0];
     expect(request.sort).toBe("event_date");
     expect(request.tagIds).toEqual(["tag-1"]);
-    // 「開催日が近い順」では終了日が過ぎていないイベントのみを対象にするため、
-    // ユーザー選択の upcoming に加えて ongoing が常に含まれる
-    expect(request.status).toEqual(["upcoming", "ongoing"]);
+    // 開催状況はユーザーの明示選択をそのまま優先する
+    expect(request.status).toEqual(["upcoming"]);
   });
 
   it("「投稿が新しい順」の場合は order=desc で、status 未選択なら status をリクエストに含まない", async () => {
@@ -137,7 +138,7 @@ describe("useEventList", () => {
     expect(request.status).toEqual(["upcoming", "ongoing"]);
   });
 
-  it("「開催日が近い順」で開催状況フィルター選択時は重複なく和集合の status でリクエストする", async () => {
+  it("「開催日が近い順」で開催状況フィルター選択時は選択がそのまま status になる", async () => {
     renderHook(() =>
       useEventList({
         ...defaultParams,
@@ -149,10 +150,10 @@ describe("useEventList", () => {
     await waitFor(() => expect(mockFetchEventList).toHaveBeenCalledTimes(1));
 
     const request = mockFetchEventList.mock.calls[0][0];
-    expect(request.status).toEqual(["upcoming", "ongoing"]);
+    expect(request.status).toEqual(["upcoming"]);
   });
 
-  it("「開催日が近い順」では終了済み(ended)のみの選択でも ended を除外した status でリクエストする", async () => {
+  it("「開催日が近い順」でも終了済み(ended)の明示選択は ended を含む status でリクエストする", async () => {
     renderHook(() =>
       useEventList({
         ...defaultParams,
@@ -164,7 +165,7 @@ describe("useEventList", () => {
     await waitFor(() => expect(mockFetchEventList).toHaveBeenCalledTimes(1));
 
     const request = mockFetchEventList.mock.calls[0][0];
-    expect(request.status).toEqual(["upcoming", "ongoing"]);
+    expect(request.status).toEqual(["ended"]);
   });
 
   it("「投稿が新しい順」の場合は開催状況フィルターの選択がそのまま status になる", async () => {
