@@ -23,6 +23,9 @@ export function SortButton({
   label,
   className,
 }: Readonly<SortButtonProps>) {
+  const selectedLabel =
+    options.find((option) => option.value === value)?.label ?? "";
+
   return (
     <div className={cn("inline-flex items-center gap-2", className)}>
       {label && (
@@ -30,13 +33,22 @@ export function SortButton({
           {label}
         </span>
       )}
-      <div className="inline-flex items-center h-[52px] bg-white border border-[#CDD4C8] rounded-full px-[17px] gap-2">
+      {/* select 自体は透過でフォーカス位置が視認できないため、
+          選択中の select にフォーカスが当たった際は :has() 経由で
+          コンテナ側にフォーカスリングを表示する */}
+      <div className="relative inline-flex items-center h-[52px] bg-white border border-[#CDD4C8] rounded-full px-[17px] gap-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-(--brand-green)/30">
         <ArrowUpDown className="h-[14px] w-[14px] text-[#3A4237] shrink-0" />
+        {/* 選択中の値は透過 select の下に表示テキストとして描画する */}
+        <span className="text-sm font-bold leading-5 text-[#3A4237]">
+          {selectedLabel}
+        </span>
+        {/* ネイティブ select はクリック判定がセレクト要素自体にしかないため、
+            透過 select をボタン全体に被せてボタン全体をクリック可能にしている */}
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
           aria-label={label ?? "並び替え"}
-          className="bg-transparent outline-none cursor-pointer text-sm font-bold leading-5 text-[#3A4237]"
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
         >
           {options.map((option) => (
             <option key={option.value} value={option.value}>

@@ -68,13 +68,17 @@ export function useEventList({
         const tagIds = selectedTagIds.length > 0 ? selectedTagIds : undefined;
         const locations = buildLocationFilters(prefectures, cities);
 
+        const validSelectedStatuses: EventListStatus[] =
+          selectedStatuses.filter(
+            (s): s is EventListStatus =>
+              s === "upcoming" || s === "ongoing" || s === "ended",
+          );
+
+        // 開催状況はユーザーの選択をそのまま絞り込みとして渡す。
+        // ソートに応じた status の強制は行わない（終了済みイベントも表示対象とし、
+        // 「開催日が近い順」ではフロント側で末尾に並べ替える）。
         const statuses: EventListStatus[] | undefined =
-          selectedStatuses.length > 0
-            ? selectedStatuses.filter(
-                (s): s is EventListStatus =>
-                  s === "upcoming" || s === "ongoing" || s === "ended",
-              )
-            : undefined;
+          validSelectedStatuses.length > 0 ? validSelectedStatuses : undefined;
 
         const data = await fetchEventList({
           sort: sortBy,
@@ -113,18 +117,26 @@ export function useEventList({
             };
           });
 
+          // 「開催日が近い順」では、API が返した現在ページのイベントを、
+          // 終了日が過ぎていないイベント → 終了済みイベントの順に、
+          // それぞれ開催日時の昇順で並べ替えて表示する。
+          // 実 API は終了済みを開催日昇順に混在して返すため、フロント側で並べ替える。
+          // ページングされた現在ページ内での並べ替えのため、ページをまたいだ
+          // 順序までは保証されない点に注意。
           const sortedEvents =
             sortBy === "event_date"
-              ? [...mappedEvents].sort((a, b) => {
-                  const now = new Date();
-                  const aDate = new Date(a.eventDate);
-                  const bDate = new Date(b.eventDate);
-                  const aFuture = aDate >= now;
-                  const bFuture = bDate >= now;
-                  if (aFuture !== bFuture) {
-                    return aFuture ? -1 : 1;
+              ? [...mappedEvents].sort((left, right) => {
+                  const now = Date.now();
+                  const leftEnded =
+                    Date.parse(left.endDate || left.eventDate) < now;
+                  const rightEnded =
+                    Date.parse(right.endDate || right.eventDate) < now;
+                  if (leftEnded !== rightEnded) {
+                    return leftEnded ? 1 : -1;
                   }
-                  return aDate.getTime() - bDate.getTime();
+                  return (
+                    Date.parse(left.eventDate) - Date.parse(right.eventDate)
+                  );
                 })
               : mappedEvents;
 
