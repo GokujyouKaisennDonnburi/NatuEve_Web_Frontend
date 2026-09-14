@@ -74,17 +74,13 @@ export function useEventList({
               s === "upcoming" || s === "ongoing" || s === "ended",
           );
 
-        // 「開催日が近い順」では、ユーザーが開催状況を選択していない場合に限り、
-        // 終了日が過ぎていないイベントのみを対象にするため upcoming/ongoing を指定する。
-        // 明示的に選択されている場合はその選択（ended を含む）を優先する。
-        // 選択状態と結果が一致させないと、サイドバーのチェックが選択中のまま
-        // 結果から ended が除外され、UI 表示と結果が矛盾するためである。
+        // 開催状況はユーザーの選択をそのまま絞り込みとして渡す。
+        // ソートに応じた status の強制は行わない（終了済みイベントも表示対象とし、
+        // 「開催日が近い順」ではフロント側で末尾に並べ替える）。
         const statuses: EventListStatus[] | undefined =
           validSelectedStatuses.length > 0
             ? validSelectedStatuses
-            : sortBy === "event_date"
-              ? ["upcoming", "ongoing"]
-              : undefined;
+            : undefined;
 
         const data = await fetchEventList({
           sort: sortBy,
@@ -123,11 +119,30 @@ export function useEventList({
             };
           });
 
-          // 順序は API（sort / order / status クエリ）が保証するため、
-          // レスポンスをそのまま表示に使う。クライアント側での再ソートは
-          // ページングされた現在ページしか並べ替えられず、ページをまたいだ
-          // 順序が破綻するため行わない。
-          setEvents(mappedEvents);
+          // 「開催日が近い順」では、API が返した現在ページのイベントを、
+          // 終了日が過ぎていないイベント → 終了済みイベントの順に、
+          // それぞれ開催日時の昇順で並べ替えて表示する。
+          // 実 API は終了済みを開催日昇順に混在して返すため、フロント側で並べ替える。
+          // ページングされた現在ページ内での並べ替えのため、ページをまたいだ
+          // 順序までは保証されない点に注意。
+          const sortedEvents =
+            sortBy === "event_date"
+              ? [...mappedEvents].sort((left, right) => {
+                  const now = Date.now();
+                  const leftEnded =
+                    Date.parse(left.endDate || left.eventDate) < now;
+                  const rightEnded =
+                    Date.parse(right.endDate || right.eventDate) < now;
+                  if (leftEnded !== rightEnded) {
+                    return leftEnded ? 1 : -1;
+                  }
+                  return (
+                    Date.parse(left.eventDate) - Date.parse(right.eventDate)
+                  );
+                })
+              : mappedEvents;
+
+          setEvents(sortedEvents);
           setTotalCount(
             data.totalCount - (data.events.length - visibleApiEvents.length),
           );
