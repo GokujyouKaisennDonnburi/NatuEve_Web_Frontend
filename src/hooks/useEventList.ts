@@ -78,9 +78,7 @@ export function useEventList({
         // ソートに応じた status の強制は行わない（終了済みイベントも表示対象とし、
         // 「開催日が近い順」ではフロント側で末尾に並べ替える）。
         const statuses: EventListStatus[] | undefined =
-          validSelectedStatuses.length > 0
-            ? validSelectedStatuses
-            : undefined;
+          validSelectedStatuses.length > 0 ? validSelectedStatuses : undefined;
 
         const data = await fetchEventList({
           sort: sortBy,
