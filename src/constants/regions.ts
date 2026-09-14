@@ -1221,7 +1221,7 @@ export const REGIONS: readonly Region[] = [
           { name: "宇部市", hiragana: "うべし" },
           { name: "萩市", hiragana: "はぎし" },
           { name: "防府市", hiragana: "ほうふし" },
-          { name: "下松市", hiragana: "下松市" },
+          { name: "下松市", hiragana: "くだまつし" },
           { name: "岩国市", hiragana: "いわくにし" },
           { name: "光市", hiragana: "ひかりし" },
           { name: "長門市", hiragana: "ながとし" },
@@ -1358,7 +1358,7 @@ export const REGIONS: readonly Region[] = [
           { name: "筑後市", hiragana: "ちくごし" },
           { name: "大川市", hiragana: "おおかわし" },
           { name: "行橋市", hiragana: "ゆくはしし" },
-          { name: "豊前市", hiragana: "豊前市" },
+          { name: "豊前市", hiragana: "ぶぜんし" },
           { name: "中間市", hiragana: "なかまし" },
           { name: "小郡市", hiragana: "おごおりし" },
           { name: "筑紫野市", hiragana: "ちくしのし" },
@@ -1571,3 +1571,9 @@ export const REGIONS: readonly Region[] = [
     ],
   },
 ];
+
+// 全都道府県を地方階層なしでフラットに並べた一覧。
+// 地方単位での走査が不要な照合・検索で利用する。
+export const ALL_PREFECTURES: readonly Prefecture[] = REGIONS.flatMap(
+  (region) => region.prefectures,
+);

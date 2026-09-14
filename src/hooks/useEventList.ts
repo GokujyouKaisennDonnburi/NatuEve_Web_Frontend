@@ -4,7 +4,7 @@ import type { EventItem } from "@/components/organisms/EventCard";
 import { fetchEventList } from "@/services/event";
 import type { EventListStatus } from "@/types/event";
 import { resolveEventStatus } from "@/utils/eventStatus";
-import { buildLocationFilters } from "@/utils/regionSearch";
+import { buildLocationFilters } from "@/utils/regionFilterState";
 import { useEffect, useState } from "react";
 
 type UseEventListParams = {
