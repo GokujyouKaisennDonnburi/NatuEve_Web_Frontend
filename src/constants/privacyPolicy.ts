@@ -41,7 +41,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
         {
           title: "3.1 アカウント情報",
           paragraphs: [
-            "利用者がGoogleアカウントを利用して本サービスにログインする場合、Googleから以下の情報を取得します。",
+            "利用者がGoogleアカウントを利用して本サービスにサインインする場合、Googleから以下の情報を取得します。",
           ],
           layout: "unordered",
           items: [
@@ -101,7 +101,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
             { text: "申込時に入力したメールアドレス" },
             { text: "カテゴリ別の参加人数" },
             { text: "申込日時" },
-            { text: "ログインして申し込んだ場合のプロフィール情報" },
+            { text: "サインインして申し込んだ場合のプロフィール情報" },
           ],
         },
         {
@@ -150,7 +150,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
           paragraphs: ["運営は、取得した個人情報を以下の目的で利用します。"],
           items: [
             { text: "本サービスの提供・運営" },
-            { text: "利用者の本人認証およびログイン状態の管理" },
+            { text: "利用者の本人認証およびサインイン状態の管理" },
             { text: "イベントの作成、公開、検索、管理および運営" },
             { text: "イベントへの参加申込の受付および管理" },
             { text: "イベント主催者による参加者の確認・管理" },
@@ -216,7 +216,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
             { text: "申込者の氏名" },
             { text: "申込者のメールアドレス" },
             { text: "参加人数" },
-            { text: "ログインして申し込んだ場合のプロフィール情報" },
+            { text: "サインインして申し込んだ場合のプロフィール情報" },
             { text: "申込日時" },
             { text: "その他、イベント運営に必要な参加申込情報" },
           ],
@@ -270,7 +270,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
         {
           title: "7.1 Google",
           paragraphs: [
-            "本サービスでは、ログイン認証のためGoogleの認証サービスを利用しています。",
+            "本サービスでは、サインイン認証のためGoogleの認証サービスを利用しています。",
             "Googleによる認証を利用する場合、Googleから以下の情報を取得します。",
           ],
           layout: "unordered",
@@ -307,12 +307,12 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
       articles: [
         {
           paragraphs: [
-            "本サービスでは、利用者のログイン状態を維持し、本サービスを正常に提供するためCookie、ローカルストレージその他のブラウザの保存機能を利用する場合があります。",
+            "本サービスでは、利用者のサインイン状態を維持し、本サービスを正常に提供するためCookie、ローカルストレージその他のブラウザの保存機能を利用する場合があります。",
             "これらは、主として以下の目的で利用します。",
           ],
           layout: "unordered",
           items: [
-            { text: "ログイン状態の維持" },
+            { text: "サインイン状態の維持" },
             { text: "認証セッションの管理" },
             { text: "本人認証" },
             { text: "不正アクセスの防止" },

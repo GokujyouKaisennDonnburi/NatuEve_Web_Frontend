@@ -317,7 +317,7 @@ seedEventMembers(toUuid(97), 0); // 参加者なし
 
 // 期限切れ確認用イベントには、モックユーザー自身の申し込みをシードする。
 // 申込期限より前（3日前）に申し込んだ状態とし、
-// ログイン直後から「申し込み済み」→ 期限を過ぎた申し込み内容モーダルへ進める。
+// サインイン直後から「申し込み済み」→ 期限を過ぎた申し込み内容モーダルへ進める。
 seedMyParticipation(DEADLINE_PASSED_EVENT_ID, {
   appliedAt: DEADLINE_PASSED_APPLIED_AT,
   participants: [

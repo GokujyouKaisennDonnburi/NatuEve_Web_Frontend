@@ -2,12 +2,12 @@
 
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
+import { CardContent } from "@/components/ui/card";
 import type { UseEventMembersResult } from "@/hooks/useEventMembers";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { Send, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect } from "react";
-import { CardContent } from "@/components/ui/card";
 
 // ==============================
 // Props
@@ -155,7 +155,7 @@ function EventMemberListBody({
           <table className="w-full table-fixed">
             <tbody>
               {data.members.map((member) => {
-                // アバターとユーザー名のセット（ログイン参加者はプロフィールへ遷移できるようにする）
+                // アバターとユーザー名のセット（サインイン参加者はプロフィールへ遷移できるようにする）
                 const userBlock = (
                   <>
                     <GlobalUserAvatar

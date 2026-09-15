@@ -13,7 +13,7 @@ type EventReportListProps = {
   report?: ReportDetail | null;
   // 「レポートを作成」ボタンからレポート投稿画面へ遷移するためのイベントID。
   eventId?: string;
-  // 主催者（ログイン中のユーザー＝投稿者）のときだけ「レポートを作成」ボタンを表示する。
+  // 主催者（サインイン中のユーザー＝投稿者）のときだけ「レポートを作成」ボタンを表示する。
   isOrganizer?: boolean;
 };
 

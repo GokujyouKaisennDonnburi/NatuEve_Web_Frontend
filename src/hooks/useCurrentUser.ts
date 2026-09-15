@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { fetchCurrentUser } from "@/services/user";
 import type { AuthSession } from "@/types/common";
 import type { CurrentUser } from "@/types/user";
+import { useEffect, useState } from "react";
 
 // カスタムフック: 現在のユーザー情報を取得する
 type UseCurrentUserState = {
@@ -32,24 +32,24 @@ export function useCurrentUser(
   // 現在保持している state が、どのユーザーに対するものかを覚えておく。
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
 
-  // ログインユーザーが変わったら、前のユーザーの情報をレンダー中に破棄する。
+  // サインインユーザーが変わったら、前のユーザーの情報をレンダー中に破棄する。
   //
   // useEffect は描画の後に走るため、そこでリセットすると
   // ログアウト直後の1フレームだけ前のユーザーの情報が表示されてしまう
-  // （ヘッダーが一瞬ログイン状態に見える）。ユーザー切替時はさらに問題で、
+  // （ヘッダーが一瞬サインイン状態に見える）。ユーザー切替時はさらに問題で、
   // 別人の表示名とアイコンが出てしまう。
   // レンダー中の setState は描画前に再レンダーされるため、この隙間が生まれない。
   if (loadedUserId !== userId) {
     setLoadedUserId(userId);
     setUser(null);
     setError(null);
-    // ログイン中なら、この後の副作用で取得するので最初からローディング扱いにする。
+    // サインイン中なら、この後の副作用で取得するので最初からローディング扱いにする。
     setIsLoading(userId !== null);
   }
 
-  // ログインユーザーが変わったときにユーザー情報を取得する副作用を定義
+  // サインインユーザーが変わったときにユーザー情報を取得する副作用を定義
   useEffect(() => {
-    // 未ログイン時は取得しない。state のリセットはレンダー中に済んでいる。
+    // 未サインイン時は取得しない。state のリセットはレンダー中に済んでいる。
     if (!userId) {
       return;
     }

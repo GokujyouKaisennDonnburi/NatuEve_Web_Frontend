@@ -4,8 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { AuthSession } from "@/types/common";
 import type { CurrentUser } from "@/types/user";
-import { createContext, useContext, useMemo } from "react";
 import type { ReactNode } from "react";
+import { createContext, useContext, useMemo } from "react";
 
 // 認証セッションと本人プロフィールを配下の画面へ供給する Provider。
 //
@@ -13,9 +13,9 @@ import type { ReactNode } from "react";
 
 // 認証セッション。プロフィールを必要としない画面はこちらだけを参照する。
 type AuthContextValue = {
-  // 認証セッション（未ログイン時は null）。
+  // 認証セッション（未サインイン時は null）。
   session: AuthSession | null;
-  // ログイン済みかどうか。
+  // サインイン済みかどうか。
   isAuthenticated: boolean;
   // 認証状態がまだ確定していない間は true。プロフィールの取得は待たない。
   isSessionLoading: boolean;
@@ -25,7 +25,7 @@ type AuthContextValue = {
 type CurrentUserContextValue = {
   // API から取得したプロフィール（未取得・取得失敗時は null）。
   user: CurrentUser | null;
-  // 「ログインユーザーが誰か」がまだ確定していない間は true。
+  // 「サインインユーザーが誰か」がまだ確定していない間は true。
   // 認証状態の確認に加えて、プロフィール取得の結果待ちも含む。
   // 取得が失敗して error が確定した時点で false となるため、
   // 呼び出し側はそこで代替表示へ切り替えられる。

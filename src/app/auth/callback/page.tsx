@@ -27,12 +27,12 @@ export default function AuthCallbackPage() {
       handled = true;
 
       if (isSignedIn) {
-        toast.success("ログインに成功しました。");
+        toast.success("サインインに成功しました。");
         router.replace(ROUTES.EVENT_LIST);
         return;
       }
 
-      toast.error("ログインに失敗しました。もう一度お試しください。");
+      toast.error("サインインに失敗しました。もう一度お試しください。");
       router.replace(ROUTES.SIGNIN);
     };
 
@@ -51,5 +51,5 @@ export default function AuthCallbackPage() {
     };
   }, [router]);
 
-  return <p>ログイン中...</p>;
+  return <p>サインイン中...</p>;
 }

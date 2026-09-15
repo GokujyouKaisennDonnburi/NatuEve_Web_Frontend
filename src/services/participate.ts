@@ -25,8 +25,8 @@ import {
 
 // イベント参加 API（POST /api/v1/events/{eventId}/join）を呼ぶ。
 //
-// 認証は任意。ログイン時は `auth: true` で Bearer トークンを付与し profileId が記録される。
-// 未ログイン時は `auth: false` でトークン無しで送信し、匿名参加（profileId = null）となる。
+// 認証は任意。サインイン時は `auth: true` で Bearer トークンを付与し profileId が記録される。
+// 未サインイン時は `auth: false` でトークン無しで送信し、匿名参加（profileId = null）となる。
 // ヘッダありでトークンが無効の場合は 401 で中断される。
 // 検証エラー（400）や 409 Conflict 等は ParticipateError を送出し、呼び出し側で判別する。
 export async function participateEvent(
@@ -107,7 +107,7 @@ export async function getEventMembers(
 
 // イベント参加状態取得 API（GET /api/v1/events/{eventId}/participation-logs）を呼ぶ（要認証）。
 //
-// 現在のログインユーザーが当該イベントに参加中かどうかを判定する。
+// 現在のサインインユーザーが当該イベントに参加中かどうかを判定する。
 // 未認証・無効トークンは 401、イベント不存在は 400 invalid_request となる。
 // APIエラー・通信エラーは ParticipationLogsError を送出し、呼び出し側で
 // エラー表示に切り替えられるようにする。
@@ -146,7 +146,7 @@ export async function getParticipationLogs(
 
 // イベント参加キャンセル API（POST /api/v1/events/{eventId}/leave）を呼ぶ（要認証）。
 //
-// ログイン参加者が参加を取り消す。リクエストボディは不要。
+// サインイン参加者が参加を取り消す。リクエストボディは不要。
 // 未認証・無効トークンは 401、イベント不存在 または 未参加時は 404 not_found となる。
 // 匿名参加（profileId=null）は本 API の対象外。
 // APIエラー・通信エラーは LeaveError を送出し、呼び出し側で

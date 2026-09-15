@@ -37,7 +37,7 @@ export type MockEventMember = {
   createdAt: string;
 };
 
-// メモリ内参加者管理：eventId ごとに参加者キー（ログイン時は token、匿名時は anon:mailAddress）を保持
+// メモリ内参加者管理：eventId ごとに参加者キー（サインイン時は token、匿名時は anon:mailAddress）を保持
 // 重複参加チェック（409 Conflict）のために使用
 export const eventParticipants = new Map<string, Set<string>>();
 
@@ -59,12 +59,12 @@ export const cancelledEventIds = new Set<string>();
 // 指定の参加者キーがそのイベントに参加中かどうかを判定する。
 // 「参加中」の情報源は参加履歴（直近のアクションが join か）に一本化し、
 // leave / absence / members-me が同じ基準で 404 を返せるようにする。
-// 参加者キーは join エンドポイントの登録に合わせ、ログイン参加なら raw token を渡す。
+// 参加者キーは join エンドポイントの登録に合わせ、サインイン参加なら raw token を渡す。
 export const isJoined = (eventId: string, participantKey: string): boolean =>
   participationLogs.get(eventId)?.get(participantKey)?.action === "join";
 
 // 新規作成イベントに参加者モックデータをシードする。
-// 主催者画面の動作確認用で、ログイン参加・匿名参加（profile: null）を混在させることで
+// 主催者画面の動作確認用で、サインイン参加・匿名参加（profile: null）を混在させることで
 // 参加組数 / 合計参加人数 / 匿名表示の検証を網羅できるようにしている。
 // username（申込時の名前）と profile.displayName（アカウントの表示名）は
 // 別物であることを確認できるよう、あえて異なる値を入れている。
@@ -127,7 +127,7 @@ export const seedEventMembers = (
   eventParticipants.set(eventId, participants);
 };
 
-// ログイン中のモックユーザー自身の申し込みをシードする。
+// サインイン中のモックユーザー自身の申し込みをシードする。
 // 参加履歴のキーは join エンドポイントと同じ raw token とし、
 // participation-logs / members/me / members のいずれから見ても
 // 「本人が申し込み済み」と読める状態を作る。

@@ -38,8 +38,8 @@ export function SiteHeader() {
 
   // ヘッダ表示用ユーザー情報を生成する。
   // /api/v1/me が失敗した場合は、セッション（Google の user_metadata 由来）の
-  // 名前とアイコンで代替する。ここで null にしてしまうと、ログイン済みなのに
-  // 「ログイン」ボタンが出て、イベント投稿にも進めなくなるため。
+  // 名前とアイコンで代替する。ここで null にしてしまうと、サインイン済みなのに
+  // 「サインイン」ボタンが出て、イベント投稿にも進めなくなるため。
   // 表示名をアプリ側で編集していた場合は API 復旧まで Google の名前が出るが、
   // アイコンは同じ値（DB の avatar_url も JWT 由来）なので見た目は変わらない。
   const user: HeaderUser | null = currentUser
@@ -56,13 +56,13 @@ export function SiteHeader() {
         }
       : null;
 
-  // ログイン状態を確認してイベント投稿ページへ遷移する
+  // サインイン状態を確認してイベント投稿ページへ遷移する
   const handleCreateEvent = () => {
     if (isLoading) {
       return;
     }
     if (!user?.id) {
-      toast.error("イベントを投稿するにはログインしてください。");
+      toast.error("イベントを投稿するにはサインインしてください。");
       return;
     }
     router.push(ROUTES.EVENT_POST);
@@ -131,7 +131,7 @@ export function SiteHeader() {
               variant="outline"
               className="rounded-full px-5 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 cursor-pointer"
             >
-              <Link href={ROUTES.SIGNIN}>ログイン</Link>
+              <Link href={ROUTES.SIGNIN}>サインイン</Link>
             </Button>
           ) : user.id ? (
             <Link
