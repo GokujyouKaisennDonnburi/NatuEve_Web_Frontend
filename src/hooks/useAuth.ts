@@ -103,7 +103,7 @@ export function useAuth() {
         setSession(session ? buildSession(session) : null);
       })
       .catch(() => {
-        // 取得に失敗した場合はサインアウト状態扱いで画面を進める。
+        // 取得に失敗した場合は未認証扱いで画面を進める。
         // ここで握りつぶさないとローディングが解除されず、画面が固まる。
         setSession(null);
       })
