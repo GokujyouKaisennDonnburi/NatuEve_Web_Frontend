@@ -1,23 +1,23 @@
 // このファイルは、イベント参加モックエンドポイントを定義する。
 // POST /api/v1/events/:id/join
 // 認証は任意。Authorization ヘッダなし → 匿名参加（profile = null）。
-// ヘッダありで有効な Bearer → プロフィールを記録してログイン参加。
+// ヘッダありで有効な Bearer → プロフィールを記録してサインイン参加。
 // 同一イベントへの重複参加は 409 already_joined、定員超過は 409 capacity_full で返す。
 import { HttpResponse, http } from "msw";
 
-import type { MockParticipationLog } from "./participation";
-import {
-  eventMembers,
-  eventParticipants,
-  participationLogs,
-} from "./participation";
-import { mockEventDetails } from "./data";
 import {
   TOKEN_TO_PROFILE,
   getBearerToken,
   hasBearerToken,
   unauthorizedResponse,
 } from "./auth";
+import { mockEventDetails } from "./data";
+import type { MockParticipationLog } from "./participation";
+import {
+  eventMembers,
+  eventParticipants,
+  participationLogs,
+} from "./participation";
 
 export const eventJoinHandler = http.post(
   "/api/v1/events/:id/join",
@@ -170,7 +170,7 @@ export const eventJoinHandler = http.post(
 
     // 認証ヘッダの有無で参加者のプロフィールを決定する。
     // ヘッダなし → 匿名参加（profile = null）
-    // ヘッダあり（Bearer） → 既知トークンならそのプロフィールでログイン参加
+    // ヘッダあり（Bearer） → 既知トークンならそのプロフィールでサインイン参加
     const authorizationHeader = request.headers.get("authorization");
     const hasBearer = hasBearerToken(authorizationHeader);
     const token = hasBearer ? getBearerToken(authorizationHeader) : "";
@@ -186,7 +186,7 @@ export const eventJoinHandler = http.post(
 
     const profileId = profile?.id ?? null;
 
-    // 重複参加チェック：ログイン時は token、匿名時は mailAddress で識別
+    // 重複参加チェック：サインイン時は token、匿名時は mailAddress で識別
     const participantKey = hasBearer ? token : `anon:${mailAddress}`;
     const participants = eventParticipants.get(id) ?? new Set<string>();
     if (participants.has(participantKey)) {

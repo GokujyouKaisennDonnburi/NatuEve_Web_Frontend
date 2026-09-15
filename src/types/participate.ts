@@ -33,7 +33,7 @@ export type ParticipateEventResponse = {
   participants: ParticipantEntry[];
   // 合計参加人数（代表者を含む）。サーバーが participants の内訳から算出する。
   partySize: number;
-  // プロフィールID（ログイン参加時はユーザーID・匿名参加時は null）。
+  // プロフィールID（サインイン参加時はユーザーID・匿名参加時は null）。
   profileId: string | null;
   // 受領日時(RFC3339)。
   createdAt: string;
@@ -97,7 +97,7 @@ export type EventMember = {
   mailAddress: string;
   // 参加人数（代表者を含む）。
   partySize: number;
-  // 参加者のプロフィールサマリー（ログイン参加時のみ・匿名参加時は null）。
+  // 参加者のプロフィールサマリー（サインイン参加時のみ・匿名参加時は null）。
   profile: EventMemberProfile | null;
   // 申込日時(RFC3339)。
   createdAt: string;
@@ -163,14 +163,14 @@ export class ParticipationLogsError extends Error {
 }
 
 // イベント参加キャンセル API（POST /api/v1/events/{id}/leave）の DTO 群。
-// ログイン参加者が参加を取り消す。要認証。匿名参加（profileId=null）は対象外。
+// サインイン参加者が参加を取り消す。要認証。匿名参加（profileId=null）は対象外。
 // 参加行を削除し、参加状態ログへ action=leave を1件追記する。
 
 // 参加キャンセルエンドポイントのレスポンス DTO。
 export type LeaveResponse = {
   // 実行されたアクション。本エンドポイントでは常に "leave"。
   action: "leave";
-  // キャンセルしたユーザーのプロフィールID（ログイン参加時）。
+  // キャンセルしたユーザーのプロフィールID（サインイン参加時）。
   profileId: string;
   // キャンセルを受け付けたイベントID。
   eventId: string;

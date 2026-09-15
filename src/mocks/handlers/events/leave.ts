@@ -1,11 +1,18 @@
 // このファイルは、イベント参加キャンセルモックエンドポイントを定義する。
 // POST /api/v1/events/:id/leave
-// ログイン参加者が参加を取り消す。要認証。リクエストボディは不要。匿名参加は対象外。
+// サインイン参加者が参加を取り消す。要認証。リクエストボディは不要。匿名参加は対象外。
 // 未認証・未知トークンは 401、イベント不存在 または 未参加は 404 not_found となる。
 // 申込期限を過ぎたイベントは取り消せず 409 deadline_passed を返す（欠席連絡 API を使う）。
 // 参加行を削除し、参加状態ログへ action=leave を1件追記する。
 import { HttpResponse, http } from "msw";
 
+import {
+  TOKEN_TO_PROFILE_ID,
+  getBearerToken,
+  hasBearerToken,
+  unauthorizedResponse,
+} from "./auth";
+import { mockEventDetails } from "./data";
 import type { MockParticipationLog } from "./participation";
 import {
   eventMembers,
@@ -13,13 +20,6 @@ import {
   isJoined,
   participationLogs,
 } from "./participation";
-import { mockEventDetails } from "./data";
-import {
-  TOKEN_TO_PROFILE_ID,
-  getBearerToken,
-  hasBearerToken,
-  unauthorizedResponse,
-} from "./auth";
 
 export const eventLeaveHandler = http.post(
   "/api/v1/events/:id/leave",
@@ -102,7 +102,7 @@ export const eventLeaveHandler = http.post(
     participationLogs.set(id, logs);
 
     // eventMembers からも該当レコードを削除する。
-    // ログイン参加の場合は profile.id（= TOKEN_TO_PROFILE_ID[token]）で特定する。
+    // サインイン参加の場合は profile.id（= TOKEN_TO_PROFILE_ID[token]）で特定する。
     // 匿名参加は profile が null のため、常に残る（本エンドポイントの対象外）。
     const members = eventMembers.get(id);
     if (members) {

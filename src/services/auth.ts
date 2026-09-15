@@ -9,7 +9,7 @@ import {
   syncMockWorker,
 } from "@/services/mockAuth";
 
-// Googleログインへリダイレクト（モック時はセッションを保存して true を返す）
+// Googleサインインへリダイレクト（モック時はセッションを保存して true を返す）
 export async function signInWithGoogle(): Promise<boolean> {
   if (isMockAuthEnabled()) {
     await syncMockWorker(true);
@@ -32,7 +32,7 @@ export async function signInWithGoogle(): Promise<boolean> {
 //
 // リダイレクト URL に PKCE の code があればセッションへ交換し、
 // 最終的にセッションが確立したかどうかを返す。
-// 交換に失敗した場合は例外を送出し、呼び出し側にログイン失敗として扱わせる。
+// 交換に失敗した場合は例外を送出し、呼び出し側にサインイン失敗として扱わせる。
 //
 // セッションの中身は返さない。user_metadata から AuthSession への変換は
 // useAuth の buildSession に一本化しており、ここで再実装すると

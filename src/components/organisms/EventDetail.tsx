@@ -2,12 +2,19 @@
 
 import { BackLink } from "@/components/atoms/BackLink";
 import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
+import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { EventCancelModal } from "@/components/molecules/event-detail/EventCancelModal";
 import {
   type EventDetailTab,
   EventDetailTabs,
   eventDetailTabId,
 } from "@/components/molecules/event-detail/EventDetailTabs";
+import {
+  EVENT_DETAIL_ATTACHMENTS_SECTION_ID,
+  EVENT_DETAIL_INFO_SECTION_ID,
+  EVENT_DETAIL_OVERVIEW_SECTION_ID,
+  EVENT_DETAIL_TOC_SECTIONS,
+} from "@/components/molecules/event-detail/eventDetailTocSections";
 import { EventImageCarousel } from "@/components/molecules/event-detail/EventImageCarousel";
 import { EventInfoTable } from "@/components/molecules/event-detail/EventInfoTable";
 import { EventMemberListModal } from "@/components/molecules/event-detail/EventMemberListModal";
@@ -16,25 +23,18 @@ import { EventOrganizerToolbar } from "@/components/molecules/event-detail/Event
 import { EventPdfList } from "@/components/molecules/event-detail/EventPdfList";
 import { EventReportList } from "@/components/molecules/event-detail/EventReportList";
 import { EventTagList } from "@/components/molecules/event-detail/EventTagList";
-import {
-  EVENT_DETAIL_ATTACHMENTS_SECTION_ID,
-  EVENT_DETAIL_INFO_SECTION_ID,
-  EVENT_DETAIL_OVERVIEW_SECTION_ID,
-  EVENT_DETAIL_TOC_SECTIONS,
-} from "@/components/molecules/event-detail/eventDetailTocSections";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { PageToc } from "@/components/molecules/PageToc";
 import { SurfaceCard } from "@/components/molecules/SurfaceCard";
 import { EventParticipationButton } from "@/components/organisms/EventParticipationButton";
-import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
-import { cn } from "@/lib/utils";
 import { useDeadlineRefresh } from "@/hooks/useDeadlineRefresh";
 import { useEventMembers } from "@/hooks/useEventMembers";
 import { useMyEventApplication } from "@/hooks/useMyEventApplication";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
+import { cn } from "@/lib/utils";
 import type { ReportDetail } from "@/types/report";
 import { resolveEventStatus } from "@/utils/eventStatus";
 import Link from "next/link";
@@ -117,7 +117,7 @@ export function EventDetail({
   // 再描画し、表示と操作可否を実際の時刻に追随させる。
   useDeadlineRefresh([event.applicationDeadline, event.endDate]);
 
-  // ログイン中のユーザーが当該イベントの投稿者（主催者）かどうか
+  // サインイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(
     session?.userId && organizerId && session.userId === organizerId,
   );
@@ -131,8 +131,8 @@ export function EventDetail({
   const [isNotifyOpen, setIsNotifyOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
 
-  // 参加状態取得（主催者以外のログインユーザーのみ）
-  // 未ログイン時は取得をスキップし、participating=false として扱う。
+  // 参加状態取得（主催者以外のサインインユーザーのみ）
+  // サインアウト状態時は取得をスキップし、participating=false として扱う。
   const isAuthenticated = Boolean(session?.token);
   const {
     data: participationData,

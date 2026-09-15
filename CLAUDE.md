@@ -28,7 +28,7 @@ bun run storybook            # Storybook 起動
 
 ### 認証
 - Supabase Auth を使用（DB/Storage は使わない）
-- 共通ログイン UI パッケージを将来的に複数プロダクトで共有
+- 共通サインイン UI パッケージを将来的に複数プロダクトで共有
 - Google OAuth は「ウェブ アプリケーション」クライアントタイプ
 
 ### 型共有

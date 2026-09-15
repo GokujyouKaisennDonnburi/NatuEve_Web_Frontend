@@ -6,6 +6,7 @@ import { participateEvent } from "@/services/participate";
 import type { EventDetailCost } from "@/types/event";
 import type { ParticipantEntry } from "@/types/participate";
 import { ParticipateError, ParticipateErrorCode } from "@/types/participate";
+import { normalizeHalfWidthDigits } from "@/utils/format";
 import type {
   ParticipantCounts,
   ParticipationSummary,
@@ -15,7 +16,6 @@ import {
   createInitialCounts,
   resolveParticipationCosts,
 } from "@/utils/participation";
-import { normalizeHalfWidthDigits } from "@/utils/format";
 import { isEmail } from "@/utils/validation";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -123,7 +123,7 @@ export function useParticipationForm({
     [costs],
   );
 
-  // ログイン済みなら「お客様情報」を飛ばして人数選択から始める。
+  // サインイン済みなら「お客様情報」を飛ばして人数選択から始める。
   const steps = useMemo<ParticipationStepId[]>(
     () =>
       isAuthenticated
@@ -200,12 +200,12 @@ export function useParticipationForm({
     [touched, validationErrors],
   );
 
-  // 人数選択へ進めるか。ログイン済みの場合はお客様情報ステップ自体が無い。
+  // 人数選択へ進めるか。サインイン済みの場合はお客様情報ステップ自体が無い。
   const canGoNext =
     isAuthenticated ||
     (!validationErrors.username && !validationErrors.mailAddress);
 
-  // お客様情報へ戻れるか。ログイン済みの場合はそのステップ自体が無い。
+  // お客様情報へ戻れるか。サインイン済みの場合はそのステップ自体が無い。
   const canGoBack = !isAuthenticated && step === ParticipationStepId.Count;
 
   // 申し込みを確定できるか。0名では送信させない。
@@ -321,7 +321,7 @@ export function useParticipationForm({
   // 人数はカテゴリ別内訳（participants）で送る。カテゴリにはイベント詳細の
   // costs[].category を指定し、0人のカテゴリは含めない。合計人数（partySize）は
   // サーバー側が内訳から算出するため送信しない。
-  // ログイン時はセッションの情報を、未ログイン時は入力値をトークン無しで送る。
+  // サインイン時はセッションの情報を、サインアウト状態時は入力値をトークン無しで送る。
   const submit = useCallback(() => {
     if (!canSubmit) return;
 
@@ -361,7 +361,7 @@ export function useParticipationForm({
 
           if (!sessionMailAddress || !sessionUsername) {
             toast.error(
-              "ユーザー情報が取得できませんでした。再度ログインしてください。",
+              "ユーザー情報が取得できませんでした。再度サインインしてください。",
             );
             return;
           }

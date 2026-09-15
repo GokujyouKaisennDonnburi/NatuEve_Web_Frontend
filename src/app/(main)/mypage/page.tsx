@@ -4,21 +4,21 @@ import { BackLink } from "@/components/atoms/BackLink";
 import { useCurrentUserContext } from "@/components/layouts/AuthProvider";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
+import { ROUTES } from "@/constants/routes";
 import { useMyEvents } from "@/hooks/useMyEvents";
 import { signOut } from "@/services/auth";
 import { updateMyProfile } from "@/services/user";
-import { ROUTES } from "@/constants/routes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function MyPage() {
   const router = useRouter();
   // サインアウト処理中フラグ。ボタン単位で無効化して連打による多重実行を防ぐ。
   // 成功時は遷移で画面が消えるためフラグを戻さず、失敗時のみ解除する
   // （フラグを戻すと session クリアにより profile が null になり、
-  // 遷移完了前に「ログインし直してください」が一瞬表示されるため）。
+  // 遷移完了前に「サインインし直してください」が一瞬表示されるため）。
   const [isSigningOut, setIsSigningOut] = useState(false);
   const {
     user: profile,
@@ -74,11 +74,11 @@ export default function MyPage() {
     );
   }
 
-  // 未ログイン、または /api/v1/me の取得に失敗した場合
+  // プロフィール未取得の場合（サインアウト状態、または /api/v1/me の取得失敗）
   if (!profile) {
     // サインアウト成功後は session クリアによりここに到達する。
     // router.replace の遷移完了まではスピナーを維持し、
-    // 「ログインし直してください」が一瞬表示されるのを防ぐ
+    // 「サインインし直してください」が一瞬表示されるのを防ぐ
     if (isSigningOut) {
       return (
         <div className="flex items-center justify-center py-16">
@@ -90,7 +90,7 @@ export default function MyPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16">
         <p className="text-slate-500">
-          ユーザー情報が取得できませんでした。ログインし直してください。
+          ユーザー情報が取得できませんでした。サインインし直してください。
         </p>
         <Link
           href={ROUTES.HOME}
@@ -134,7 +134,7 @@ export default function MyPage() {
     }
 
     // 遷移に失敗してもセッションは消滅済みのためフラグは解除せず、
-    // スピナーを維持して「ログインし直してください」の表示を防ぐ。
+    // スピナーを維持して「サインインし直してください」の表示を防ぐ。
     // 万一遷移が失敗したときに操作不能なデッドエンドを避けるため、
     // フルリロードによる遷移へフォールバックする
     try {

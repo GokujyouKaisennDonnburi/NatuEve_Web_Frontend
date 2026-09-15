@@ -32,7 +32,7 @@ const sampleUsers = [
 //
 // キーはアプリ内のモックデータが実際に持つプロフィールIDに揃えてある。
 // - profile-1〜6: イベントモック（handlers/events/data.ts）の主催者
-// - MOCK_AUTH_SESSION.userId: ログイン中のモックユーザー本人
+// - MOCK_AUTH_SESSION.userId: サインイン中のモックユーザー本人
 // ここに無いIDは実 API と同じく 404 を返し、Not Found 表示も検証できるようにする。
 const sampleUserProfiles: Readonly<Record<string, UserProfileResponse>> = {
   "profile-1": {

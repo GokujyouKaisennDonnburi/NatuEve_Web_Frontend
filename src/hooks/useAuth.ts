@@ -103,7 +103,7 @@ export function useAuth() {
         setSession(session ? buildSession(session) : null);
       })
       .catch(() => {
-        // 取得に失敗した場合は未ログイン扱いで画面を進める。
+        // 取得に失敗した場合は未認証扱いで画面を進める。
         // ここで握りつぶさないとローディングが解除されず、画面が固まる。
         setSession(null);
       })
@@ -122,7 +122,7 @@ export function useAuth() {
   }, []);
 
   // isAuthenticated 等の導出値は AuthProvider 側で組み立てる。
-  // ログイン / ログアウトの実行は services/auth を直接 import して行う
+  // サインイン / サインアウトの実行は services/auth を直接 import して行う
   // （signin/page.tsx が既にその方式）。
   return {
     session,

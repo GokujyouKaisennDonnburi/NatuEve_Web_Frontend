@@ -33,7 +33,7 @@ type ParticipationModalProps = {
 
 // 参加申し込みモーダル。
 //
-// 未登録者は「お客様情報 → 人数 → 完了」、ログイン済みは「人数 → 完了」の順に進む。
+// 未登録者は「お客様情報 → 人数 → 完了」、サインイン済みは「人数 → 完了」の順に進む。
 // 状態と送信は useParticipationForm に委ね、ここでは表示とモーダルの挙動を担当する。
 export function ParticipationModal({
   isOpen,
