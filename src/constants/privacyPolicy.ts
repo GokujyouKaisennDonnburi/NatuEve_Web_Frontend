@@ -101,7 +101,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
             { text: "申込時に入力したメールアドレス" },
             { text: "カテゴリ別の参加人数" },
             { text: "申込日時" },
-            { text: "サインインして申し込んだ場合のプロフィール情報" },
+            { text: "サインイン参加時のプロフィール情報" },
           ],
         },
         {
@@ -216,7 +216,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
             { text: "申込者の氏名" },
             { text: "申込者のメールアドレス" },
             { text: "参加人数" },
-            { text: "サインインして申し込んだ場合のプロフィール情報" },
+            { text: "サインイン参加時のプロフィール情報" },
             { text: "申込日時" },
             { text: "その他、イベント運営に必要な参加申込情報" },
           ],
@@ -270,7 +270,7 @@ export const PRIVACY_POLICY: LegalDocumentContent = {
         {
           title: "7.1 Google",
           paragraphs: [
-            "本サービスでは、サインイン認証のためGoogleの認証サービスを利用しています。",
+            "本サービスでは、サインイン時の認証のためGoogleの認証サービスを利用しています。",
             "Googleによる認証を利用する場合、Googleから以下の情報を取得します。",
           ],
           layout: "unordered",
