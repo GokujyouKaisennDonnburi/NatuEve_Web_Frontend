@@ -46,8 +46,8 @@ export default function SignInPage() {
   // Googleサインインボタンのクリックハンドラ
   const handleGoogleSignIn = async () => {
     try {
-      const isMock = await signInWithGoogle(); // サインイン処理を呼び出す
-      if (isMock) {
+      const isMockSignIn = await signInWithGoogle();
+      if (isMockSignIn) {
         router.replace(ROUTES.EVENT_LIST);
       }
     } catch (error) {
