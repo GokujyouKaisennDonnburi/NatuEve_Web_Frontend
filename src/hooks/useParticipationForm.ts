@@ -321,7 +321,7 @@ export function useParticipationForm({
   // 人数はカテゴリ別内訳（participants）で送る。カテゴリにはイベント詳細の
   // costs[].category を指定し、0人のカテゴリは含めない。合計人数（partySize）は
   // サーバー側が内訳から算出するため送信しない。
-  // サインイン時はセッションの情報を、未サインイン時は入力値をトークン無しで送る。
+  // サインイン時はセッションの情報を、サインアウト状態時は入力値をトークン無しで送る。
   const submit = useCallback(() => {
     if (!canSubmit) return;
 

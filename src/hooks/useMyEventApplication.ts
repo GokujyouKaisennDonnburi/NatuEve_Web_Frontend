@@ -17,7 +17,7 @@ export type UseMyEventApplicationResult = {
 // eventId が変わるごとに再取得し、ローディング・エラー状態を管理する。
 //
 // 申込内容は参加中のユーザーにしか存在しないため、呼び出し側は参加中と判明してから
-// eventId を渡す（未参加・主催者・未サインイン時は null を渡して取得をスキップする）。
+// eventId を渡す（未参加・主催者・サインアウト状態時は null を渡して取得をスキップする）。
 // 401（セッション切れ）と 404（未申込・キャンセル済み・匿名申込）は
 // 「申込情報なし」として data = null の正常系に倒し、エラー表示にはしない。
 export function useMyEventApplication(

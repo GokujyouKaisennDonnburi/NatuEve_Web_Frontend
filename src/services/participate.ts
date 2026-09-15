@@ -26,7 +26,7 @@ import {
 // イベント参加 API（POST /api/v1/events/{eventId}/join）を呼ぶ。
 //
 // 認証は任意。サインイン時は `auth: true` で Bearer トークンを付与し profileId が記録される。
-// 未サインイン時は `auth: false` でトークン無しで送信し、匿名参加（profileId = null）となる。
+// サインアウト状態時は `auth: false` でトークン無しで送信し、匿名参加（profileId = null）となる。
 // ヘッダありでトークンが無効の場合は 401 で中断される。
 // 検証エラー（400）や 409 Conflict 等は ParticipateError を送出し、呼び出し側で判別する。
 export async function participateEvent(

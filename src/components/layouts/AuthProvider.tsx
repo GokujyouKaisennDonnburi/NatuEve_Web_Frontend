@@ -13,7 +13,7 @@ import { createContext, useContext, useMemo } from "react";
 
 // 認証セッション。プロフィールを必要としない画面はこちらだけを参照する。
 type AuthContextValue = {
-  // 認証セッション（未サインイン時は null）。
+  // 認証セッション（サインアウト状態時は null）。
   session: AuthSession | null;
   // サインイン済みかどうか。
   isAuthenticated: boolean;

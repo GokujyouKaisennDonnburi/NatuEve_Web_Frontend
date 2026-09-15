@@ -60,7 +60,7 @@ export function useParticipationLogs(
         }
       } catch (err) {
         if (!cancelled) {
-          // 401 は「未サインイン・未参加」として正常系扱いにする。
+          // 401 は「サインアウト状態・未参加」として正常系扱いにする。
           // 認証済みでトークンが無効・期限切れの場合はエラー表示するとUXを損ねるため、
           // 参加していない（participating: false）として扱う。
           if (

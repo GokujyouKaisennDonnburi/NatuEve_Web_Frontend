@@ -85,7 +85,7 @@ const buildEventListParams = (request: EventListRequest): URLSearchParams => {
 
 // イベント一覧取得 API（GET /api/v1/events）を呼ぶ（認証任意）。
 //
-// 未サインインでも取得可能だが、サインイン済みの場合はAuthorizationヘッダーを付与する。
+// サインアウト状態でも取得可能だが、サインイン済みの場合はAuthorizationヘッダーを付与する。
 // 失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
 export async function fetchEventList(
   request: EventListRequest,

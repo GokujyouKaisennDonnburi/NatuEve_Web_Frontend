@@ -74,7 +74,7 @@ export default function MyPage() {
     );
   }
 
-  // 未サインイン、または /api/v1/me の取得に失敗した場合
+  // サインアウト状態、または /api/v1/me の取得に失敗した場合
   if (!profile) {
     // サインアウト成功後は session クリアによりここに到達する。
     // router.replace の遷移完了まではスピナーを維持し、

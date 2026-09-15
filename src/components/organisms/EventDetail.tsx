@@ -132,7 +132,7 @@ export function EventDetail({
   const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   // 参加状態取得（主催者以外のサインインユーザーのみ）
-  // 未サインイン時は取得をスキップし、participating=false として扱う。
+  // サインアウト状態時は取得をスキップし、participating=false として扱う。
   const isAuthenticated = Boolean(session?.token);
   const {
     data: participationData,
