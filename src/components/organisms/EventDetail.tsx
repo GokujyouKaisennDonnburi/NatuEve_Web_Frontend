@@ -165,11 +165,11 @@ export function EventDetail({
   return (
     <div
       className={cn(
-        "space-y-6",
+        "space-y-5 sm:space-y-6",
         // 主催者ツールバーは fixed でビューポート右端から約86px を占有する。
         // 画面幅が xl 未満だと本文の右端がツールバーの下に潜り込むため、
         // 主催者に表示しているときだけ右側に逃げ幅を確保する。
-        isOrganizer && "lg:pr-24 xl:pr-0",
+        isOrganizer && "pb-20 lg:pr-24 lg:pb-0 xl:pr-0",
       )}
     >
       {/* 画面上部：もどるリンク・タイトル・ステータス/タグ・主催者 */}
@@ -177,7 +177,7 @@ export function EventDetail({
         <BackLink href={ROUTES.EVENT_LIST}>イベント一覧にもどる</BackLink>
 
         {/* タイトル */}
-        <h1 className="text-2xl font-extrabold text-slate-900 md:text-3xl">
+        <h1 className="text-xl leading-8 font-extrabold text-slate-900 sm:text-2xl md:text-3xl">
           {event.title}
         </h1>
 
@@ -193,15 +193,15 @@ export function EventDetail({
             href={
               isOrganizer ? ROUTES.MYPAGE : `${ROUTES.USERS}/${organizerId}`
             }
-            className="group flex w-fit items-center gap-2 transition-opacity hover:opacity-80"
+            className="group flex max-w-full min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
           >
             <GlobalUserAvatar
               name={organizerName}
               iconUrl={organizerAvatarUrl}
               className="h-9 w-9 border-slate-300 transition-all group-hover:ring-2 group-hover:ring-emerald-100"
             />
-            <div>
-              <p className="text-sm font-bold text-slate-800 transition-colors group-hover:text-(--brand-green-text)">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-slate-800 transition-colors group-hover:text-(--brand-green-text)">
                 {organizerName ?? "未設定"}
               </p>
               <p className="text-xs text-slate-500">
@@ -243,7 +243,7 @@ export function EventDetail({
         <div
           role="tabpanel"
           aria-labelledby={eventDetailTabId("detail")}
-          className="flex flex-col gap-8 lg:flex-row"
+          className="flex flex-col gap-6 lg:flex-row lg:gap-8"
         >
           {/* 目次（イベント投稿フォームと共通コンポーネント） */}
           <aside className="hidden shrink-0 lg:block lg:w-44">
@@ -254,7 +254,7 @@ export function EventDetail({
             {/* イベント画像（固定アスペクト） */}
             {images.length > 0 ? (
               <SurfaceCard>
-                <CardContent>
+                <CardContent className="px-4 sm:px-6">
                   <EventImageCarousel images={images} />
                 </CardContent>
               </SurfaceCard>
@@ -266,7 +266,7 @@ export function EventDetail({
               className="scroll-mt-24"
             >
               <SurfaceCard>
-                <CardContent>
+                <CardContent className="px-4 sm:px-6">
                   <h2 className="section-title">イベント概要</h2>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
                     {event.description}
@@ -348,7 +348,7 @@ export function EventDetail({
       {/* 参加申し込みボタン。スクロール中も画面下部に固定で表示する。 */}
       {/* 主催者にはイベントの削除をツールバーの削除ボタンに一本化しているため何も出さない。 */}
       {isOrganizer ? null : (
-        <div className="sticky bottom-4 z-40">
+        <div className="sticky bottom-2 z-40 sm:bottom-4">
           {participationError ? (
             <p className="text-center text-sm text-slate-500">
               参加状態の取得に失敗しました。

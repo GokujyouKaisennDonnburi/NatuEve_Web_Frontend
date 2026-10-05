@@ -59,7 +59,7 @@ export function EventDetailTabs({
               disabled={disabled}
               onClick={() => onTabChange(tab.value)}
               className={cn(
-                "-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm transition-colors",
+                "-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm transition-colors sm:px-4",
                 disabled
                   ? "cursor-default border-transparent text-slate-500"
                   : isActive

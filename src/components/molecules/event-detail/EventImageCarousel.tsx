@@ -23,7 +23,7 @@ export function EventImageCarousel({
   if (!mainImage) {
     return (
       <div
-        className="h-56 w-full rounded-xl bg-slate-100"
+        className="h-48 w-full rounded-xl bg-slate-100 sm:h-56"
         role="img"
         aria-label="画像はありません"
       />
@@ -32,7 +32,7 @@ export function EventImageCarousel({
 
   return (
     <div className="w-full overflow-hidden rounded-xl shadow-sm">
-      <div className="relative aspect-16/7 w-full overflow-hidden rounded-xl bg-slate-100">
+      <div className="relative aspect-4/3 w-full overflow-hidden rounded-xl bg-slate-100 sm:aspect-16/7">
         <Image
           src={mainImage}
           alt="イベント画像"
@@ -50,7 +50,7 @@ export function EventImageCarousel({
               key={src}
               onClick={() => setSelected(index)}
               aria-label={`サムネイル ${index + 1}`}
-              className={`h-16 w-28 shrink-0 overflow-hidden rounded-md border ${
+              className={`h-14 w-24 shrink-0 overflow-hidden rounded-md border sm:h-16 sm:w-28 ${
                 index === selected ? "border-emerald-400" : "border-slate-200"
               }`}
             >

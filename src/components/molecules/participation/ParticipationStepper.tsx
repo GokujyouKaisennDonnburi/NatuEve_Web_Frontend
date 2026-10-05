@@ -18,14 +18,17 @@ export function ParticipationStepper({
   steps,
 }: Readonly<ParticipationStepperProps>) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1 sm:gap-2">
       {steps.map((step, index) => (
-        <div key={step.key} className="flex items-center gap-2">
+        <div
+          key={step.key}
+          className="flex min-w-0 items-center gap-1 sm:gap-2"
+        >
           {/* 区切り線は要素の間だけに入れる（先頭の前には出さない） */}
           {index > 0 ? (
             <span
               aria-hidden="true"
-              className="h-px w-5 shrink-0 bg-slate-300"
+              className="h-px w-3 shrink-0 bg-slate-300 sm:w-5"
             />
           ) : null}
           <StepBadge

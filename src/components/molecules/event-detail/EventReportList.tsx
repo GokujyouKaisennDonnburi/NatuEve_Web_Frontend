@@ -42,7 +42,7 @@ function EmptyReportCard({
 
   return (
     <SurfaceCard>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6">
         <div className="flex flex-col items-center px-4 py-8 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
             <FileText className="h-7 w-7 text-emerald-600" />
@@ -84,13 +84,13 @@ function ExternalReportCard({
 
   return (
     <SurfaceCard>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6">
         <h2 className="text-lg font-bold text-slate-900">活動レポート</h2>
         <p className="mt-1.5 text-xs text-slate-500">
           {formatReportDate(report.createdAt)}
         </p>
 
-        <div className="mt-5 rounded-2xl border border-sky-100 bg-sky-50 px-6 py-8 text-center">
+        <div className="mt-5 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-6 text-center sm:px-6 sm:py-8">
           <div className="flex justify-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
               <ExternalLink className="h-6 w-6 text-sky-600" />
@@ -132,7 +132,7 @@ function ReportCard({
 }: Readonly<ReportCardProps>) {
   return (
     <SurfaceCard>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6">
         <h2 className="text-lg font-bold text-slate-900">活動レポート</h2>
         <p className="mt-1.5 text-xs text-slate-500">
           {formatReportDate(report.createdAt)}
@@ -162,7 +162,7 @@ function ReportCard({
                     href={normalizeAssetUrl(url)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition hover:shadow-md"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 transition hover:shadow-md sm:px-4"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50">
@@ -174,7 +174,7 @@ function ReportCard({
                           "PDF"}
                       </span>
                     </div>
-                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 sm:px-4">
                       <ExternalLink className="h-3.5 w-3.5" />
                       開く
                     </span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { FilePlus2, Send, Trash2, Users } from "lucide-react";
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import { EventOrganizerToolbarButton } from "./EventOrganizerToolbarButton";
 
@@ -51,19 +52,21 @@ export function EventOrganizerToolbar({
 
   return (
     <aside
-      className="fixed top-1/2 z-40 -translate-y-1/2"
+      className="fixed right-4 bottom-3 left-4 z-40 sm:right-6 sm:left-auto lg:top-1/2 lg:right-[var(--organizer-toolbar-right)] lg:bottom-auto lg:-translate-y-1/2"
       // body の padding-right に追従して右端位置を補正する(ツールバーのみズレをなくすため)
-      style={{
-        right: `calc(1.5rem + ${bodyPaddingRight - 1}px)`,
-      }}
+      style={
+        {
+          "--organizer-toolbar-right": `calc(1.5rem + ${bodyPaddingRight - 1}px)`,
+        } as CSSProperties
+      }
     >
-      <div className="rounded-3xl border border-slate-200 bg-white/95 px-1.5 py-7 shadow-xl backdrop-blur">
-        <p className="mb-4 text-center text-[13px] font-semibold tracking-wide text-slate-400">
+      <div className="rounded-2xl border border-slate-200 bg-white/95 px-2 py-2 shadow-xl backdrop-blur lg:rounded-3xl lg:px-1.5 lg:py-7">
+        <p className="sr-only text-center text-[13px] font-semibold tracking-wide text-slate-400 lg:not-sr-only lg:mb-4">
           主催者
         </p>
 
         {/* ツールバーのボタン群 */}
-        <div className="flex flex-col items-center">
+        <div className="flex items-center justify-center gap-1 lg:flex-col lg:gap-0">
           {/* 参加者一覧ボタン */}
           <EventOrganizerToolbarButton
             icon={Users}
@@ -82,7 +85,7 @@ export function EventOrganizerToolbar({
             color="blue"
           />
 
-          <div className="my-3 h-px w-12 bg-slate-200" />
+          <div className="mx-1 h-9 w-px bg-slate-200 lg:mx-0 lg:my-3 lg:h-px lg:w-12" />
 
           {/* 編集ボタン(別PBIのため、コメントアウト) */}
           {/*
@@ -100,7 +103,7 @@ export function EventOrganizerToolbar({
             danger
           />
 
-          <div className="my-3 h-px w-12 bg-slate-200" />
+          <div className="mx-1 h-9 w-px bg-slate-200 lg:mx-0 lg:my-3 lg:h-px lg:w-12" />
 
           {/* レポート作成ボタン */}
           <EventOrganizerToolbarButton

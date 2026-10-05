@@ -183,7 +183,7 @@ export function ParticipationModal({
         aria-labelledby={titleId}
       >
         <Card className="border-slate-200 bg-white shadow-xl">
-          <CardContent className="space-y-6 px-8 py-2">
+          <CardContent className="space-y-6 px-4 py-2 sm:px-8">
             <ParticipationModalHeader
               title={isComplete ? "申し込み完了" : "参加を申し込む"}
               titleId={titleId}
@@ -195,7 +195,7 @@ export function ParticipationModal({
 
             {/* 完了画面はヘッダーと結果を線で切り分ける */}
             {isComplete ? (
-              <div className="-mx-8 border-t border-slate-200" />
+              <div className="-mx-4 border-t border-slate-200 sm:-mx-8" />
             ) : null}
 
             {step === ParticipationStepId.GuestInfo ? (

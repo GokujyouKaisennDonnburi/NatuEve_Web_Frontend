@@ -24,7 +24,7 @@ export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
 
   return (
     <SurfaceCard>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6">
         {/* セクションタイトル */}
         <h2 className="section-title">添付資料</h2>
 
@@ -36,7 +36,7 @@ export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
               href={normalizeAssetUrl(source)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:shadow-md"
+              className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 hover:shadow-md sm:px-4"
             >
               {/* PDFファイル名の表示（元ファイル名。無ければURL末尾にフォールバック） */}
               <div className="flex min-w-0 items-center gap-3">
@@ -49,7 +49,7 @@ export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
               </div>
 
               {/* 「開く」ボタン（見た目のみ。実際のリンクは行全体の<a>が担う） */}
-              <span className="inline-flex shrink-0 items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">
+              <span className="inline-flex shrink-0 items-center rounded-full border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 sm:px-4">
                 開く
               </span>
             </a>

@@ -21,7 +21,7 @@ export function StepBadge({
   return (
     <span
       aria-current={isCurrent ? "step" : undefined}
-      className="inline-flex items-center gap-1.5"
+      className="inline-flex min-w-0 items-center gap-1 sm:gap-1.5"
     >
       <span
         className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold text-white ${
@@ -35,7 +35,7 @@ export function StepBadge({
         )}
       </span>
       <span
-        className={`text-xs font-medium ${
+        className={`text-xs font-medium whitespace-nowrap ${
           isActive ? "text-(--brand-green-text)" : "text-slate-400"
         }`}
       >
