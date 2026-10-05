@@ -71,13 +71,15 @@ export function InlineTextField({
 
   if (isEditing) {
     return (
-      <div className={`flex items-center gap-2 ${className}`}>
+      <div
+        className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 sm:gap-2 ${className}`}
+      >
         <Input
           value={value}
           onChange={(e) => setValue(e.target.value)}
           disabled={isLoading}
           placeholder={placeholder}
-          className="flex-1 h-9"
+          className="h-9 min-w-0"
           autoFocus
         />
         {/* disabledはローディング中、または「空欄」の時のみ（変更がなくても押せる） */}
@@ -108,10 +110,11 @@ export function InlineTextField({
   }
 
   return (
-    <div className={`group flex items-center gap-2 max-w-full ${className}`}>
+    <div
+      className={`group flex max-w-full flex-col items-start gap-2 sm:flex-row sm:items-center ${className}`}
+    >
       <span
-        // block, truncate, min-w-0 を追加して「...」の省略を有効化
-        className={`block truncate min-w-0 ${textClassName}`}
+        className={`block min-w-0 max-w-full ${textClassName}`}
         title={initialValue} // マウスホバー時にフルネームを表示
       >
         {initialValue}

@@ -63,8 +63,8 @@ export function UserEventTabs({
   };
 
   return (
-    <div className="w-full space-y-6">
-      <div className="flex flex-wrap gap-2">
+    <div className="min-w-0 w-full space-y-6">
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map(({ key, label }) => (
           <EventFilterPill
             key={key}
