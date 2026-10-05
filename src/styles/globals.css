@@ -68,6 +68,17 @@ body {
   min-height: 100vh;
   color: var(--foreground);
   font-family: var(--font-geist-sans), var(--font-noto-sans-jp), sans-serif;
+  /* 文節改行に未対応のブラウザでは標準の改行規則へ戻す。 */
+  word-break: normal;
+  /* URLなど区切りのない長い文字列だけは、画面外へはみ出す前に折り返す。 */
+  overflow-wrap: anywhere;
+}
+
+@supports (word-break: auto-phrase) {
+  body {
+    /* 日本語の自然な文節を優先し、単語の途中での改行を抑える。 */
+    word-break: auto-phrase;
+  }
 }
 
 * {
