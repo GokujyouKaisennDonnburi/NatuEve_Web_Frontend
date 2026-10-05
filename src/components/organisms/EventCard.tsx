@@ -90,8 +90,8 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       {/* Left column: Date + Status */}
       <div className="flex w-full shrink-0 items-center gap-3 sm:w-[129px] sm:flex-col sm:gap-0">
         {/* Date box: "8/11" + "火" */}
-        <div className="flex w-auto items-baseline gap-2 rounded-xl bg-white py-[2px] sm:mt-[21px] sm:w-[78px] sm:flex-col sm:items-center sm:gap-0">
-          <span className="text-center text-[24px] font-bold leading-7 text-[#171C15] sm:text-[32px] sm:leading-[24px]">
+        <div className="flex w-[78px] items-baseline justify-center gap-2 rounded-xl bg-white py-[2px] sm:mt-[21px] sm:w-[100px] sm:flex-col sm:items-center sm:gap-0">
+          <span className="whitespace-nowrap text-center text-[24px] font-bold leading-7 text-[#171C15] sm:text-[32px] sm:leading-[24px]">
             {monthDay}
           </span>
           <span className="text-center text-base leading-[23px] text-black sm:mt-[9px]">
@@ -100,7 +100,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
         </div>
 
         {/* Status with equal gap */}
-        <div className="flex w-auto justify-center sm:mt-[9px] sm:w-[78px]">
+        <div className="flex w-[78px] justify-center sm:mt-[9px]">
           <EventStatusLabel status={event.status} />
         </div>
       </div>
