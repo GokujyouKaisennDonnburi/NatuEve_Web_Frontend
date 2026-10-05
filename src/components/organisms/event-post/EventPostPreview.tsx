@@ -153,7 +153,7 @@ export function EventPostPreview({
     previewEvent.organizerAvatarUrl ?? previewEvent.profile?.avatarUrl;
 
   return (
-    <div className="space-y-6 rounded-2xl border border-slate-300 p-6 shadow-sm">
+    <div className="min-w-0 space-y-5 rounded-2xl border border-slate-300 p-4 shadow-sm sm:space-y-6 sm:p-6">
       {/* プレビュー注釈 */}
       <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5">
         <Eye className="h-4 w-4 text-blue-600" />
@@ -164,7 +164,7 @@ export function EventPostPreview({
 
       {/* 画面上部：タイトル・ステータス/タグ・主催者 */}
       <header className="space-y-3">
-        <h1 className="text-2xl font-extrabold text-slate-900 md:text-3xl">
+        <h1 className="break-words text-xl leading-8 font-extrabold text-slate-900 sm:text-2xl md:text-3xl">
           {previewEvent.title || "（タイトル未入力）"}
         </h1>
 
@@ -173,14 +173,14 @@ export function EventPostPreview({
           <EventTagList tags={previewEvent.tags} />
         </div>
 
-        <div className="flex w-fit items-center gap-2">
+        <div className="flex max-w-full items-center gap-2">
           <GlobalUserAvatar
             name={organizerName}
             iconUrl={organizerAvatarUrl}
             className="h-9 w-9 border-slate-300"
           />
-          <div>
-            <p className="text-sm font-bold text-slate-800">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-slate-800">
               {organizerName ?? "未設定"}
             </p>
             <p className="text-xs text-slate-500">
@@ -194,7 +194,7 @@ export function EventPostPreview({
         {/* イベント画像 */}
         {imageObjectUrls.length > 0 ? (
           <SurfaceCard>
-            <CardContent>
+            <CardContent className="px-4 sm:px-6">
               <EventImageCarousel images={imageObjectUrls} unoptimized />
             </CardContent>
           </SurfaceCard>
@@ -203,7 +203,7 @@ export function EventPostPreview({
         {/* イベント概要 */}
         <section id={EVENT_DETAIL_OVERVIEW_SECTION_ID} className="scroll-mt-24">
           <SurfaceCard>
-            <CardContent>
+            <CardContent className="px-4 sm:px-6">
               <h2 className="section-title">イベント概要</h2>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
                 {previewEvent.description || "（概要未入力）"}

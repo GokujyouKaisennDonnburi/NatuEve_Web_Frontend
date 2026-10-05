@@ -73,9 +73,9 @@ export function PriceCategoryField({
             className="space-y-2"
             data-field-error={errors?.[index] ? "" : undefined}
           >
-            <div className="flex items-start gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:flex sm:gap-3">
               {/* カテゴリの入力欄を表示する部分。 */}
-              <div className="min-w-0 flex-[3]">
+              <div className="col-span-2 min-w-0 sm:col-span-1 sm:flex-[3]">
                 <Label
                   htmlFor={`${fieldId}-category-${index}`}
                   className="sr-only"
@@ -92,7 +92,7 @@ export function PriceCategoryField({
               </div>
 
               {/* 金額の入力欄を表示する部分。全角数字を半角数字に変換して入力を受け付ける。 */}
-              <div className="min-w-0 flex-[2]">
+              <div className="min-w-0 sm:flex-[2]">
                 {/* 単位「円」は装飾のため、読み上げ用のラベル側に単位を含める */}
                 <Label
                   htmlFor={`${fieldId}-amount-${index}`}

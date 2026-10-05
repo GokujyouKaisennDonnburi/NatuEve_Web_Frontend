@@ -19,7 +19,7 @@ export function PaymentAlertNote({
   return (
     <div
       role="note"
-      className="flex items-start gap-3 rounded-xl border border-[#E8B84B]/40 bg-[#FEF9EC] px-5 py-4"
+      className="flex items-start gap-3 rounded-xl border border-[#E8B84B]/40 bg-[#FEF9EC] px-4 py-4 sm:px-5"
     >
       {/* 円形の背景に「!」マークを表示するアイコン */}
       <span

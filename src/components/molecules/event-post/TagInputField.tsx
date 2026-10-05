@@ -207,8 +207,11 @@ export function TagInputField({
         </ul>
       ) : null}
 
-      <div className="flex gap-2" ref={fieldRef}>
-        <div className="relative flex-1">
+      <div
+        className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"
+        ref={fieldRef}
+      >
+        <div className="relative min-w-0 w-full">
           <TagAutocomplete
             allTags={allTags}
             selectedIds={tags.map((t) => t.id)}
@@ -220,6 +223,7 @@ export function TagInputField({
             isLoading={isTagsLoading}
             disabled={isBusy}
             listboxId={`${id}-listbox`}
+            className="w-full"
             renderInput={({
               value,
               onChange,
@@ -255,7 +259,7 @@ export function TagInputField({
             void handleAdd();
           }}
           disabled={isAddDisabled}
-          className="h-11 shrink-0"
+          className="h-11 w-full shrink-0 sm:w-auto"
         >
           {isBusy ? "追加中…" : "追加"}
         </AddItemButton>

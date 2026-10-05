@@ -60,10 +60,10 @@ export function RequiredItemField({
         {items.map((item, index) => (
           <div
             key={rowIds[index] ?? `${fieldId}-item-${index}`}
-            className="flex items-start gap-3"
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:flex sm:gap-3"
           >
             <div
-              className="min-w-0 flex-1 space-y-2"
+              className="col-span-2 min-w-0 space-y-2 sm:col-span-1 sm:flex-1"
               data-field-error={errors?.[index] ? "" : undefined}
             >
               <Label htmlFor={`${fieldId}-name-${index}`} className="sr-only">

@@ -55,7 +55,7 @@ export default function EventPostPage() {
   }, [mode, hasPdf]);
 
   return (
-    <section className="mx-auto w-full max-w-5xl space-y-6">
+    <section className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
       <PageHeader
         title="イベントを投稿"
         backHref={ROUTES.EVENT_LIST}
@@ -78,7 +78,7 @@ export default function EventPostPage() {
         noValidate
         className="space-y-4"
       >
-        <div className="flex flex-col gap-8 lg:flex-row">
+        <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
           {mode === "edit" ? (
             <aside className="hidden shrink-0 lg:block lg:w-44">
               <PageToc sections={tocSections} />
@@ -86,7 +86,7 @@ export default function EventPostPage() {
           ) : null}
           <div
             className={cn(
-              "w-full",
+              "min-w-0 w-full",
               mode === "edit" ? "max-w-3xl" : "min-w-0 flex-1",
             )}
           >
@@ -108,10 +108,16 @@ export default function EventPostPage() {
             type="button"
             onClick={() => router.back()}
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             キャンセル
           </PillButton>
-          <PillButton tone="brand" type="submit" disabled={isSubmitting}>
+          <PillButton
+            tone="brand"
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto"
+          >
             {isSubmitting ? "送信中…" : "イベントを投稿"}
           </PillButton>
         </div>

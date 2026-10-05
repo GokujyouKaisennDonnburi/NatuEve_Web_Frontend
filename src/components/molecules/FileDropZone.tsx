@@ -194,7 +194,7 @@ export function FileDropZone({
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
           className={cn(
-            "flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 py-10 text-center transition",
+            "flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-4 py-8 text-center transition sm:px-6 sm:py-10",
             "peer-focus-visible:border-(--brand-green) peer-focus-visible:ring-2 peer-focus-visible:ring-(--brand-green)/40",
             disabled
               ? "cursor-not-allowed border-slate-200 bg-slate-50"
@@ -238,10 +238,10 @@ export function FileDropZone({
                   height={64}
                   // Blob URL は Next.js の画像最適化を通せないため、そのまま表示する
                   unoptimized
-                  className="h-16 w-16 shrink-0 rounded-lg bg-slate-50 object-cover"
+                  className="h-12 w-12 shrink-0 rounded-lg bg-slate-50 object-cover sm:h-16 sm:w-16"
                 />
               ) : (
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400 sm:h-16 sm:w-16">
                   <FileText className="h-6 w-6" />
                 </span>
               )}

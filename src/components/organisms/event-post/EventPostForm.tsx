@@ -116,7 +116,7 @@ export function EventPostForm({
   }, [errors]);
 
   return (
-    <div ref={containerRef} className="space-y-4">
+    <div ref={containerRef} className="min-w-0 space-y-4">
       <div id={EVENT_TITLE_SECTION_ID} className="scroll-mt-20">
         <FormCard>
           <FormField
