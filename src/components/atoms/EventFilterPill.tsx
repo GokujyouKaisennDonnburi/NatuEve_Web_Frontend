@@ -21,7 +21,7 @@ export function EventFilterPill({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex items-center h-10 rounded-full border px-[19px] font-bold text-sm transition-colors",
+        "inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-full border px-[19px] text-sm font-bold transition-colors",
         active
           ? "bg-[#97C459] border-[#97C459] text-[#1E2C10]"
           : "bg-white border-[#CDD4C8] text-[#1E2C10]",

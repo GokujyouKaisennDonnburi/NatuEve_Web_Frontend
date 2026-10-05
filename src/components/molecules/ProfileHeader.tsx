@@ -47,11 +47,11 @@ export function ProfileHeader({
   const firstChar = name.trim().charAt(0) || "?";
 
   return (
-    <div className="bg-white border border-[#E3E8DF] rounded-2xl shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] p-[29px]">
+    <div className="rounded-2xl border border-[#E3E8DF] bg-white p-4 shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] sm:p-6 lg:p-[29px]">
       {/* アバター + 名前行 */}
-      <div className="flex items-start gap-[27px]">
+      <div className="flex flex-wrap items-start gap-x-4 gap-y-4 sm:flex-nowrap sm:gap-x-[27px]">
         {/* アバター */}
-        <div className="w-[76px] h-[76px] rounded-full overflow-hidden shrink-0 bg-[#97C459] flex items-center justify-center">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#97C459] sm:h-[76px] sm:w-[76px]">
           {avatarUrl && !imgError ? (
             <Image
               width={76}
@@ -70,7 +70,7 @@ export function ProfileHeader({
         </div>
 
         {/* 名前 + 利用開始年 */}
-        <div className="flex-1 min-w-0 pt-[10px]">
+        <div className="min-w-0 flex-1 pt-1 sm:pt-[10px]">
           <div className="flex items-center gap-2 flex-wrap">
             <InlineTextField
               value={name}
@@ -79,7 +79,7 @@ export function ProfileHeader({
               placeholder="ユーザー名を入力"
               forceEdit={forceEditName}
               onConsumeForceEdit={() => setForceEditName(false)}
-              textClassName="font-['Zen_Maru_Gothic'] font-bold text-[24px] leading-[35px] text-[#272E24] tracking-[0.48px] truncate"
+              textClassName="break-words font-['Zen_Maru_Gothic'] text-xl leading-7 font-bold tracking-[0.48px] text-[#272E24] sm:truncate sm:text-[24px] sm:leading-[35px]"
               editTrigger={(onClick) => (
                 <EditPillButton size="md" onClick={onClick} />
               )}
@@ -94,18 +94,22 @@ export function ProfileHeader({
 
         {/* サインアウトボタン（本人のプロフィールのみ） */}
         {isOwnProfile && onSignOut && (
-          <div className="shrink-0">
-            <SignOutButton onClick={onSignOut} disabled={isSigningOut} />
+          <div className="w-full sm:w-auto sm:shrink-0">
+            <SignOutButton
+              onClick={onSignOut}
+              disabled={isSigningOut}
+              className="w-full justify-center sm:w-auto"
+            />
           </div>
         )}
       </div>
 
       {/* 区切り線 */}
-      <div className="border-t border-[#F1F4EE] mt-[20px] mb-[24px]" />
+      <div className="mt-5 mb-5 border-t border-[#F1F4EE] sm:mb-6" />
 
       {/* 自己紹介 */}
       <div>
-        <div className="flex items-center justify-between mb-[16px]">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <p className="text-sm font-bold text-[#272E24]">自己紹介</p>
           {isOwnProfile && (
             <EditPillButton size="sm" onClick={() => setForceEditDesc(true)} />
