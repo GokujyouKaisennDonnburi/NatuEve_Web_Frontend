@@ -44,14 +44,14 @@ export function ReportPostForm({
       }}
       onKeyDown={preventImplicitSubmit}
       noValidate
-      className="space-y-4"
+      className="min-w-0 space-y-4"
     >
       {/* レポート内容 */}
       <Card className="border-slate-200 bg-white shadow-sm">
-        <CardContent className="pt-6">
+        <CardContent className="px-4 pt-6 sm:px-6">
           <h2 className="text-lg font-bold text-slate-900">レポート内容</h2>
 
-          <CardDescription>
+          <CardDescription className="mt-1 break-words leading-relaxed">
             当日の様子を参加者・閲覧者に伝えましょう。外部サイトに掲載済みの場合は、そのURLだけでも公開できます。
           </CardDescription>
 
@@ -165,11 +165,17 @@ export function ReportPostForm({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
+          className="w-full sm:w-auto"
         >
           キャンセル
         </PillButton>
 
-        <PillButton tone="brand" type="submit" disabled={isSubmitting}>
+        <PillButton
+          tone="brand"
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full sm:w-auto"
+        >
           {isSubmitting ? "投稿中..." : "レポートを投稿"}
         </PillButton>
       </div>

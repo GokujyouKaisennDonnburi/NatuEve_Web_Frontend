@@ -33,7 +33,7 @@ export function FormCard({
   return (
     <SurfaceCard className={className}>
       {title ? (
-        <CardHeader className="gap-1 px-6">
+        <CardHeader className="gap-1 px-4 sm:px-6">
           <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
             {title}
             {required ? <RequiredBadge /> : null}
@@ -46,7 +46,7 @@ export function FormCard({
           ) : null}
         </CardHeader>
       ) : null}
-      <CardContent className="space-y-5 px-6">{children}</CardContent>
+      <CardContent className="space-y-5 px-4 sm:px-6">{children}</CardContent>
     </SurfaceCard>
   );
 }

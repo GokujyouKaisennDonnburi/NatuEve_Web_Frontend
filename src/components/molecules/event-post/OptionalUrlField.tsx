@@ -25,8 +25,8 @@ export function OptionalUrlField({
   onUrlChange,
 }: Readonly<OptionalUrlFieldProps>) {
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-200 bg-[#F8FAF6] p-4 shadow-sm shadow-slate-100">
-      <div className="flex items-center gap-4">
+    <div className="space-y-4 rounded-2xl border border-slate-200 bg-[#F8FAF6] p-3 shadow-sm shadow-slate-100 sm:p-4">
+      <div className="flex items-start gap-3 sm:items-center sm:gap-4">
         <TogglePill
           id={toggleId}
           checked={enabled}
