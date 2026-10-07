@@ -6,10 +6,10 @@ import { SortButton } from "@/components/atoms/SortButton";
 import { Pagination } from "@/components/molecules/Pagination";
 import { SearchBar } from "@/components/molecules/SearchBar";
 import { EventCard } from "@/components/organisms/EventCard";
+import { FilterDrawer } from "@/components/organisms/FilterDrawer";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
 import { useTags } from "@/hooks/useTags";
-import { cn } from "@/lib/utils";
 import type { TagItem } from "@/types/tag";
 import { useMemo, useState } from "react";
 
@@ -173,10 +173,13 @@ export default function EventListPage() {
         </div>
       </div>
 
-      {/* Filter button row: デスクトップ(xl以上)ではサイドバー常時表示のため非表示 */}
+      {/* Filter button row
+          デスクトップ(xl以上)ではサイドバー常時表示のため非表示。
+          モバイルでは固定表示とし、スクロールしても常に画面内に表示する。
+          ドロワー(FilterDrawer)より低い z-index で開閉ボタンの役割を維持する */}
       <div className="mb-6 xl:mb-[45px]">
         <FilterIconButton
-          className="xl:hidden"
+          className="fixed right-4 bottom-6 z-30 shadow-md transition-shadow hover:shadow-lg xl:hidden"
           onClick={() => setIsFilterOpen((prev) => !prev)}
           isActive={hasActiveFilters}
           isExpanded={isFilterOpen}
@@ -186,14 +189,14 @@ export default function EventListPage() {
 
       {/* Two-column: Filter sidebar + Event list */}
       <div className="grid items-start gap-6 xl:grid-cols-[342px_minmax(0,1fr)] xl:gap-[36px]">
-        {/* Filter sidebar */}
-        <aside
+        {/* Filter sidebar
+            モバイル(< xl)では FilterDrawer が左からスライドするオーバーレイとして表示し、
+            デスクトップ(xl以上)では常に左側に表示するサイドバーになる */}
+        <FilterDrawer
+          isOpen={isFilterOpen}
+          onClose={() => setIsFilterOpen(false)}
           id="event-list-filters"
-          className={cn(
-            "w-full",
-            isFilterOpen ? "block" : "hidden",
-            "xl:sticky xl:top-20 xl:block xl:w-[342px]",
-          )}
+          className="xl:sticky xl:top-20 xl:z-auto xl:block xl:w-[342px]"
         >
           <FilterSidebar
             allTags={allTags}
@@ -235,7 +238,7 @@ export default function EventListPage() {
             onClear={handleClear}
             onApply={handleApply}
           />
-        </aside>
+        </FilterDrawer>
 
         {/* Main content */}
         <div className="min-w-0">
