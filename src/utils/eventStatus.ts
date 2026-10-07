@@ -94,14 +94,16 @@ export function resolveEventStatus({
   endDate,
   applicationDeadline,
 }: Readonly<EventStatusSource>): ResolvedEventStatus {
+  // 終了・開始の判定で基準時刻がずれないよう、現在時刻は1回だけ取得して使い回す。
+  const now = new Date();
   const closesAt = new Date(endDate || eventDate);
-  if (closesAt < new Date()) {
+  if (closesAt < now) {
     return "closed";
   }
   // 申込期限を過ぎていればもう申し込めない。開始前なら「受付終了」を伝え、
   // すでに開始していれば申し込めない事実より「いま開催している」ことを優先して伝える。
   if (isDeadlinePassed(applicationDeadline)) {
-    return new Date(eventDate) <= new Date() ? "ongoing" : "ended_registration";
+    return new Date(eventDate) <= now ? "ongoing" : "ended_registration";
   }
   if (applicationDeadline && isDateWithinOneWeek(applicationDeadline)) {
     return "few_left";
