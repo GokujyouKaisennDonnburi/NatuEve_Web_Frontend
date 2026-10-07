@@ -173,9 +173,10 @@ export default function EventListPage() {
         </div>
       </div>
 
-      {/* Filter button row */}
+      {/* Filter button row: デスクトップ(xl以上)ではサイドバー常時表示のため非表示 */}
       <div className="mb-6 xl:mb-[45px]">
         <FilterIconButton
+          className="xl:hidden"
           onClick={() => setIsFilterOpen((prev) => !prev)}
           isActive={hasActiveFilters}
           isExpanded={isFilterOpen}
