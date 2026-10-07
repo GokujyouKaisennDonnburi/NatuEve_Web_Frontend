@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { resolveEventStatus } from "@/utils/eventStatus";
+import { isReceptionClosed, resolveEventStatus } from "@/utils/eventStatus";
 
 // 判定はすべて現在時刻との比較のため、境界を確実に踏むよう現在時刻を固定する。
 // 「期限間近」の上限は Asia/Tokyo の日付基準で 7 日後の 23:59:59.999（= 9/10 23:59:59.999 JST）。
@@ -217,5 +217,19 @@ describe("resolveEventStatus", () => {
         applicationDeadline: "2026-09-02T23:59:59+09:00",
       }),
     ).toBe("ended_registration");
+  });
+});
+
+describe("isReceptionClosed", () => {
+  it("受付中・期限間近は申し込みを締め切らない", () => {
+    expect(isReceptionClosed("open")).toBe(false);
+    expect(isReceptionClosed("few_left")).toBe(false);
+  });
+
+  it("受付終了・開催中・開催終了は申し込みを締め切る", () => {
+    // 開催中は申込期限切れの場合だけ現れるため、締め切り扱いになる。
+    expect(isReceptionClosed("ended_registration")).toBe(true);
+    expect(isReceptionClosed("ongoing")).toBe(true);
+    expect(isReceptionClosed("closed")).toBe(true);
   });
 });

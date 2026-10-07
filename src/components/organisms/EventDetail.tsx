@@ -36,7 +36,7 @@ import { useMyEventApplication } from "@/hooks/useMyEventApplication";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import { cn } from "@/lib/utils";
 import type { ReportDetail } from "@/types/report";
-import { resolveEventStatus } from "@/utils/eventStatus";
+import { isReceptionClosed, resolveEventStatus } from "@/utils/eventStatus";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -109,11 +109,9 @@ export function EventDetail({
   // 参加申し込みを締め切る状況かどうか。開催終了（endDate 経過）、受付終了（開始前に申込期限経過）、
   // 開催中（開始後に申込期限経過）の3つ。開催中バッジは申込期限切れでのみ出るため、申し込みは不可とする。
   // 取り消し・欠席連絡の期限（cancelDeadline を優先する participationDeadline）とは別の判定で、
-  // ステータスバッジと同じ基準を使うため、バッジとボタンの表示が食い違わない。
-  const receptionClosed =
-    status === "closed" ||
-    status === "ended_registration" ||
-    status === "ongoing";
+  // ステータスバッジと同じ判定基準を使うため、バッジが申し込めない状態を示すときは
+  // ボタンも必ず無効になる（開催中はバッジが「開催中」でも、ボタンは「受付終了」になる）。
+  const receptionClosed = isReceptionClosed(status);
 
   // 上の判定は現在時刻に依存するため、ページを開いたままでは期限を過ぎても
   // 「参加を申し込む」が押せるまま残ってしまう。申込期限・開始日時・終了日時を跨いだ時点で
