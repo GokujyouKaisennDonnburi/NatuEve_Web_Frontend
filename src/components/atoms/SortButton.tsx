@@ -36,7 +36,7 @@ export function SortButton({
       {/* select 自体は透過でフォーカス位置が視認できないため、
           選択中の select にフォーカスが当たった際は :has() 経由で
           コンテナ側にフォーカスリングを表示する */}
-      <div className="relative inline-flex items-center h-[52px] bg-white border border-[#CDD4C8] rounded-full px-[17px] gap-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-(--brand-green)/30">
+      <div className="relative inline-flex items-center h-[52px] bg-white border border-[#CDD4C8] rounded-full px-[17px] gap-2 transition-shadow hover:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-(--brand-green)/30">
         <ArrowUpDown className="h-[14px] w-[14px] text-[#3A4237] shrink-0" />
         {/* 選択中の値は透過 select の下に表示テキストとして描画する */}
         <span className="text-sm font-bold leading-5 text-[#3A4237]">
