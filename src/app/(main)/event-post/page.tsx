@@ -67,8 +67,10 @@ export default function EventPostPage() {
       </div>
       {/* 入力/プレビュー切替。スクロール中も画面右上に固定で表示する。
           フル画面時にフォーム項目の右上へ重ならないよう、
-          max-w-5xl の右端ではなく画面（main の内容幅）の右端へ寄せる。 */}
-      <div className="sticky top-20 z-30 flex justify-end">
+          max-w-5xl の右端ではなく画面（main の内容幅）の右端へ寄せる。
+          ラッパーを全幅にすると固定中の帯が下の入力欄や目次のクリックを妨げるため、
+          w-fit + ml-auto でピルの幅だけに縮める。 */}
+      <div className="sticky top-20 z-30 ml-auto w-fit">
         <SegmentControl
           value={mode}
           onChange={setMode}
