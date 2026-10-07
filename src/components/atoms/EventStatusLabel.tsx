@@ -7,6 +7,11 @@ type EventStatusLabelProps = {
 };
 
 // 受付終了と開催終了は「もう申し込めない」点で同じ扱いのため、配色も揃える。
+const RECEPTION_CLOSED_STYLE = {
+  bgClass: "bg-[rgba(5,5,5,0.1)] border border-[#838C7D]",
+  textClass: "text-[#838C7D]",
+};
+
 const statusConfig: Record<
   ResolvedEventStatus,
   { label: string; bgClass: string; textClass: string }
@@ -29,13 +34,11 @@ const statusConfig: Record<
   },
   ended_registration: {
     label: "受付終了",
-    bgClass: "bg-[rgba(5,5,5,0.1)] border border-[#838C7D]",
-    textClass: "text-[#838C7D]",
+    ...RECEPTION_CLOSED_STYLE,
   },
   closed: {
     label: "開催終了",
-    bgClass: "bg-[rgba(5,5,5,0.1)] border border-[#838C7D]",
-    textClass: "text-[#838C7D]",
+    ...RECEPTION_CLOSED_STYLE,
   },
 };
 
