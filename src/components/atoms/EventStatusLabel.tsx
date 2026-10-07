@@ -21,6 +21,12 @@ const statusConfig: Record<
     bgClass: "bg-[#FAC775]",
     textClass: "text-[#77471C]",
   },
+  // 開催中の配色は仮決め（デザイン確定後に差し替える）。
+  ongoing: {
+    label: "開催中",
+    bgClass: "bg-[#C5D9A3]",
+    textClass: "text-[#1E2C10]",
+  },
   ended_registration: {
     label: "受付終了",
     bgClass: "bg-[rgba(5,5,5,0.1)] border border-[#838C7D]",

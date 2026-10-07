@@ -106,11 +106,14 @@ export function EventDetail({
     applicationDeadline: event.applicationDeadline,
   });
 
-  // 参加申し込みを締め切る状況かどうか。開催終了（endDate 経過）と受付終了（申込期限経過）の2つ。
+  // 参加申し込みを締め切る状況かどうか。開催終了（endDate 経過）、受付終了（開始前に申込期限経過）、
+  // 開催中（開始後に申込期限経過）の3つ。開催中バッジは申込期限切れでのみ出るため、申し込みは不可とする。
   // 取り消し・欠席連絡の期限（cancelDeadline を優先する participationDeadline）とは別の判定で、
   // ステータスバッジと同じ基準を使うため、バッジとボタンの表示が食い違わない。
   const receptionClosed =
-    status === "closed" || status === "ended_registration";
+    status === "closed" ||
+    status === "ended_registration" ||
+    status === "ongoing";
 
   // 上の判定は現在時刻に依存するため、ページを開いたままでは期限を過ぎても
   // 「参加を申し込む」が押せるまま残ってしまう。申込期限・終了日時を跨いだ時点で
