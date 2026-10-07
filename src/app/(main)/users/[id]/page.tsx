@@ -88,10 +88,10 @@ export default function UserProfilePage({
   }
 
   return (
-    <div className="mx-auto max-w-[1192px] pt-2 space-y-8">
+    <div className="mx-auto max-w-[1192px] space-y-6 pt-2 sm:space-y-8">
       <BackLink href="/">前の画面にもどる</BackLink>
 
-      <h1 className="font-['Zen_Maru_Gothic'] font-bold text-[28px] text-[#272E24] tracking-[0.56px]">
+      <h1 className="font-['Zen_Maru_Gothic'] text-2xl font-bold tracking-[0.56px] text-[#272E24] sm:text-[28px]">
         プロフィール
       </h1>
 
@@ -108,7 +108,7 @@ export default function UserProfilePage({
       />
 
       <section>
-        <div className="flex items-baseline gap-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
           <h2 className="font-['Zen_Maru_Gothic'] font-bold text-[19px] leading-[28px] text-[#272E24]">
             主催したイベント
           </h2>

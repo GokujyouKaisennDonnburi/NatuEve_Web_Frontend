@@ -37,7 +37,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
 
   if (!isMounted) {
     return (
-      <div className="w-full h-[132px] bg-slate-100 rounded-2xl animate-pulse" />
+      <div className="h-[250px] w-full animate-pulse rounded-2xl bg-slate-100 sm:h-[132px]" />
     );
   }
 
@@ -85,33 +85,33 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           router.push(`/event/${event.id}`);
         }
       }}
-      className="group relative flex w-full h-[132px] bg-white border border-[#E3E8DF] shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md no-underline"
+      className="group relative flex min-h-[250px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E3E8DF] bg-white p-4 no-underline shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md sm:h-[132px] sm:min-h-0 sm:flex-row sm:p-0"
     >
       {/* Left column: Date + Status */}
-      <div className="flex flex-col items-center shrink-0 w-[129px]">
+      <div className="flex w-full shrink-0 items-center gap-3 sm:w-[129px] sm:flex-col sm:gap-0">
         {/* Date box: "8/11" + "火" */}
-        <div className="mt-[21px] w-[78px] bg-white rounded-xl flex flex-col items-center pt-[2px] pb-[2px]">
-          <span className="font-bold text-[32px] leading-[24px] text-[#171C15] text-center">
+        <div className="flex w-[78px] items-baseline justify-center gap-2 rounded-xl bg-white py-[2px] sm:mt-[21px] sm:w-[100px] sm:flex-col sm:items-center sm:gap-0">
+          <span className="whitespace-nowrap text-center text-[24px] font-bold leading-7 text-[#171C15] sm:text-[32px] sm:leading-[24px]">
             {monthDay}
           </span>
-          <span className="mt-[9px] text-base leading-[23px] text-black text-center">
+          <span className="text-center text-base leading-[23px] text-black sm:mt-[9px]">
             {weekday}
           </span>
         </div>
 
         {/* Status with equal gap */}
-        <div className="w-[78px] flex justify-center mt-[9px]">
+        <div className="flex w-[78px] justify-center sm:mt-[9px]">
           <EventStatusLabel status={event.status} />
         </div>
       </div>
 
       {/* Vertical divider spans content area */}
-      <div className="w-px h-[88px] bg-black mt-[21px] shrink-0" />
+      <div className="mt-3 h-px w-full shrink-0 bg-black sm:mt-[21px] sm:h-[88px] sm:w-px" />
 
       {/* Right column: Tags / Title+Button / Location+Organizer */}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Tags area with fixed height, empty space when no tags */}
-        <div className="mt-[21px] h-[24px] ml-[26px] flex items-center">
+        <div className="mt-3 flex min-h-6 items-center sm:ml-[26px] sm:mt-[21px] sm:h-[24px]">
           {event.tags && event.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {event.tags.map((tag) => (
@@ -122,21 +122,21 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
         </div>
 
         {/* Title at card center y=66 */}
-        <h3 className="mt-[7px] ml-[26px] pr-[186px] font-bold text-[19px] leading-[28px] text-[#272E24] line-clamp-1">
+        <h3 className="mt-2 line-clamp-2 text-[18px] font-bold leading-7 text-[#272E24] sm:ml-[26px] sm:mt-[7px] sm:line-clamp-1 sm:pr-[186px] sm:text-[19px]">
           {event.title}
         </h3>
 
         {/* Location + Organizer centered in lower space (y=66-132) */}
-        <div className="relative flex items-center mt-[10px] ml-[26px]">
-          <div className="flex items-center max-w-[175px] min-w-0">
+        <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 sm:ml-[26px] sm:mt-[10px] sm:flex-nowrap sm:gap-0">
+          <div className="flex min-w-0 max-w-full items-center sm:max-w-[175px]">
             <MapPin className="h-[13px] w-[13px] text-[#5F8530] shrink-0" />
-            <span className="ml-[6px] text-[13px] leading-[19px] text-[#667061] truncate inline-block max-w-[156px]">
+            <span className="ml-[6px] inline-block max-w-[220px] truncate text-[13px] leading-[19px] text-[#667061] sm:max-w-[156px]">
               {displayLocation}
             </span>
           </div>
           <button
             type="button"
-            className="absolute left-[180px] flex items-center cursor-pointer hover:opacity-70 transition-opacity bg-transparent border-none p-0"
+            className="flex min-w-0 cursor-pointer items-center border-none bg-transparent p-0 transition-opacity hover:opacity-70 sm:absolute sm:left-[180px]"
             onClick={handleOrganizerClick}
             onKeyDown={handleOrganizerKeyDown}
             aria-label={`${event.hostName} のプロフィールへ移動`}
@@ -154,7 +154,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
                 <div className="w-[70%] h-[65%] bg-[#4F378A] rounded-full" />
               </div>
             )}
-            <span className="ml-1 text-[13px] leading-[19px] text-[#667061]">
+            <span className="ml-1 max-w-[160px] truncate text-[13px] leading-[19px] text-[#667061]">
               {event.hostName}
             </span>
           </button>
@@ -163,7 +163,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
         {/* Detail button at y: 46 (center at 66) */}
         <Button
           type="button"
-          className="absolute right-[25px] top-[46px] w-[114px] h-10 bg-[#97C459] hover:bg-[#97C459]/90 rounded-full text-sm font-bold leading-5 text-[#1E2C10]"
+          className="static mt-4 h-10 w-full rounded-full bg-[#97C459] text-sm font-bold leading-5 text-[#1E2C10] hover:bg-[#97C459]/90 sm:absolute sm:right-[25px] sm:top-[46px] sm:mt-0 sm:w-[114px]"
           onClick={(e) => {
             e.stopPropagation();
             router.push(`/event/${event.id}`);

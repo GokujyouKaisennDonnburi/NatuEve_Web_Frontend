@@ -19,7 +19,7 @@ export function TogglePill({
       aria-checked={checked}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "relative inline-flex h-8 w-20 items-center rounded-full border px-1 transition-all duration-200",
+        "relative inline-flex h-8 w-20 shrink-0 items-center rounded-full border px-1 transition-all duration-200",
         checked
           ? "border-teal-600 bg-teal-600"
           : "border-slate-300 bg-slate-200 hover:border-slate-400",

@@ -9,6 +9,7 @@ import { EventCard } from "@/components/organisms/EventCard";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
 import { useTags } from "@/hooks/useTags";
+import { cn } from "@/lib/utils";
 import type { TagItem } from "@/types/tag";
 import { useMemo, useState } from "react";
 
@@ -17,6 +18,7 @@ type SortOption = "created_at" | "event_date";
 export default function EventListPage() {
   const [sortBy, setSortBy] = useState<SortOption>("created_at");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   // 適用済みの検索クエリ。SearchBar の onSearch（検索ボタン押下 / Enter）でのみ更新されるため、
   // 入力中の値では API は呼ばれない
   const [searchQuery, setSearchQuery] = useState("");
@@ -133,6 +135,7 @@ export default function EventListPage() {
     setAppliedPrefectures(selectedPrefectures);
     setAppliedCities(selectedCities);
     setCurrentPage(1);
+    setIsFilterOpen(false);
   };
   const hasActiveFilters =
     selectedTagIds.length > 0 ||
@@ -145,22 +148,22 @@ export default function EventListPage() {
     maxPrice !== undefined;
 
   return (
-    <div className="mx-auto max-w-[1728px] px-[max(16px,3%)] pt-[59px]">
+    <div className="mx-auto max-w-[1728px] px-[max(16px,3%)] pt-8 sm:pt-[59px]">
       {/* Title */}
-      <h1 className="text-[40px] leading-[58px] text-black font-normal mb-[60px]">
+      <h1 className="mb-10 text-[32px] font-normal leading-[46px] text-black sm:mb-[60px] sm:text-[40px] sm:leading-[58px]">
         イベントを探す
       </h1>
 
       {/* Search + Sort row */}
-      <div className="flex items-start gap-4 mb-[23px]">
-        <div className="flex-1">
+      <div className="mb-[23px] flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+        <div className="w-full min-w-0 sm:flex-1">
           <SearchBar
             onSearch={handleSearch}
             initialValue={searchQuery}
             className="w-full"
           />
         </div>
-        <div className="shrink-0 flex items-center gap-3">
+        <div className="flex w-full items-center justify-end gap-3 sm:w-auto sm:shrink-0">
           <SortButton
             label="並び替え"
             options={sortOptions}
@@ -171,14 +174,26 @@ export default function EventListPage() {
       </div>
 
       {/* Filter button row */}
-      <div className="mb-[45px]">
-        <FilterIconButton onClick={() => {}} isActive={hasActiveFilters} />
+      <div className="mb-6 xl:mb-[45px]">
+        <FilterIconButton
+          onClick={() => setIsFilterOpen((prev) => !prev)}
+          isActive={hasActiveFilters}
+          isExpanded={isFilterOpen}
+          controls="event-list-filters"
+        />
       </div>
 
       {/* Two-column: Filter sidebar + Event list */}
-      <div className="flex items-start gap-[36px]">
+      <div className="grid items-start gap-6 xl:grid-cols-[342px_minmax(0,1fr)] xl:gap-[36px]">
         {/* Filter sidebar */}
-        <aside className="w-[342px] shrink-0 sticky top-20">
+        <aside
+          id="event-list-filters"
+          className={cn(
+            "w-full",
+            isFilterOpen ? "block" : "hidden",
+            "xl:sticky xl:top-20 xl:block xl:w-[342px]",
+          )}
+        >
           <FilterSidebar
             allTags={allTags}
             frequentTags={frequentTags}
@@ -222,7 +237,7 @@ export default function EventListPage() {
         </aside>
 
         {/* Main content */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           {/* Loading indicator */}
           {loading && (
             <div className="mb-4">

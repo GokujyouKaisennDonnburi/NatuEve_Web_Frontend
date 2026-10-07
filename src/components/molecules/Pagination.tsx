@@ -37,7 +37,7 @@ export function Pagination({
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-1 text-sm font-medium text-[#3A4237]",
+        "flex flex-wrap items-center justify-center gap-0.5 text-sm font-medium text-[#3A4237] sm:gap-1",
         className,
       )}
     >
@@ -48,7 +48,7 @@ export function Pagination({
         disabled={currentPage === 1}
         aria-label="前のページ"
         className={cn(
-          "px-2 py-1 cursor-pointer transition-colors",
+          "cursor-pointer px-1.5 py-1 transition-colors sm:px-2",
           currentPage === 1
             ? "opacity-30 cursor-not-allowed"
             : "hover:text-[#272E24]",
@@ -63,7 +63,7 @@ export function Pagination({
         onClick={() => handlePageChange(1)}
         aria-label="1ページ目"
         className={cn(
-          "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
+          "cursor-pointer px-1.5 py-1 transition-colors hover:text-[#272E24] sm:px-2",
           currentPage === 1 &&
             "bg-[#97C459] text-white font-bold rounded-full px-3 py-1",
         )}
@@ -73,7 +73,7 @@ export function Pagination({
 
       {/* Left ellipsis */}
       {visiblePages.length > 0 && visiblePages[0] > 2 && (
-        <span className="px-2 py-1 select-none" aria-hidden="true">
+        <span className="select-none px-1 py-1 sm:px-2" aria-hidden="true">
           ......
         </span>
       )}
@@ -87,7 +87,7 @@ export function Pagination({
           aria-label={`${page}ページ目`}
           aria-current={currentPage === page ? "page" : undefined}
           className={cn(
-            "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
+            "cursor-pointer px-1.5 py-1 transition-colors hover:text-[#272E24] sm:px-2",
             currentPage === page &&
               "bg-[#97C459] text-white font-bold rounded-full px-3 py-1",
           )}
@@ -99,7 +99,7 @@ export function Pagination({
       {/* Right ellipsis */}
       {visiblePages.length > 0 &&
         visiblePages[visiblePages.length - 1] < totalPages - 1 && (
-          <span className="px-2 py-1 select-none" aria-hidden="true">
+          <span className="select-none px-1 py-1 sm:px-2" aria-hidden="true">
             ......
           </span>
         )}
@@ -111,7 +111,7 @@ export function Pagination({
           onClick={() => handlePageChange(totalPages)}
           aria-label={`${totalPages}ページ目`}
           className={cn(
-            "px-2 py-1 cursor-pointer transition-colors hover:text-[#272E24]",
+            "cursor-pointer px-1.5 py-1 transition-colors hover:text-[#272E24] sm:px-2",
             currentPage === totalPages &&
               "bg-[#97C459] text-white font-bold rounded-full px-3 py-1",
           )}
@@ -127,7 +127,7 @@ export function Pagination({
         disabled={currentPage === totalPages}
         aria-label="次のページ"
         className={cn(
-          "px-2 py-1 cursor-pointer transition-colors",
+          "cursor-pointer px-1.5 py-1 transition-colors sm:px-2",
           currentPage === totalPages
             ? "opacity-30 cursor-not-allowed"
             : "hover:text-[#272E24]",

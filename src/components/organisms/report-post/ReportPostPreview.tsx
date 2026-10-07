@@ -107,9 +107,9 @@ export function ReportPostPreview({
       }}
       onKeyDown={preventImplicitSubmit}
       noValidate
-      className="space-y-4"
+      className="min-w-0 space-y-4"
     >
-      <div className="space-y-6 rounded-2xl border border-slate-300 p-6 shadow-sm">
+      <div className="min-w-0 space-y-5 rounded-2xl border border-slate-300 p-4 shadow-sm sm:space-y-6 sm:p-6">
         {/* プレビュー注釈 */}
         <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5">
           <Eye className="h-4 w-4 text-blue-600" />
@@ -122,7 +122,7 @@ export function ReportPostPreview({
           <>
             {/* 画面上部：イベントタイトル・ステータス/タグ・主催者 */}
             <header className="space-y-3">
-              <h1 className="text-2xl font-extrabold text-slate-900 md:text-3xl">
+              <h1 className="break-words text-xl leading-8 font-extrabold text-slate-900 sm:text-2xl md:text-3xl">
                 {event.title}
               </h1>
 
@@ -137,14 +137,14 @@ export function ReportPostPreview({
                 <EventTagList tags={event.tags} />
               </div>
 
-              <div className="flex w-fit items-center gap-2">
+              <div className="flex max-w-full items-center gap-2">
                 <GlobalUserAvatar
                   name={organizerName}
                   iconUrl={organizerAvatarUrl}
                   className="h-9 w-9 border-slate-300"
                 />
-                <div>
-                  <p className="text-sm font-bold text-slate-800">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-slate-800">
                     {organizerName ?? "未設定"}
                   </p>
                   <p className="text-xs text-slate-500">
@@ -169,10 +169,16 @@ export function ReportPostPreview({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
+          className="w-full sm:w-auto"
         >
           キャンセル
         </PillButton>
-        <PillButton tone="brand" type="submit" disabled={isSubmitting}>
+        <PillButton
+          tone="brand"
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full sm:w-auto"
+        >
           {isSubmitting ? "投稿中..." : "レポートを投稿"}
         </PillButton>
       </div>

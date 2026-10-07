@@ -5,18 +5,24 @@ import { cn } from "@/lib/utils";
 type FilterIconButtonProps = {
   onClick: () => void;
   isActive?: boolean;
+  isExpanded?: boolean;
+  controls?: string;
   className?: string;
 };
 
 export function FilterIconButton({
   onClick,
   isActive = false,
+  isExpanded,
+  controls,
   className,
 }: Readonly<FilterIconButtonProps>) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-expanded={isExpanded}
+      aria-controls={controls}
       className={cn(
         "inline-flex items-center gap-2 h-[38px] bg-white border rounded-full px-[19px]",
         isActive ? "border-[#97C459]" : "border-[#CDD4C8]",

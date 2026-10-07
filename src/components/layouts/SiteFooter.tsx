@@ -6,8 +6,8 @@ import { ROUTES } from "@/constants/routes";
 export function SiteFooter() {
   return (
     <footer className="w-full border-t border-slate-200/80 bg-[#FAFCF7]">
-      <div className="mx-auto max-w-6xl px-8 py-8">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-6">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-6 lg:gap-8">
           {/* サイト名 */}
           <div className="col-span-2 flex flex-col gap-2">
             <Link

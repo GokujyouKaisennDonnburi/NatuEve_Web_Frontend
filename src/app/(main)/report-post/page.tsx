@@ -294,7 +294,7 @@ function ReportPostPageContent() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-5xl space-y-6">
+    <section className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
       {/* ページヘッダー */}
       <PageHeader
         title="活動レポートを投稿"
@@ -318,12 +318,14 @@ function ReportPostPageContent() {
       {/* イベント情報表示 */}
       {event && (
         <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardContent className="px-5">
+          <CardContent className="px-4 sm:px-5">
             <p className="text-sm font-semibold text-blue-600">対象イベント</p>
 
-            <h2 className="text-lg font-bold text-slate-900">{event.title}</h2>
+            <h2 className="break-words text-base font-bold text-slate-900 sm:text-lg">
+              {event.title}
+            </h2>
 
-            <div className="mt-2 text-sm text-slate-600">
+            <div className="mt-2 flex flex-col gap-1 text-sm text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-0">
               {event.eventDate && event.endDate && (
                 <span>
                   {startDateLabel} {startTimeLabel}〜
@@ -332,10 +334,12 @@ function ReportPostPageContent() {
               )}
 
               {event.location && (
-                <>
-                  <span className="mx-2">｜</span>
-                  <span>{event.location}</span>
-                </>
+                <span className="min-w-0 break-words">
+                  {event.eventDate && event.endDate ? (
+                    <span className="mx-2 hidden sm:inline">｜</span>
+                  ) : null}
+                  {event.location}
+                </span>
               )}
             </div>
           </CardContent>
