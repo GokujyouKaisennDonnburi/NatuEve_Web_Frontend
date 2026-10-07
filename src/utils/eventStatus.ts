@@ -94,7 +94,9 @@ export function resolveEventStatus({
   endDate,
   applicationDeadline,
 }: Readonly<EventStatusSource>): ResolvedEventStatus {
-  // 終了・開始の判定で基準時刻がずれないよう、現在時刻は1回だけ取得して使い回す。
+  // この関数内で行う終了・開始の判定は、同じ現在時刻を基準にする。
+  // 申込期限の判定（isDeadlinePassed / isDateWithinOneWeek）はそれぞれ内部で現在時刻を取得するため、
+  // 厳密には基準がずれうるが、ずれはごくわずかで実用上の影響はない。
   const now = new Date();
   const closesAt = new Date(endDate || eventDate);
   if (closesAt < now) {

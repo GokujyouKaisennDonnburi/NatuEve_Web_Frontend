@@ -41,8 +41,9 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
 });
 
-// globals: false のため testing-library の自動クリーンアップが効かない。
-// renderHook も内部で render しているため明示的に片付ける。
+// setup.ts でも cleanup するが、afterEach は登録と逆順（sequence.hooks の既定 "stack"）に
+// 実行されるため、ここで先に片付けないと fake timers を戻した後にアンマウントされる。
+// fake timers のうちにアンマウント（タイマー解除）を済ませてから実時間に戻す。
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
