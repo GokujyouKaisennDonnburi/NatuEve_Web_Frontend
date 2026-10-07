@@ -175,11 +175,12 @@ export default function EventListPage() {
 
       {/* Filter button row
           デスクトップ(xl以上)ではサイドバー常時表示のため非表示。
-          モバイルでは固定表示とし、スクロールしても常に画面内に表示する。
+          モバイルでは検索バー直下の左上に配置し、スクロール中は
+          ヘッダー直下に粘着(sticky)させて常に画面内に表示する。
           ドロワー(FilterDrawer)より低い z-index で開閉ボタンの役割を維持する */}
-      <div className="mb-6 xl:mb-[45px]">
+      <div className="sticky top-[108px] z-30 mb-6 sm:top-16 xl:mb-[45px]">
         <FilterIconButton
-          className="fixed right-4 bottom-6 z-30 shadow-md transition-shadow hover:shadow-lg xl:hidden"
+          className="xl:hidden"
           onClick={() => setIsFilterOpen((prev) => !prev)}
           isActive={hasActiveFilters}
           isExpanded={isFilterOpen}
