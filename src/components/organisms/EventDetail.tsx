@@ -116,9 +116,15 @@ export function EventDetail({
     status === "ongoing";
 
   // 上の判定は現在時刻に依存するため、ページを開いたままでは期限を過ぎても
-  // 「参加を申し込む」が押せるまま残ってしまう。申込期限・終了日時を跨いだ時点で
+  // 「参加を申し込む」が押せるまま残ってしまう。申込期限・開始日時・終了日時を跨いだ時点で
   // 再描画し、表示と操作可否を実際の時刻に追随させる。
-  useDeadlineRefresh([event.applicationDeadline, event.endDate]);
+  // 申込期限切れのイベントは開始日時を境に「受付終了」から「開催中」へ切り替わるため、
+  // 開始日時も再描画の境目に含める。
+  useDeadlineRefresh([
+    event.applicationDeadline,
+    event.eventDate,
+    event.endDate,
+  ]);
 
   // サインイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(
