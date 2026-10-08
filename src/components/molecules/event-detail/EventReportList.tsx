@@ -161,30 +161,38 @@ function ReportCard({
           {pdfSources.length > 0 ? (
             <section id={EVENT_REPORT_PDFS_SECTION_ID}>
               <div className="mt-3 space-y-2">
-                {pdfSources.map((url, index) => (
-                  <a
-                    key={url}
-                    href={normalizeAssetUrl(url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-col items-stretch gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:px-4"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50">
-                        <FileText className="h-5 w-5 text-red-400" />
+                {pdfSources.map((url, index) => {
+                  // 表示名は元ファイル名。無ければURL末尾、それも無ければ「PDF」にフォールバックする
+                  const filename =
+                    report.pdfFilenames?.[index] ||
+                    url.split("/").pop() ||
+                    "PDF";
+                  return (
+                    <a
+                      key={url}
+                      href={normalizeAssetUrl(url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition hover:shadow-md"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50">
+                          <FileText className="h-5 w-5 text-red-400" />
+                        </div>
+                        <span
+                          title={filename}
+                          className="truncate text-sm font-bold text-slate-800"
+                        >
+                          {filename}
+                        </span>
                       </div>
-                      <span className="truncate text-sm font-bold text-slate-800">
-                        {report.pdfFilenames?.[index] ||
-                          url.split("/").pop() ||
-                          "PDF"}
+                      <span className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 sm:px-4">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        開く
                       </span>
-                    </div>
-                    <span className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 sm:px-4">
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      開く
-                    </span>
-                  </a>
-                ))}
+                    </a>
+                  );
+                })}
               </div>
             </section>
           ) : null}
