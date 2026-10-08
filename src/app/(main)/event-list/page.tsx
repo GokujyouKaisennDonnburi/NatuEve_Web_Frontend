@@ -174,13 +174,13 @@ export default function EventListPage() {
       </div>
 
       {/* Filter button row
-          デスクトップ(xl以上)ではサイドバー常時表示のため非表示。
+          デスクトップ(横長比率)ではサイドバー常時表示のため非表示。
           モバイルでは検索バー直下の左上に配置し、スクロール中は
           ヘッダー直下に粘着(sticky)させて常に画面内に表示する。
           ドロワー(FilterDrawer)より低い z-index で開閉ボタンの役割を維持する */}
-      <div className="sticky top-[108px] z-30 mb-6 sm:top-16 xl:mb-[45px]">
+      <div className="sticky top-[108px] z-30 mb-6 sm:top-16 desktop:mb-[45px]">
         <FilterIconButton
-          className="xl:hidden"
+          className="desktop:hidden"
           onClick={() => setIsFilterOpen((prev) => !prev)}
           isActive={hasActiveFilters}
           isExpanded={isFilterOpen}
@@ -189,15 +189,15 @@ export default function EventListPage() {
       </div>
 
       {/* Two-column: Filter sidebar + Event list */}
-      <div className="grid items-start gap-6 xl:grid-cols-[342px_minmax(0,1fr)] xl:gap-[36px]">
+      <div className="grid items-start gap-6 desktop:grid-cols-[342px_minmax(0,1fr)] desktop:gap-[36px]">
         {/* Filter sidebar
-            モバイル(< xl)では FilterDrawer が左からスライドするオーバーレイとして表示し、
-            デスクトップ(xl以上)では常に左側に表示するサイドバーになる */}
+            モバイル(縦長比率)では FilterDrawer が左からスライドするオーバーレイとして表示し、
+            デスクトップ(横長比率)では常に左側に表示するサイドバーになる */}
         <FilterDrawer
           isOpen={isFilterOpen}
           onClose={() => setIsFilterOpen(false)}
           id="event-list-filters"
-          className="xl:sticky xl:top-20 xl:z-auto xl:block xl:w-[342px]"
+          className="desktop:sticky desktop:top-20 desktop:z-auto desktop:block desktop:w-[342px]"
         >
           <FilterSidebar
             allTags={allTags}
