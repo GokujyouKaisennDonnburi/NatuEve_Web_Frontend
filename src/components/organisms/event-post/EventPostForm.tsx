@@ -100,16 +100,24 @@ export function EventPostForm({
 }: Readonly<EventPostFormProps>) {
   const formId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  // ジャンプ済みの送信結果。同じ送信のエラーで、表示のたびに何度もジャンプしないようにする。
+  const jumpedErrorsRef = useRef<EventPostFormErrors | null>(null);
 
   const getFieldId = (suffix: string) => `${formId}-${suffix}`;
 
   // 送信時、フォームの中で一番上にあるエラー項目へジャンプする。
   // DOM の並び順がそのまま画面の並び順なので、項目の順序を別に持たなくてよい。
+  // プレビュー表示中の送信では隠れていて移動できないため、表示されてからジャンプする。
   useEffect(() => {
-    // errors が更新されるのは送信時だけ。空なら初回マウントか送信成功なので何もしない。
-    if (Object.keys(errors).length === 0) {
+    // errors が更新されるのは送信時だけ。空なら初回マウントか入力エラーなしなので何もしない。
+    if (
+      hidden ||
+      Object.keys(errors).length === 0 ||
+      jumpedErrorsRef.current === errors
+    ) {
       return;
     }
+    jumpedErrorsRef.current = errors;
 
     const field =
       containerRef.current?.querySelector<HTMLElement>("[data-field-error]");
@@ -121,7 +129,7 @@ export function EventPostForm({
     // focus 単体だと一瞬でジャンプしてしまうため、スクロールを止めてから滑らかに寄せる
     target.focus({ preventScroll: true });
     target.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [errors]);
+  }, [errors, hidden]);
 
   return (
     <div ref={containerRef} hidden={hidden} className="space-y-4">

@@ -33,7 +33,7 @@ export default function EventPostPage() {
   const { formState, errors, isSubmitting, setField, handleSubmit } =
     useEventPostForm();
 
-  const { mode, changeMode, switchCaptureHandlers } = useEventPostMode();
+  const { mode, changeMode, switchCaptureHandlers } = useEventPostMode(errors);
 
   // 画像・PDF の object URL は入力中から用意しておく。プレビュー側で作ると
   // 切替後に一拍遅れて表示され、切替直後の位置合わせがその分ずれるため。
