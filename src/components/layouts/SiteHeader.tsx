@@ -42,8 +42,6 @@ const HEADER_NAV_ITEMS = [
 export function SiteHeader() {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-  const accountMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuTriggerRef = useRef<HTMLDivElement>(null);
   const mobileMenuPanelRef = useRef<HTMLElement>(null);
 
@@ -72,31 +70,6 @@ export function SiteHeader() {
           avatarUrl: session.iconUrl ?? "",
         }
       : null;
-
-  useEffect(() => {
-    if (!isAccountMenuOpen) {
-      return;
-    }
-
-    const closeAccountMenu = (event: PointerEvent) => {
-      if (!accountMenuRef.current?.contains(event.target as Node)) {
-        setIsAccountMenuOpen(false);
-      }
-    };
-    const closeAccountMenuByEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsAccountMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", closeAccountMenu);
-    document.addEventListener("keydown", closeAccountMenuByEscape);
-
-    return () => {
-      document.removeEventListener("pointerdown", closeAccountMenu);
-      document.removeEventListener("keydown", closeAccountMenuByEscape);
-    };
-  }, [isAccountMenuOpen]);
 
   useEffect(() => {
     if (!isMobileMenuOpen) {
@@ -197,7 +170,6 @@ export function SiteHeader() {
             }
             onClick={() => {
               setIsMobileMenuOpen((isOpen) => !isOpen);
-              setIsAccountMenuOpen(false);
             }}
             className="rounded-full border-slate-200 text-slate-700 transition-colors hover:border-[#9ABD5A]/60 hover:bg-[#F2F7E8] hover:text-[#315E26] aria-expanded:border-[#9ABD5A]/60 aria-expanded:bg-[#F2F7E8]"
           >
@@ -218,10 +190,7 @@ export function SiteHeader() {
         </div>
 
         {/* 認証UI。サインイン後は投稿ボタンの右側にアイコンを表示する。 */}
-        <div
-          ref={accountMenuRef}
-          className="hidden shrink-0 items-center justify-end lg:flex"
-        >
+        <div className="hidden shrink-0 items-center justify-end lg:flex">
           {isLoading ? (
             <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse border border-slate-300/50" />
           ) : !user ? (
@@ -233,52 +202,20 @@ export function SiteHeader() {
               <Link href={ROUTES.SIGNIN}>サインイン</Link>
             </Button>
           ) : user.id ? (
-            <>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-controls="account-navigation"
-                aria-expanded={isAccountMenuOpen}
-                aria-label={
-                  isAccountMenuOpen
-                    ? "アカウントメニューを閉じる"
-                    : "アカウントメニューを開く"
-                }
-                onClick={() => {
-                  setIsAccountMenuOpen((isOpen) => !isOpen);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="rounded-full p-0 transition-shadow hover:ring-2 hover:ring-[#9ABD5A]/60 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 aria-expanded:ring-2 aria-expanded:ring-[#9ABD5A]/60"
-              >
+            <Button
+              asChild
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-full p-0 transition-shadow hover:ring-2 hover:ring-[#9ABD5A]/60 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+            >
+              <Link href={ROUTES.MYPAGE} aria-label="マイページへ">
                 <GlobalUserAvatar
                   name={user.name}
                   iconUrl={user.avatarUrl}
                   className="transition-opacity"
                 />
-              </Button>
-
-              {isAccountMenuOpen && (
-                <nav
-                  id="account-navigation"
-                  aria-label="アカウントメニュー"
-                  className="absolute right-4 top-full z-50 mt-2 min-w-40 rounded-xl border border-slate-200 bg-white p-2 shadow-md sm:right-6 lg:right-8 2xl:right-10"
-                >
-                  <Button
-                    asChild
-                    variant="ghost"
-                    className="w-full justify-start rounded-lg text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26]"
-                  >
-                    <Link
-                      href={ROUTES.MYPAGE}
-                      onClick={() => setIsAccountMenuOpen(false)}
-                    >
-                      マイページへ
-                    </Link>
-                  </Button>
-                </nav>
-              )}
-            </>
+              </Link>
+            </Button>
           ) : (
             <div className="block shrink-0 rounded-full">
               <GlobalUserAvatar
@@ -316,8 +253,11 @@ export function SiteHeader() {
                   setIsMobileMenuOpen(false);
                   handleCreateEvent();
                 }}
-                className="flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#9ABD5A] text-[#173315]">
+                  <Plus className="size-5" strokeWidth={2} aria-hidden="true" />
+                </span>
                 イベントを投稿
               </button>
 
@@ -325,8 +265,13 @@ export function SiteHeader() {
                 <Link
                   href={ROUTES.MYPAGE}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
+                  <GlobalUserAvatar
+                    name={user.name}
+                    iconUrl={user.avatarUrl}
+                    className="border-[#9ABD5A]/60 shadow-none"
+                  />
                   マイページへ
                 </Link>
               ) : !isLoading ? (
