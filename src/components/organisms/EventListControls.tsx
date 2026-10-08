@@ -25,8 +25,8 @@ type EventListControlsProps = {
 // ヘッダー直下に粘着(フローティング)表示させる容器。
 // 縦長比率(絞り込みボタン表示時)では並び替えと絞り込みボタンを同じ高さに並べ、
 // 横長比率(desktop バリアント)では検索バーと並び替えを1行に収める。
-// パネルは不透明にして、スクロール中に背後のイベントカードや
-// 絞り込みサイドバーが透けて見えないようにする。
+// 各コントロールが本来持つデザインを優先するため容器自体には背景を付けず、
+// カード等の透け対策は検索バーの白背景で賄う。
 // ドロワー(FilterDrawer)より低い z-index で開閉ボタンの役割を維持する。
 export function EventListControls({
   searchInitialValue,
@@ -41,7 +41,7 @@ export function EventListControls({
 }: Readonly<EventListControlsProps>) {
   return (
     <div className="sticky top-(--site-header-height) z-30 mb-6 desktop:mb-[45px]">
-      <div className="flex flex-col gap-3 rounded-2xl border border-[#E3E8DF] bg-white p-3 shadow-[0_2px_12px_rgba(39,46,36,0.10)] desktop:flex-row desktop:items-center desktop:gap-4">
+      <div className="flex flex-col gap-3 desktop:flex-row desktop:items-center desktop:gap-4">
         <div className="w-full min-w-0 desktop:flex-1">
           <SearchBar
             onSearch={onSearch}
