@@ -7,9 +7,11 @@ import { FormCard } from "@/components/molecules/FormCard";
 import { FormField } from "@/components/molecules/FormField";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { useJumpToFirstError } from "@/hooks/useJumpToFirstError";
 import { preventImplicitSubmit } from "@/utils/form";
 import { validateUploadFile } from "@/utils/upload";
 import type React from "react";
+import { useRef } from "react";
 
 import {
   REPORT_CONTENT_CARD_ID,
@@ -46,8 +48,15 @@ export function ReportPostForm({
   isSubmitting,
   hidden = false,
 }: Readonly<ReportPostFormProps>) {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // 送信時、フォームの中で一番上にあるエラー項目へジャンプする。
+  // プレビュー表示中の送信では、入力に戻ってフォームが表示されてからジャンプする。
+  useJumpToFirstError(formRef, validationErrors, hidden);
+
   return (
     <form
+      ref={formRef}
       hidden={hidden}
       onSubmit={(e) => {
         e.preventDefault();
