@@ -13,6 +13,7 @@ import { ReportPostForm } from "@/components/organisms/report-post/ReportPostFor
 import { ReportPostPreview } from "@/components/organisms/report-post/ReportPostPreview";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
+import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { getEventDetail } from "@/services/event";
 import { createReport } from "@/services/report";
 import { uploadFile } from "@/services/upload";
@@ -52,6 +53,11 @@ function ReportPostPageContent() {
 
   // 入力 / プレビューの表示モード
   const [mode, setMode] = useState<"edit" | "preview">("edit");
+
+  // 画像・PDF の object URL は入力中から用意しておく。プレビュー側で作ると
+  // 切替後に一拍遅れて表示され、切替直後の位置合わせがその分ずれるため。
+  const imageUrls = useObjectUrls(formState.reportImages);
+  const pdfUrls = useObjectUrls(formState.reportPdfs);
   // 対象イベントの表示とプレビューのヘッダー表示に使うイベント情報
   const [event, setEvent] = useState<EventDetailType | null>(null);
 
@@ -341,6 +347,8 @@ function ReportPostPageContent() {
           <ReportPostPreview
             formState={formState}
             event={event}
+            imageUrls={imageUrls}
+            pdfUrls={pdfUrls}
             onSubmit={handleSubmit}
             onCancel={() => router.back()}
             isSubmitting={isSubmitting}
