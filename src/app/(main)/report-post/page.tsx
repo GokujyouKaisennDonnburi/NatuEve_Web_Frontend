@@ -11,8 +11,10 @@ import { PageHeader } from "@/components/molecules/PageHeader";
 import type { ReportPostFormState } from "@/components/organisms/report-post/ReportPostForm";
 import { ReportPostForm } from "@/components/organisms/report-post/ReportPostForm";
 import { ReportPostPreview } from "@/components/organisms/report-post/ReportPostPreview";
+import { REPORT_POST_PREVIEW_SCROLL_MAPPING } from "@/components/organisms/report-post/reportPostPreviewScroll";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
+import { useEditPreviewMode } from "@/hooks/useEditPreviewMode";
 import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { getEventDetail } from "@/services/event";
 import { createReport } from "@/services/report";
@@ -51,13 +53,18 @@ function ReportPostPageContent() {
     Record<string, string>
   >({});
 
-  // 入力 / プレビューの表示モード
-  const [mode, setMode] = useState<"edit" | "preview">("edit");
+  // 入力 / プレビューの表示モード。切替前後の表示位置の調整と、
+  // プレビュー中の送信で入力エラーになったときの入力への切替もここで行う。
+  const { mode, changeMode, switchCaptureHandlers } = useEditPreviewMode(
+    REPORT_POST_PREVIEW_SCROLL_MAPPING,
+    validationErrors,
+  );
 
   // 画像・PDF の object URL は入力中から用意しておく。プレビュー側で作ると
   // 切替後に一拍遅れて表示され、切替直後の位置合わせがその分ずれるため。
   const imageUrls = useObjectUrls(formState.reportImages);
   const pdfUrls = useObjectUrls(formState.reportPdfs);
+
   // 対象イベントの表示とプレビューのヘッダー表示に使うイベント情報
   const [event, setEvent] = useState<EventDetailType | null>(null);
 
@@ -294,8 +301,12 @@ function ReportPostPageContent() {
         />
       </div>
 
-      {/* 入力/プレビュー切替。イベント投稿画面と同じ部品で、位置・見た目を揃える。 */}
-      <EditPreviewSwitch mode={mode} onChange={setMode} />
+      {/* 入力/プレビュー切替。イベント投稿画面と同じ部品で、位置・見た目・動作を揃える。 */}
+      <EditPreviewSwitch
+        mode={mode}
+        onChange={changeMode}
+        {...switchCaptureHandlers}
+      />
 
       <div className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
         {/* イベント情報表示 */}
@@ -333,17 +344,18 @@ function ReportPostPageContent() {
           </Card>
         )}
 
-        {/* メインコンテンツ */}
-        {mode === "edit" ? (
-          <ReportPostForm
-            formState={formState}
-            validationErrors={validationErrors}
-            setFormState={setFormState}
-            onSubmit={handleSubmit}
-            onCancel={() => router.back()}
-            isSubmitting={isSubmitting}
-          />
-        ) : (
+        {/* メインコンテンツ。入力フォームはプレビュー中も外さずに隠し、入力途中の状態と高さを保つ。
+            外すと戻ったときに作り直され、添付ファイル一覧などが後から出て位置がずれる。 */}
+        <ReportPostForm
+          formState={formState}
+          validationErrors={validationErrors}
+          setFormState={setFormState}
+          onSubmit={handleSubmit}
+          onCancel={() => router.back()}
+          isSubmitting={isSubmitting}
+          hidden={mode !== "edit"}
+        />
+        {mode === "preview" ? (
           <ReportPostPreview
             formState={formState}
             event={event}
@@ -353,7 +365,7 @@ function ReportPostPageContent() {
             onCancel={() => router.back()}
             isSubmitting={isSubmitting}
           />
-        )}
+        ) : null}
       </div>
     </section>
   );

@@ -12,6 +12,8 @@ import { preventImplicitSubmit } from "@/utils/form";
 import { Eye } from "lucide-react";
 import { useMemo } from "react";
 
+import { REPORT_PREVIEW_REPORT_ID } from "./reportPostPreviewScroll";
+
 // 投稿日の表示用に日付だけを整形する
 const formatPostedDate = (value: string): string =>
   new Date(value).toLocaleDateString("ja-JP", {
@@ -140,7 +142,9 @@ export function ReportPostPreview({
         )}
 
         {/* 活動レポート（通常 / 外部URL のどちらかを表示） */}
-        <EventReportList report={previewReport} />
+        <div id={REPORT_PREVIEW_REPORT_ID}>
+          <EventReportList report={previewReport} />
+        </div>
       </div>
 
       {/* 投稿・キャンセルボタン */}

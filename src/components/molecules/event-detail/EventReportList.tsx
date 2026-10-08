@@ -9,6 +9,11 @@ import { ROUTES } from "@/constants/routes";
 import type { ReportDetail } from "@/types/report";
 import { normalizeAssetUrl } from "@/utils/media";
 
+import {
+  EVENT_REPORT_IMAGES_SECTION_ID,
+  EVENT_REPORT_PDFS_SECTION_ID,
+} from "./eventReportSections";
+
 type EventReportListProps = {
   report?: ReportDetail | null;
   // 「レポートを作成」ボタンからレポート投稿画面へ遷移するためのイベントID。
@@ -148,13 +153,13 @@ function ReportCard({
           )}
 
           {imageSources.length > 0 ? (
-            <section>
+            <section id={EVENT_REPORT_IMAGES_SECTION_ID}>
               <EventReportImageCarousel images={imageSources} />
             </section>
           ) : null}
 
           {pdfSources.length > 0 ? (
-            <section>
+            <section id={EVENT_REPORT_PDFS_SECTION_ID}>
               <div className="mt-3 space-y-2">
                 {pdfSources.map((url, index) => (
                   <a
