@@ -52,6 +52,12 @@ const formatCost = ({
   return label ? `${label}：${amount}` : amount;
 };
 
+// イベント情報表の見出し/値セルは全行で同じ見た目のため、モジュール定数に集約する
+const HEADER_CELL_CLASS_NAME =
+  "w-24 border-t border-slate-200 py-4 px-3 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700 sm:w-44 sm:px-4";
+const VALUE_CELL_CLASS_NAME =
+  "border-l border-t border-slate-200 bg-white px-3 py-4 text-slate-800 sm:px-4";
+
 // イベント情報表コンポーネント
 export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
   const organizerName = event.profile?.displayName ?? event.organizerName;
@@ -66,10 +72,8 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
               <tbody>
                 {/* 主催者 */}
                 <tr>
-                  <th className="w-24 border-t border-slate-200 py-4 px-3 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700 sm:w-44 sm:px-4">
-                    主催者
-                  </th>
-                  <td className="border-l border-t border-slate-200 bg-white px-3 py-4 text-slate-800 sm:px-4">
+                  <th className={HEADER_CELL_CLASS_NAME}>主催者</th>
+                  <td className={VALUE_CELL_CLASS_NAME}>
                     <span className="text-sm font-medium text-slate-800">
                       {organizerName ?? "未設定"}
                     </span>
@@ -78,30 +82,24 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 開催日時 */}
                 <tr>
-                  <th className="w-24 border-t border-slate-200 py-4 px-3 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700 sm:w-44 sm:px-4">
-                    開催日時
-                  </th>
-                  <td className="border-l border-t border-slate-200 bg-white px-3 py-4 text-slate-800 sm:px-4">
+                  <th className={HEADER_CELL_CLASS_NAME}>開催日時</th>
+                  <td className={VALUE_CELL_CLASS_NAME}>
                     {formatDateTime(event.eventDate)}
                   </td>
                 </tr>
 
                 {/* 終了日時 */}
                 <tr>
-                  <th className="w-24 border-t border-slate-200 py-4 px-3 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700 sm:w-44 sm:px-4">
-                    終了日時
-                  </th>
-                  <td className="border-l border-t border-slate-200 bg-white px-3 py-4 text-slate-800 sm:px-4">
+                  <th className={HEADER_CELL_CLASS_NAME}>終了日時</th>
+                  <td className={VALUE_CELL_CLASS_NAME}>
                     {formatDateTime(event.endDate)}
                   </td>
                 </tr>
 
                 {/* 申込期限 */}
                 <tr>
-                  <th className="w-24 border-t border-slate-200 py-4 px-3 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700 sm:w-44 sm:px-4">
-                    申込期限
-                  </th>
-                  <td className="border-l border-t border-slate-200 bg-white px-3 py-4 text-slate-800 sm:px-4">
+                  <th className={HEADER_CELL_CLASS_NAME}>申込期限</th>
+                  <td className={VALUE_CELL_CLASS_NAME}>
                     {/* 締切なしのイベントは applicationDeadline が空のため「なし」を表示する */}
                     {event.applicationDeadline
                       ? formatDateTime(event.applicationDeadline)
@@ -111,20 +109,14 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 開催場所 */}
                 <tr>
-                  <th className="w-24 border-t border-slate-200 py-4 px-3 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700 sm:w-44 sm:px-4">
-                    開催場所
-                  </th>
-                  <td className="border-l border-t border-slate-200 bg-white px-3 py-4 text-slate-800 sm:px-4">
-                    {event.location}
-                  </td>
+                  <th className={HEADER_CELL_CLASS_NAME}>開催場所</th>
+                  <td className={VALUE_CELL_CLASS_NAME}>{event.location}</td>
                 </tr>
 
                 {/* 参加費 */}
                 <tr>
-                  <th className="w-24 border-t border-slate-200 py-4 px-3 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700 sm:w-44 sm:px-4">
-                    参加費
-                  </th>
-                  <td className="border-l border-t border-slate-200 bg-white px-3 py-4 text-slate-800 sm:px-4">
+                  <th className={HEADER_CELL_CLASS_NAME}>参加費</th>
+                  <td className={VALUE_CELL_CLASS_NAME}>
                     {event.costs.length > 0 ? (
                       // 複数の参加費は1行ずつ縦に並べる
                       <ul className="space-y-1">
@@ -142,10 +134,8 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 持ち物 */}
                 <tr>
-                  <th className="w-24 border-t border-slate-200 py-4 px-3 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700 sm:w-44 sm:px-4">
-                    持ち物
-                  </th>
-                  <td className="border-l border-t border-slate-200 bg-white px-3 py-4 text-slate-800 sm:px-4">
+                  <th className={HEADER_CELL_CLASS_NAME}>持ち物</th>
+                  <td className={VALUE_CELL_CLASS_NAME}>
                     {event.items && event.items.length > 0 ? (
                       <ul className="space-y-2">
                         {event.items.map((item) => (
@@ -165,10 +155,8 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
 
                 {/* 定員 */}
                 <tr>
-                  <th className="w-24 border-t border-slate-200 py-4 px-3 text-left align-top bg-(--surface-muted) text-sm font-semibold text-slate-700 sm:w-44 sm:px-4">
-                    定員
-                  </th>
-                  <td className="border-l border-t border-slate-200 bg-white px-3 py-4 text-slate-800 sm:px-4">
+                  <th className={HEADER_CELL_CLASS_NAME}>定員</th>
+                  <td className={VALUE_CELL_CLASS_NAME}>
                     {event.capacity === 0 ? "定員なし" : `${event.capacity}名`}
                   </td>
                 </tr>
