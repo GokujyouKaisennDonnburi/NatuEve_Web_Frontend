@@ -30,30 +30,36 @@ export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
 
         {/* PDFリストの表示 */}
         <div className="space-y-3">
-          {pdfItems.map(({ source, filename }, index) => (
-            <a
-              key={source || `${filename}-${index}`}
-              href={normalizeAssetUrl(source)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:shadow-md"
-            >
-              {/* PDFファイル名の表示（元ファイル名。無ければURL末尾にフォールバック） */}
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50">
-                  <FileText className="h-5 w-5 text-red-400" />
+          {pdfItems.map(({ source, filename }, index) => {
+            // 表示名は元ファイル名。無ければURL末尾にフォールバックする
+            const displayName = filename || source.split("/").pop();
+            return (
+              <a
+                key={source || `${filename}-${index}`}
+                href={normalizeAssetUrl(source)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:shadow-md"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50">
+                    <FileText className="h-5 w-5 text-red-400" />
+                  </div>
+                  <span
+                    title={displayName}
+                    className="truncate text-sm font-bold text-slate-800"
+                  >
+                    {displayName}
+                  </span>
                 </div>
-                <span className="truncate text-sm font-bold text-slate-800">
-                  {filename || source.split("/").pop()}
-                </span>
-              </div>
 
-              {/* 「開く」ボタン（見た目のみ。実際のリンクは行全体の<a>が担う） */}
-              <span className="inline-flex shrink-0 items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">
-                開く
-              </span>
-            </a>
-          ))}
+                {/* 「開く」ボタン（見た目のみ。実際のリンクは行全体の<a>が担う） */}
+                <span className="inline-flex shrink-0 items-center rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">
+                  開く
+                </span>
+              </a>
+            );
+          })}
         </div>
       </CardContent>
     </SurfaceCard>
