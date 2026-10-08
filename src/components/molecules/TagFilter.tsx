@@ -64,6 +64,17 @@ export function TagFilter({
     onTagSelect?.(id);
   };
 
+  // チップがある間は BackSpace で最後のチップを解除する。
+  // チップが無いときは何もせず、入力テキストの削除をブラウザに任せる。
+  const handleBackspace = () => {
+    const lastTag = searchBoxTags[searchBoxTags.length - 1];
+    if (!lastTag) {
+      return false;
+    }
+    handleSearchChipClick(lastTag.id);
+    return true;
+  };
+
   return (
     <div className={cn("", className)}>
       <span className="block text-xs font-bold leading-[17px] text-[#838C7D] mb-2">
@@ -76,6 +87,7 @@ export function TagFilter({
         value={draft}
         onValueChange={setDraft}
         onSelect={handleAutocompleteSelect}
+        onBackspace={handleBackspace}
         listboxId="tag-filter-listbox"
         renderInput={({
           value,
