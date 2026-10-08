@@ -81,6 +81,29 @@ describe("useObjectUrls", () => {
     expect(result.current).toEqual(["blob:mock-2"]);
   });
 
+  it("files を差し替えた直後の描画では、前の（解放される）URL を返さず空配列を返す", () => {
+    const first = [makeFile("a.png")];
+    const second = [makeFile("b.png")];
+    // 描画のたびに返った値を記録し、差し替え直後の描画で何が返ったかを確かめる
+    const rendered: string[][] = [];
+
+    const { rerender } = renderHook(
+      ({ files }) => {
+        const urls = useObjectUrls(files);
+        rendered.push(urls);
+        return urls;
+      },
+      { initialProps: { files: first } },
+    );
+    rendered.length = 0;
+
+    rerender({ files: second });
+
+    expect(rendered[0]).toEqual([]);
+    expect(rendered.flat()).not.toContain("blob:mock-1");
+    expect(rendered.at(-1)).toEqual(["blob:mock-2"]);
+  });
+
   it("アンマウントで現在の URL をすべて revoke する", () => {
     const files = [makeFile("a.png"), makeFile("b.png")];
 

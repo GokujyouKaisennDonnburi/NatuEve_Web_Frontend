@@ -19,7 +19,8 @@ export const DAYS_BEFORE_DEADLINE = 7;
 
 // ページ内で「今見ている所」とみなす画面上部の帯。
 // 上端は画面上端からの距離（px。固定ヘッダーに隠れる部分を除くための値）、下端は画面の上からの割合（%）。
-// 目次（PageToc）のハイライトと、イベント投稿の入力→プレビュー切替の位置合わせで同じ判定にそろえる。
+// 目次（PageToc）のハイライトと、投稿画面（イベント・レポート）の入力→プレビュー切替の位置合わせで
+// 同じ判定にそろえる。
 export const CURRENT_SECTION_BAND_TOP_PX = 96;
 export const CURRENT_SECTION_BAND_BOTTOM_PERCENT = 30;
 

@@ -7,9 +7,17 @@ import { FormCard } from "@/components/molecules/FormCard";
 import { FormField } from "@/components/molecules/FormField";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { useJumpToFirstError } from "@/hooks/useJumpToFirstError";
 import { preventImplicitSubmit } from "@/utils/form";
 import { validateUploadFile } from "@/utils/upload";
 import type React from "react";
+import { useRef } from "react";
+
+import {
+  REPORT_CONTENT_CARD_ID,
+  REPORT_IMAGES_CARD_ID,
+  REPORT_PDFS_CARD_ID,
+} from "./reportPostPreviewScroll";
 
 export type ReportPostFormState = {
   content: string;
@@ -26,6 +34,9 @@ type ReportPostFormProps = {
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitting: boolean;
+  // プレビュー表示中に、入力途中の状態を保ったままフォームを隠すとき true。
+  // 隠している間は場所を取らず、戻したときに同じ高さで再表示される（表示位置の復元は画面側で行う）。
+  hidden?: boolean;
 };
 
 export function ReportPostForm({
@@ -35,9 +46,18 @@ export function ReportPostForm({
   onSubmit,
   onCancel,
   isSubmitting,
+  hidden = false,
 }: Readonly<ReportPostFormProps>) {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // 送信時、フォームの中で一番上にあるエラー項目へジャンプする。
+  // プレビュー表示中の送信では、入力に戻ってフォームが表示されてからジャンプする。
+  useJumpToFirstError(formRef, validationErrors, hidden);
+
   return (
     <form
+      ref={formRef}
+      hidden={hidden}
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit();
@@ -47,7 +67,10 @@ export function ReportPostForm({
       className="min-w-0 space-y-4"
     >
       {/* レポート内容 */}
-      <Card className="border-slate-200 bg-white shadow-sm">
+      <Card
+        id={REPORT_CONTENT_CARD_ID}
+        className="border-slate-200 bg-white shadow-sm"
+      >
         <CardContent className="px-4 pt-6 sm:px-6">
           <h2 className="text-lg font-bold text-slate-900">レポート内容</h2>
 
@@ -112,50 +135,54 @@ export function ReportPostForm({
 
       {/* 画像セクション */}
       {!formState.externalUrlEnabled && (
-        <FormCard
-          title="活動している画像"
-          description={"JPG / PNG ・ 最大10枚まで選択出来ます。"}
-        >
-          <FileDropZone
-            id="report-images"
-            accept="image/jpeg,image/png"
-            files={formState.reportImages}
-            onFilesChange={(files) =>
-              setFormState((prev) => ({
-                ...prev,
-                reportImages: files,
-              }))
-            }
-            maxFiles={10}
-            promptLabel="クリックまたはドラッグで画像をアップロード"
-            hint="JPG / PNG ・ 1ファイル 10MB まで"
-            validate={(file) => validateUploadFile(file, "image")}
-          />
-        </FormCard>
+        <div id={REPORT_IMAGES_CARD_ID}>
+          <FormCard
+            title="活動している画像"
+            description={"JPG / PNG ・ 最大10枚まで選択出来ます。"}
+          >
+            <FileDropZone
+              id="report-images"
+              accept="image/jpeg,image/png"
+              files={formState.reportImages}
+              onFilesChange={(files) =>
+                setFormState((prev) => ({
+                  ...prev,
+                  reportImages: files,
+                }))
+              }
+              maxFiles={10}
+              promptLabel="クリックまたはドラッグで画像をアップロード"
+              hint="JPG / PNG ・ 1ファイル 10MB まで"
+              validate={(file) => validateUploadFile(file, "image")}
+            />
+          </FormCard>
+        </div>
       )}
 
       {/* PDFセクション */}
       {!formState.externalUrlEnabled && (
-        <FormCard
-          title="資料PDF"
-          description={"調査結果、配布資料など ・ 最大3つまで選択できます。"}
-        >
-          <FileDropZone
-            id="report-pdfs"
-            accept="application/pdf"
-            files={formState.reportPdfs}
-            onFilesChange={(files) =>
-              setFormState((prev) => ({
-                ...prev,
-                reportPdfs: files,
-              }))
-            }
-            maxFiles={3}
-            promptLabel="クリックまたはドラッグでPDFをアップロード"
-            hint="1ファイル 10MB まで"
-            validate={(file) => validateUploadFile(file, "pdf")}
-          />
-        </FormCard>
+        <div id={REPORT_PDFS_CARD_ID}>
+          <FormCard
+            title="資料PDF"
+            description={"調査結果、配布資料など ・ 最大3つまで選択できます。"}
+          >
+            <FileDropZone
+              id="report-pdfs"
+              accept="application/pdf"
+              files={formState.reportPdfs}
+              onFilesChange={(files) =>
+                setFormState((prev) => ({
+                  ...prev,
+                  reportPdfs: files,
+                }))
+              }
+              maxFiles={3}
+              promptLabel="クリックまたはドラッグでPDFをアップロード"
+              hint="1ファイル 10MB まで"
+              validate={(file) => validateUploadFile(file, "pdf")}
+            />
+          </FormCard>
+        </div>
       )}
 
       {/* 投稿・キャンセルボタン */}

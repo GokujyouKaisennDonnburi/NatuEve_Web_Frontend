@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
 
 import { FormInput } from "@/components/atoms/FormInput";
 import { FormTextarea } from "@/components/atoms/FormTextarea";
@@ -20,6 +20,7 @@ import type {
   EventPostFormErrors,
   EventPostFormState,
 } from "@/hooks/useEventPostForm";
+import { useJumpToFirstError } from "@/hooks/useJumpToFirstError";
 import { normalizeHalfWidthDigits } from "@/utils/format";
 import {
   MAX_IMAGE_BYTES,
@@ -100,36 +101,12 @@ export function EventPostForm({
 }: Readonly<EventPostFormProps>) {
   const formId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
-  // ジャンプ済みの送信結果。同じ送信のエラーで、表示のたびに何度もジャンプしないようにする。
-  const jumpedErrorsRef = useRef<EventPostFormErrors | null>(null);
 
   const getFieldId = (suffix: string) => `${formId}-${suffix}`;
 
   // 送信時、フォームの中で一番上にあるエラー項目へジャンプする。
-  // DOM の並び順がそのまま画面の並び順なので、項目の順序を別に持たなくてよい。
-  // プレビュー表示中の送信では隠れていて移動できないため、表示されてからジャンプする。
-  useEffect(() => {
-    // errors が更新されるのは送信時だけ。空なら初回マウントか入力エラーなしなので何もしない。
-    if (
-      hidden ||
-      Object.keys(errors).length === 0 ||
-      jumpedErrorsRef.current === errors
-    ) {
-      return;
-    }
-    jumpedErrorsRef.current = errors;
-
-    const field =
-      containerRef.current?.querySelector<HTMLElement>("[data-field-error]");
-    if (!field) {
-      return;
-    }
-    const target =
-      field.querySelector<HTMLElement>("input, textarea, select") ?? field;
-    // focus 単体だと一瞬でジャンプしてしまうため、スクロールを止めてから滑らかに寄せる
-    target.focus({ preventScroll: true });
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [errors, hidden]);
+  // プレビュー表示中の送信では、入力に戻ってフォームが表示されてからジャンプする。
+  useJumpToFirstError(containerRef, errors, hidden);
 
   return (
     <div ref={containerRef} hidden={hidden} className="space-y-4">

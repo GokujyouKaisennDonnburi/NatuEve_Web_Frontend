@@ -1,12 +1,11 @@
 "use client";
 
-import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
 import { PillButton } from "@/components/atoms/PillButton";
-import { SegmentControl } from "@/components/atoms/SegmentControl";
 import { useAuthContext } from "@/components/layouts/AuthProvider";
+import { EditPreviewSwitch } from "@/components/molecules/EditPreviewSwitch";
 import {
   EVENT_DETAIL_ATTACHMENTS_SECTION_ID,
   EVENT_DETAIL_TOC_SECTIONS,
@@ -15,10 +14,11 @@ import { PageHeader } from "@/components/molecules/PageHeader";
 import { PageToc } from "@/components/molecules/PageToc";
 import { EventPostForm } from "@/components/organisms/event-post/EventPostForm";
 import { EventPostPreview } from "@/components/organisms/event-post/EventPostPreview";
+import { EVENT_POST_PREVIEW_SCROLL_MAPPING } from "@/components/organisms/event-post/eventPostPreviewScroll";
 import { EVENT_POST_TOC_SECTIONS } from "@/components/organisms/event-post/eventPostTocSections";
 import { ROUTES } from "@/constants/routes";
+import { useEditPreviewMode } from "@/hooks/useEditPreviewMode";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
-import { useEventPostMode } from "@/hooks/useEventPostMode";
 import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { cn } from "@/lib/utils";
 import { preventImplicitSubmit } from "@/utils/form";
@@ -33,7 +33,10 @@ export default function EventPostPage() {
   const { formState, errors, isSubmitting, setField, handleSubmit } =
     useEventPostForm();
 
-  const { mode, changeMode, switchCaptureHandlers } = useEventPostMode(errors);
+  const { mode, switchProps } = useEditPreviewMode(
+    EVENT_POST_PREVIEW_SCROLL_MAPPING,
+    errors,
+  );
 
   // 画像・PDF の object URL は入力中から用意しておく。プレビュー側で作ると
   // 切替後に一拍遅れて表示され、切替直後の位置合わせがその分ずれるため。
@@ -74,25 +77,7 @@ export default function EventPostPage() {
           backLabel="イベント一覧にもどる"
         />
       </div>
-      {/* 入力/プレビュー切替。スクロール中も画面右上に固定で表示する。
-          フル画面時にフォーム項目の右上へ重ならないよう、
-          max-w-5xl の右端ではなく画面（main の内容幅）の右端へ寄せる。
-          ラッパーを全幅にすると固定中の帯が下の入力欄や目次のクリックを妨げるため、
-          w-fit + ml-auto でピルの幅だけに縮める。 */}
-      <div
-        className="sticky top-20 z-30 ml-auto w-fit"
-        {...switchCaptureHandlers}
-      >
-        <SegmentControl
-          value={mode}
-          onChange={changeMode}
-          aria-label="入力とプレビューの切り替え"
-          options={[
-            { value: "edit", label: "入力" },
-            { value: "preview", label: "プレビュー", icon: Eye },
-          ]}
-        />
-      </div>
+      <EditPreviewSwitch {...switchProps} />
       <div className="mx-auto w-full max-w-5xl">
         <form
           onSubmit={handleSubmit}

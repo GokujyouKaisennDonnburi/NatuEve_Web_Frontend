@@ -150,6 +150,11 @@ describe("pickCurrentIndex", () => {
 });
 
 describe("captureScrollSyncPoint", () => {
+  // ページ先頭（scrollY 0）は別扱いのため、途中までスクロールした状態を既定にする（最下部ではない）
+  beforeEach(() => {
+    defineWindow("scrollY", 1000);
+  });
+
   it("帯にかかる一番上の項目の targetIds と、その上端を offset として返す", () => {
     addElement("a", -100);
     addElement("b", 200);
@@ -270,6 +275,31 @@ describe("captureScrollSyncPoint", () => {
       captureScrollSyncPoint([{ sourceId: "a", targetIds: ["ta"] }]),
     ).toBeNull();
   });
+
+  it("ページ先頭（scrollY 0）では、帯にかかる項目があっても null を返す", () => {
+    // 縦に長い画面で、先頭でも入力の項目が帯にかかっている状態
+    defineWindow("scrollY", 0);
+    addElement("a", 200);
+
+    expect(
+      captureScrollSyncPoint([{ sourceId: "a", targetIds: ["ta"] }]),
+    ).toBeNull();
+  });
+
+  it("ページ全体が画面に収まるとき（最下部の判定に当たる）も、先頭なので null を返す", () => {
+    // innerHeight 900 に対して scrollHeight 800。スクロールできず、最下部の判定にも当たる
+    defineWindow("scrollY", 0);
+    defineScrollHeight(800);
+    addElement("a", 300);
+    addElement("b", 600);
+
+    expect(
+      captureScrollSyncPoint([
+        { sourceId: "a", targetIds: ["ta"] },
+        { sourceId: "b", targetIds: ["tb"] },
+      ]),
+    ).toBeNull();
+  });
 });
 
 describe("captureScrollSyncPoint（フォーカス要素の優先）", () => {
@@ -277,6 +307,11 @@ describe("captureScrollSyncPoint（フォーカス要素の優先）", () => {
     { sourceId: "a", targetIds: ["ta"] },
     { sourceId: "b", targetIds: ["tb"] },
   ];
+
+  // ページ先頭（scrollY 0）は別扱いのため、途中までスクロールした状態を既定にする（最下部ではない）
+  beforeEach(() => {
+    defineWindow("scrollY", 1000);
+  });
 
   // フォーカス要素を b の子に置き、帯にかかる一番上が a（フォーカス無視なら ta になる）という配置にする
   function addItems() {
@@ -338,6 +373,17 @@ describe("captureScrollSyncPoint（フォーカス要素の優先）", () => {
     expect(captureScrollSyncPoint(mapping, document.body)?.targetIds).toEqual([
       "ta",
     ]);
+  });
+
+  it("ページ先頭（scrollY 0）でも、見えているフォーカス要素があればそちらを採用する", () => {
+    defineWindow("scrollY", 0);
+    const b = addItems();
+    const input = addChild(b, 300, 350);
+
+    expect(captureScrollSyncPoint(mapping, input)).toEqual({
+      targetIds: ["tb"],
+      offset: 200,
+    });
   });
 
   it("最下部でも、見えているフォーカス要素があればそちらを優先する", () => {

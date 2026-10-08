@@ -10,7 +10,9 @@ import type { ReportDetail } from "@/types/report";
 import { resolveEventStatus } from "@/utils/eventStatus";
 import { preventImplicitSubmit } from "@/utils/form";
 import { Eye } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+
+import { REPORT_PREVIEW_REPORT_ID } from "./reportPostPreviewScroll";
 
 // 投稿日の表示用に日付だけを整形する
 const formatPostedDate = (value: string): string =>
@@ -35,6 +37,10 @@ type ReportPostPreviewProps = {
   formState: ReportPostPreviewFormState;
   // プレビューのヘッダー表示に使うイベント情報。未取得の間は null。
   event: EventDetailType | null;
+  // 添付画像・PDF の表示用 URL（formState の reportImages / reportPdfs と同じ並び）。
+  // 切替直後の描画から表示できるよう、画面側で入力中から用意したものを受け取る。
+  imageUrls: string[];
+  pdfUrls: string[];
   onSubmit: () => void;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -45,35 +51,12 @@ type ReportPostPreviewProps = {
 export function ReportPostPreview({
   formState,
   event,
+  imageUrls,
+  pdfUrls,
   onSubmit,
   onCancel,
   isSubmitting,
 }: Readonly<ReportPostPreviewProps>) {
-  // File を表示用の object URL に変換し、不要になったら解放する。
-  const [imageObjectUrls, setImageObjectUrls] = useState<string[]>([]);
-  const [pdfObjectUrls, setPdfObjectUrls] = useState<string[]>([]);
-
-  useEffect(() => {
-    const nextImageUrls = formState.reportImages.map((file) =>
-      URL.createObjectURL(file),
-    );
-    const nextPdfUrls = formState.reportPdfs.map((file) =>
-      URL.createObjectURL(file),
-    );
-
-    setImageObjectUrls(nextImageUrls);
-    setPdfObjectUrls(nextPdfUrls);
-
-    return () => {
-      nextImageUrls.forEach((url) => {
-        URL.revokeObjectURL(url);
-      });
-      nextPdfUrls.forEach((url) => {
-        URL.revokeObjectURL(url);
-      });
-    };
-  }, [formState.reportImages, formState.reportPdfs]);
-
   // 入力値から EventReportList へ渡すレポートを合成する。
   const previewReport = useMemo<ReportDetail>(() => {
     const trimmedExternalUrl = formState.externalUrl.trim();
@@ -85,14 +68,14 @@ export function ReportPostPreview({
         formState.externalUrlEnabled && trimmedExternalUrl
           ? [trimmedExternalUrl]
           : undefined,
-      imageUrls: imageObjectUrls,
+      imageUrls,
       imageFilenames: formState.reportImages.map((file) => file.name),
-      pdfUrls: pdfObjectUrls,
+      pdfUrls,
       pdfFilenames: formState.reportPdfs.map((file) => file.name),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-  }, [formState, event, imageObjectUrls, pdfObjectUrls]);
+  }, [formState, event, imageUrls, pdfUrls]);
 
   const organizerName = event?.organizerName ?? event?.profile?.displayName;
   const organizerAvatarUrl =
@@ -159,7 +142,9 @@ export function ReportPostPreview({
         )}
 
         {/* 活動レポート（通常 / 外部URL のどちらかを表示） */}
-        <EventReportList report={previewReport} />
+        <div id={REPORT_PREVIEW_REPORT_ID}>
+          <EventReportList report={previewReport} />
+        </div>
       </div>
 
       {/* 投稿・キャンセルボタン */}

@@ -72,7 +72,8 @@ const findFocusedIndex = (
 // 切替前の画面で見ている項目を調べ、切替後に対応する位置を返す。
 // focusedElement は切替を操作する直前にフォーカスしていた要素。
 // 切替の操作でフォーカスが移ってしまうため、呼び出し側で操作の直前に記録して渡す。
-// ページ先頭付近などで見ている項目が無いときは null を返す
+// 見ている項目が無いとき（ページ先頭付近など）と、入力中の項目が見えないままページ先頭（scrollY 0）に
+// いるときは null を返す
 // （目次は直前のハイライトを保つが、こちらは「位置を合わせない」ことを呼び出し側に任せる）。
 export const captureScrollSyncPoint = (
   mapping: ScrollSyncMapping,
@@ -98,6 +99,12 @@ export const captureScrollSyncPoint = (
     entries.map((entry) => entry.element),
     focusedElement,
   );
+  // 入力中の項目が無く、ページ先頭にいるときは、切替後もページ先頭のままにする。
+  // 入力が短く全体が画面に収まると最下部の判定に当たり、縦に長い画面では先頭でも項目が帯にかかるため、
+  // 先頭を見ているのに画面の高さによって別の所へ移ってしまうのを防ぐ。
+  if (focusedIndex < 0 && window.scrollY <= 0) {
+    return null;
+  }
   const index =
     focusedIndex >= 0
       ? focusedIndex
