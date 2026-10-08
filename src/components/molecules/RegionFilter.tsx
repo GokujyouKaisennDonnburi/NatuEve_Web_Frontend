@@ -75,14 +75,13 @@ export function RegionFilter({
     onCitiesChange?.(next.cities);
   };
 
+  // 選択操作とトグルの開閉は独立させる。開閉は展開ボタンの明示操作でのみ変更する。
   const toggleRegion = (regionName: string) => {
     applySelection(toggleRegionInState(selection, regionName));
-    onToggleRegion?.(regionName);
   };
 
   const togglePrefecture = (prefName: string) => {
     applySelection(togglePrefectureInState(selection, prefName));
-    onTogglePrefecture?.(prefName);
   };
 
   const toggleCity = (prefName: string, cityName: string) => {

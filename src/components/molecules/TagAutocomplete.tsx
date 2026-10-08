@@ -33,6 +33,9 @@ type TagAutocompleteProps = {
   // 入力値をクリアしないよう呼び出し側へ伝える。
   onSelect: (tag: TagItem) => boolean;
   onCreate?: (trimmedDraft: string) => void;
+  // BackSpace 押下時。チップ削除など呼び出し側の処理を行った場合は true を返し、
+  // 既定の入力文字削除を止める。
+  onBackspace?: () => boolean;
   canCreate?: boolean;
   isLoading?: boolean;
   // 親が処理中などで操作を受け付けたくない状態。候補を閉じて選択を止める。
@@ -54,6 +57,7 @@ export function TagAutocomplete({
   onValueChange,
   onSelect,
   onCreate,
+  onBackspace,
   canCreate = false,
   isLoading = false,
   disabled = false,
@@ -105,6 +109,17 @@ export function TagAutocomplete({
     if (disabled) {
       return;
     }
+    if (event.key === "Backspace") {
+      // IME 変換中の BackSpace は変換候補の操作なので、チップ削除に使わない
+      if (event.nativeEvent.isComposing) {
+        return;
+      }
+      if (onBackspace?.()) {
+        event.preventDefault();
+      }
+      return;
+    }
+
     if (event.key === "Enter") {
       if (event.nativeEvent.isComposing) {
         return;
