@@ -85,6 +85,9 @@ type EventPostFormProps = {
     key: K,
     value: EventPostFormState[K],
   ) => void;
+  // プレビュー表示中に、入力途中の状態を保ったままフォームを隠すとき true。
+  // 隠している間は場所を取らず、戻したときに同じ高さで再表示される（表示位置の復元は画面側で行う）。
+  hidden?: boolean;
 };
 
 // イベント投稿フォーム。入力項目を意味のまとまりごとにカードへ分けて並べる。
@@ -93,6 +96,7 @@ export function EventPostForm({
   formState,
   errors,
   setField,
+  hidden = false,
 }: Readonly<EventPostFormProps>) {
   const formId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -120,7 +124,7 @@ export function EventPostForm({
   }, [errors]);
 
   return (
-    <div ref={containerRef} className="space-y-4">
+    <div ref={containerRef} hidden={hidden} className="space-y-4">
       <div id={EVENT_TITLE_SECTION_ID} className="scroll-mt-20">
         <FormCard>
           <FormField

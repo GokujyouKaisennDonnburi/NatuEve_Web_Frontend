@@ -113,19 +113,21 @@ export default function EventPostPage() {
                 mode === "edit" ? "max-w-3xl" : "min-w-0 flex-1",
               )}
             >
-              {mode === "edit" ? (
-                <EventPostForm
-                  formState={formState}
-                  errors={errors}
-                  setField={setField}
-                />
-              ) : (
+              {/* 入力フォームはプレビュー中も外さずに隠し、入力途中の状態と高さを保つ。
+                  外すと戻ったときに作り直され、添付ファイル一覧などが後から出て位置がずれる。 */}
+              <EventPostForm
+                formState={formState}
+                errors={errors}
+                setField={setField}
+                hidden={mode !== "edit"}
+              />
+              {mode === "preview" ? (
                 <EventPostPreview
                   formState={formState}
                   imageUrls={imageUrls}
                   pdfUrls={pdfUrls}
                 />
-              )}
+              ) : null}
               <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
                 <PillButton
                   tone="outline"
