@@ -1,11 +1,9 @@
 "use client";
 
-import { FilterIconButton } from "@/components/atoms/FilterIconButton";
 import { Loading } from "@/components/atoms/Loading";
-import { SortButton } from "@/components/atoms/SortButton";
 import { Pagination } from "@/components/molecules/Pagination";
-import { SearchBar } from "@/components/molecules/SearchBar";
 import { EventCard } from "@/components/organisms/EventCard";
+import { EventListControls } from "@/components/organisms/EventListControls";
 import { FilterDrawer } from "@/components/organisms/FilterDrawer";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
@@ -157,41 +155,23 @@ export default function EventListPage() {
         イベントを探す
       </h1>
 
-      {/* Search + Sort row */}
-      <div className="mb-[23px] flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-        <div className="w-full min-w-0 sm:flex-1">
-          <SearchBar
-            onSearch={handleSearch}
-            initialValue={searchQuery}
-            className="w-full"
-          />
-        </div>
-        <div className="flex w-full items-center justify-end gap-3 sm:w-auto sm:shrink-0">
-          <SortButton
-            label="並び替え"
-            options={sortOptions}
-            value={sortBy}
-            onChange={handleSortChange}
-          />
-        </div>
-      </div>
-
-      {/* Filter button row
-          デスクトップ(横長比率)ではサイドバー常時表示のため非表示。
-          モバイルでは検索バー直下の左上に配置し、スクロール中は
-          ヘッダー直下に粘着(sticky)させて常に画面内に表示する。
-          コンテナは全幅のまま粘着するため、透過領域がカードのクリックを
-          奪わないよう pointer-events をボタン側でのみ有効にする。
-          ドロワー(FilterDrawer)より低い z-index で開閉ボタンの役割を維持する */}
-      <div className="pointer-events-none sticky top-(--site-header-height) z-30 mb-6 desktop:mb-[45px]">
-        <FilterIconButton
-          className="pointer-events-auto desktop:hidden"
-          onClick={() => setIsFilterOpen((prev) => !prev)}
-          isActive={hasActiveFilters}
-          isExpanded={isFilterOpen}
-          controls="event-list-filters"
-        />
-      </div>
+      {/* Controls (Search + Sort + Filter toggle)
+          検索バー・並び替え・絞り込みボタンをヘッダー直下に粘着(フローティング)表示させる。
+          縦長比率(絞り込みボタン表示時)では並び替えと絞り込みボタンを同じ高さに並べ、
+          横長比率(desktop バリアント)では検索バーと並び替えを1行に収める。
+          スクロール中にイベントカード(デスクトップ時は絞り込みサイドバーも)
+          が固定パネルの下に潜り込んでも透けないよう、パネルは不透明にしている */}
+      <EventListControls
+        searchInitialValue={searchQuery}
+        onSearch={handleSearch}
+        sortOptions={sortOptions}
+        sortValue={sortBy}
+        onSortChange={handleSortChange}
+        onFilterToggle={() => setIsFilterOpen((prev) => !prev)}
+        isFilterActive={hasActiveFilters}
+        isFilterExpanded={isFilterOpen}
+        filterControlsId="event-list-filters"
+      />
 
       {/* Two-column: Filter sidebar + Event list */}
       <div className="grid items-start gap-6 desktop:grid-cols-[var(--filter-sidebar-width)_minmax(0,1fr)] desktop:gap-[36px]">
