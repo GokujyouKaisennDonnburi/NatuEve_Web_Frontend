@@ -21,6 +21,8 @@ import { resolveEventStatus } from "@/utils/eventStatus";
 import { Eye } from "lucide-react";
 import { useMemo } from "react";
 
+import { EVENT_PREVIEW_IMAGE_ID } from "./eventPostPreviewScroll";
+
 // 投稿日の表示用に日付だけを整形する
 const formatPostedDate = (value: string): string =>
   new Date(value).toLocaleDateString("ja-JP", {
@@ -174,11 +176,13 @@ export function EventPostPreview({
       <div className="min-w-0 flex-1 space-y-6">
         {/* イベント画像 */}
         {imageUrls.length > 0 ? (
-          <SurfaceCard>
-            <CardContent>
-              <EventImageCarousel images={imageUrls} unoptimized />
-            </CardContent>
-          </SurfaceCard>
+          <div id={EVENT_PREVIEW_IMAGE_ID}>
+            <SurfaceCard>
+              <CardContent>
+                <EventImageCarousel images={imageUrls} unoptimized />
+              </CardContent>
+            </SurfaceCard>
+          </div>
         ) : null}
 
         {/* イベント概要 */}
