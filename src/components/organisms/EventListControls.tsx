@@ -1,20 +1,13 @@
-"use client";
-
 import { FilterIconButton } from "@/components/atoms/FilterIconButton";
-import { SortButton } from "@/components/atoms/SortButton";
+import { SortButton, type SortOption } from "@/components/atoms/SortButton";
 import { SearchBar } from "@/components/molecules/SearchBar";
 import type { Ref } from "react";
-
-type SortOption = {
-  value: string;
-  label: string;
-};
 
 type EventListControlsProps = {
   searchInitialValue: string;
   onSearch: (query: string) => void;
   sortOptions: SortOption[];
-  sortValue: string;
+  sortValue: SortOption["value"];
   onSortChange: (value: string) => void;
   onFilterToggle: () => void;
   isFilterActive: boolean;
@@ -31,6 +24,10 @@ type EventListControlsProps = {
 // 各コントロールが本来持つデザインを優先するため容器自体には背景を付けず、
 // スクロールで背後に潜ったカードはページ側の useStickyClip で
 // この容器の下端を基準に切り取る。
+// 容器は全幅で粘着するため、クリップが効く前の透過領域がカードのクリックを
+// 奪わないよう pointer-events は検索バーとボタン群側でのみ有効にする(旧実装と同じ)。
+// 下余白は旧構成(検索行 mb-[23px] + 絞り込み行 mb-6/desktop:mb-[45px])と
+// 同じ合計値(モバイル 47px / デスクトップ 68px)を維持する。
 // ドロワー(FilterDrawer)より低い z-index で開閉ボタンの役割を維持する。
 export function EventListControls({
   searchInitialValue,
@@ -47,18 +44,19 @@ export function EventListControls({
   return (
     <div
       ref={ref}
-      // 粘着位置はヘッダー直下から 8px 空けてフローティング感を出す
-      className="sticky top-[calc(var(--site-header-height)_+_8px)] z-30 mb-6 desktop:mb-[45px]"
+      // 粘着位置はヘッダー直下からマージン(gap)を空けてフローティング感を出す。
+      // 数値は globals.css の --event-list-controls-gap が単一のソース
+      className="sticky top-[calc(var(--site-header-height)_+_var(--event-list-controls-gap))] z-30 mb-[47px] desktop:mb-[68px]"
     >
-      <div className="flex flex-col gap-3 desktop:flex-row desktop:items-center desktop:gap-4">
-        <div className="w-full min-w-0 desktop:flex-1">
+      <div className="pointer-events-none flex flex-col gap-3 desktop:flex-row desktop:items-center desktop:gap-4">
+        <div className="pointer-events-auto w-full min-w-0 desktop:flex-1">
           <SearchBar
             onSearch={onSearch}
             initialValue={searchInitialValue}
             className="w-full"
           />
         </div>
-        <div className="flex w-full items-center justify-between gap-3 desktop:w-auto desktop:shrink-0 desktop:justify-end">
+        <div className="pointer-events-auto flex w-full items-center justify-between gap-3 desktop:w-auto desktop:shrink-0 desktop:justify-end">
           {/* 絞り込みボタンは縦長比率でのみ表示し、並び替えと同じ高さに置く */}
           <FilterIconButton
             className="desktop:hidden"

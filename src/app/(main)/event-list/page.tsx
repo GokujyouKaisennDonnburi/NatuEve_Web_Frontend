@@ -12,10 +12,16 @@ import { useTags } from "@/hooks/useTags";
 import type { TagItem } from "@/types/tag";
 import { useMemo, useRef, useState, useCallback } from "react";
 
-type SortOption = "created_at" | "event_date";
+type SortBy = "created_at" | "event_date";
+
+// 並び替えの選択肢。定数のためコンポーネント外に置き、再レンダーでの再生成を避ける
+const SORT_OPTIONS: { value: SortBy; label: string }[] = [
+  { value: "event_date", label: "開催日が近い順" },
+  { value: "created_at", label: "投稿が新しい順" },
+];
 
 export default function EventListPage() {
-  const [sortBy, setSortBy] = useState<SortOption>("created_at");
+  const [sortBy, setSortBy] = useState<SortBy>("created_at");
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   // 適用済みの検索クエリ。SearchBar の onSearch（検索ボタン押下 / Enter）でのみ更新されるため、
@@ -81,17 +87,11 @@ export default function EventListPage() {
       .filter((t): t is TagItem => t != null);
   }, [events]);
 
-  const sortOptions: { value: SortOption; label: string }[] = [
-    { value: "event_date", label: "開催日が近い順" },
-    { value: "created_at", label: "投稿が新しい順" },
-  ];
-
   // ソートオプションの変更を処理する関数
   const handleSortChange = (value: string) => {
-    const validSortOptions = ["event_date", "created_at"] as const;
-    if (!validSortOptions.includes(value as (typeof validSortOptions)[number]))
-      return;
-    setSortBy(value as SortOption);
+    const validSortOptions = SORT_OPTIONS.map((option) => option.value);
+    if (!validSortOptions.includes(value as SortBy)) return;
+    setSortBy(value as SortBy);
     setCurrentPage(1);
   };
 
@@ -173,7 +173,7 @@ export default function EventListPage() {
         ref={controlsRef}
         searchInitialValue={searchQuery}
         onSearch={handleSearch}
-        sortOptions={sortOptions}
+        sortOptions={SORT_OPTIONS}
         sortValue={sortBy}
         onSortChange={handleSortChange}
         onFilterToggle={() => setIsFilterOpen((prev) => !prev)}
