@@ -22,7 +22,8 @@ export type EditPreviewMode = "edit" | "preview";
 // - errors は送信のたびに新しいオブジェクトへ更新し、入力エラーが無ければ空にする
 export function useEditPreviewMode(
   mapping: ScrollSyncMapping,
-  errors: Readonly<Record<string, unknown>>,
+  // 画面ごとのエラーの型をそのまま渡せるよう object で受け取る（中身は空かどうかだけを見る）
+  errors: object,
 ) {
   const [mode, setMode] = useState<EditPreviewMode>("edit");
   // 入力→プレビュー切替時に、入力で見ていた位置を切替後の位置合わせまで持ち越す

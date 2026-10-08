@@ -9,13 +9,12 @@ import { type RefObject, useEffect, useRef } from "react";
 // 呼び出し側の前提：errors は送信のたびに新しいオブジェクトへ更新し、入力エラーが無ければ空にする。
 export function useJumpToFirstError(
   containerRef: RefObject<HTMLElement | null>,
-  errors: Readonly<Record<string, unknown>>,
+  // 画面ごとのエラーの型をそのまま渡せるよう object で受け取る（空かどうかと参照だけを見る）
+  errors: object,
   hidden = false,
 ) {
   // ジャンプ済みの送信結果。同じ送信のエラーで、表示のたびに何度もジャンプしないようにする。
-  const jumpedErrorsRef = useRef<Readonly<Record<string, unknown>> | null>(
-    null,
-  );
+  const jumpedErrorsRef = useRef<object | null>(null);
 
   useEffect(() => {
     // errors が更新されるのは送信時だけ。空なら初回マウントか入力エラーなしなので何もしない。

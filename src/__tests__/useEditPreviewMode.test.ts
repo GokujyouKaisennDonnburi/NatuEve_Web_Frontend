@@ -177,6 +177,26 @@ describe("useEditPreviewMode", () => {
     expect(scrollTo).toHaveBeenCalledWith({ top: 320, behavior: "instant" });
   });
 
+  it("interface で宣言したエラー型（インデックスシグネチャなし）も渡せ、空でなければ edit に戻る", () => {
+    // 画面ごとのエラー型をそのまま渡せることを、型チェックと動作の両方で確かめる
+    interface InterfaceErrors {
+      title?: string;
+    }
+    const noErrors: InterfaceErrors = {};
+    const { result, rerender } = renderHook(
+      ({ errors }: { errors: InterfaceErrors }) =>
+        useEditPreviewMode(MAPPING, errors),
+      { initialProps: { errors: noErrors } },
+    );
+    act(() => {
+      result.current.changeMode("preview");
+    });
+
+    rerender({ errors: { title: "必須です" } });
+
+    expect(result.current.mode).toBe("edit");
+  });
+
   it("edit 中に errors が来ても何も起きない", () => {
     const { result, rerender } = renderMode();
 
