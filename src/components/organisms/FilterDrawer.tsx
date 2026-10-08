@@ -148,7 +148,7 @@ export function FilterDrawer({
           ? { role: "dialog", "aria-modal": "true", "aria-label": "絞り込み" }
           : {})}
         className={cn(
-          "absolute inset-y-0 left-0 w-(--filter-sidebar-width) max-w-[85vw] overflow-y-auto bg-white shadow-xl outline-none transition-transform duration-200 ease-out",
+          "absolute inset-y-0 left-0 w-(--filter-sidebar-width) max-w-[85vw] overflow-y-auto bg-white shadow-xl outline-none transition-transform duration-200 ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           isOverlay ? "translate-x-0" : "-translate-x-full",
           // max-h はカード側(FilterSidebar)が持ち、パネルはクリップしない。
           // これによりスクロール所有者をカードに一本化し、カードの影・角丸を維持する
