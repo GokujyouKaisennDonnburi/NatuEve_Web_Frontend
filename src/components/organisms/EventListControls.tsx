@@ -3,6 +3,7 @@
 import { FilterIconButton } from "@/components/atoms/FilterIconButton";
 import { SortButton } from "@/components/atoms/SortButton";
 import { SearchBar } from "@/components/molecules/SearchBar";
+import type { Ref } from "react";
 
 type SortOption = {
   value: string;
@@ -19,6 +20,8 @@ type EventListControlsProps = {
   isFilterActive: boolean;
   isFilterExpanded: boolean;
   filterControlsId: string;
+  // 粘着位置の計測用。ページ側で useStickyClip に渡す
+  ref?: Ref<HTMLDivElement>;
 };
 
 // イベント一覧のコントロール(検索バー・並び替え・絞り込み開閉ボタン)を
@@ -26,7 +29,8 @@ type EventListControlsProps = {
 // 縦長比率(絞り込みボタン表示時)では並び替えと絞り込みボタンを同じ高さに並べ、
 // 横長比率(desktop バリアント)では検索バーと並び替えを1行に収める。
 // 各コントロールが本来持つデザインを優先するため容器自体には背景を付けず、
-// カード等の透け対策は検索バーの白背景で賄う。
+// スクロールで背後に潜ったカードはページ側の useStickyClip で
+// この容器の下端を基準に切り取る。
 // ドロワー(FilterDrawer)より低い z-index で開閉ボタンの役割を維持する。
 export function EventListControls({
   searchInitialValue,
@@ -38,9 +42,13 @@ export function EventListControls({
   isFilterActive,
   isFilterExpanded,
   filterControlsId,
+  ref,
 }: Readonly<EventListControlsProps>) {
   return (
-    <div className="sticky top-(--site-header-height) z-30 mb-6 desktop:mb-[45px]">
+    <div
+      ref={ref}
+      className="sticky top-(--site-header-height) z-30 mb-6 desktop:mb-[45px]"
+    >
       <div className="flex flex-col gap-3 desktop:flex-row desktop:items-center desktop:gap-4">
         <div className="w-full min-w-0 desktop:flex-1">
           <SearchBar

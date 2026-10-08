@@ -7,9 +7,10 @@ import { EventListControls } from "@/components/organisms/EventListControls";
 import { FilterDrawer } from "@/components/organisms/FilterDrawer";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
+import { useStickyClip } from "@/hooks/useStickyClip";
 import { useTags } from "@/hooks/useTags";
 import type { TagItem } from "@/types/tag";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useCallback } from "react";
 
 type SortOption = "created_at" | "event_date";
 
@@ -53,6 +54,13 @@ export default function EventListPage() {
     itemsPerPage: ITEMS_PER_PAGE,
   });
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+  // コントロール帯の下に回り込んだカードを隠すための計測用参照。
+  // コントロール帯は背景を持たないため、帯の範囲に入ったカードは
+  // useStickyClip が帯の下端を基準に切り取る
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  useStickyClip({ barRef: controlsRef, contentRef });
 
   // FilterDrawer の effect 依存が毎レンダー変化しないよう、クローズ処理は安定参照で渡す
   const handleCloseFilter = useCallback(() => setIsFilterOpen(false), []);
@@ -159,9 +167,10 @@ export default function EventListPage() {
           検索バー・並び替え・絞り込みボタンをヘッダー直下に粘着(フローティング)表示させる。
           縦長比率(絞り込みボタン表示時)では並び替えと絞り込みボタンを同じ高さに並べ、
           横長比率(desktop バリアント)では検索バーと並び替えを1行に収める。
-          スクロール中にイベントカード(デスクトップ時は絞り込みサイドバーも)
-          が固定パネルの下に潜り込んでも透けないよう、パネルは不透明にしている */}
+          デザインを変えないため帯には背景を付けず、スクロールで帯の範囲に入った
+          カードは useStickyClip が帯の下端を基準に切り取って非表示にする */}
       <EventListControls
+        ref={controlsRef}
         searchInitialValue={searchQuery}
         onSearch={handleSearch}
         sortOptions={sortOptions}
@@ -226,7 +235,7 @@ export default function EventListPage() {
         </FilterDrawer>
 
         {/* Main content */}
-        <div className="min-w-0">
+        <div ref={contentRef} className="min-w-0">
           {/* Loading indicator */}
           {loading && (
             <div className="mb-4">
