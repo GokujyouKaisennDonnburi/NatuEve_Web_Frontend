@@ -3,7 +3,7 @@
 /* デスクトップ判定を幅ではなく画面比率で行うカスタムバリアント。
    16:9 やそれに近い横長比率(4:3 以上)で desktop: が有効になる。
    縦長のスマホ・タブレット比率では無効のためドロワー表示になる */
-@custom-variant desktop (@media (min-aspect-ratio: 4/3));
+@custom-variant desktop (@media (min-aspect-ratio: 4 / 3));
 
 /* グローバルスタイル */
 :root {
