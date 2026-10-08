@@ -66,8 +66,10 @@ export function FilterDrawer({
       );
     };
 
-    const focusableElements = getFocusableElements();
-    (focusableElements[0] ?? panelRef.current)?.focus();
+    // 初期フォーカスは先頭のコントロール(「すべてクリア」)ではなく、
+    // アクセシブル名を持つパネル自身へ当てる。
+    // 誤操作でドラフトを消すリスクを避けるため(LegalDocumentModal は閉じるボタンに当てる)。
+    panelRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {

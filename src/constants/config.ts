@@ -17,7 +17,9 @@ export const MAX_EVENT_PDF_COUNT = 3;
 // 「期限間近」と判定する申込期限までの残り日数（判定は applicationDeadline 基準）。
 export const DAYS_BEFORE_DEADLINE = 7;
 
-// イベント一覧の絞り込み欄をサイドバーとして表示する画面比率の閾値。
-// 16:9 やそれに近い横長比率でデスクトップ扱いとし、縦長ではドロワー表示にする。
+// イベント一覧の絞り込み欄をサイドバーとして表示する条件。
+// 16:9 やそれに近い横長比率(4:3 以上)かつ幅 640px 以上でデスクトップ扱いとし、
+// 縦長だけでなく幅の狭い横長ビューポートでもドロワー表示にする。
 // globals.css の desktop カスタムバリアントと同一の値のため、変更時は必ず同期する。
-export const DESKTOP_MEDIA_QUERY = "(min-aspect-ratio: 4/3)";
+export const DESKTOP_MEDIA_QUERY =
+  "(min-aspect-ratio: 4/3) and (min-width: 640px)";

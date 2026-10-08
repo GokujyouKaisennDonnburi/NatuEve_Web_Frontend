@@ -1,10 +1,13 @@
 @import "tailwindcss";
 
 /* デスクトップ判定を幅ではなく画面比率で行うカスタムバリアント。
-   16:9 やそれに近い横長比率(4:3 以上)で desktop: が有効になる。
-   縦長のスマホ・タブレット比率では無効のためドロワー表示になる。
+   16:9 やそれに近い横長比率(4:3 以上)かつ幅 640px 以上で desktop: が有効になる。
+   幅の下限を持たないと SiteHeader が2段構成になる狭幅でもサイドバー表示となり、
+   ヘッダーとサイドバーの粘着位置が重なるため下限を設けている。
    ※ constants/config.ts の DESKTOP_MEDIA_QUERY と同一の値のため、変更時は必ず同期する */
-@custom-variant desktop (@media (min-aspect-ratio: 4 / 3));
+@custom-variant desktop (
+  @media (min-aspect-ratio: 4 / 3) and (min-width: 640px)
+);
 
 /* グローバルスタイル */
 :root {
