@@ -25,9 +25,7 @@ const createProps = () => ({
 describe("EventListControls", () => {
   it("初期値が検索入力欄に反映される", () => {
     const props = createProps();
-    render(
-      <EventListControls {...props} searchInitialValue="ホタル" />,
-    );
+    render(<EventListControls {...props} searchInitialValue="ホタル" />);
 
     expect(screen.getByRole("searchbox")).toHaveValue("ホタル");
   });
