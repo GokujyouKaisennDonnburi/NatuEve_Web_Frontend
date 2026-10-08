@@ -2,10 +2,12 @@ import { act, renderHook } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { EVENT_POST_PREVIEW_SCROLL_MAPPING } from "@/components/organisms/event-post/eventPostPreviewScroll";
-import { useEventPostMode } from "@/hooks/useEventPostMode";
-import type { EventPostFormErrors } from "@/hooks/useEventPostForm";
-import { captureScrollSyncPoint, scrollToSyncPoint } from "@/utils/scrollSync";
+import { useEditPreviewMode } from "@/hooks/useEditPreviewMode";
+import {
+  captureScrollSyncPoint,
+  type ScrollSyncMapping,
+  scrollToSyncPoint,
+} from "@/utils/scrollSync";
 
 // jsdom にはレイアウトが無いため、位置の測定・移動はモックして呼び出し引数で検証する。
 vi.mock("@/utils/scrollSync", () => ({
@@ -17,7 +19,12 @@ const mockedCapture = vi.mocked(captureScrollSyncPoint);
 const mockedScrollToSyncPoint = vi.mocked(scrollToSyncPoint);
 
 const POINT = { targetIds: ["preview-target"], offset: 120 };
-const NO_ERRORS: EventPostFormErrors = {};
+// 画面ごとの対応表には依存せず、フックへ渡した対応表がそのまま capture に渡ることを確認する。
+const MAPPING: ScrollSyncMapping = [
+  { sourceId: "edit-section", targetIds: ["preview-section"] },
+];
+type Errors = Readonly<Record<string, unknown>>;
+const NO_ERRORS: Errors = {};
 
 let scrollTo: ReturnType<typeof vi.fn>;
 let originalScrollY: PropertyDescriptor | undefined;
@@ -47,13 +54,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function renderMode(initialErrors: EventPostFormErrors = NO_ERRORS) {
-  return renderHook(({ errors }) => useEventPostMode(errors), {
+function renderMode(initialErrors: Errors = NO_ERRORS) {
+  return renderHook(({ errors }) => useEditPreviewMode(MAPPING, errors), {
     initialProps: { errors: initialErrors },
   });
 }
 
-describe("useEventPostMode", () => {
+describe("useEditPreviewMode", () => {
   it("初回マウントでは edit のまま、スクロールも位置合わせもしない", () => {
     const { result } = renderMode();
 
@@ -63,9 +70,12 @@ describe("useEventPostMode", () => {
   });
 
   it("StrictMode の二重実行でも、初回マウントではスクロールも位置合わせもしない", () => {
-    const { result } = renderHook(() => useEventPostMode(NO_ERRORS), {
-      wrapper: StrictMode,
-    });
+    const { result } = renderHook(
+      () => useEditPreviewMode(MAPPING, NO_ERRORS),
+      {
+        wrapper: StrictMode,
+      },
+    );
 
     expect(result.current.mode).toBe("edit");
     expect(scrollTo).not.toHaveBeenCalled();
@@ -87,10 +97,7 @@ describe("useEventPostMode", () => {
 
     expect(result.current.mode).toBe("preview");
     expect(mockedCapture).toHaveBeenCalledTimes(1);
-    expect(mockedCapture).toHaveBeenCalledWith(
-      EVENT_POST_PREVIEW_SCROLL_MAPPING,
-      input,
-    );
+    expect(mockedCapture).toHaveBeenCalledWith(MAPPING, input);
     expect(mockedScrollToSyncPoint).toHaveBeenCalledTimes(1);
     expect(mockedScrollToSyncPoint).toHaveBeenCalledWith(POINT);
   });
@@ -123,10 +130,7 @@ describe("useEventPostMode", () => {
     act(() => {
       result.current.changeMode("preview");
     });
-    expect(mockedCapture).toHaveBeenLastCalledWith(
-      EVENT_POST_PREVIEW_SCROLL_MAPPING,
-      first,
-    );
+    expect(mockedCapture).toHaveBeenLastCalledWith(MAPPING, first);
 
     // 記録は破棄されているので、記録せずに行った次の切替では null になる
     act(() => {
@@ -136,10 +140,7 @@ describe("useEventPostMode", () => {
       result.current.changeMode("preview");
     });
     expect(mockedCapture).toHaveBeenCalledTimes(2);
-    expect(mockedCapture).toHaveBeenLastCalledWith(
-      EVENT_POST_PREVIEW_SCROLL_MAPPING,
-      null,
-    );
+    expect(mockedCapture).toHaveBeenLastCalledWith(MAPPING, null);
   });
 
   it("preview→edit で、edit→preview 時の scrollY へ instant で戻す（preview 中に動いていても）", () => {

@@ -2,23 +2,27 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 
-import { EVENT_POST_PREVIEW_SCROLL_MAPPING } from "@/components/organisms/event-post/eventPostPreviewScroll";
-import type { EventPostFormErrors } from "@/hooks/useEventPostForm";
 import {
   captureScrollSyncPoint,
+  type ScrollSyncMapping,
   type ScrollSyncPoint,
   scrollToSyncPoint,
 } from "@/utils/scrollSync";
 
-export type EventPostMode = "edit" | "preview";
+export type EditPreviewMode = "edit" | "preview";
 
-// イベント投稿画面の入力/プレビュー切替と、切替前後の表示位置をまとめて扱うフック。
-// - 入力→プレビュー：入力で見ていた項目に対応する所をプレビューで表示する
+// 投稿画面の入力/プレビュー切替と、切替前後の表示位置をまとめて扱うフック。
+// - 入力→プレビュー：入力で見ていた項目に対応する所（mapping の対応表）をプレビューで表示する
 // - プレビュー→入力：プレビューへ切り替える前の入力の位置へ戻す
 // - プレビュー表示中の送信で入力エラーになったら、入力へ切り替える
-// 入力フォームはプレビュー中も外さずに隠して保持すること（高さが変わらない前提で位置を戻すため）。
-export function useEventPostMode(errors: EventPostFormErrors) {
-  const [mode, setMode] = useState<EventPostMode>("edit");
+// 呼び出し側の前提：
+// - 入力フォームはプレビュー中も外さずに隠して保持する（高さが変わらない前提で位置を戻すため）
+// - errors は送信のたびに新しいオブジェクトへ更新し、入力エラーが無ければ空にする
+export function useEditPreviewMode(
+  mapping: ScrollSyncMapping,
+  errors: Readonly<Record<string, unknown>>,
+) {
+  const [mode, setMode] = useState<EditPreviewMode>("edit");
   // 入力→プレビュー切替時に、入力で見ていた位置を切替後の位置合わせまで持ち越す
   const scrollSyncPointRef = useRef<ScrollSyncPoint | null>(null);
   // 入力→プレビュー切替時の入力の scrollY。プレビューから戻ったときに同じ位置へ戻す
@@ -34,13 +38,13 @@ export function useEventPostMode(errors: EventPostFormErrors) {
   };
 
   // どちらの方向で使う位置も入力画面でしか測れないため、入力→プレビューの切替前にまとめて記録する。
-  const changeMode = (nextMode: EventPostMode) => {
+  const changeMode = (nextMode: EditPreviewMode) => {
     const focusedElement = focusedBeforeSwitchRef.current;
     focusedBeforeSwitchRef.current = null;
     if (mode === "edit" && nextMode === "preview") {
       editScrollYRef.current = window.scrollY;
       scrollSyncPointRef.current = captureScrollSyncPoint(
-        EVENT_POST_PREVIEW_SCROLL_MAPPING,
+        mapping,
         focusedElement,
       );
     }
@@ -49,7 +53,7 @@ export function useEventPostMode(errors: EventPostFormErrors) {
 
   // プレビュー表示中の送信で入力エラーになったら、入力へ切り替えてエラー項目を見せる。
   // errors が更新されるのは送信時だけなので、空でなければ今回の送信が入力エラーだったことになる。
-  // エラー項目へのジャンプは、表示された EventPostForm 側で行う。
+  // エラー項目へのジャンプは、表示された入力フォーム側（useJumpToFirstError）で行う。
   // プレビューが一瞬描画されてから切り替わらないよう、描画前に切り替える。
   useLayoutEffect(() => {
     if (Object.keys(errors).length > 0) {
@@ -72,7 +76,7 @@ export function useEventPostMode(errors: EventPostFormErrors) {
     // 入力フォームはプレビュー中も隠して保持しており高さが変わらないため、
     // 同じ scrollY に戻せば切替前と同じ表示になる。
     // （送信の入力エラーで戻るときはエラー文言の分だけ高さが変わるが、
-    // この後 EventPostForm がエラー項目へジャンプするので問題ない）
+    // この後に入力フォーム側がエラー項目へジャンプするので問題ない）
     // html の scroll-behavior: smooth を打ち消し、切替と同時に表示位置を戻す。
     const scrollY = editScrollYRef.current;
     editScrollYRef.current = null;

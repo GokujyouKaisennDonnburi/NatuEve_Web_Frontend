@@ -15,10 +15,11 @@ import { PageHeader } from "@/components/molecules/PageHeader";
 import { PageToc } from "@/components/molecules/PageToc";
 import { EventPostForm } from "@/components/organisms/event-post/EventPostForm";
 import { EventPostPreview } from "@/components/organisms/event-post/EventPostPreview";
+import { EVENT_POST_PREVIEW_SCROLL_MAPPING } from "@/components/organisms/event-post/eventPostPreviewScroll";
 import { EVENT_POST_TOC_SECTIONS } from "@/components/organisms/event-post/eventPostTocSections";
 import { ROUTES } from "@/constants/routes";
+import { useEditPreviewMode } from "@/hooks/useEditPreviewMode";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
-import { useEventPostMode } from "@/hooks/useEventPostMode";
 import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { cn } from "@/lib/utils";
 import { preventImplicitSubmit } from "@/utils/form";
@@ -33,7 +34,10 @@ export default function EventPostPage() {
   const { formState, errors, isSubmitting, setField, handleSubmit } =
     useEventPostForm();
 
-  const { mode, changeMode, switchCaptureHandlers } = useEventPostMode(errors);
+  const { mode, changeMode, switchCaptureHandlers } = useEditPreviewMode(
+    EVENT_POST_PREVIEW_SCROLL_MAPPING,
+    errors,
+  );
 
   // 画像・PDF の object URL は入力中から用意しておく。プレビュー側で作ると
   // 切替後に一拍遅れて表示され、切替直後の位置合わせがその分ずれるため。
