@@ -177,20 +177,36 @@ export function SiteHeader() {
           </Button>
         </div>
 
-        {/* 投稿導線。認証UIの左に置き、見た目とフォーカス順を一致させる。 */}
-        <div className="hidden justify-end lg:ml-auto lg:flex">
-          <CreateEventButton
-            type="button"
-            onClick={handleCreateEvent}
-            disabled={isLoading}
-            aria-label="イベントを投稿"
-          >
-            イベントを投稿
-          </CreateEventButton>
-        </div>
+        {/* 投稿導線。サインアウト時は強調表示を外し、文言のみ残す。 */}
+        {!isLoading && (
+          <div className="hidden justify-end lg:ml-auto lg:flex">
+            {user?.id ? (
+              <CreateEventButton
+                type="button"
+                onClick={handleCreateEvent}
+                aria-label="イベントを投稿"
+              >
+                イベントを投稿
+              </CreateEventButton>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCreateEvent}
+                className="rounded-full px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              >
+                イベントを投稿
+              </button>
+            )}
+          </div>
+        )}
 
         {/* 認証UI。サインイン後は投稿ボタンの右側にアイコンを表示する。 */}
-        <div className="hidden shrink-0 items-center justify-end lg:flex">
+        <div
+          className={cn(
+            "hidden shrink-0 items-center justify-end lg:flex",
+            isLoading && "lg:ml-auto",
+          )}
+        >
           {isLoading ? (
             <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse border border-slate-300/50" />
           ) : !user ? (
@@ -246,20 +262,27 @@ export function SiteHeader() {
             ))}
 
             <div className="mt-2 border-t border-slate-200 pt-2">
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  handleCreateEvent();
-                }}
-                className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#9ABD5A] text-[#173315]">
-                  <Plus className="size-5" strokeWidth={2} aria-hidden="true" />
-                </span>
-                イベントを投稿
-              </button>
+              {!isLoading && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleCreateEvent();
+                  }}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  {user?.id && (
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#9ABD5A] text-[#173315]">
+                      <Plus
+                        className="size-5"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      />
+                    </span>
+                  )}
+                  イベントを投稿
+                </button>
+              )}
 
               {!isLoading && user?.id ? (
                 <Link
