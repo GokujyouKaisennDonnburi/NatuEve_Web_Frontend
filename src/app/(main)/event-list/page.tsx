@@ -193,7 +193,7 @@ export default function EventListPage() {
           id="event-list-filters"
         >
           <FilterSidebar
-            className="xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="desktop:max-h-[calc(100dvh_-_6rem)] desktop:overflow-y-auto desktop:overscroll-contain desktop:[scrollbar-width:none] desktop:[&::-webkit-scrollbar]:hidden"
             allTags={allTags}
             frequentTags={frequentTags}
             tagFilterKey={filterResetKey}
