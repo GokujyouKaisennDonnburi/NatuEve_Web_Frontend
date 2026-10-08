@@ -92,7 +92,7 @@ describe("useEditPreviewMode", () => {
       result.current.switchProps.onPointerDownCapture();
     });
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
 
     expect(result.current.mode).toBe("preview");
@@ -107,14 +107,14 @@ describe("useEditPreviewMode", () => {
     const { result } = renderMode();
 
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
 
     expect(result.current.mode).toBe("preview");
     expect(mockedScrollToSyncPoint).not.toHaveBeenCalled();
   });
 
-  it("switchProps は現在の mode を持ち、onChange で changeMode と同じく切り替わる", () => {
+  it("switchProps は現在の mode を持ち、onChange で切り替わる", () => {
     const { result } = renderMode();
     expect(result.current.switchProps.mode).toBe("edit");
 
@@ -124,12 +124,12 @@ describe("useEditPreviewMode", () => {
 
     expect(result.current.mode).toBe("preview");
     expect(result.current.switchProps.mode).toBe("preview");
-    // changeMode と同じく、edit→preview で位置を記録して合わせる
+    // edit→preview で位置を記録して合わせる
     expect(mockedCapture).toHaveBeenCalledTimes(1);
     expect(mockedScrollToSyncPoint).toHaveBeenCalledWith(POINT);
   });
 
-  it("switchProps の記録処理は呼んだ時点の activeElement を記録し、changeMode 後は破棄する", () => {
+  it("switchProps の記録処理は呼んだ時点の activeElement を記録し、切替後は破棄する", () => {
     const first = document.createElement("input");
     const second = document.createElement("textarea");
     document.body.append(first, second);
@@ -143,16 +143,16 @@ describe("useEditPreviewMode", () => {
     // 記録後にフォーカスが移っても、記録した要素が使われる
     second.focus();
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
     expect(mockedCapture).toHaveBeenLastCalledWith(MAPPING, first);
 
     // 記録は破棄されているので、記録せずに行った次の切替では null になる
     act(() => {
-      result.current.changeMode("edit");
+      result.current.switchProps.onChange("edit");
     });
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
     expect(mockedCapture).toHaveBeenCalledTimes(2);
     expect(mockedCapture).toHaveBeenLastCalledWith(MAPPING, null);
@@ -162,14 +162,14 @@ describe("useEditPreviewMode", () => {
     setScrollY(640);
     const { result } = renderMode();
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
     expect(scrollTo).not.toHaveBeenCalled();
 
     // プレビュー側で別の位置までスクロールしている
     setScrollY(50);
     act(() => {
-      result.current.changeMode("edit");
+      result.current.switchProps.onChange("edit");
     });
 
     expect(result.current.mode).toBe("edit");
@@ -181,7 +181,7 @@ describe("useEditPreviewMode", () => {
     setScrollY(320);
     const { result, rerender } = renderMode();
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
     setScrollY(0);
 
@@ -204,7 +204,7 @@ describe("useEditPreviewMode", () => {
       { initialProps: { errors: noErrors } },
     );
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
 
     rerender({ errors: { title: "必須です" } });
@@ -225,7 +225,7 @@ describe("useEditPreviewMode", () => {
   it("errors が空オブジェクトに変わっても preview から切り替わらない", () => {
     const { result, rerender } = renderMode();
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
 
     rerender({ errors: {} });
@@ -238,13 +238,13 @@ describe("useEditPreviewMode", () => {
     const errors = { eventName: "必須です" };
     const { result, rerender } = renderMode();
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
     rerender({ errors });
     expect(result.current.mode).toBe("edit");
 
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
     expect(result.current.mode).toBe("preview");
 
@@ -253,10 +253,10 @@ describe("useEditPreviewMode", () => {
     expect(result.current.mode).toBe("preview");
 
     act(() => {
-      result.current.changeMode("edit");
+      result.current.switchProps.onChange("edit");
     });
     act(() => {
-      result.current.changeMode("preview");
+      result.current.switchProps.onChange("preview");
     });
     expect(result.current.mode).toBe("preview");
   });

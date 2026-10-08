@@ -90,8 +90,6 @@ export function useEditPreviewMode(
 
   return {
     mode,
-    // ボタンなど切替部品以外から切り替えるとき用
-    changeMode,
     // 切替部品（EditPreviewSwitch）にそのまま渡す（<EditPreviewSwitch {...switchProps} />）。
     // 切替の操作でフォーカスが移る前にフォーカス中の要素を記録する処理も含むため、まとめて渡す。
     switchProps: {
