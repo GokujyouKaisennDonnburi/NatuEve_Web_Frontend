@@ -62,6 +62,24 @@ describe("useStickyClip", () => {
     expect(content.element.style.clipPath).toBe("");
   });
 
+  it("bottomMargin を指定するとバー下端+余白の位置で切り取る", () => {
+    const bar = createTarget();
+    const content = createTarget();
+    // バー下端 130px + 余白 8px / コンテンツ上端 100px → 38px の重なり分を隠す
+    stubRect(bar.element, { top: 56, bottom: 130 });
+    stubRect(content.element, { top: 100, bottom: 1200 });
+
+    renderHook(() =>
+      useStickyClip({
+        barRef: bar.ref,
+        contentRef: content.ref,
+        bottomMargin: 8,
+      }),
+    );
+
+    expect(content.element.style.clipPath).toBe("inset(38px 0 0 0)");
+  });
+
   it("スクロール時に再計算して clip-path を更新する", () => {
     const bar = createTarget();
     const content = createTarget();

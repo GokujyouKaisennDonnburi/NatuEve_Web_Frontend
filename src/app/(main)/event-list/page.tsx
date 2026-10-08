@@ -57,10 +57,10 @@ export default function EventListPage() {
 
   // コントロール帯の下に回り込んだカードを隠すための計測用参照。
   // コントロール帯は背景を持たないため、帯の範囲に入ったカードは
-  // useStickyClip が帯の下端を基準に切り取る
+  // useStickyClip が帯の下端+8px(上部マージンと対になる余白)を基準に切り取る
   const controlsRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  useStickyClip({ barRef: controlsRef, contentRef });
+  useStickyClip({ barRef: controlsRef, contentRef, bottomMargin: 8 });
 
   // FilterDrawer の effect 依存が毎レンダー変化しないよう、クローズ処理は安定参照で渡す
   const handleCloseFilter = useCallback(() => setIsFilterOpen(false), []);

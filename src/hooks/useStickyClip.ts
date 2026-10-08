@@ -5,18 +5,22 @@ import { useEffect, type RefObject } from "react";
 type UseStickyClipTargets = {
   barRef: RefObject<HTMLElement | null>;
   contentRef: RefObject<HTMLElement | null>;
+  // バー下端からさらに下に確保する余白(px)。コンテンツはこの位置より上で
+  // 切り取られるため、バーの下にも余白を持たせられる
+  bottomMargin?: number;
 };
 
 // 粘着表示するバー(コントロール帯)の下端より上に回り込んだコンテンツを
 // clip-path で切り取るフック。
 // バーは背景を持たず各コントロール本来のデザインを優先するため、
-// スクロールで背後に潜ったカードはバーの下端を基準に非表示にする。
+// スクロールで背後に潜ったカードはバーの下端(＋bottomMargin)を基準に非表示にする。
 // バーの粘着位置はスクロール量に依存するため、scroll ごとに再計算する。
 // clip-path は position: fixed の子孫も切り取るため、
 // モーダル等の fixed 要素を含む要素には適用しないこと。
 export function useStickyClip({
   barRef,
   contentRef,
+  bottomMargin = 0,
 }: Readonly<UseStickyClipTargets>): void {
   useEffect(() => {
     const bar = barRef.current;
@@ -24,7 +28,7 @@ export function useStickyClip({
     if (!bar || !content) return;
 
     const update = () => {
-      const barBottom = bar.getBoundingClientRect().bottom;
+      const barBottom = bar.getBoundingClientRect().bottom + bottomMargin;
       const contentTop = content.getBoundingClientRect().top;
       const clip = barBottom - contentTop;
 
@@ -44,5 +48,5 @@ export function useStickyClip({
       window.removeEventListener("resize", update);
       content.style.clipPath = "";
     };
-  }, [barRef, contentRef]);
+  }, [barRef, contentRef, bottomMargin]);
 }
