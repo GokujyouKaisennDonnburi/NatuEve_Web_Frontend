@@ -247,11 +247,28 @@ const createOngoingEvent = (): MockEvent => ({
   tags: SAMPLE_TAG_POOL[1],
 });
 
+// 開催中（開始済み・未終了）かつ申込期限切れの確認用固定イベント。
+// 「開催中」バッジが出るのは申込期限を過ぎている場合だけのため、
+// 申込期限なしの createOngoingEvent（受付中扱い）とは別に1件用意している。
+// 開催日時・主催者・作成日時は createOngoingEvent を流用する。区別のため ID・タイトル・場所・タグを
+// 差し替え、申込期限を1日前（＝期限切れ）にする。
+const ONGOING_DEADLINE_PASSED_EVENT_ID = toUuid(202);
+
+const createOngoingDeadlinePassedEvent = (): MockEvent => ({
+  ...createOngoingEvent(),
+  id: ONGOING_DEADLINE_PASSED_EVENT_ID,
+  title: "🌲 高尾山の野鳥観察ウォーク（開催中・申込期限切れ確認用）",
+  location: "東京都八王子市 高尾山 ケーブルカー清滝駅前",
+  tags: SAMPLE_TAG_POOL[3],
+  applicationDeadline: daysFromNow(-1),
+});
+
 // メモリ内でイベント一覧を管理する（初期値はダミーイベント＋確認用の固定イベント）
 export const mockEvents: MockEvent[] = [
   ...createInitialDummyEvents(),
   createDeadlinePassedEvent(),
   createOngoingEvent(),
+  createOngoingDeadlinePassedEvent(),
 ];
 
 const createDefaultMockEventDetail = (

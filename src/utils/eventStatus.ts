@@ -8,17 +8,42 @@ type EventStatusSource = {
   // 終了日時(RFC3339)。省略時は eventDate を終了日時とみなす。
   endDate?: string;
   // 申込期限(RFC3339)。未設定(null/undefined)の場合は締切なしとして扱い、
-  // 「期限間近」「受付終了」のいずれにもならない。
+  // 「期限間近」「受付終了」「開催中」のいずれにもならない。
   applicationDeadline?: string | null;
 };
 
 // 日時だけから判定できる開催状況。
-// "open"(受付中) / "few_left"(期限間近) / "ended_registration"(受付終了) / "closed"(開催終了)
+// "open"(受付中) / "few_left"(期限間近) / "ended_registration"(受付終了) /
+// "ongoing"(開催中) / "closed"(開催終了)
+//
+// "ongoing" は、一覧の絞り込み（src/types/event.ts の EventListStatus の "ongoing"）とは
+// 基準が異なる。絞り込みは申込期限を問わず開始済み・未終了のイベントを指すが、
+// バッジの "ongoing" は「開始済み・未終了かつ申込期限切れ」のイベントだけを指す。
+// 開始済み・未終了でも申込期限内なら、申し込みを受け付けているため "few_left" / "open" になる。
 export type ResolvedEventStatus =
   | "open"
   | "few_left"
   | "ended_registration"
+  | "ongoing"
   | "closed";
+
+// 各開催状況で参加申し込みを締め切るかどうか。
+// Set ではなく Record で定義するのは、ResolvedEventStatus にステータスを追加したとき、
+// ここへの指定漏れを型エラーとして検出できるようにするため。
+const RECEPTION_CLOSED_BY_STATUS: Record<ResolvedEventStatus, boolean> = {
+  open: false,
+  few_left: false,
+  ended_registration: true,
+  ongoing: true,
+  closed: true,
+};
+
+// 参加申し込みを締め切る開催状況かどうかを返す。
+// ステータスバッジと同じ resolveEventStatus の結果を渡して使うため、
+// バッジと申し込みボタンの判定基準が食い違わない。
+export function isReceptionClosed(status: ResolvedEventStatus): boolean {
+  return RECEPTION_CLOSED_BY_STATUS[status];
+}
 
 // 指定した日時が今日から7日以内（未来）かを、Asia/Tokyo の日付ベースで判定する。
 //
@@ -50,13 +75,16 @@ function isDateWithinOneWeek(dateStr: string): boolean {
 
 // イベントの開催状況を判定する共通ルール。
 //
-// 終了日時を過ぎていれば「開催終了」、それ以外で申込期限を過ぎていれば「受付終了」、
+// 終了日時を過ぎていれば「開催終了」、それ以外で申込期限を過ぎていれば
+// 「開催中」（開始済みの場合）または「受付終了」（開始前の場合）とする。
 // さらにそれ以外で申込期限が1週間以内なら「期限間近」、残りは「受付中」とみなす。
-// 開始済みで未終了のイベント（開催中）は、申込期限を過ぎていなければ「受付中」に含める。
+// 開始済みで未終了のイベントでも、申込期限を過ぎていなければ申し込みを受け付けているため、
+// 「開催中」とはせず「期限間近」「受付中」のまま表示する。
 //
 // 「期限間近」「受付終了」はどちらも申込期限(applicationDeadline)を基準にしており、
-// 期限までの1週間が「期限間近」、期限を過ぎたら「受付終了」と連続して切り替わる。
-// 申込期限が未設定のイベントは締切がないため、開催終了までどちらにもならない。
+// 期限までの1週間が「期限間近」、期限を過ぎたら「受付終了」（開催中なら「開催中」）と
+// 連続して切り替わる。
+// 申込期限が未設定のイベントは締切がないため、開催終了までどれにもならない。
 //
 // endDate はイベント一覧 API のレスポンスにも含まれる。省略される呼び出しでは
 // eventDate 基準の判定にフォールバックする
@@ -66,13 +94,18 @@ export function resolveEventStatus({
   endDate,
   applicationDeadline,
 }: Readonly<EventStatusSource>): ResolvedEventStatus {
+  // この関数内で行う終了・開始の判定は、同じ現在時刻を基準にする。
+  // 申込期限の判定（isDeadlinePassed / isDateWithinOneWeek）はそれぞれ内部で現在時刻を取得するため、
+  // 厳密には基準がずれうるが、ずれはごくわずかで実用上の影響はない。
+  const now = new Date();
   const closesAt = new Date(endDate || eventDate);
-  if (closesAt < new Date()) {
+  if (closesAt < now) {
     return "closed";
   }
-  // 開催前・開催中でも、申込期限を過ぎていればもう申し込めないため「受付終了」とする。
+  // 申込期限を過ぎていればもう申し込めない。開始前なら「受付終了」を伝え、
+  // すでに開始していれば申し込めない事実より「いま開催している」ことを優先して伝える。
   if (isDeadlinePassed(applicationDeadline)) {
-    return "ended_registration";
+    return new Date(eventDate) <= now ? "ongoing" : "ended_registration";
   }
   if (applicationDeadline && isDateWithinOneWeek(applicationDeadline)) {
     return "few_left";

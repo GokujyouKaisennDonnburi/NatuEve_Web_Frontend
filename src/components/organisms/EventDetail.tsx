@@ -36,7 +36,7 @@ import { useMyEventApplication } from "@/hooks/useMyEventApplication";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import { cn } from "@/lib/utils";
 import type { ReportDetail } from "@/types/report";
-import { resolveEventStatus } from "@/utils/eventStatus";
+import { isReceptionClosed, resolveEventStatus } from "@/utils/eventStatus";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -106,16 +106,21 @@ export function EventDetail({
     applicationDeadline: event.applicationDeadline,
   });
 
-  // 参加申し込みを締め切る状況かどうか。開催終了（endDate 経過）と受付終了（申込期限経過）の2つ。
-  // 取り消し・欠席連絡の期限（cancelDeadline を優先する participationDeadline）とは別の判定で、
-  // ステータスバッジと同じ基準を使うため、バッジとボタンの表示が食い違わない。
-  const receptionClosed =
-    status === "closed" || status === "ended_registration";
+  // 参加申し込みを締め切るかどうかは、ステータスバッジと同じ判定結果から isReceptionClosed で導く。
+  // 取り消し・欠席連絡の期限（cancelDeadline を優先する participationDeadline）とは別の判定。
+  // 開催中はバッジが「開催中」、申し込みボタンは「受付終了」になる。
+  const receptionClosed = isReceptionClosed(status);
 
   // 上の判定は現在時刻に依存するため、ページを開いたままでは期限を過ぎても
-  // 「参加を申し込む」が押せるまま残ってしまう。申込期限・終了日時を跨いだ時点で
+  // 「参加を申し込む」が押せるまま残ってしまう。申込期限・開始日時・終了日時を跨いだ時点で
   // 再描画し、表示と操作可否を実際の時刻に追随させる。
-  useDeadlineRefresh([event.applicationDeadline, event.endDate]);
+  // 申込期限切れのイベントは開始日時を境に「受付終了」から「開催中」へ切り替わるため、
+  // 開始日時も再描画の境目に含める。
+  useDeadlineRefresh([
+    event.applicationDeadline,
+    event.eventDate,
+    event.endDate,
+  ]);
 
   // サインイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(
