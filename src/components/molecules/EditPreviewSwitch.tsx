@@ -5,12 +5,13 @@ import { Eye } from "lucide-react";
 import { SegmentControl } from "@/components/atoms/SegmentControl";
 import type { EditPreviewMode } from "@/hooks/useEditPreviewMode";
 
+// useEditPreviewMode の switchProps をそのまま渡す
 type EditPreviewSwitchProps = {
   mode: EditPreviewMode;
   onChange: (mode: EditPreviewMode) => void;
-  // 切替の操作でフォーカスが移る前に呼ぶ処理（useEditPreviewMode の switchCaptureHandlers）
-  onPointerDownCapture?: () => void;
-  onKeyDownCapture?: () => void;
+  // 切替の操作でフォーカスが移る前に呼ぶ処理。入力中の項目の判定に使うため必須にしている
+  onPointerDownCapture: () => void;
+  onKeyDownCapture: () => void;
 };
 
 // 投稿画面の入力/プレビュー切替。スクロール中も画面右上に固定で表示する。

@@ -33,7 +33,7 @@ export default function EventPostPage() {
   const { formState, errors, isSubmitting, setField, handleSubmit } =
     useEventPostForm();
 
-  const { mode, changeMode, switchCaptureHandlers } = useEditPreviewMode(
+  const { mode, switchProps } = useEditPreviewMode(
     EVENT_POST_PREVIEW_SCROLL_MAPPING,
     errors,
   );
@@ -77,11 +77,7 @@ export default function EventPostPage() {
           backLabel="イベント一覧にもどる"
         />
       </div>
-      <EditPreviewSwitch
-        mode={mode}
-        onChange={changeMode}
-        {...switchCaptureHandlers}
-      />
+      <EditPreviewSwitch {...switchProps} />
       <div className="mx-auto w-full max-w-5xl">
         <form
           onSubmit={handleSubmit}

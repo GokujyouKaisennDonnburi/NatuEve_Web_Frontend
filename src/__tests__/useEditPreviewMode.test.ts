@@ -89,7 +89,7 @@ describe("useEditPreviewMode", () => {
     const { result } = renderMode();
 
     act(() => {
-      result.current.switchCaptureHandlers.onPointerDownCapture();
+      result.current.switchProps.onPointerDownCapture();
     });
     act(() => {
       result.current.changeMode("preview");
@@ -114,7 +114,22 @@ describe("useEditPreviewMode", () => {
     expect(mockedScrollToSyncPoint).not.toHaveBeenCalled();
   });
 
-  it("switchCaptureHandlers は呼んだ時点の activeElement を記録し、changeMode 後は破棄する", () => {
+  it("switchProps は現在の mode を持ち、onChange で changeMode と同じく切り替わる", () => {
+    const { result } = renderMode();
+    expect(result.current.switchProps.mode).toBe("edit");
+
+    act(() => {
+      result.current.switchProps.onChange("preview");
+    });
+
+    expect(result.current.mode).toBe("preview");
+    expect(result.current.switchProps.mode).toBe("preview");
+    // changeMode と同じく、edit→preview で位置を記録して合わせる
+    expect(mockedCapture).toHaveBeenCalledTimes(1);
+    expect(mockedScrollToSyncPoint).toHaveBeenCalledWith(POINT);
+  });
+
+  it("switchProps の記録処理は呼んだ時点の activeElement を記録し、changeMode 後は破棄する", () => {
     const first = document.createElement("input");
     const second = document.createElement("textarea");
     document.body.append(first, second);
@@ -123,7 +138,7 @@ describe("useEditPreviewMode", () => {
     // キーボード操作の側（onKeyDownCapture）でも同じく記録される
     first.focus();
     act(() => {
-      result.current.switchCaptureHandlers.onKeyDownCapture();
+      result.current.switchProps.onKeyDownCapture();
     });
     // 記録後にフォーカスが移っても、記録した要素が使われる
     second.focus();

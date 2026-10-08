@@ -55,7 +55,7 @@ function ReportPostPageContent() {
 
   // 入力 / プレビューの表示モード。切替前後の表示位置の調整と、
   // プレビュー中の送信で入力エラーになったときの入力への切替もここで行う。
-  const { mode, changeMode, switchCaptureHandlers } = useEditPreviewMode(
+  const { mode, switchProps } = useEditPreviewMode(
     REPORT_POST_PREVIEW_SCROLL_MAPPING,
     validationErrors,
   );
@@ -302,11 +302,7 @@ function ReportPostPageContent() {
       </div>
 
       {/* 入力/プレビュー切替。イベント投稿画面と同じ部品で、位置・見た目・動作を揃える。 */}
-      <EditPreviewSwitch
-        mode={mode}
-        onChange={changeMode}
-        {...switchCaptureHandlers}
-      />
+      <EditPreviewSwitch {...switchProps} />
 
       <div className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
         {/* イベント情報表示 */}
