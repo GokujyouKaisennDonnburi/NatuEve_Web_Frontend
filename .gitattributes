@@ -1,0 +1,4 @@
+# 改行コードをリポジトリ全体で LF に統一する。
+# core.autocrlf=true の環境でも LF でチェックアウトされ、
+# Biome(biome check)のフォーマット検証が環境差で落ちないようにする。
+* text=auto eol=lf
