@@ -47,7 +47,8 @@ export function EventListControls({
   return (
     <div
       ref={ref}
-      className="sticky top-(--site-header-height) z-30 mb-6 desktop:mb-[45px]"
+      // 粘着位置はヘッダー直下から 8px 空けてフローティング感を出す
+      className="sticky top-[calc(var(--site-header-height)_+_8px)] z-30 mb-6 desktop:mb-[45px]"
     >
       <div className="flex flex-col gap-3 desktop:flex-row desktop:items-center desktop:gap-4">
         <div className="w-full min-w-0 desktop:flex-1">
