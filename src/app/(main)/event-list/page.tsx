@@ -6,12 +6,12 @@ import { SortButton } from "@/components/atoms/SortButton";
 import { Pagination } from "@/components/molecules/Pagination";
 import { SearchBar } from "@/components/molecules/SearchBar";
 import { EventCard } from "@/components/organisms/EventCard";
+import { FilterDrawer } from "@/components/organisms/FilterDrawer";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
 import { useTags } from "@/hooks/useTags";
-import { cn } from "@/lib/utils";
 import type { TagItem } from "@/types/tag";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 
 type SortOption = "created_at" | "event_date";
 
@@ -55,6 +55,9 @@ export default function EventListPage() {
     itemsPerPage: ITEMS_PER_PAGE,
   });
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+  // FilterDrawer の effect 依存が毎レンダー変化しないよう、クローズ処理は安定参照で渡す
+  const handleCloseFilter = useCallback(() => setIsFilterOpen(false), []);
 
   // 現在表示中のイベントから使用頻度の高いタグ順に算出する
   const frequentTags = useMemo(() => {
@@ -173,9 +176,16 @@ export default function EventListPage() {
         </div>
       </div>
 
-      {/* Filter button row */}
-      <div className="mb-6 xl:mb-[45px]">
+      {/* Filter button row
+          デスクトップ(横長比率)ではサイドバー常時表示のため非表示。
+          モバイルでは検索バー直下の左上に配置し、スクロール中は
+          ヘッダー直下に粘着(sticky)させて常に画面内に表示する。
+          コンテナは全幅のまま粘着するため、透過領域がカードのクリックを
+          奪わないよう pointer-events をボタン側でのみ有効にする。
+          ドロワー(FilterDrawer)より低い z-index で開閉ボタンの役割を維持する */}
+      <div className="pointer-events-none sticky top-(--site-header-height) z-30 mb-6 desktop:mb-[45px]">
         <FilterIconButton
+          className="pointer-events-auto desktop:hidden"
           onClick={() => setIsFilterOpen((prev) => !prev)}
           isActive={hasActiveFilters}
           isExpanded={isFilterOpen}
@@ -184,15 +194,14 @@ export default function EventListPage() {
       </div>
 
       {/* Two-column: Filter sidebar + Event list */}
-      <div className="grid items-start gap-6 xl:grid-cols-[342px_minmax(0,1fr)] xl:gap-[36px]">
-        {/* Filter sidebar */}
-        <aside
+      <div className="grid items-start gap-6 desktop:grid-cols-[var(--filter-sidebar-width)_minmax(0,1fr)] desktop:gap-[36px]">
+        {/* Filter sidebar
+            モバイル(縦長比率)では FilterDrawer が左からスライドするオーバーレイとして表示し、
+            デスクトップ(横長比率)では常に左側に表示するサイドバーになる */}
+        <FilterDrawer
+          isOpen={isFilterOpen}
+          onClose={handleCloseFilter}
           id="event-list-filters"
-          className={cn(
-            "w-full",
-            isFilterOpen ? "block" : "hidden",
-            "xl:sticky xl:top-20 xl:block xl:w-[342px]",
-          )}
         >
           <FilterSidebar
             allTags={allTags}
@@ -234,7 +243,7 @@ export default function EventListPage() {
             onClear={handleClear}
             onApply={handleApply}
           />
-        </aside>
+        </FilterDrawer>
 
         {/* Main content */}
         <div className="min-w-0">

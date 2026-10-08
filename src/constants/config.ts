@@ -22,3 +22,10 @@ export const DAYS_BEFORE_DEADLINE = 7;
 // 目次（PageToc）のハイライトと、イベント投稿の入力→プレビュー切替の位置合わせで同じ判定にそろえる。
 export const CURRENT_SECTION_BAND_TOP_PX = 96;
 export const CURRENT_SECTION_BAND_BOTTOM_PERCENT = 30;
+
+// イベント一覧の絞り込み欄をサイドバーとして表示する条件。
+// 16:9 やそれに近い横長比率(4:3 以上)かつ幅 640px 以上でデスクトップ扱いとし、
+// 縦長だけでなく幅の狭い横長ビューポートでもドロワー表示にする。
+// globals.css の desktop カスタムバリアントと同一の値のため、変更時は必ず同期する。
+export const DESKTOP_MEDIA_QUERY =
+  "(min-aspect-ratio: 4/3) and (min-width: 640px)";

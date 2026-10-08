@@ -2,8 +2,9 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { normalizeAssetUrl } from "@/utils/media";
 
 type EventReportImageCarouselProps = {
@@ -18,22 +19,11 @@ export function EventReportImageCarousel({
 }: Readonly<EventReportImageCarouselProps>) {
   // Tailwind の sm ブレークポイントと同じ閾値。
   // この幅以上で1ページに3枚（横3）を表示し、未満では1枚（横1）を表示する。
-  const DESKTOP_QUERY = "(min-width: 640px)";
+  const isDesktop = useMediaQuery("(min-width: 640px)");
   const DESKTOP_IMAGES_PER_PAGE = 3;
   const MOBILE_IMAGES_PER_PAGE = 1;
 
-  // デスクトップかモバイルかを判定するための state。
-  const [isDesktop, setIsDesktop] = useState(false);
   const [page, setPage] = useState(0);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(DESKTOP_QUERY);
-    const update = (): void => setIsDesktop(mediaQuery.matches);
-
-    update();
-    mediaQuery.addEventListener("change", update);
-    return () => mediaQuery.removeEventListener("change", update);
-  }, []);
 
   if (images.length === 0) {
     return null;
