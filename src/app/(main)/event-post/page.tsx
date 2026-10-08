@@ -18,6 +18,7 @@ import { EventPostPreview } from "@/components/organisms/event-post/EventPostPre
 import { EVENT_POST_TOC_SECTIONS } from "@/components/organisms/event-post/eventPostTocSections";
 import { ROUTES } from "@/constants/routes";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
+import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { cn } from "@/lib/utils";
 import { preventImplicitSubmit } from "@/utils/form";
 
@@ -34,6 +35,15 @@ export default function EventPostPage() {
     useEventPostForm();
 
   const [mode, setMode] = useState<PostMode>("edit");
+
+  // 画像・PDF の object URL は入力中から用意しておく。プレビュー側で作ると
+  // 切替後に一拍遅れて表示されるため。
+  const imageFiles = useMemo(
+    () => (formState.eventImage ? [formState.eventImage] : []),
+    [formState.eventImage],
+  );
+  const imageUrls = useObjectUrls(imageFiles);
+  const pdfUrls = useObjectUrls(formState.eventDocuments);
 
   // 認証状態がロードされ、かつ未認証の場合はサインインページにリダイレクト
   useEffect(() => {
@@ -108,7 +118,11 @@ export default function EventPostPage() {
                   setField={setField}
                 />
               ) : (
-                <EventPostPreview formState={formState} />
+                <EventPostPreview
+                  formState={formState}
+                  imageUrls={imageUrls}
+                  pdfUrls={pdfUrls}
+                />
               )}
               <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
                 <PillButton

@@ -19,7 +19,7 @@ import type { EventPostFormState } from "@/hooks/useEventPostForm";
 import { buildLocation } from "@/utils/regionSearch";
 import { resolveEventStatus } from "@/utils/eventStatus";
 import { Eye } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 // 投稿日の表示用に日付だけを整形する
 const formatPostedDate = (value: string): string =>
@@ -40,40 +40,21 @@ const toRfc3339OrEmpty = (value: string): string => {
 };
 
 // イベント投稿プレビューのprops型
+// imageUrls / pdfUrls は formState の画像・PDF を object URL にしたもの。
+// 切替直後の最初の描画から画像・PDF を表示できるよう、入力中から画面側で用意して渡す。
 type EventPostPreviewProps = {
   formState: EventPostFormState;
+  imageUrls: string[];
+  pdfUrls: string[];
 };
 
 // イベント投稿フォームの入力値を、イベント詳細画面で表示される形式へ変換する。
 export function EventPostPreview({
   formState,
+  imageUrls,
+  pdfUrls,
 }: Readonly<EventPostPreviewProps>) {
   const { user } = useCurrentUserContext();
-
-  // File を表示用の object URL に変換し、不要になったら解放する。
-  const [imageObjectUrls, setImageObjectUrls] = useState<string[]>([]);
-  const [pdfObjectUrls, setPdfObjectUrls] = useState<string[]>([]);
-
-  useEffect(() => {
-    const nextImageUrls = formState.eventImage
-      ? [URL.createObjectURL(formState.eventImage)]
-      : [];
-    const nextPdfUrls = formState.eventDocuments.map((file) =>
-      URL.createObjectURL(file),
-    );
-
-    setImageObjectUrls(nextImageUrls);
-    setPdfObjectUrls(nextPdfUrls);
-
-    return () => {
-      nextImageUrls.forEach((url) => {
-        URL.revokeObjectURL(url);
-      });
-      nextPdfUrls.forEach((url) => {
-        URL.revokeObjectURL(url);
-      });
-    };
-  }, [formState.eventImage, formState.eventDocuments]);
 
   const previewEvent = useMemo<EventDetailType>(() => {
     const costs = formState.feeCategoryGroups
@@ -107,10 +88,10 @@ export function EventPostPreview({
       applicationDeadline:
         toRfc3339OrEmpty(formState.applicationDeadline) || undefined,
       externalUrl: formState.applicationUrl || undefined,
-      imageUrls: imageObjectUrls,
+      imageUrls,
       imageObjectKeys: [],
       imageFilenames: [],
-      pdfUrls: pdfObjectUrls,
+      pdfUrls,
       pdfObjectKeys: [],
       pdfFilenames: formState.eventDocuments.map((file) => file.name),
       tags: formState.tags,
@@ -127,7 +108,7 @@ export function EventPostPreview({
       updatedAt: new Date().toISOString(),
       reports: [],
     };
-  }, [formState, user, imageObjectUrls, pdfObjectUrls]);
+  }, [formState, user, imageUrls, pdfUrls]);
 
   const status = resolveEventStatus({
     eventDate: previewEvent.eventDate,
@@ -137,14 +118,14 @@ export function EventPostPreview({
 
   const pdfItems = useMemo(() => {
     // Blob URL が未生成の間は描画しない（空 source による key 重複を防ぐ）
-    if (pdfObjectUrls.length !== formState.eventDocuments.length) {
+    if (pdfUrls.length !== formState.eventDocuments.length) {
       return [];
     }
     return formState.eventDocuments.map((file, index) => ({
-      source: pdfObjectUrls[index] ?? "",
+      source: pdfUrls[index] ?? "",
       filename: file.name,
     }));
-  }, [formState.eventDocuments, pdfObjectUrls]);
+  }, [formState.eventDocuments, pdfUrls]);
   const hasPdf = pdfItems.length > 0;
 
   const organizerName =
@@ -192,10 +173,10 @@ export function EventPostPreview({
 
       <div className="min-w-0 flex-1 space-y-6">
         {/* イベント画像 */}
-        {imageObjectUrls.length > 0 ? (
+        {imageUrls.length > 0 ? (
           <SurfaceCard>
             <CardContent>
-              <EventImageCarousel images={imageObjectUrls} unoptimized />
+              <EventImageCarousel images={imageUrls} unoptimized />
             </CardContent>
           </SurfaceCard>
         ) : null}
