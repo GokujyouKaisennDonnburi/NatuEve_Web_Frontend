@@ -44,6 +44,8 @@ export function SiteHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuTriggerRef = useRef<HTMLDivElement>(null);
+  const mobileMenuPanelRef = useRef<HTMLElement>(null);
 
   // 認証状態と現在のユーザー情報を Provider から取得。
   // 表示名とアイコンを出すため、プロフィールの確定まで待つ isUserLoading を使う。
@@ -95,6 +97,35 @@ export function SiteHeader() {
       document.removeEventListener("keydown", closeAccountMenuByEscape);
     };
   }, [isAccountMenuOpen]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    const closeMobileMenu = (event: PointerEvent) => {
+      const target = event.target as Node;
+      const isTriggerClicked = mobileMenuTriggerRef.current?.contains(target);
+      const isPanelClicked = mobileMenuPanelRef.current?.contains(target);
+
+      if (!isTriggerClicked && !isPanelClicked) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    const closeMobileMenuByEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeMobileMenu);
+    document.addEventListener("keydown", closeMobileMenuByEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeMobileMenu);
+      document.removeEventListener("keydown", closeMobileMenuByEscape);
+    };
+  }, [isMobileMenuOpen]);
 
   // サインイン状態を確認してイベント投稿ページへ遷移する
   const handleCreateEvent = () => {
@@ -151,7 +182,10 @@ export function SiteHeader() {
         </nav>
 
         {/* lg未満では非表示の主要ナビゲーションをメニューから利用できる。 */}
-        <div className="col-start-3 row-start-1 flex items-center sm:col-auto sm:row-auto sm:ml-auto lg:hidden">
+        <div
+          ref={mobileMenuTriggerRef}
+          className="col-start-3 row-start-1 flex items-center sm:col-auto sm:row-auto sm:ml-auto lg:hidden"
+        >
           <Button
             type="button"
             variant="outline"
@@ -258,6 +292,7 @@ export function SiteHeader() {
 
         {isMobileMenuOpen && (
           <nav
+            ref={mobileMenuPanelRef}
             id="mobile-site-navigation"
             aria-label="主要ナビゲーション"
             className="absolute left-0 top-full flex w-full flex-col border-b border-slate-200 bg-white px-4 py-3 shadow-md lg:hidden"
