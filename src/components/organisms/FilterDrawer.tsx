@@ -148,8 +148,12 @@ export function FilterDrawer({
           ? { role: "dialog", "aria-modal": "true", "aria-label": "絞り込み" }
           : {})}
         className={cn(
-          "absolute inset-y-0 left-0 w-(--filter-sidebar-width) max-w-[85vw] overflow-y-auto bg-white shadow-xl outline-none transition-transform duration-200 ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          isOverlay ? "translate-x-0" : "-translate-x-full",
+          "absolute inset-y-0 left-0 w-(--filter-sidebar-width) max-w-[85vw] overflow-y-auto bg-white shadow-xl outline-none transition-transform duration-200 ease-out",
+          // ドロワー(オーバーレイ)表示中はパネルがスクロールするため、スクロールバーを非表示にする。
+          // デスクトップのスクロールはカード側が所有し、パネルは overflow-y-visible のため対象外
+          isOverlay
+            ? "translate-x-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            : "-translate-x-full",
           // max-h はカード側(FilterSidebar)が持ち、パネルはクリップしない。
           // これによりスクロール所有者をカードに一本化し、カードの影・角丸を維持する
           "desktop:static desktop:w-auto desktop:max-w-none desktop:translate-x-0 desktop:overflow-y-visible desktop:bg-transparent desktop:shadow-none",
