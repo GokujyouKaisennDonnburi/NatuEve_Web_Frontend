@@ -3,16 +3,19 @@ import type { ReactNode } from "react";
 
 import { ROUTES } from "@/constants/routes";
 
+const FOOTER_LINK_CLASS_NAME =
+  "-mx-2 inline-flex rounded-md px-2 py-1 text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2";
+
 export function SiteFooter() {
   return (
     <footer className="w-full border-t border-slate-200/80 bg-[#FAFCF7]">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 2xl:px-10">
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-6 lg:gap-8">
           {/* サイト名 */}
           <div className="col-span-2 flex flex-col gap-2">
             <Link
               href={ROUTES.HOME}
-              className="inline-flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded-md"
+              className="-m-1 inline-flex items-center gap-2 rounded-md p-1 transition-colors duration-200 hover:bg-[#F2F7E8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
               <div className="flex items-end gap-2">
                 <span className="text-lg font-bold text-emerald-700">
@@ -49,7 +52,7 @@ export function SiteFooter() {
               <li>
                 <Link
                   href={ROUTES.EVENT_LIST}
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className={FOOTER_LINK_CLASS_NAME}
                 >
                   イベントを探す
                 </Link>
@@ -57,7 +60,7 @@ export function SiteFooter() {
               <li>
                 <Link
                   href={ROUTES.COMING_SOON}
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className={FOOTER_LINK_CLASS_NAME}
                 >
                   カテゴリ一覧
                 </Link>
@@ -72,7 +75,7 @@ export function SiteFooter() {
               <li>
                 <Link
                   href={ROUTES.EVENT_POST}
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className={FOOTER_LINK_CLASS_NAME}
                 >
                   イベントを投稿する
                 </Link>
@@ -80,7 +83,7 @@ export function SiteFooter() {
               <li>
                 <Link
                   href={ROUTES.GUIDELINE}
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className={FOOTER_LINK_CLASS_NAME}
                 >
                   ガイドライン
                 </Link>
@@ -95,7 +98,7 @@ export function SiteFooter() {
               <li>
                 <Link
                   href={ROUTES.COMING_SOON}
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className={FOOTER_LINK_CLASS_NAME}
                 >
                   よくある質問
                 </Link>
@@ -103,7 +106,7 @@ export function SiteFooter() {
               <li>
                 <Link
                   href={ROUTES.COMING_SOON}
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className={FOOTER_LINK_CLASS_NAME}
                 >
                   お問い合わせ
                 </Link>
@@ -118,7 +121,7 @@ export function SiteFooter() {
               <li>
                 <Link
                   href={ROUTES.COMING_SOON}
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className={FOOTER_LINK_CLASS_NAME}
                 >
                   なちゅぽーたるへ
                 </Link>
@@ -126,7 +129,7 @@ export function SiteFooter() {
               <li>
                 <Link
                   href={ROUTES.COMING_SOON}
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className={FOOTER_LINK_CLASS_NAME}
                 >
                   運営団体について
                 </Link>
