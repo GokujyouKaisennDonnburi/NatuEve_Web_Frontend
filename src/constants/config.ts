@@ -17,6 +17,12 @@ export const MAX_EVENT_PDF_COUNT = 3;
 // 「期限間近」と判定する申込期限までの残り日数（判定は applicationDeadline 基準）。
 export const DAYS_BEFORE_DEADLINE = 7;
 
+// ページ内で「今見ている所」とみなす画面上部の帯。
+// 上端は画面上端からの距離（px。固定ヘッダーに隠れる部分を除くための値）、下端は画面の上からの割合（%）。
+// 目次（PageToc）のハイライトと、イベント投稿の入力→プレビュー切替の位置合わせで同じ判定にそろえる。
+export const CURRENT_SECTION_BAND_TOP_PX = 96;
+export const CURRENT_SECTION_BAND_BOTTOM_PERCENT = 30;
+
 // イベント一覧の絞り込み欄をサイドバーとして表示する条件。
 // 16:9 やそれに近い横長比率(4:3 以上)かつ幅 640px 以上でデスクトップ扱いとし、
 // 縦長だけでなく幅の狭い横長ビューポートでもドロワー表示にする。

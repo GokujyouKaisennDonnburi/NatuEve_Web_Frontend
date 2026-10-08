@@ -2,7 +2,7 @@
 
 import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import { PillButton } from "@/components/atoms/PillButton";
 import { SegmentControl } from "@/components/atoms/SegmentControl";
@@ -18,10 +18,10 @@ import { EventPostPreview } from "@/components/organisms/event-post/EventPostPre
 import { EVENT_POST_TOC_SECTIONS } from "@/components/organisms/event-post/eventPostTocSections";
 import { ROUTES } from "@/constants/routes";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
+import { useEventPostMode } from "@/hooks/useEventPostMode";
+import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { cn } from "@/lib/utils";
 import { preventImplicitSubmit } from "@/utils/form";
-
-type PostMode = "edit" | "preview";
 
 // イベント投稿ページ。認証ガードと画面の骨組みを持ち、
 // 入力/プレビューの切り替えとフォーム状態の共有を行う。
@@ -33,7 +33,16 @@ export default function EventPostPage() {
   const { formState, errors, isSubmitting, setField, handleSubmit } =
     useEventPostForm();
 
-  const [mode, setMode] = useState<PostMode>("edit");
+  const { mode, changeMode, switchCaptureHandlers } = useEventPostMode(errors);
+
+  // 画像・PDF の object URL は入力中から用意しておく。プレビュー側で作ると
+  // 切替後に一拍遅れて表示され、切替直後の位置合わせがその分ずれるため。
+  const imageFiles = useMemo(
+    () => (formState.eventImage ? [formState.eventImage] : []),
+    [formState.eventImage],
+  );
+  const imageUrls = useObjectUrls(imageFiles);
+  const pdfUrls = useObjectUrls(formState.eventDocuments);
 
   // 認証状態がロードされ、かつ未認証の場合はサインインページにリダイレクト
   useEffect(() => {
@@ -70,10 +79,13 @@ export default function EventPostPage() {
           max-w-5xl の右端ではなく画面（main の内容幅）の右端へ寄せる。
           ラッパーを全幅にすると固定中の帯が下の入力欄や目次のクリックを妨げるため、
           w-fit + ml-auto でピルの幅だけに縮める。 */}
-      <div className="sticky top-20 z-30 ml-auto w-fit">
+      <div
+        className="sticky top-20 z-30 ml-auto w-fit"
+        {...switchCaptureHandlers}
+      >
         <SegmentControl
           value={mode}
-          onChange={setMode}
+          onChange={changeMode}
           aria-label="入力とプレビューの切り替え"
           options={[
             { value: "edit", label: "入力" },
@@ -101,15 +113,21 @@ export default function EventPostPage() {
                 mode === "edit" ? "max-w-3xl" : "min-w-0 flex-1",
               )}
             >
-              {mode === "edit" ? (
-                <EventPostForm
+              {/* 入力フォームはプレビュー中も外さずに隠し、入力途中の状態と高さを保つ。
+                  外すと戻ったときに作り直され、添付ファイル一覧などが後から出て位置がずれる。 */}
+              <EventPostForm
+                formState={formState}
+                errors={errors}
+                setField={setField}
+                hidden={mode !== "edit"}
+              />
+              {mode === "preview" ? (
+                <EventPostPreview
                   formState={formState}
-                  errors={errors}
-                  setField={setField}
+                  imageUrls={imageUrls}
+                  pdfUrls={pdfUrls}
                 />
-              ) : (
-                <EventPostPreview formState={formState} />
-              )}
+              ) : null}
               <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
                 <PillButton
                   tone="outline"

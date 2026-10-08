@@ -29,6 +29,10 @@ import {
 import { Plus } from "lucide-react";
 
 import {
+  EVENT_DOCUMENTS_CARD_ID,
+  EVENT_IMAGE_CARD_ID,
+} from "./eventPostPreviewScroll";
+import {
   EVENT_ATTACHMENTS_SECTION_ID,
   EVENT_FEE_SECTION_ID,
   EVENT_ITEMS_SECTION_ID,
@@ -81,6 +85,9 @@ type EventPostFormProps = {
     key: K,
     value: EventPostFormState[K],
   ) => void;
+  // プレビュー表示中に、入力途中の状態を保ったままフォームを隠すとき true。
+  // 隠している間は場所を取らず、戻したときに同じ高さで再表示される（表示位置の復元は画面側で行う）。
+  hidden?: boolean;
 };
 
 // イベント投稿フォーム。入力項目を意味のまとまりごとにカードへ分けて並べる。
@@ -89,19 +96,28 @@ export function EventPostForm({
   formState,
   errors,
   setField,
+  hidden = false,
 }: Readonly<EventPostFormProps>) {
   const formId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  // ジャンプ済みの送信結果。同じ送信のエラーで、表示のたびに何度もジャンプしないようにする。
+  const jumpedErrorsRef = useRef<EventPostFormErrors | null>(null);
 
   const getFieldId = (suffix: string) => `${formId}-${suffix}`;
 
   // 送信時、フォームの中で一番上にあるエラー項目へジャンプする。
   // DOM の並び順がそのまま画面の並び順なので、項目の順序を別に持たなくてよい。
+  // プレビュー表示中の送信では隠れていて移動できないため、表示されてからジャンプする。
   useEffect(() => {
-    // errors が更新されるのは送信時だけ。空なら初回マウントか送信成功なので何もしない。
-    if (Object.keys(errors).length === 0) {
+    // errors が更新されるのは送信時だけ。空なら初回マウントか入力エラーなしなので何もしない。
+    if (
+      hidden ||
+      Object.keys(errors).length === 0 ||
+      jumpedErrorsRef.current === errors
+    ) {
       return;
     }
+    jumpedErrorsRef.current = errors;
 
     const field =
       containerRef.current?.querySelector<HTMLElement>("[data-field-error]");
@@ -113,10 +129,10 @@ export function EventPostForm({
     // focus 単体だと一瞬でジャンプしてしまうため、スクロールを止めてから滑らかに寄せる
     target.focus({ preventScroll: true });
     target.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [errors]);
+  }, [errors, hidden]);
 
   return (
-    <div ref={containerRef} className="space-y-4">
+    <div ref={containerRef} hidden={hidden} className="space-y-4">
       <div id={EVENT_TITLE_SECTION_ID} className="scroll-mt-20">
         <FormCard>
           <FormField
@@ -357,38 +373,45 @@ export function EventPostForm({
       </div>
 
       <div id={EVENT_ATTACHMENTS_SECTION_ID} className="scroll-mt-20 space-y-4">
-        <FormCard
-          title="イベント画像"
-          description={
-            "詳細ページの先頭に表示されます。\nJPG / PNG を1つ選択できます。"
-          }
-        >
-          <FileDropZone
-            id={getFieldId("eventImage")}
-            accept="image/jpeg,image/png"
-            files={formState.eventImage ? [formState.eventImage] : []}
-            onFilesChange={(files) => setField("eventImage", files[0] ?? null)}
-            promptLabel="クリックまたはドラッグで画像をアップロード"
-            hint={`1ファイル ${toMegabytes(MAX_IMAGE_BYTES)}MB まで`}
-            validate={(file) => validateUploadFile(file, "image")}
-          />
-        </FormCard>
+        {/* プレビュー切替時の位置合わせのため、画像と資料のカードを個別に識別する */}
+        <div id={EVENT_IMAGE_CARD_ID}>
+          <FormCard
+            title="イベント画像"
+            description={
+              "詳細ページの先頭に表示されます。\nJPG / PNG を1つ選択できます。"
+            }
+          >
+            <FileDropZone
+              id={getFieldId("eventImage")}
+              accept="image/jpeg,image/png"
+              files={formState.eventImage ? [formState.eventImage] : []}
+              onFilesChange={(files) =>
+                setField("eventImage", files[0] ?? null)
+              }
+              promptLabel="クリックまたはドラッグで画像をアップロード"
+              hint={`1ファイル ${toMegabytes(MAX_IMAGE_BYTES)}MB まで`}
+              validate={(file) => validateUploadFile(file, "image")}
+            />
+          </FormCard>
+        </div>
 
-        <FormCard
-          title="イベント資料"
-          description={`しおり、アクセスマップ、同意書など、まとめてアップロードできます。\n最大${MAX_EVENT_PDF_COUNT}つまでのPDFファイルを選択できます。`}
-        >
-          <FileDropZone
-            id={getFieldId("eventDocuments")}
-            accept="application/pdf"
-            files={formState.eventDocuments}
-            onFilesChange={(files) => setField("eventDocuments", files)}
-            maxFiles={MAX_EVENT_PDF_COUNT}
-            promptLabel="クリックまたはドラッグでPDFをアップロード"
-            hint={`1ファイル ${toMegabytes(MAX_PDF_BYTES)}MB まで`}
-            validate={(file) => validateUploadFile(file, "pdf")}
-          />
-        </FormCard>
+        <div id={EVENT_DOCUMENTS_CARD_ID}>
+          <FormCard
+            title="イベント資料"
+            description={`しおり、アクセスマップ、同意書など、まとめてアップロードできます。\n最大${MAX_EVENT_PDF_COUNT}つまでのPDFファイルを選択できます。`}
+          >
+            <FileDropZone
+              id={getFieldId("eventDocuments")}
+              accept="application/pdf"
+              files={formState.eventDocuments}
+              onFilesChange={(files) => setField("eventDocuments", files)}
+              maxFiles={MAX_EVENT_PDF_COUNT}
+              promptLabel="クリックまたはドラッグでPDFをアップロード"
+              hint={`1ファイル ${toMegabytes(MAX_PDF_BYTES)}MB まで`}
+              validate={(file) => validateUploadFile(file, "pdf")}
+            />
+          </FormCard>
+        </div>
       </div>
 
       <div id={EVENT_OVERVIEW_SECTION_ID} className="scroll-mt-20">
