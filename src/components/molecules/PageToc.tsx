@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 
+import {
+  CURRENT_SECTION_BAND_BOTTOM_PERCENT,
+  CURRENT_SECTION_BAND_TOP_PX,
+} from "@/constants/config";
 import { cn } from "@/lib/utils";
+import { isScrolledToBottom } from "@/utils/scroll";
 
 // 目次の1項目。id は対応するセクション要素の id 属性と一致させる。
 export type PageTocSection = {
@@ -34,7 +39,7 @@ export function PageToc({ sections, className }: Readonly<PageTocProps>) {
       return;
     }
 
-    // 画面上部付近の帯（-96px 〜 上から30%の位置）に入っているセクションを
+    // 画面上部付近の帯（CURRENT_SECTION_BAND_* の範囲）に入っているセクションを
     // 現在地とみなす。複数該当した場合は目次の並び順で一番上のものを採用する。
     const visibleIds = new Set<string>();
     const lastSectionId = sections[sections.length - 1].id;
@@ -54,7 +59,10 @@ export function PageToc({ sections, className }: Readonly<PageTocProps>) {
           setActiveId(current.id);
         }
       },
-      { rootMargin: "-96px 0px -70% 0px", threshold: 0 },
+      {
+        rootMargin: `-${CURRENT_SECTION_BAND_TOP_PX}px 0px -${100 - CURRENT_SECTION_BAND_BOTTOM_PERCENT}% 0px`,
+        threshold: 0,
+      },
     );
 
     sectionElements.forEach((element) => {
@@ -71,10 +79,7 @@ export function PageToc({ sections, className }: Readonly<PageTocProps>) {
       }
       ticking = true;
       requestAnimationFrame(() => {
-        const isAtBottom =
-          window.innerHeight + window.scrollY >=
-          document.documentElement.scrollHeight - 2;
-        if (isAtBottom) {
+        if (isScrolledToBottom()) {
           setActiveId(lastSectionId);
         }
         ticking = false;
