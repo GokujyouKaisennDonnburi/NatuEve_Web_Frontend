@@ -2,7 +2,6 @@
 
 import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { FilterTag } from "@/components/atoms/FilterTag";
-import { Button } from "@/components/ui/button";
 import type { TagItem } from "@/types/tag";
 import type { ResolvedEventStatus } from "@/utils/eventStatus";
 import { ROUTES } from "@/constants/routes";
@@ -108,7 +107,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       {/* Vertical divider spans content area */}
       <div className="mt-3 h-px w-full shrink-0 bg-black sm:mt-[21px] sm:h-[88px] sm:w-px" />
 
-      {/* Right column: Tags / Title+Button / Location+Organizer */}
+      {/* Right column: Tags / Title / Location+Organizer */}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Tags area with fixed height, empty space when no tags */}
         <div className="mt-3 flex min-h-6 items-center sm:ml-[26px] sm:mt-[21px] sm:h-[24px]">
@@ -122,7 +121,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
         </div>
 
         {/* Title at card center y=66 */}
-        <h3 className="mt-2 line-clamp-2 text-[18px] font-bold leading-7 text-[#272E24] sm:ml-[26px] sm:mt-[7px] sm:line-clamp-1 sm:pr-[186px] sm:text-[19px]">
+        <h3 className="mt-2 line-clamp-2 text-[18px] font-bold leading-7 text-[#272E24] sm:ml-[26px] sm:mt-[7px] sm:line-clamp-1 sm:text-[19px]">
           {event.title}
         </h3>
 
@@ -159,18 +158,6 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
             </span>
           </button>
         </div>
-
-        {/* Detail button at y: 46 (center at 66) */}
-        <Button
-          type="button"
-          className="static mt-4 h-10 w-full rounded-full bg-[#97C459] text-sm font-bold leading-5 text-[#1E2C10] hover:bg-[#97C459]/90 sm:absolute sm:right-[25px] sm:top-[46px] sm:mt-0 sm:w-[114px]"
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push(`/event/${event.id}`);
-          }}
-        >
-          詳細を見る
-        </Button>
       </div>
     </a>
   );
