@@ -1,23 +1,22 @@
 "use client";
 
+import { DESKTOP_MEDIA_QUERY } from "@/constants/config";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 type FilterDrawerProps = {
   isOpen: boolean;
   onClose: () => void;
   // FilterIconButton の aria-controls と関連付けるための ID
   id?: string;
-  // 呼び出し側のレイアウト(グリッド配置・デスクトップ時のサイドバー化)は className で受け取る
-  className?: string;
   children: ReactNode;
 };
 
 // 狭い画面(縦長比率)では左からスライドインするオーバーレイとして、
-// 広い画面(横長比率: globals.css の desktop バリアントと同じ 4:3 以上)では
-// className で渡されたサイドバーとして表示する容器。
+// 広い画面(横長比率: globals.css の desktop バリアントと同じ値)では
+// サイドバーとして表示する容器。
 // 中身(children)は単一インスタンスのまま描画されるため、
 // ドロワーとサイドバーでチェックボックスの id が重複しない。
 // aside は表示/非表示の display 切替ではなく常時描画とすることで、
@@ -26,15 +25,16 @@ export function FilterDrawer({
   isOpen,
   onClose,
   id,
-  className,
   children,
 }: Readonly<FilterDrawerProps>) {
   // globals.css の desktop バリアントと同じクエリで CSS/JS の挙動を揃える
-  const isDesktop = useMediaQuery("(min-aspect-ratio: 4/3)");
+  const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY);
   // オーバーレイ(ドロワー)として振る舞うのは狭い画面で開いている間のみ
   const isOverlay = isOpen && !isDesktop;
   // サイドバー(デスクトップ)または開いたドロワーとして操作可能な状態か
   const isInteractive = isOpen || isDesktop;
+
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useScrollLock(isOverlay);
 
@@ -44,15 +44,70 @@ export function FilterDrawer({
     if (isOpen && isDesktop) onClose();
   }, [isOpen, isDesktop, onClose]);
 
-  // Escape キーでも閉じられるようにする
+  // オーバーレイ表示中はモーダルと同様のフォーカス管理を行う。
+  // 開時にパネルへフォーカスし、Tab をパネル内でトラップ、閉時に開いた元の要素へ復帰する。
+  // 既存のモーダル(LegalDocumentModal)と同じパターン。
   useEffect(() => {
     if (!isOverlay) return;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+    const previousFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    previousFocus?.blur();
+
+    const getFocusableElements = () => {
+      if (!panelRef.current) return [];
+
+      return Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      );
     };
+
+    const focusableElements = getFocusableElements();
+    (focusableElements[0] ?? panelRef.current)?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const elements = getFocusableElements();
+      if (elements.length === 0) return;
+
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      const activeElement = document.activeElement;
+      const isInsideDialog =
+        activeElement instanceof HTMLElement &&
+        panelRef.current?.contains(activeElement) === true;
+
+      if (!isInsideDialog) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+        return;
+      }
+
+      if (event.shiftKey && activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
   }, [isOverlay, onClose]);
 
   return (
@@ -62,8 +117,8 @@ export function FilterDrawer({
       inert={!isInteractive}
       className={cn(
         "fixed inset-0 z-50",
-        className,
         isInteractive ? "pointer-events-auto" : "pointer-events-none",
+        "desktop:sticky desktop:top-20 desktop:z-auto desktop:block desktop:w-(--filter-sidebar-width)",
       )}
     >
       {/* バックドロップ: 押下で閉じる */}
@@ -79,10 +134,17 @@ export function FilterDrawer({
 
       {/* パネル: 左からスライドイン。デスクトップではサイドバーの中身としてその場に表示 */}
       <div
+        ref={panelRef}
+        tabIndex={-1}
+        // オーバーレイ表示時はモーダル相当のため dialog として読み上げさせる。
+        // role を静的に書くと Biome の a11y チェックが未指定時の aria-modal を検出するため動的に付与する
+        {...(isOverlay
+          ? { role: "dialog", "aria-modal": "true", "aria-label": "絞り込み" }
+          : {})}
         className={cn(
-          "absolute inset-y-0 left-0 w-[342px] max-w-[85vw] overflow-y-auto bg-white shadow-xl transition-transform duration-200 ease-out",
+          "absolute inset-y-0 left-0 w-(--filter-sidebar-width) max-w-[85vw] overflow-y-auto bg-white shadow-xl outline-none transition-transform duration-200 ease-out",
           isOverlay ? "translate-x-0" : "-translate-x-full",
-          "desktop:static desktop:w-auto desktop:max-w-none desktop:translate-x-0 desktop:bg-transparent desktop:shadow-none desktop:overflow-visible",
+          "desktop:static desktop:w-auto desktop:max-h-[calc(100dvh_-_5rem)] desktop:max-w-none desktop:translate-x-0 desktop:bg-transparent desktop:shadow-none",
         )}
       >
         {children}
