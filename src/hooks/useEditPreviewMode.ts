@@ -88,7 +88,7 @@ export function useEditPreviewMode(
   return {
     mode,
     changeMode,
-    // 切替部品のラッパーに付ける。切替の操作でフォーカスが移る前に、フォーカス中の要素を記録する
+    // 切替部品（EditPreviewSwitch）に渡す。切替の操作でフォーカスが移る前に、フォーカス中の要素を記録する
     switchCaptureHandlers: {
       onPointerDownCapture: rememberFocusBeforeSwitch,
       onKeyDownCapture: rememberFocusBeforeSwitch,

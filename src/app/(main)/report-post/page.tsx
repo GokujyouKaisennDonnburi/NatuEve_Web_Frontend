@@ -1,12 +1,11 @@
 "use client";
 
-import { Eye } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { SegmentControl } from "@/components/atoms/SegmentControl";
 import { useAuthContext } from "@/components/layouts/AuthProvider";
+import { EditPreviewSwitch } from "@/components/molecules/EditPreviewSwitch";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import type { ReportPostFormState } from "@/components/organisms/report-post/ReportPostForm";
@@ -289,23 +288,8 @@ function ReportPostPageContent() {
         />
       </div>
 
-      {/* 入力/プレビュー切替。スクロール中も画面右上に固定で表示する。
-          イベント投稿画面と同じ位置・見た目に揃える。
-          フル画面時にフォーム項目の右上へ重ならないよう、
-          max-w-5xl の右端ではなく画面（main の内容幅）の右端へ寄せる。
-          ラッパーを全幅にすると固定中の帯が下の入力欄のクリックを妨げるため、
-          w-fit + ml-auto でピルの幅だけに縮める。 */}
-      <div className="sticky top-20 z-30 ml-auto w-fit">
-        <SegmentControl
-          value={mode}
-          onChange={setMode}
-          aria-label="入力とプレビューの切り替え"
-          options={[
-            { value: "edit", label: "入力" },
-            { value: "preview", label: "プレビュー", icon: Eye },
-          ]}
-        />
-      </div>
+      {/* 入力/プレビュー切替。イベント投稿画面と同じ部品で、位置・見た目を揃える。 */}
+      <EditPreviewSwitch mode={mode} onChange={setMode} />
 
       <div className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
         {/* イベント情報表示 */}

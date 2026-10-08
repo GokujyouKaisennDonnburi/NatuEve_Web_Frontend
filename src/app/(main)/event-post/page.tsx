@@ -1,12 +1,11 @@
 "use client";
 
-import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
 import { PillButton } from "@/components/atoms/PillButton";
-import { SegmentControl } from "@/components/atoms/SegmentControl";
 import { useAuthContext } from "@/components/layouts/AuthProvider";
+import { EditPreviewSwitch } from "@/components/molecules/EditPreviewSwitch";
 import {
   EVENT_DETAIL_ATTACHMENTS_SECTION_ID,
   EVENT_DETAIL_TOC_SECTIONS,
@@ -78,25 +77,11 @@ export default function EventPostPage() {
           backLabel="イベント一覧にもどる"
         />
       </div>
-      {/* 入力/プレビュー切替。スクロール中も画面右上に固定で表示する。
-          フル画面時にフォーム項目の右上へ重ならないよう、
-          max-w-5xl の右端ではなく画面（main の内容幅）の右端へ寄せる。
-          ラッパーを全幅にすると固定中の帯が下の入力欄や目次のクリックを妨げるため、
-          w-fit + ml-auto でピルの幅だけに縮める。 */}
-      <div
-        className="sticky top-20 z-30 ml-auto w-fit"
+      <EditPreviewSwitch
+        mode={mode}
+        onChange={changeMode}
         {...switchCaptureHandlers}
-      >
-        <SegmentControl
-          value={mode}
-          onChange={changeMode}
-          aria-label="入力とプレビューの切り替え"
-          options={[
-            { value: "edit", label: "入力" },
-            { value: "preview", label: "プレビュー", icon: Eye },
-          ]}
-        />
-      </div>
+      />
       <div className="mx-auto w-full max-w-5xl">
         <form
           onSubmit={handleSubmit}
