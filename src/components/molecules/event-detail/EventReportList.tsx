@@ -167,7 +167,7 @@ function ReportCard({
                     href={normalizeAssetUrl(url)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-stretch gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:px-4"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 transition hover:shadow-md"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50">
