@@ -18,11 +18,15 @@ export function EventTagList({ tags, className }: Readonly<EventTagListProps>) {
 
   return (
     <ul
-      className={cn("flex flex-wrap items-center gap-2", className)}
+      className={cn(
+        // 縦長画面では折返さず1行にして横スクロールさせる(sm以上は従来どおり折返し)
+        "flex w-full min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:w-auto sm:flex-wrap sm:overflow-visible sm:pb-0",
+        className,
+      )}
       aria-label="イベントタグ"
     >
       {safeTags.map((tag) => (
-        <li key={tag.id}>
+        <li key={tag.id} className="shrink-0">
           <FilterTag
             label={tag.name}
             title={tag.name}
