@@ -193,6 +193,7 @@ export default function EventListPage() {
           id="event-list-filters"
         >
           <FilterSidebar
+            className="desktop:max-h-(--filter-sidebar-max-height) desktop:overflow-y-auto desktop:overscroll-contain desktop:[scrollbar-width:none] desktop:[&::-webkit-scrollbar]:hidden"
             allTags={allTags}
             frequentTags={frequentTags}
             tagFilterKey={filterResetKey}

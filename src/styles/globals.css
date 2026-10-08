@@ -83,6 +83,21 @@
     var(--search-bar-height)
   );
 
+  /* イベント一覧の絞り込みサイドバー(FilterDrawer)の粘着位置と最大高さ。
+     粘着位置は固定コントロール帯の下端から --filter-sidebar-gap 空けた位置、
+     最大高さは粘着位置の下端から画面下端まで同量の余白を除いた高さ。
+     上下の余白を共有し、値の変更時も両者が追随する */
+  --filter-sidebar-gap: 16px;
+  --filter-sidebar-top: calc(
+    var(--event-list-controls-bottom) +
+    var(--filter-sidebar-gap)
+  );
+  --filter-sidebar-max-height: calc(
+    100dvh -
+    var(--filter-sidebar-top) -
+    var(--filter-sidebar-gap)
+  );
+
   /* 入力欄の枠線。青みのある slate ではなく、ブランドに合わせた緑寄りのグレー。
      色相は #cdd4c8 のまま、視認性のために暗さだけを上げている。
      白背景に対するコントラスト比の目安:

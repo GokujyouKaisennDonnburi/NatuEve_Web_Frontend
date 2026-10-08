@@ -121,10 +121,11 @@ export function FilterDrawer({
         "fixed inset-0 z-50",
         isInteractive ? "pointer-events-auto" : "pointer-events-none",
         // デスクトップ時の粘着位置は、ヘッダー直下に粘着する
-        // 固定コントロール帯(EventListControls)の下端+16pxとする。
-        // 帯は背景を持たず検索バー等のコントロールが直接見える設計のため、
+        // 固定コントロール帯(EventListControls)の下端+余白(globals.css の
+        // --filter-sidebar-top)とする。帯は背景を持たず検索バー等の
+        // コントロールが直接見える設計のため、
         // これより上に粘着するとサイドバーがコントロールと重なって視認性が悪化する
-        "desktop:sticky desktop:top-[calc(var(--event-list-controls-bottom)_+_16px)] desktop:z-auto desktop:block desktop:w-(--filter-sidebar-width)",
+        "desktop:sticky desktop:top-(--filter-sidebar-top) desktop:z-auto desktop:block desktop:w-(--filter-sidebar-width)",
       )}
     >
       {/* バックドロップ: 押下で閉じる */}
@@ -149,9 +150,14 @@ export function FilterDrawer({
           : {})}
         className={cn(
           "absolute inset-y-0 left-0 w-(--filter-sidebar-width) max-w-[85vw] overflow-y-auto bg-white shadow-xl outline-none transition-transform duration-200 ease-out",
-          isOverlay ? "translate-x-0" : "-translate-x-full",
-          // max-h は粘着位置の下端(パネル下端+16px)と画面下端の余白16pxを除いた高さ
-          "desktop:static desktop:w-auto desktop:max-h-[calc(100dvh_-_var(--event-list-controls-bottom)_-_32px)] desktop:max-w-none desktop:translate-x-0 desktop:bg-transparent desktop:shadow-none",
+          // ドロワー(オーバーレイ)表示中はパネルがスクロールするため、スクロールバーを非表示にする。
+          // デスクトップのスクロールはカード側が所有し、パネルは overflow-y-visible のため対象外
+          isOverlay
+            ? "translate-x-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            : "-translate-x-full",
+          // max-h はカード側(FilterSidebar)が持ち、パネルはクリップしない。
+          // これによりスクロール所有者をカードに一本化し、カードの影・角丸を維持する
+          "desktop:static desktop:w-auto desktop:max-w-none desktop:translate-x-0 desktop:overflow-y-visible desktop:bg-transparent desktop:shadow-none",
         )}
       >
         {children}
