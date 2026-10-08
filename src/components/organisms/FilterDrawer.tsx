@@ -150,8 +150,9 @@ export function FilterDrawer({
         className={cn(
           "absolute inset-y-0 left-0 w-(--filter-sidebar-width) max-w-[85vw] overflow-y-auto bg-white shadow-xl outline-none transition-transform duration-200 ease-out",
           isOverlay ? "translate-x-0" : "-translate-x-full",
-          // max-h は粘着位置の下端(パネル下端+16px)と画面下端の余白16pxを除いた高さ
-          "desktop:static desktop:w-auto desktop:max-h-[calc(100dvh_-_var(--event-list-controls-bottom)_-_32px)] desktop:max-w-none desktop:translate-x-0 desktop:bg-transparent desktop:shadow-none",
+          // max-h はカード側(FilterSidebar)が持ち、パネルはクリップしない。
+          // これによりスクロール所有者をカードに一本化し、カードの影・角丸を維持する
+          "desktop:static desktop:w-auto desktop:max-w-none desktop:translate-x-0 desktop:overflow-y-visible desktop:bg-transparent desktop:shadow-none",
         )}
       >
         {children}
