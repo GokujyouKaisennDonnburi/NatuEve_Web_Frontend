@@ -6,6 +6,7 @@ import { StatusFilter } from "@/components/molecules/StatusFilter";
 import { PriceFilter } from "@/components/molecules/PriceFilter";
 import { cn } from "@/lib/utils";
 import type { TagItem } from "@/types/tag";
+import { useId } from "react";
 
 type FilterSidebarProps = {
   className?: string;
@@ -66,15 +67,23 @@ export function FilterSidebar({
   onClear,
   onApply,
 }: Readonly<FilterSidebarProps>) {
+  const headingId = useId();
+
   return (
-    <div
+    <section
+      aria-labelledby={headingId}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: キーボードで絞り込みエリアをスクロールできるようにするため
+      tabIndex={0}
       className={cn(
-        "bg-white border border-[#E3E8DF] rounded-[16px] shadow-[0px_2px_6px_rgba(39,46,36,0.08),0px_12px_28px_rgba(39,46,36,0.1)]",
+        "bg-white border border-[#E3E8DF] rounded-[16px] shadow-[0px_2px_6px_rgba(39,46,36,0.08),0px_12px_28px_rgba(39,46,36,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand-green)/30",
         className,
       )}
     >
       <div className="flex items-center justify-between h-[62px] px-5 border-b border-[#F1F4EE]">
-        <h2 className="text-[17px] font-bold leading-[25px] text-[#272E24]">
+        <h2
+          id={headingId}
+          className="text-[17px] font-bold leading-[25px] text-[#272E24]"
+        >
           絞り込み
         </h2>
         <button
@@ -139,6 +148,6 @@ export function FilterSidebar({
           絞り込み
         </button>
       </div>
-    </div>
+    </section>
   );
 }

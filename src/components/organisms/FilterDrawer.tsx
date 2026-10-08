@@ -121,10 +121,11 @@ export function FilterDrawer({
         "fixed inset-0 z-50",
         isInteractive ? "pointer-events-auto" : "pointer-events-none",
         // デスクトップ時の粘着位置は、ヘッダー直下に粘着する
-        // 固定コントロール帯(EventListControls)の下端+16pxとする。
-        // 帯は背景を持たず検索バー等のコントロールが直接見える設計のため、
+        // 固定コントロール帯(EventListControls)の下端+余白(globals.css の
+        // --filter-sidebar-top)とする。帯は背景を持たず検索バー等の
+        // コントロールが直接見える設計のため、
         // これより上に粘着するとサイドバーがコントロールと重なって視認性が悪化する
-        "desktop:sticky desktop:top-[calc(var(--event-list-controls-bottom)_+_16px)] desktop:z-auto desktop:block desktop:w-(--filter-sidebar-width)",
+        "desktop:sticky desktop:top-(--filter-sidebar-top) desktop:z-auto desktop:block desktop:w-(--filter-sidebar-width)",
       )}
     >
       {/* バックドロップ: 押下で閉じる */}
