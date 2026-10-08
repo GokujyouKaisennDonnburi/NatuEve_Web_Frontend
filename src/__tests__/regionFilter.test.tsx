@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { RegionFilter } from "@/components/molecules/RegionFilter";
 
 afterEach(cleanup);
@@ -11,12 +11,18 @@ function Harness({
   initialRegions = [],
   initialPrefectures = [],
   initialCities = [],
+  expandedRegions = ["北海道", "東北"],
   expandedPrefectures = ["福島県"],
+  onToggleRegion,
+  onTogglePrefecture,
 }: {
   initialRegions?: string[];
   initialPrefectures?: string[];
   initialCities?: string[];
+  expandedRegions?: string[];
   expandedPrefectures?: string[];
+  onToggleRegion?: (region: string) => void;
+  onTogglePrefecture?: (prefecture: string) => void;
 }) {
   const [regions, setRegions] = useState<string[]>(initialRegions);
   const [prefectures, setPrefectures] = useState<string[]>(initialPrefectures);
@@ -30,8 +36,10 @@ function Harness({
       onRegionsChange={setRegions}
       onPrefecturesChange={setPrefectures}
       onCitiesChange={setCities}
-      expandedRegions={["北海道", "東北"]}
+      expandedRegions={expandedRegions}
       expandedPrefectures={expandedPrefectures}
+      onToggleRegion={onToggleRegion}
+      onTogglePrefecture={onTogglePrefecture}
     />
   );
 }
@@ -124,5 +132,81 @@ describe("RegionFilter", () => {
     fireEvent.click(filterCheckbox("福島県"));
     expect(isChecked(filterCheckbox("福島県"))).toBe(false);
     expect(isIndeterminate(filterCheckbox("東北（地方）"))).toBe(true);
+  });
+
+  it("地方を選択・選択解除してもトグルは自動で開閉しない", () => {
+    const onToggleRegion = vi.fn();
+    render(<Harness expandedRegions={[]} onToggleRegion={onToggleRegion} />);
+
+    // 折りたたまれた状態では配下の都道府県は表示されない
+    expect(
+      screen.queryByRole("checkbox", { name: "福島県" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(filterCheckbox("東北（地方）"));
+    expect(isChecked(filterCheckbox("東北（地方）"))).toBe(true);
+    expect(onToggleRegion).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("checkbox", { name: "福島県" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(filterCheckbox("東北（地方）"));
+    expect(isChecked(filterCheckbox("東北（地方）"))).toBe(false);
+    expect(onToggleRegion).not.toHaveBeenCalled();
+  });
+
+  it("展開済みの地方を選択しても開いたままになる", () => {
+    render(<Harness expandedRegions={["東北"]} />);
+
+    expect(filterCheckbox("福島県")).toBeInTheDocument();
+
+    fireEvent.click(filterCheckbox("東北（地方）"));
+    expect(isChecked(filterCheckbox("東北（地方）"))).toBe(true);
+    expect(filterCheckbox("福島県")).toBeInTheDocument();
+  });
+
+  it("都道府県を選択・選択解除してもトグルは自動で開閉しない", () => {
+    const onTogglePrefecture = vi.fn();
+    render(
+      <Harness
+        expandedRegions={["東北"]}
+        expandedPrefectures={[]}
+        onTogglePrefecture={onTogglePrefecture}
+      />,
+    );
+
+    // 都道府県行は表示されているが、配下の市区町村は折りたたまれている
+    expect(
+      screen.queryByRole("checkbox", { name: "福島県伊達市" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(filterCheckbox("福島県"));
+    expect(isChecked(filterCheckbox("福島県"))).toBe(true);
+    expect(onTogglePrefecture).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("checkbox", { name: "福島県伊達市" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(filterCheckbox("福島県"));
+    expect(isChecked(filterCheckbox("福島県"))).toBe(false);
+    expect(onTogglePrefecture).not.toHaveBeenCalled();
+  });
+
+  it("トグル開閉コールバックは展開ボタンの操作時のみ呼ばれる", () => {
+    const onToggleRegion = vi.fn();
+    const onTogglePrefecture = vi.fn();
+    render(
+      <Harness
+        onToggleRegion={onToggleRegion}
+        onTogglePrefecture={onTogglePrefecture}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "東北（地方）を展開" }));
+    expect(onToggleRegion).toHaveBeenCalledWith("東北");
+    expect(onTogglePrefecture).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "福島県 を展開" }));
+    expect(onTogglePrefecture).toHaveBeenCalledWith("福島県");
   });
 });
