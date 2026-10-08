@@ -42,10 +42,12 @@ export function SegmentControl<T extends string>({
         const Icon = option.icon;
 
         return (
+          // 中のラジオは sr-only で見えないため、キーボードでフォーカスしたときは
+          // label に輪郭を出して現在位置を示す（SortButton と同じ指定）
           <label
             key={option.value}
             className={cn(
-              "relative inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all",
+              "relative inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-(--brand-green)/30",
               isActive
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-700",
