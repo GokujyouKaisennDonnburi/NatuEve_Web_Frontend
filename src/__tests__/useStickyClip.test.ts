@@ -42,7 +42,9 @@ describe("useStickyClip", () => {
     stubRect(bar.element, { top: 56, bottom: 174 });
     stubRect(content.element, { top: 100, bottom: 1200 });
 
-    renderHook(() => useStickyClip({ barRef: bar.ref, contentRef: content.ref }));
+    renderHook(() =>
+      useStickyClip({ barRef: bar.ref, contentRef: content.ref }),
+    );
 
     expect(content.element.style.clipPath).toBe("inset(74px 0 0 0)");
   });
@@ -53,7 +55,9 @@ describe("useStickyClip", () => {
     stubRect(bar.element, { top: 56, bottom: 130 });
     stubRect(content.element, { top: 200, bottom: 1400 });
 
-    renderHook(() => useStickyClip({ barRef: bar.ref, contentRef: content.ref }));
+    renderHook(() =>
+      useStickyClip({ barRef: bar.ref, contentRef: content.ref }),
+    );
 
     expect(content.element.style.clipPath).toBe("");
   });
@@ -64,7 +68,9 @@ describe("useStickyClip", () => {
     stubRect(bar.element, { top: 56, bottom: 130 });
     stubRect(content.element, { top: 200, bottom: 1400 });
 
-    renderHook(() => useStickyClip({ barRef: bar.ref, contentRef: content.ref }));
+    renderHook(() =>
+      useStickyClip({ barRef: bar.ref, contentRef: content.ref }),
+    );
 
     expect(content.element.style.clipPath).toBe("");
 
