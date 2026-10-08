@@ -197,7 +197,7 @@ export default function EventListPage() {
           isOpen={isFilterOpen}
           onClose={() => setIsFilterOpen(false)}
           id="event-list-filters"
-          className="desktop:sticky desktop:top-20 desktop:z-auto desktop:block desktop:w-[342px]"
+          className="desktop:sticky desktop:inset-auto desktop:top-20 desktop:z-auto desktop:block desktop:w-[342px]"
         >
           <FilterSidebar
             allTags={allTags}

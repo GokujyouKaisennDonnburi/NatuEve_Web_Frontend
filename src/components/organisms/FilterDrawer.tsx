@@ -1,7 +1,7 @@
 "use client";
 
-import { useScrollLock } from "@/hooks/useScrollLock";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils";
 import { useEffect, type ReactNode } from "react";
 
@@ -20,6 +20,8 @@ type FilterDrawerProps = {
 // className で渡されたサイドバーとして表示する容器。
 // 中身(children)は単一インスタンスのまま描画されるため、
 // ドロワーとサイドバーでチェックボックスの id が重複しない。
+// aside は表示/非表示の display 切替ではなく常時描画とすることで、
+// スライドイン/アウトの transition を有効に保つ。
 export function FilterDrawer({
   isOpen,
   onClose,
@@ -27,10 +29,14 @@ export function FilterDrawer({
   className,
   children,
 }: Readonly<FilterDrawerProps>) {
-  // デスクトップではドロワーではなくサイドバーとして表示されるためスクロールロックは不要
   // globals.css の desktop バリアントと同じクエリで CSS/JS の挙動を揃える
   const isDesktop = useMediaQuery("(min-aspect-ratio: 4/3)");
-  useScrollLock(isOpen && !isDesktop);
+  // オーバーレイ(ドロワー)として振る舞うのは狭い画面で開いている間のみ
+  const isOverlay = isOpen && !isDesktop;
+  // サイドバー(デスクトップ)または開いたドロワーとして操作可能な状態か
+  const isInteractive = isOpen || isDesktop;
+
+  useScrollLock(isOverlay);
 
   // デスクトップへリサイズした際はドロワーの役目を終えるため自動で閉じる。
   // これにより開いたままの fixed オーバーレイとサイドバー表示の競合を防ぐ
@@ -40,25 +46,28 @@ export function FilterDrawer({
 
   // Escape キーでも閉じられるようにする
   useEffect(() => {
-    if (!isOpen || isDesktop) return;
+    if (!isOverlay) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isDesktop, onClose]);
+  }, [isOverlay, onClose]);
 
   return (
     <aside
       id={id}
+      // 閉じている間は画面外に退避したドロワーへ操作が届かないよう inert 化する
+      inert={!isInteractive}
       className={cn(
-        isOpen ? "fixed inset-0 z-50" : "hidden",
+        "fixed inset-0 z-50",
         className,
+        isInteractive ? "pointer-events-auto" : "pointer-events-none",
       )}
     >
       {/* バックドロップ: 押下で閉じる */}
-      {isOpen && (
+      {isOverlay && (
         <button
           type="button"
           aria-hidden="true"
@@ -72,7 +81,7 @@ export function FilterDrawer({
       <div
         className={cn(
           "absolute inset-y-0 left-0 w-[342px] max-w-[85vw] overflow-y-auto bg-white shadow-xl transition-transform duration-200 ease-out",
-          isOpen ? "translate-x-0" : "-translate-x-full",
+          isOverlay ? "translate-x-0" : "-translate-x-full",
           "desktop:static desktop:w-auto desktop:max-w-none desktop:translate-x-0 desktop:bg-transparent desktop:shadow-none desktop:overflow-visible",
         )}
       >
