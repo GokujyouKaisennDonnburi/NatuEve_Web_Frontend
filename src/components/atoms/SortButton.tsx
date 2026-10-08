@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { ArrowUpDown } from "lucide-react";
 
-type SortOption = {
+export type SortOption = {
   value: string;
   label: string;
 };

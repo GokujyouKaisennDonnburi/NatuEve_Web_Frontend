@@ -63,6 +63,26 @@
      絞り込みボタンの sticky 位置など、ヘッダー直下に揃えたい要素で使う */
   --site-header-height: 108px;
 
+  /* イベント一覧の検索バー(SearchBar)の高さ。TSX のクラスと二重管理しないため、
+     高さは必ずこの変数から参照する */
+  --search-bar-height: 54px;
+
+  /* イベント一覧の固定コントロール帯(EventListControls)とヘッダー・
+     コンテンツの間に設けるマージン。上下で同値を使う */
+  --event-list-controls-gap: 8px;
+
+  /* イベント一覧の固定コントロール帯(検索バー・並び替え・絞り込みボタン)の
+     下端位置。帯はヘッダー直下から --event-list-controls-gap 空けて粘着し
+     (EventListControls の粘着位置と同値)、横長比率での高さは検索バーの高さ。
+     絞り込みサイドバー(FilterDrawer)の粘着位置を帯と重ならないよう
+     算出するために使う。縦長比率では帯が2行になり高さが変わるが、
+     サイドバーは横長比率でのみ粘着するため影響しない */
+  --event-list-controls-bottom: calc(
+    var(--site-header-height) +
+    var(--event-list-controls-gap) +
+    var(--search-bar-height)
+  );
+
   /* 入力欄の枠線。青みのある slate ではなく、ブランドに合わせた緑寄りのグレー。
      色相は #cdd4c8 のまま、視認性のために暗さだけを上げている。
      白背景に対するコントラスト比の目安:

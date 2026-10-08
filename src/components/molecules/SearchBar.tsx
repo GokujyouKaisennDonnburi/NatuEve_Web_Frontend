@@ -34,9 +34,11 @@ export function SearchBar({
   };
 
   return (
+    // 高さは globals.css の --search-bar-height が単一のソース。
+    // FilterDrawer の粘着位置計算も同変数に依存するため、直接の数値指定はしない
     <div
       className={cn(
-        "flex items-center h-[54px] w-full bg-white border border-[#E3E8DF] shadow-[0px_1px_2px_rgba(39,46,36,0.05)] rounded-full",
+        "flex items-center h-(--search-bar-height) w-full bg-white border border-[#E3E8DF] shadow-[0px_1px_2px_rgba(39,46,36,0.05)] rounded-full",
         className,
       )}
     >
