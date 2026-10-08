@@ -17,6 +17,8 @@ export type EditPreviewMode = "edit" | "preview";
 // - プレビュー表示中の送信で入力エラーになったら、入力へ切り替える
 // 呼び出し側の前提：
 // - 入力フォームはプレビュー中も外さずに隠して保持する（高さが変わらない前提で位置を戻すため）
+// - プレビューは最初の描画で最終的な高さになるようにする（位置合わせは描画前に1回だけ行うため）。
+//   画像の URL は画面側で事前に用意し、表示後に effect でレイアウトが変わる部品を置かない
 // - errors は送信のたびに新しいオブジェクトへ更新し、入力エラーが無ければ空にする
 export function useEditPreviewMode(
   mapping: ScrollSyncMapping,
