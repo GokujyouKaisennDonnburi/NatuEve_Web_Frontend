@@ -120,7 +120,10 @@ export function FilterDrawer({
       className={cn(
         "fixed inset-0 z-50",
         isInteractive ? "pointer-events-auto" : "pointer-events-none",
-        "desktop:sticky desktop:top-20 desktop:z-auto desktop:block desktop:w-(--filter-sidebar-width)",
+        // デスクトップ時の粘着位置は、ヘッダー直下に粘着する検索バー等の
+        // 固定コントロールパネル(EventListControls)の下端+16pxとする。
+        // パネルが不透明なため、これより上に粘着するとサイドバーがパネルの下に隠れる
+        "desktop:sticky desktop:top-[calc(var(--event-list-controls-bottom)_+_16px)] desktop:z-auto desktop:block desktop:w-(--filter-sidebar-width)",
       )}
     >
       {/* バックドロップ: 押下で閉じる */}
@@ -146,7 +149,8 @@ export function FilterDrawer({
         className={cn(
           "absolute inset-y-0 left-0 w-(--filter-sidebar-width) max-w-[85vw] overflow-y-auto bg-white shadow-xl outline-none transition-transform duration-200 ease-out",
           isOverlay ? "translate-x-0" : "-translate-x-full",
-          "desktop:static desktop:w-auto desktop:max-h-[calc(100dvh_-_5rem)] desktop:max-w-none desktop:translate-x-0 desktop:bg-transparent desktop:shadow-none",
+          // max-h は粘着位置の下端(パネル下端+16px)と画面下端の余白16pxを除いた高さ
+          "desktop:static desktop:w-auto desktop:max-h-[calc(100dvh_-_var(--event-list-controls-bottom)_-_32px)] desktop:max-w-none desktop:translate-x-0 desktop:bg-transparent desktop:shadow-none",
         )}
       >
         {children}
