@@ -53,7 +53,7 @@ function ReportPostPageContent() {
 
   // 入力 / プレビューの表示モード
   const [mode, setMode] = useState<"edit" | "preview">("edit");
-  // プレビューのヘッダー表示に使うイベント情報
+  // 対象イベントの表示とプレビューのヘッダー表示に使うイベント情報
   const [event, setEvent] = useState<EventDetailType | null>(null);
 
   // イベントIDを URL パラメータから取得
@@ -92,25 +92,6 @@ function ReportPostPageContent() {
       }
     };
     void fetchEvent();
-    return () => {
-      cancelled = true;
-    };
-  }, [eventId]);
-
-  // プレビュー表示用にイベント詳細を取得する（取得失敗時はエラーを無視して表示のみ続行）。
-  useEffect(() => {
-    if (!eventId) return;
-
-    let cancelled = false;
-
-    getEventDetail(eventId)
-      .then((data) => {
-        if (!cancelled) setEvent(data);
-      })
-      .catch((err) => {
-        console.error("イベント詳細取得エラー", err);
-      });
-
     return () => {
       cancelled = true;
     };
