@@ -1,5 +1,7 @@
 export const signinStyles = {
-  page: "fixed inset-0 flex h-dvh w-full items-center justify-center overflow-x-hidden overflow-y-auto overscroll-none bg-[url('/images/bg_common_01.png')] bg-repeat bg-size-[900px_auto] bg-slate-50/60 px-4 py-6 sm:px-6 sm:py-8",
+  page: "relative isolate flex min-h-dvh w-full items-center justify-center overflow-x-hidden px-4 py-6 sm:px-6 sm:py-8",
+  background:
+    "pointer-events-none fixed inset-0 -z-10 bg-[url('/images/bg_common_01.png')] bg-repeat bg-size-[900px_auto] bg-slate-50/60",
   card: "w-full max-w-lg rounded-[2rem] border border-slate-200/80 bg-white px-5 py-8 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.2)] sm:rounded-[2.5rem] sm:px-10 sm:py-12",
   cardHeader: "flex flex-col items-center gap-3 px-0 text-center sm:gap-4",
   title: "text-3xl font-semibold tracking-tight text-slate-950 sm:text-5xl",

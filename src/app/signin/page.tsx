@@ -58,6 +58,9 @@ export default function SignInPage() {
 
   return (
     <div className={signinStyles.page}>
+      {/* スクロール領域と分離し、画面外へのスクロール時も背景を維持する。 */}
+      <div aria-hidden="true" className={signinStyles.background} />
+
       {/* モーダル表示中は背景コンテンツを支援技術の読み上げ対象外にする */}
       <Card
         aria-hidden={isTermsOpen || isPrivacyPolicyOpen || undefined}
