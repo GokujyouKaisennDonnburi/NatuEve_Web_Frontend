@@ -294,77 +294,94 @@ function ReportPostPageContent() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
+    <section className="w-full space-y-5 sm:space-y-6">
       {/* ページヘッダー */}
-      <PageHeader
-        title="活動レポートを投稿"
-        backHref={
-          eventId ? `/event/${encodeURIComponent(eventId)}` : ROUTES.EVENT_LIST
-        }
-        backLabel="イベント詳細にもどる"
-        right={
-          <SegmentControl
-            value={mode}
-            onChange={setMode}
-            aria-label="入力とプレビューの切り替え"
-            options={[
-              { value: "edit", label: "入力" },
-              { value: "preview", label: "プレビュー", icon: Eye },
-            ]}
+      <div className="mx-auto w-full max-w-5xl">
+        <PageHeader
+          title="活動レポートを投稿"
+          backHref={
+            eventId
+              ? `/event/${encodeURIComponent(eventId)}`
+              : ROUTES.EVENT_LIST
+          }
+          backLabel="イベント詳細にもどる"
+        />
+      </div>
+
+      {/* 入力/プレビュー切替。スクロール中も画面右上に固定で表示する。
+          イベント投稿画面と同じ位置・見た目に揃える。
+          フル画面時にフォーム項目の右上へ重ならないよう、
+          max-w-5xl の右端ではなく画面（main の内容幅）の右端へ寄せる。
+          ラッパーを全幅にすると固定中の帯が下の入力欄のクリックを妨げるため、
+          w-fit + ml-auto でピルの幅だけに縮める。 */}
+      <div className="sticky top-20 z-30 ml-auto w-fit">
+        <SegmentControl
+          value={mode}
+          onChange={setMode}
+          aria-label="入力とプレビューの切り替え"
+          options={[
+            { value: "edit", label: "入力" },
+            { value: "preview", label: "プレビュー", icon: Eye },
+          ]}
+        />
+      </div>
+
+      <div className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
+        {/* イベント情報表示 */}
+        {event && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardContent className="px-4 sm:px-5">
+              <p className="text-sm font-semibold text-blue-600">
+                対象イベント
+              </p>
+
+              <h2 className="break-words text-base font-bold text-slate-900 sm:text-lg">
+                {event.title}
+              </h2>
+
+              <div className="mt-2 flex flex-col gap-1 text-sm text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-0">
+                {event.eventDate && event.endDate && (
+                  <span>
+                    {startDateLabel} {startTimeLabel}〜
+                    {isSameDay
+                      ? endTimeLabel
+                      : `${endDateLabel} ${endTimeLabel}`}
+                  </span>
+                )}
+
+                {event.location && (
+                  <span className="min-w-0 break-words">
+                    {event.eventDate && event.endDate ? (
+                      <span className="mx-2 hidden sm:inline">｜</span>
+                    ) : null}
+                    {event.location}
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* メインコンテンツ */}
+        {mode === "edit" ? (
+          <ReportPostForm
+            formState={formState}
+            validationErrors={validationErrors}
+            setFormState={setFormState}
+            onSubmit={handleSubmit}
+            onCancel={() => router.back()}
+            isSubmitting={isSubmitting}
           />
-        }
-      />
-
-      {/* イベント情報表示 */}
-      {event && (
-        <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardContent className="px-4 sm:px-5">
-            <p className="text-sm font-semibold text-blue-600">対象イベント</p>
-
-            <h2 className="break-words text-base font-bold text-slate-900 sm:text-lg">
-              {event.title}
-            </h2>
-
-            <div className="mt-2 flex flex-col gap-1 text-sm text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-0">
-              {event.eventDate && event.endDate && (
-                <span>
-                  {startDateLabel} {startTimeLabel}〜
-                  {isSameDay ? endTimeLabel : `${endDateLabel} ${endTimeLabel}`}
-                </span>
-              )}
-
-              {event.location && (
-                <span className="min-w-0 break-words">
-                  {event.eventDate && event.endDate ? (
-                    <span className="mx-2 hidden sm:inline">｜</span>
-                  ) : null}
-                  {event.location}
-                </span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* メインコンテンツ */}
-      {mode === "edit" ? (
-        <ReportPostForm
-          formState={formState}
-          validationErrors={validationErrors}
-          setFormState={setFormState}
-          onSubmit={handleSubmit}
-          onCancel={() => router.back()}
-          isSubmitting={isSubmitting}
-        />
-      ) : (
-        <ReportPostPreview
-          formState={formState}
-          event={event}
-          onSubmit={handleSubmit}
-          onCancel={() => router.back()}
-          isSubmitting={isSubmitting}
-        />
-      )}
+        ) : (
+          <ReportPostPreview
+            formState={formState}
+            event={event}
+            onSubmit={handleSubmit}
+            onCancel={() => router.back()}
+            isSubmitting={isSubmitting}
+          />
+        )}
+      </div>
     </section>
   );
 }
