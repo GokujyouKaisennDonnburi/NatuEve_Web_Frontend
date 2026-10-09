@@ -1,7 +1,7 @@
 "use client";
 
-import { EventFilterPill } from "@/components/atoms/EventFilterPill";
 import { EmptyMessage } from "@/components/atoms/EmptyMessage";
+import { EventFilterPill } from "@/components/atoms/EventFilterPill";
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
 import { useMemo, useState } from "react";
 
@@ -38,7 +38,9 @@ export function UserEventTabs({
     [isOwnProfile],
   );
 
-  const [activeTab, setActiveTab] = useState<TabKey>("hosted");
+  const [activeTab, setActiveTab] = useState<TabKey>(
+    isOwnProfile ? "applied" : "hosted",
+  );
 
   const eventMap: Record<TabKey, EventItem[]> = {
     applied: appliedEvents,
