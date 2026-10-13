@@ -79,9 +79,13 @@ export function ProfileHeader({
               placeholder="ユーザー名を入力"
               forceEdit={forceEditName}
               onConsumeForceEdit={() => setForceEditName(false)}
-              textClassName="break-words font-['Zen_Maru_Gothic'] text-xl leading-7 font-bold tracking-[0.48px] text-[#272E24] sm:truncate sm:text-[24px] sm:leading-[35px]"
+              textClassName="truncate font-['Zen_Maru_Gothic'] text-xl leading-7 font-bold tracking-[0.48px] text-[#272E24] sm:truncate sm:text-[24px] sm:leading-[35px]"
               editTrigger={(onClick) => (
-                <EditPillButton size="md" onClick={onClick} />
+                <EditPillButton
+                  size="md"
+                  onClick={onClick}
+                  className="shrink-0"
+                />
               )}
             />
           </div>
