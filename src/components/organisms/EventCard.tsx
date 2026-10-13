@@ -2,9 +2,9 @@
 
 import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { FilterTag } from "@/components/atoms/FilterTag";
+import { ROUTES } from "@/constants/routes";
 import type { TagItem } from "@/types/tag";
 import type { ResolvedEventStatus } from "@/utils/eventStatus";
-import { ROUTES } from "@/constants/routes";
 import { MapPin } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -84,7 +84,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           router.push(`/event/${event.id}`);
         }
       }}
-      className="group relative flex min-h-[250px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E3E8DF] bg-white p-4 no-underline shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md sm:h-[132px] sm:min-h-0 sm:flex-row sm:p-0"
+      className="group relative flex min-h-[200px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E3E8DF] bg-white p-4 no-underline shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md sm:h-[132px] sm:min-h-0 sm:flex-row sm:p-0"
     >
       {/* Left column: Date + Status */}
       <div className="flex w-full shrink-0 items-center gap-3 sm:w-[129px] sm:flex-col sm:gap-0">
