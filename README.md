@@ -252,6 +252,7 @@ public/mockServiceWorker.js
 
 ## ドキュメント
 
+* [デプロイ構成（docs/Deployment.md）](docs/Deployment.md)
 * [設計判断の記録 ADR（docs/adr/）](docs/adr/README.md)
 
 今後、プロジェクトの成長に合わせて以下のドキュメントを追加予定です。
