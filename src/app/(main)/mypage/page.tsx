@@ -155,10 +155,7 @@ export default function MyPage() {
           マイページ
         </h1>
 
-        <SignOutButton
-          onClick={handleSignOut}
-          disabled={isSigningOut}
-        />
+        <SignOutButton onClick={handleSignOut} disabled={isSigningOut} />
       </div>
 
       <ProfileHeader
