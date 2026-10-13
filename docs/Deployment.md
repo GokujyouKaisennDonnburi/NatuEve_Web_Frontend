@@ -57,8 +57,12 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 ## 環境変数
 
-`NEXT_PUBLIC_*` はビルド時に埋め込まれる。本番ではビルド環境の変数として設定する
+環境変数はアプリ用とビルド環境用の 2 種類に分かれる。本番ではどちらもビルド環境の変数として設定する
 （Workers Builds なら「Build variables and secrets」、GitHub Actions なら同等の環境変数。どちらを使うかは未決事項 5）。
+
+### アプリ用（`NEXT_PUBLIC_*`）
+
+ビルド時にアプリへ埋め込まれ、ブラウザに渡る。
 
 | 変数 | 本番の値 | 備考 |
 |---|---|---|
@@ -66,6 +70,13 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | ブラウザに渡る前提の値 |
 | `NEXT_PUBLIC_USE_MSW` | `false` | 本番ではモックを使わない |
+
+### ビルド環境用
+
+ビルドに使うツールの設定。アプリには埋め込まれない。
+
+| 変数 | 本番の値 | 備考 |
+|---|---|---|
 | `BUN_VERSION` | `1.2.21` | ビルド環境の既定は 1.2.15。`package.json` の `packageManager` に合わせる |
 
 - 値を変えたら再ビルドが必要。
@@ -89,7 +100,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
    `AGENTS.md` のルールにより、追加の前に確認を取る。
 2. `wrangler.jsonc` と `open-next.config.ts` を追加する。
 3. `package.json` に `preview`・`deploy` などのスクリプトを追加する。
-4. `.gitignore` に `.open-next` と `.dev.vars` を追加する（現在の `.gitignore` は `.env*` 系のみ）。
+4. `.gitignore` に `.open-next` と `.dev.vars` を追加する（`.env.local` などは登録済みだが、この 2 つは未登録）。
 5. `next.config.ts`:
    - `initOpenNextCloudflareForDev()` を呼ぶ（ローカル開発で Cloudflare のバインディングを使うため）。
    - `rewrites` を開発時だけ有効にする。

@@ -78,9 +78,13 @@ bun install
 
 ### 環境変数
 
-現在は環境変数を使用していません。
+`.env.example` をコピーして `.env.local` を作成してください。
 
-将来的に環境変数が必要になった場合は `.env.example` を元に `.env.local` を作成してください。
+```bash
+cp .env.example .env.local
+```
+
+実 API を使う場合の設定や本番の環境変数は [docs/Deployment.md](docs/Deployment.md#環境変数) を参照してください。
 
 ---
 
