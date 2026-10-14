@@ -32,7 +32,7 @@ export function EventPdfList({ pdfItems }: Readonly<EventPdfListProps>) {
         <div className="space-y-3">
           {pdfItems.map(({ source, filename }, index) => {
             // 表示名は元ファイル名。無ければURL末尾にフォールバックする
-            const displayName = filename || source.split("/").pop();
+            const displayName = filename || source.split("/").pop() || "PDF";
             return (
               <a
                 key={source || `${filename}-${index}`}
