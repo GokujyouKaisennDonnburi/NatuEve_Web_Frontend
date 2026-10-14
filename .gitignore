@@ -33,6 +33,11 @@ pnpm-debug.log*
 # Deployment
 .vercel
 
+# OpenNext (Cloudflare Workers)
+.open-next
+.dev.vars
+.wrangler
+
 # OS files
 .DS_Store
 Thumbs.db
