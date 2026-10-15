@@ -134,11 +134,13 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | 中 | 30 万 | $5 | |
 | 大 | 300 万 | $5〜 | 1 PV あたり CPU 10ms と仮定すると 3,000 万ミリ秒で、含まれる量ちょうど |
 
+- Cloudflare Images（画像最適化）の費用は上の表に含まない。無料枠を超えると Images Paid の契約が必要になる（下記参照）。
 - Workers Paid に含まれる量: リクエスト 月 1,000 万件、CPU 月 3,000 万ミリ秒。
   超過分はリクエスト 100 万件あたり $0.30、CPU 100 万ミリ秒あたり $0.02。
 - 静的ファイルの配信は無料・無制限。
 - 画像最適化は Cloudflare Images（`IMAGES` バインディング、#327）を使う: ユニーク変換 月 5,000 回まで無料。
-  超えた分は Images Paid で 1,000 変換あたり $0.50。Workers とは別のサービス・別の課金。
+  無料枠を超えると新規変換が `9422` エラーになり、画像が表示されなくなる（キャッシュ済みの変換は配信継続）。
+  有料化する場合は Images Paid を契約する（最初の 5,000 変換を含み、以降 1,000 変換あたり $0.50）。Workers とは別のサービス・別の課金。
 - 1 PV あたりの SSR の CPU 時間は未計測。
 
 ## 未決事項・今後の作業
@@ -149,7 +151,8 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
    （`wrangler.jsonc` の `images.binding`。OpenNext が推奨する有効化方法。`next.config.ts` の `images.unoptimized` は使わない）。
    - `preview` で確認済み: ヘッダーロゴ（PNG、約 1.4MB）が WebP 約 2KB、イベント画像（1200x600 の JPEG）が
      w=640 で約 19KB・w=1920 で約 125KB の WebP になる。
-   - 費用: ユニーク変換 月 5,000 回まで無料。超過分は Images Paid で 1,000 変換あたり $0.50。
+   - 費用: ユニーク変換 月 5,000 回まで無料。無料枠を超えると新規変換が `9422` エラーになり、画像が表示されなくなる
+     （キャッシュ済みの変換は配信継続）。有料化する場合は Images Paid を契約する（最初の 5,000 変換を含み、以降 1,000 変換あたり $0.50）。
    - `minimumCacheTTL` は OpenNext では未対応。OpenNext が `Cache-Control: public, max-age=315360000, immutable` を付けるのは
      `/_next/static/media*` か取得元が `immutable` の場合のみで、ヘッダーロゴ（`/images/*` の public ファイル）や R2 の画像には
      付かず、`/_next/image` は CDN にキャッシュされない（表示のたびにデコード・再エンコードが走る）。
