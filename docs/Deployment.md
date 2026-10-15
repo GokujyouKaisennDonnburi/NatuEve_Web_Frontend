@@ -149,8 +149,13 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
    - `preview` で確認済み: ヘッダーロゴ（PNG、約 1.4MB）が WebP 約 2KB、イベント画像（1200x600 の JPEG）が
      w=640 で約 19KB・w=1920 で約 125KB の WebP になる。
    - 費用: ユニーク変換 月 5,000 回まで無料。超過分は Images Paid で 1,000 変換あたり $0.50。
-   - `minimumCacheTTL` は OpenNext では未対応。変換結果は自動ではキャッシュされないため、必要になったら
-     `/_next/image` へのキャッシュルールをデプロイ時に検討する（同一変換の当月の再リクエストは追加課金されないが、Worker の CPU は消費する）。
+   - `minimumCacheTTL` は OpenNext では未対応。OpenNext が `Cache-Control: public, max-age=315360000, immutable` を付けるのは
+     `/_next/static/media*` か取得元が `immutable` の場合のみで、ヘッダーロゴ（`/images/*` の public ファイル）や R2 の画像には
+     付かず、`/_next/image` は CDN にキャッシュされない（表示のたびにデコード・再エンコードが走る）。
+     **デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` で `Cache-Control` と `cf-cache-status` を実測し、
+     付かない場合は `/_next/image*` に Cache Rule（Cache Eligibility: Eligible、Edge TTL: Override origin）を設定する
+     （またはキャッシュ不要と実測で確認する）。
+     なお `wrangler.jsonc` の `cache.enabled`（Workers Cache）は静的アセット配信まで課金対象になる副作用があるため、この用途では使わない。
    - 許可する画像の取得元: 開発用ホスト（placehold.co・picsum.photos・example.com・i.pravatar.cc）は削除し、
      モックで使う picsum.photos・i.pravatar.cc は `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
      本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
