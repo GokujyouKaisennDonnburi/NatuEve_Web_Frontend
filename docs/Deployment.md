@@ -13,7 +13,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
 | Cloudflare DNS | 独自ドメインの割り当て（`natuportal.org` のサブドメイン） | 予定（サブドメイン名は未決） |
 | Cloudflare Workers Builds | GitHub 連携による自動ビルド・デプロイ、ブランチごとのプレビュー URL | 予定（GitHub Actions と比較して決める） |
-| Cloudflare Images | `next/image` の画像最適化 | 未決 |
+| **Cloudflare Images（`IMAGES` バインディング）** | `next/image` の画像最適化 | 確定（#327） |
 
 フロントエンドの接続先（既存）:
 
@@ -50,6 +50,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | `compatibility_flags` | `nodejs_compat` を含める |
 | `assets` | `directory`: `.open-next/assets`、`binding`: `ASSETS` |
 | `services` | `WORKER_SELF_REFERENCE`（自分自身の Worker 名を指定） |
+| `images` | `binding`: `IMAGES`（Cloudflare Images で画像最適化を有効化。#327） |
 | プラン | Workers Paid |
 
 - Workers Paid の 1 リクエストあたりの CPU 上限は既定 30 秒（最大 5 分）。無料プランは 10ms。
@@ -69,7 +70,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | `NEXT_PUBLIC_API_BASE_URL` | 本番 API のオリジン | API のドメインは NatuEve_API 側で決める |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | ブラウザに渡る前提の値 |
-| `NEXT_PUBLIC_USE_MSW` | `false` | 本番ではモックを使わない |
+| `NEXT_PUBLIC_USE_MSW` | `false` | 本番ではモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327） |
 
 ### ビルド環境用
 
@@ -95,6 +96,14 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   その際、**`.env.local` にある `NEXT_PUBLIC_*` はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
   特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
   恒久対応として、#330 で CI からのデプロイに限定する。
+- **`#334`（画像の取得元の本番絞り込み）が close するまで `deploy` を実行しない。** デプロイのブロッカーとして扱う。
+  開発用ホストは `next.config.ts` から削除済みで、本番ビルド（`NEXT_PUBLIC_USE_MSW=false`）にはモック用の取得元を含めないが、
+  本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）のパス制限が #334 に残っている。
+  **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も #334 完了まで公開しない。**
+  変換枠（ユニーク変換/月）はアカウント単位で共有されるため、プレビュー経由でも本番の枠を消費しうる。
+- **`/_next/image*` のキャッシュ対応をデプロイ前に確認する。** 本番相当環境で `curl -I` により `Cache-Control`・
+  `cf-cache-status` を実測し、付かない場合は `/_next/image*` に Cache Rule を設定する（またはキャッシュ不要と実測で確認する）。
+  詳細は未決事項 2。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
 - Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
 
@@ -110,7 +119,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 3. `package.json` に `preview`・`deploy`・`upload`・`cf-typegen` スクリプトを追加。
 4. `.gitignore` に `.open-next`・`.dev.vars*`・`.wrangler` を追加。
 5. `next.config.ts`: `initOpenNextCloudflareForDev()` を呼ぶ。`rewrites` は開発時のみ有効。
-   画像最適化の方式は未決（未決事項 2）。
+   `images.unoptimized` は使わず、画像最適化は `wrangler.jsonc` の `images.binding: IMAGES` で有効化する（#327）。
 6. `public/_headers` を追加（`/_next/static/*` に `Cache-Control: public,max-age=31536000,immutable`）。
 
 ## SNS シェア（OGP）を追加するとき
@@ -130,16 +139,45 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | 中 | 30 万 | $5 | |
 | 大 | 300 万 | $5〜 | 1 PV あたり CPU 10ms と仮定すると 3,000 万ミリ秒で、含まれる量ちょうど |
 
+- Cloudflare Images（画像最適化）の費用は上の表に含まない。無料枠を超えると Images Paid の契約が必要になる（下記参照）。
 - Workers Paid に含まれる量: リクエスト 月 1,000 万件、CPU 月 3,000 万ミリ秒。
   超過分はリクエスト 100 万件あたり $0.30、CPU 100 万ミリ秒あたり $0.02。
 - 静的ファイルの配信は無料・無制限。
-- 画像最適化に Cloudflare Images を使う場合: 月 5,000 変換まで無料。超えた分は有料プランで 1,000 変換あたり $0.50。
+- 画像最適化は Cloudflare Images（`IMAGES` バインディング、#327）を使う: ユニーク変換 月 5,000 回まで無料。
+  無料枠を超えると新規変換が `9422` エラーになり、画像が表示されなくなる（キャッシュ済みの変換は配信継続）。
+  有料化する場合は Images Paid を契約する（最初の 5,000 変換を含み、以降 1,000 変換あたり $0.50）。Workers とは別のサービス・別の課金。
 - 1 PV あたりの SSR の CPU 時間は未計測。
 
 ## 未決事項・今後の作業
 
 1. **フロントのドメイン**: `natuportal.org` のどのサブドメインを使うか。
-2. **画像最適化の方式**: 最適化なし（`unoptimized`）か、Cloudflare Images か。
+2. **画像最適化の方式**: 解決済み（#327、決定は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。
+   Cloudflare Images の `IMAGES` バインディングを採用
+   （`wrangler.jsonc` の `images.binding`。OpenNext が推奨する有効化方法。`next.config.ts` の `images.unoptimized` は使わない）。
+   - `preview` で確認済み: ヘッダーロゴ（PNG、約 1.4MB）が WebP 約 2KB、イベント画像（1200x600 の JPEG）が
+     w=640 で約 19KB・w=1920 で約 125KB の WebP になる。
+   - 費用: ユニーク変換 月 5,000 回まで無料。無料枠を超えると新規変換が `9422` エラーになり、画像が表示されなくなる
+     （キャッシュ済みの変換は配信継続）。有料化する場合は Images Paid を契約する（最初の 5,000 変換を含み、以降 1,000 変換あたり $0.50）。
+   - `minimumCacheTTL` は OpenNext では未対応。OpenNext が `Cache-Control: public, max-age=315360000, immutable` を付けるのは
+     `/_next/static/media*` か取得元が `immutable` の場合のみで、ヘッダーロゴ（`/images/*` の public ファイル）や R2 の画像には
+     付かず、`/_next/image` は CDN にキャッシュされない（表示のたびにデコード・再エンコードが走る）。
+     **デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` で `Cache-Control` と `cf-cache-status` を実測し、
+     付かない場合は `/_next/image*` に Cache Rule（Cache Eligibility: Eligible、Edge TTL: Override origin）を設定する
+     （またはキャッシュ不要と実測で確認する）。
+     Edge TTL は画像差し替え時に stale が残らない範囲（例: 1 日）で設定し、差し替え時は `/_next/image*` をパージする
+     （`/_next/image` の URL は内容ハッシュを含まず、画像を差し替えても URL が変わらないため）。
+     なお `wrangler.jsonc` の `cache.enabled`（Workers Cache）は静的アセット配信まで課金対象になる副作用があるため、この用途では使わない。
+   - 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
+     `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
+     本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
+     絞り込みは #334 で対応し、**#334 が close するまでデプロイしない**（絞らないと、許可した取得元の任意の画像を
+     誰でもこの最適化を通して変換でき、変換数の費用が発生しうる）。
+   - 補足: OpenNext 1.20.11 はリダイレクト先 URL を `remotePatterns` で再検証しない（初回 URL のみ検証。
+     例: `picsum.photos` は `fastly.picsum.photos` へリダイレクトする）。許可する取得元はリダイレクト先も含めて確認する。
+   - #334 で `pathname` を追加する際の注意: Google アバターには現行の `/a/...` と旧形式の `/a-/...` があるため、
+     実 API の URL 形式を確認してから確定する（例: `/a*/**`）。
+   - 注意: `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装で `width`・`height`・`rotate`・`format` のみ対応。
+     `fit`・`quality` の効き方は本番（high-fidelity）と異なる場合がある。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
    - Next.js 15.5.27 は OpenNext 1.20.11 の対応範囲（`>=15.5.27 <16`）内。
    - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため

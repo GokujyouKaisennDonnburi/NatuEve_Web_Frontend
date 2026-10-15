@@ -118,7 +118,7 @@ const myMockEvents: EventListItem[] = [
 // ▼ マイページ用の初期モックデータ（メモリ上に保持）
 const myProfile = {
   // MeResponse 契約（camelCase）に合わせる
-  avatarUrl: "https://github.com/shadcn.png", // 代替アイコンのテスト用。空文字 "" にするとデフォルトの人型アイコンが出ます
+  avatarUrl: "https://i.pravatar.cc/150?img=9", // 代替アイコンのテスト用。空文字 "" にするとデフォルトの人型アイコンが出ます
   createdAt: "2026-06-22T12:00:00Z",
   description: "イベントを楽しむのが好きです。よろしくお願いします！",
   displayName: "なちゅいべ太郎",
