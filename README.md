@@ -146,7 +146,7 @@ bun run format:check
 
 | カテゴリ       | ツール          | バージョン   |
 | ---------- | ------------ | ------- |
-| フレームワーク    | Next.js      | ^15.3.3 |
+| フレームワーク    | Next.js      | ^15.5.27 |
 | ランタイム      | React        | ^19.1.0 |
 | 言語         | TypeScript   | ^5.8.3  |
 | スタイリング     | Tailwind CSS | ^4.1.8  |
@@ -251,6 +251,8 @@ public/mockServiceWorker.js
 | `bun run format`       | 自動整形       |
 | `bun run format:check` | フォーマット確認   |
 | `bun run msw:init`     | MSW 初期化    |
+| `bun run preview`      | Workers ランタイムでのローカル確認（OpenNext、dev を止めてから実行） |
+| `bun run deploy`       | Cloudflare へのデプロイ（ローカルからは実行しない、[docs/Deployment.md](docs/Deployment.md) 参照） |
 
 ---
 
