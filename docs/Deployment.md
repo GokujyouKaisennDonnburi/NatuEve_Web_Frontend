@@ -165,8 +165,8 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
      付かない場合は `/_next/image*` に Cache Rule（Cache Eligibility: Eligible、Edge TTL: Override origin）を設定する
      （またはキャッシュ不要と実測で確認する）。
      なお `wrangler.jsonc` の `cache.enabled`（Workers Cache）は静的アセット配信まで課金対象になる副作用があるため、この用途では使わない。
-   - 許可する画像の取得元: 開発用ホスト（placehold.co・picsum.photos・example.com・i.pravatar.cc）は削除し、
-     モックで使う picsum.photos・i.pravatar.cc は `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
+   - 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
+     `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
      本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
      絞り込みは #334 で対応し、**#334 が close するまでデプロイしない**（絞らないと、許可した取得元の任意の画像を
      誰でもこの最適化を通して変換でき、変換数の費用が発生しうる）。
