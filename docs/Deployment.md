@@ -101,6 +101,9 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）のパス制限が #334 に残っている。
   **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も #334 完了まで公開しない。**
   変換枠（ユニーク変換/月）はアカウント単位で共有されるため、プレビュー経由でも本番の枠を消費しうる。
+- **`/_next/image*` のキャッシュ対応をデプロイ前に確認する。** 本番相当環境で `curl -I` により `Cache-Control`・
+  `cf-cache-status` を実測し、付かない場合は `/_next/image*` に Cache Rule を設定する（またはキャッシュ不要と実測で確認する）。
+  詳細は未決事項 2。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
 - Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
 
