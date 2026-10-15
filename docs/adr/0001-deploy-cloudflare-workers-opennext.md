@@ -26,7 +26,7 @@ SSR できる形でデプロイする。**
 
 1. ページは Workers 上の Next.js（OpenNext）が SSR で返す。ビルド成果物の静的ファイルは Workers の静的配信で返す。
 2. API はブラウザから `NEXT_PUBLIC_API_BASE_URL` へ直接呼ぶ。SSR から呼ぶ場合も同じ。本番では `rewrites` による中継を使わない。
-3. 画像最適化は Cloudflare Images の `IMAGES` バインディングを使う（#327 で決定。詳細は [Deployment.md](../Deployment.md)）。
+3. 画像最適化の方式（最適化なしか、Cloudflare Images か）は導入時に決める。
 
 ## 理由
 

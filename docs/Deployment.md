@@ -144,7 +144,8 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 ## 未決事項・今後の作業
 
 1. **フロントのドメイン**: `natuportal.org` のどのサブドメインを使うか。
-2. **画像最適化の方式**: 解決済み（#327）。Cloudflare Images の `IMAGES` バインディングを採用
+2. **画像最適化の方式**: 解決済み（#327、決定は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。
+   Cloudflare Images の `IMAGES` バインディングを採用
    （`wrangler.jsonc` の `images.binding`。OpenNext が推奨する有効化方法。`next.config.ts` の `images.unoptimized` は使わない）。
    - `preview` で確認済み: ヘッダーロゴ（PNG、約 1.4MB）が WebP 約 2KB、イベント画像（1200x600 の JPEG）が
      w=640 で約 19KB・w=1920 で約 125KB の WebP になる。
