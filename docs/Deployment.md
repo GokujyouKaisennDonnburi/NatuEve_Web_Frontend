@@ -99,6 +99,8 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - **`#334`（画像の取得元の本番絞り込み）が close するまで `deploy` を実行しない。** デプロイのブロッカーとして扱う。
   開発用ホストは `next.config.ts` から削除済みで、本番ビルド（`NEXT_PUBLIC_USE_MSW=false`）にはモック用の取得元を含めないが、
   本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）のパス制限が #334 に残っている。
+  **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も #334 完了まで公開しない。**
+  変換枠（ユニーク変換/月）はアカウント単位で共有されるため、プレビュー経由でも本番の枠を消費しうる。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
 - Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
 
@@ -165,6 +167,10 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
      本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
      絞り込みは #334 で対応し、**#334 が close するまでデプロイしない**（絞らないと、許可した取得元の任意の画像を
      誰でもこの最適化を通して変換でき、変換数の費用が発生しうる）。
+   - 補足: OpenNext 1.20.11 はリダイレクト先 URL を `remotePatterns` で再検証しない（初回 URL のみ検証。
+     例: `picsum.photos` は `fastly.picsum.photos` へリダイレクトする）。許可する取得元はリダイレクト先も含めて確認する。
+   - #334 で `pathname` を追加する際の注意: Google アバターには現行の `/a/...` と旧形式の `/a-/...` があるため、
+     実 API の URL 形式を確認してから確定する（例: `/a*/**`）。
    - 注意: `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装で `width`・`height`・`rotate`・`format` のみ対応。
      `fit`・`quality` の効き方は本番（high-fidelity）と異なる場合がある。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
