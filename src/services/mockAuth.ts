@@ -8,7 +8,8 @@ export const MOCK_AUTH_SESSION: AuthSession = {
   token: "mock-access-token",
   name: "Aoi Tanaka",
   email: "aoi@example.com",
-  iconUrl: "https://example.com/avatar.jpg",
+  // MSW ビルドで許可されるホスト（next.config.ts の mockImageHosts）に合わせる
+  iconUrl: "https://i.pravatar.cc/150?img=8",
 };
 
 // モック認証が有効かどうかを判定する関数

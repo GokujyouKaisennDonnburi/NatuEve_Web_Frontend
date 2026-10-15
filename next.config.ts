@@ -17,7 +17,8 @@ const productionImageHosts: ImageRemotePattern[] = [
   },
 ];
 
-// MSW のモックデータでのみ使う画像の取得元
+// MSW のモックデータ（src/mocks/**・src/services/mockAuth.ts）でのみ使う画像の取得元。
+// モックの画像 URL を変えるときは、ホストをここに追加して URL と許可リストを揃える。
 const mockImageHosts: ImageRemotePattern[] = [
   {
     protocol: "https",
