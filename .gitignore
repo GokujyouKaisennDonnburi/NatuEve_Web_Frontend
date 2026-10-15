@@ -35,7 +35,8 @@ pnpm-debug.log*
 
 # OpenNext (Cloudflare Workers)
 .open-next
-.dev.vars
+.dev.vars*
+!.dev.vars.example
 .wrangler
 
 # OS files
