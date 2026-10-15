@@ -70,7 +70,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | `NEXT_PUBLIC_API_BASE_URL` | 本番 API のオリジン | API のドメインは NatuEve_API 側で決める |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | ブラウザに渡る前提の値 |
-| `NEXT_PUBLIC_USE_MSW` | `false` | 本番ではモックを使わない |
+| `NEXT_PUBLIC_USE_MSW` | `false` | 本番ではモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327） |
 
 ### ビルド環境用
 
@@ -96,6 +96,9 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   その際、**`.env.local` にある `NEXT_PUBLIC_*` はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
   特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
   恒久対応として、#330 で CI からのデプロイに限定する。
+- **`#334`（画像の取得元の本番絞り込み）が close するまで `deploy` を実行しない。** デプロイのブロッカーとして扱う。
+  開発用ホストは `next.config.ts` から削除済みで、本番ビルド（`NEXT_PUBLIC_USE_MSW=false`）にはモック用の取得元を含めないが、
+  本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）のパス制限が #334 に残っている。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
 - Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
 
@@ -148,7 +151,10 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
    - 費用: ユニーク変換 月 5,000 回まで無料。超過分は Images Paid で 1,000 変換あたり $0.50。
    - `minimumCacheTTL` は OpenNext では未対応。変換結果は自動ではキャッシュされないため、必要になったら
      `/_next/image` へのキャッシュルールをデプロイ時に検討する（同一変換の当月の再リクエストは追加課金されないが、Worker の CPU は消費する）。
-   - 許可する画像の取得元は #334 で本番用に絞る（**デプロイ前必須**。絞らないと、許可した取得元の任意の画像を
+   - 許可する画像の取得元: 開発用ホスト（placehold.co・picsum.photos・example.com・i.pravatar.cc）は削除し、
+     モックで使う picsum.photos・i.pravatar.cc は `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
+     本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
+     絞り込みは #334 で対応し、**#334 が close するまでデプロイしない**（絞らないと、許可した取得元の任意の画像を
      誰でもこの最適化を通して変換でき、変換数の費用が発生しうる）。
    - 注意: `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装で `width`・`height`・`rotate`・`format` のみ対応。
      `fit`・`quality` の効き方は本番（high-fidelity）と異なる場合がある。
