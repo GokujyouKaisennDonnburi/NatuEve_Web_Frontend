@@ -13,7 +13,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
 | Cloudflare DNS | 独自ドメインの割り当て（`natuportal.org` のサブドメイン） | 予定（サブドメイン名は未決） |
 | Cloudflare Workers Builds | GitHub 連携による自動ビルド・デプロイ、ブランチごとのプレビュー URL | 予定（GitHub Actions と比較して決める） |
-| Cloudflare Images | `next/image` の画像最適化 | 未決 |
+| **Cloudflare Images（`IMAGES` バインディング）** | `next/image` の画像最適化 | 確定（#327） |
 
 フロントエンドの接続先（既存）:
 
@@ -50,6 +50,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | `compatibility_flags` | `nodejs_compat` を含める |
 | `assets` | `directory`: `.open-next/assets`、`binding`: `ASSETS` |
 | `services` | `WORKER_SELF_REFERENCE`（自分自身の Worker 名を指定） |
+| `images` | `binding`: `IMAGES`（Cloudflare Images で画像最適化を有効化。#327） |
 | プラン | Workers Paid |
 
 - Workers Paid の 1 リクエストあたりの CPU 上限は既定 30 秒（最大 5 分）。無料プランは 10ms。
@@ -110,7 +111,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 3. `package.json` に `preview`・`deploy`・`upload`・`cf-typegen` スクリプトを追加。
 4. `.gitignore` に `.open-next`・`.dev.vars*`・`.wrangler` を追加。
 5. `next.config.ts`: `initOpenNextCloudflareForDev()` を呼ぶ。`rewrites` は開発時のみ有効。
-   画像最適化の方式は未決（未決事項 2）。
+   `images.unoptimized` は使わず、画像最適化は `wrangler.jsonc` の `images.binding: IMAGES` で有効化する（#327）。
 6. `public/_headers` を追加（`/_next/static/*` に `Cache-Control: public,max-age=31536000,immutable`）。
 
 ## SNS シェア（OGP）を追加するとき
@@ -133,13 +134,24 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - Workers Paid に含まれる量: リクエスト 月 1,000 万件、CPU 月 3,000 万ミリ秒。
   超過分はリクエスト 100 万件あたり $0.30、CPU 100 万ミリ秒あたり $0.02。
 - 静的ファイルの配信は無料・無制限。
-- 画像最適化に Cloudflare Images を使う場合: 月 5,000 変換まで無料。超えた分は有料プランで 1,000 変換あたり $0.50。
+- 画像最適化は Cloudflare Images（`IMAGES` バインディング、#327）を使う: ユニーク変換 月 5,000 回まで無料。
+  超えた分は Images Paid で 1,000 変換あたり $0.50。Workers とは別のサービス・別の課金。
 - 1 PV あたりの SSR の CPU 時間は未計測。
 
 ## 未決事項・今後の作業
 
 1. **フロントのドメイン**: `natuportal.org` のどのサブドメインを使うか。
-2. **画像最適化の方式**: 最適化なし（`unoptimized`）か、Cloudflare Images か。
+2. **画像最適化の方式**: 解決済み（#327）。Cloudflare Images の `IMAGES` バインディングを採用
+   （`wrangler.jsonc` の `images.binding`。OpenNext が推奨する有効化方法。`next.config.ts` の `images.unoptimized` は使わない）。
+   - `preview` で確認済み: ヘッダーロゴ（PNG、約 1.4MB）が WebP 約 2KB、イベント画像（1200x600 の JPEG）が
+     w=640 で約 19KB・w=1920 で約 125KB の WebP になる。
+   - 費用: ユニーク変換 月 5,000 回まで無料。超過分は Images Paid で 1,000 変換あたり $0.50。
+   - `minimumCacheTTL` は OpenNext では未対応。変換結果は自動ではキャッシュされないため、必要になったら
+     `/_next/image` へのキャッシュルールをデプロイ時に検討する（同一変換の当月の再リクエストは追加課金されないが、Worker の CPU は消費する）。
+   - 許可する画像の取得元は #334 で本番用に絞る（**デプロイ前必須**。絞らないと、許可した取得元の任意の画像を
+     誰でもこの最適化を通して変換でき、変換数の費用が発生しうる）。
+   - 注意: `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装で `width`・`height`・`rotate`・`format` のみ対応。
+     `fit`・`quality` の効き方は本番（high-fidelity）と異なる場合がある。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
    - Next.js 15.5.27 は OpenNext 1.20.11 の対応範囲（`>=15.5.27 <16`）内。
    - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため
