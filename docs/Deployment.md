@@ -164,6 +164,8 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
      **デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` で `Cache-Control` と `cf-cache-status` を実測し、
      付かない場合は `/_next/image*` に Cache Rule（Cache Eligibility: Eligible、Edge TTL: Override origin）を設定する
      （またはキャッシュ不要と実測で確認する）。
+     Edge TTL は画像差し替え時に stale が残らない範囲（例: 1 日）で設定し、差し替え時は `/_next/image*` をパージする
+     （`/_next/image` の URL は内容ハッシュを含まず、画像を差し替えても URL が変わらないため）。
      なお `wrangler.jsonc` の `cache.enabled`（Workers Cache）は静的アセット配信まで課金対象になる副作用があるため、この用途では使わない。
    - 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
      `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
