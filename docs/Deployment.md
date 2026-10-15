@@ -46,7 +46,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | 項目 | 値 |
 |---|---|
 | `main` | `.open-next/worker.js` |
-| `compatibility_date` | `2024-09-23` 以降 |
+| `compatibility_date` | `2025-05-05` 以降（OpenNext の [troubleshooting](https://opennext.js.org/cloudflare/troubleshooting) 参照。古い日付では `FinalizationRegistry` が使えずエラーになる） |
 | `compatibility_flags` | `nodejs_compat` を含める |
 | `assets` | `directory`: `.open-next/assets`、`binding`: `ASSETS` |
 | `services` | `WORKER_SELF_REFERENCE`（自分自身の Worker 名を指定） |
@@ -92,6 +92,8 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   （読まないのは test のときだけ）、`NEXT_PUBLIC_*` の値はビルド時にコードへ埋め込まれるため、
   ローカルの値（例: `NEXT_PUBLIC_USE_MSW=true`、ローカル API のオリジン）が本番ビルドに混入する。
   やむを得ずローカルから実行する場合は、本番の値を環境変数として明示的に渡す（`process.env` は `.env.local` より優先される）。
+  その際、**`.env.local` にある `NEXT_PUBLIC_*` はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
+  特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
   恒久対応として、#330 で CI からのデプロイに限定する。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
 - Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
@@ -144,8 +146,10 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
      App Router では実質無効（CSS は通常どおり配信され、実害なし）。
 4. **プレビュー環境の API の接続先**: プレビュー用のビルドが本番の API・DB を使わないよう、ビルド変数を分けるか決める。
 5. **CI/CD**: Workers Builds か GitHub Actions か。
-6. **API 側の CORS**: 解決済み（NatuEve_API #224）。`http://localhost:8787`（`preview` の wrangler 既定ポート）は既定で許可される。
-   本番のオリジンと Workers Builds のプレビュー URL はデプロイ時に要確認。
+6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
+   - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
+   - 本番のオリジンは #328 で決まり次第、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
+   - URL が変わる Workers Builds のプレビュー環境は、そのままでは許可できないため、扱いを #330 で決める。
 
 ## 参考（料金・仕様の出典）
 
