@@ -26,7 +26,8 @@ ADR-0001 でフロントエンドを Cloudflare Workers（OpenNext）にデプ�
 - ロゴ 1.4MB やイベント写真が元のサイズで配信されるのを避けられる。実測ではロゴが WebP 約 2KB、
   イベント画像（1200x600 の JPEG）が w=640 で約 19KB・w=1920 で約 125KB になった。
 - 月 5,000 ユニーク変換まで無料で、初期規模なら追加費用はほぼ発生しない見込み。
-- `images.remotePatterns` による取得元の制限がそのまま効くため、無関係な画像を変換させられにくい。
+- ホスト単位の制限はビルド時の `next.config.ts`（`images.remotePatterns`）で効く。
+  ただし `lh3.googleusercontent.com` は任意パスの画像を変換でき、パス制限は #334 で対応する。
 
 ## 影響（結果）
 
@@ -37,13 +38,11 @@ ADR-0001 でフロントエンドを Cloudflare Workers（OpenNext）にデプ�
 
 ### トレードオフ・制約
 
-- ユニーク変換 月 5,000 回を超えると新規変換がエラーになり画像が表示されなくなる（キャッシュ済みは配信継続）。
-  継続して使うには Images Paid の契約が必要（最初の 5,000 変換を含み、1,000 変換あたり $0.50）。Workers とは別の課金。
-- `images.minimumCacheTTL` は OpenNext では未対応。最適化レスポンスには `Cache-Control` が付かず CDN にキャッシュされないため、
-  デプロイ前に `/_next/image*` への Cache Rule を設定する（またはキャッシュ不要と実測で確認する）。
+- 費用: ユニーク変換 月 5,000 回まで無料。超過時の挙動・有料化（Images Paid）を含め、詳細は [Deployment.md](../Deployment.md) を参照。
+- 最適化レスポンスは自動では CDN にキャッシュされず、デプロイ前の対応が必要（詳細は [Deployment.md](../Deployment.md)）。
 - ローカルの `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装のため、`fit`・`quality` の効き方が本番と異なる場合がある。
-- 許可する画像の取得元の絞り込みが必要。モック用ホストは `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可し、本番ビルドには含めない。
-  残る本番の取得元（パス）の制限は #334 で対応し、完了までデプロイしない。
+- 許可する画像の取得元のパス制限は #334 で対応し、完了までデプロイしない。変換枠はアカウント単位で
+  プレビュー環境とも共有される（詳細は [Deployment.md](../Deployment.md)）。
 
 ## 検討した代替案
 
