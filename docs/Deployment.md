@@ -88,28 +88,28 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - ローカル開発は従来どおり `bun run dev`（`next dev`）。
 - Workers のランタイムでの確認とデプロイには、OpenNext の `preview`・`deploy` スクリプトを `package.json` に追加して使う。
   OpenNext のビルドは内部で `build` スクリプト（`next build`）を呼ぶ。
+- **ローカルからは `bun run deploy` を実行しない。** Next.js は本番ビルドでも `.env.local` を読み込み
+  （読まないのは test のときだけ）、`NEXT_PUBLIC_*` の値はビルド時にコードへ埋め込まれるため、
+  ローカルの値（例: `NEXT_PUBLIC_USE_MSW=true`、ローカル API のオリジン）が本番ビルドに混入する。
+  やむを得ずローカルから実行する場合は、本番の値を環境変数として明示的に渡す（`process.env` は `.env.local` より優先される）。
+  恒久対応として、#330 で CI からのデプロイに限定する。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
 - Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
 
 ## 導入時に必要な変更
 
-コードを読んだ範囲では、**ページのコードは変更しなくてよい**。動的ルート（`event/[id]`・`users/[id]`）もそのまま動く見込み。
-ただし実際のビルドは未検証（[未決事項](#未決事項今後の作業) 3）。
+#326 で実施し、`preview` で主要ページ（トップ・イベント一覧・イベント詳細・ユーザー詳細・サインイン）の
+表示を確認済み。**ページのコードは変更しなくてよい**（動的ルート `event/[id]`・`users/[id]` もそのまま動く）ことが確認できた。
 
-1. 依存パッケージの追加: `@opennextjs/cloudflare`、`wrangler`（3.99.0 以降、devDependencies）。
-   `AGENTS.md` のルールにより、追加の前に確認を取る。
-2. `wrangler.jsonc` と `open-next.config.ts` を追加する。
-3. `package.json` に `preview`・`deploy` などのスクリプトを追加する。
-4. `.gitignore` に `.open-next` と `.dev.vars` を追加する（`.env.local` などは登録済みだが、この 2 つは未登録）。
-5. `next.config.ts`:
-   - `initOpenNextCloudflareForDev()` を呼ぶ（ローカル開発で Cloudflare のバインディングを使うため）。
-   - `rewrites` を開発時だけ有効にする。
-   - 画像最適化の方式を設定する（最適化なしなら `images.unoptimized: true`）。
-     `next/image` を使う 8 ファイルのうち、4 ファイル（ProfileHeader・GlobalUserAvatar・FileDropZone・MultiFileField）は常に `unoptimized`。
-     EventImageCarousel は prop で切り替える（`true` を渡すのは投稿プレビューのみ）。
-     残りの 3 ファイル（EventReportImageCarousel・SiteHeader・EventCard）と、イベント詳細の画像カルーセルは最適化を使っている。
-     最適化なしにすると、これらの画像は元のサイズのまま配信される。
-6. `public/_headers` を追加する。
+1. 依存パッケージの追加: `@opennextjs/cloudflare@1.20.11`、`wrangler@4.150.0`（devDependencies）。
+   OpenNext の対応範囲に合わせて Next.js も 15.5.27 に更新。
+2. `wrangler.jsonc`（`compatibility_date: 2025-05-05`、`nodejs_compat`、`global_fetch_strictly_public`）と
+   `open-next.config.ts` を追加。
+3. `package.json` に `preview`・`deploy`・`upload`・`cf-typegen` スクリプトを追加。
+4. `.gitignore` に `.open-next`・`.dev.vars*`・`.wrangler` を追加。
+5. `next.config.ts`: `initOpenNextCloudflareForDev()` を呼ぶ。`rewrites` は開発時のみ有効。
+   画像最適化の方式は未決（未決事項 2）。
+6. `public/_headers` を追加（`/_next/static/*` に `Cache-Control: public,max-age=31536000,immutable`）。
 
 ## SNS シェア（OGP）を追加するとき
 
@@ -138,12 +138,14 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 1. **フロントのドメイン**: `natuportal.org` のどのサブドメインを使うか。
 2. **画像最適化の方式**: 最適化なし（`unoptimized`）か、Cloudflare Images か。
-3. **ビルドの確認**: 次の 2 点は、実際にビルドして確かめる。
-   - `experimental.optimizeCss`（critters）が OpenNext のビルドで動くか。
-   - 現在の Next.js（15.5 系）が OpenNext の対応範囲に入っているか。
+3. **ビルドの確認**: 解決済み（#326 で検証）。
+   - Next.js 15.5.27 は OpenNext 1.20.11 の対応範囲（`>=15.5.27 <16`）内。
+   - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため
+     App Router では実質無効（CSS は通常どおり配信され、実害なし）。
 4. **プレビュー環境の API の接続先**: プレビュー用のビルドが本番の API・DB を使わないよう、ビルド変数を分けるか決める。
 5. **CI/CD**: Workers Builds か GitHub Actions か。
-6. **API 側の CORS**: 本番のオリジン（とプレビュー URL）を API 側で許可する必要がある（NatuEve_API #218）。
+6. **API 側の CORS**: 解決済み（NatuEve_API #224）。`http://localhost:8787`（`preview` の wrangler 既定ポート）は既定で許可される。
+   本番のオリジンと Workers Builds のプレビュー URL はデプロイ時に要確認。
 
 ## 参考（料金・仕様の出典）
 
