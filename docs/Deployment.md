@@ -154,8 +154,9 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
   `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
   本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
-  絞り込みは #334 で対応し、**#334 が close するまでデプロイしない**（絞らないと、許可した取得元の任意の画像を
-  誰でもこの最適化を通して変換でき、変換数の費用が発生しうる）。
+  絞り込み（`pathname` 制限）は #334 で対応し、**`pathname` 制限が完了するまでデプロイしない**
+  （#334 が close しただけでは判断しない。絞らないと、許可した取得元の任意の画像を誰でもこの最適化を通して変換でき、
+  変換数の費用が発生しうる）。
 - 補足: OpenNext 1.20.11 はリダイレクト先 URL を `remotePatterns` で再検証しない（初回 URL のみ検証。
   例: `picsum.photos` は `fastly.picsum.photos` へリダイレクトする）。許可する取得元はリダイレクト先も含めて確認する。
 - #334 で `pathname` を追加する際の注意: Google アバターには現行の `/a/...` と旧形式の `/a-/...` があるため、
