@@ -96,10 +96,10 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   その際、**`.env.local` にある `NEXT_PUBLIC_*` はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
   特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
   恒久対応として、#330 で CI からのデプロイに限定する。
-- **`#334`（画像の取得元の本番絞り込み）が close するまで `deploy` を実行しない。** デプロイのブロッカーとして扱う。
-  開発用ホストは `next.config.ts` から削除済みで、本番ビルド（`NEXT_PUBLIC_USE_MSW=false`）にはモック用の取得元を含めないが、
-  本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）のパス制限が #334 に残っている。
-  **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も #334 完了まで公開しない。**
+- **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（#334）。** デプロイのブロッカーとして扱う。
+  開発用ホストは `next.config.ts` から削除済みで、本番ビルド（`NEXT_PUBLIC_USE_MSW=false`）にはモック用の取得元を含めない。
+  #334 の AC は現状「開発用の取得元を本番で外す」のみで `pathname` 制限を含まないため、**#334 が close しただけで完了と判断しない**。
+  **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
   変換枠（ユニーク変換/月）はアカウント単位で共有されるため、プレビュー経由でも本番の枠を消費しうる。
 - **`/_next/image*` のキャッシュ対応をデプロイ前に確認する。** 本番相当環境で `curl -I` により `Cache-Control`・
   `cf-cache-status` を実測し、付かない場合は `/_next/image*` に Cache Rule を設定する（またはキャッシュ不要と実測で確認する）。
