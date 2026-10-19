@@ -102,9 +102,9 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
   変換枠（ユニーク変換/月）の使用量はアカウント単位で分析・集計される（枠の共有範囲についての公式の明記は確認できていない）ため、
   プレビュー経由でも本番の枠を消費しうる前提で扱う。
-- **`/_next/image*` のキャッシュ対応をデプロイ前に確認する。** 本番相当環境で `curl -I` により `Cache-Control`・
-  `cf-cache-status` を実測し、付かない場合は `/_next/image*` に Cache Rule を設定する（またはキャッシュ不要と実測で確認する）。
-  詳細は未決事項 2。
+- **`/_next/image*` のキャッシュ方針をデプロイ前に決めて実測する。** zone の Cache Rule は Worker の応答には効かないため、
+  Workers Cache を有効化するか（課金の試算が必要）、キャッシュ不要と確認する。本番相当環境で `curl -I` により
+  `Cache-Control`・`cf-cache-status` を実測する。詳細は未決事項 2。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
 - Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
 
@@ -164,14 +164,17 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
      CDN にキャッシュされないため、「キャッシュ済みは配信継続」が成り立つのは Cache Rule 設定後になる見込み。
      出典: [Images pricing](https://developers.cloudflare.com/images/pricing/) / [Troubleshooting（9422）](https://developers.cloudflare.com/images/reference/troubleshooting/) / [Changelog 2026-07-01（バインディングの課金単位）](https://developers.cloudflare.com/changelog/post/2026-07-01-binding-unique-transformations/)
    - `minimumCacheTTL` は OpenNext では未対応。OpenNext が `Cache-Control: public, max-age=315360000, immutable` を付けるのは
-     `/_next/static/media*` か取得元が `immutable` の場合のみで、ヘッダーロゴ（`/images/*` の public ファイル）や R2 の画像には
-     付かず、`/_next/image` は CDN にキャッシュされない（表示のたびにデコード・再エンコードが走る）。
-     **デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` で `Cache-Control` と `cf-cache-status` を実測し、
-     付かない場合は `/_next/image*` に Cache Rule（Cache Eligibility: Eligible、Edge TTL: Override origin）を設定する
-     （またはキャッシュ不要と実測で確認する）。
-     Edge TTL は画像差し替え時に stale が残らない範囲（例: 1 日）で設定し、差し替え時は `/_next/image*` をパージする
-     （`/_next/image` の URL は内容ハッシュを含まず、画像を差し替えても URL が変わらないため）。
-     なお `wrangler.jsonc` の `cache.enabled`（Workers Cache）は静的アセット配信まで課金対象になる副作用があるため、この用途では使わない。
+     `/_next/static/media*`（静的 import。ヘッダーロゴは #327 で対応済み）か取得元が `immutable` の場合のみで、R2 の画像などには付かない。
+   - キャッシュの方式: zone の Cache Rule は Worker の応答には効かない（[Workers Cache](https://developers.cloudflare.com/workers/cache/) の
+     「No zone configuration for caching applies to Workers Caching. Cache Rules … have no effect on a Worker's cache.」）。次のどちらかを選ぶ。
+     - **(a) Workers Cache を使う**（`wrangler.jsonc` に `"cache": { "enabled": true }`。[Images バインディング](https://developers.cloudflare.com/images/optimization/binding/)が推奨）。
+       有効にすると静的アセットのリクエストも standard rate で課金される（"Caching bills requests that are normally free"）ため、
+       月 1,000 万件の含まれる量に収まるか試算してから判断する。`Cache-Control` が付かない応答は heuristic freshness 扱いで、
+       既定の TTL は公式に明記されていない。パージは Worker 側の `ctx.cache.purge()` のみで、zone からの URL パージはできない。
+     - **(b) Workers Cache を使わない**。R2 の画像は表示のたびに変換が走る。表示回数の多い画像はブラウザキャッシュ
+       （静的 import。ロゴは対応済み）で影響を抑える。
+   - どちらの場合も、**デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` を2回実行し、
+     `Cache-Control`・`cf-cache-status` を実測して最終確認する（静的 import の画像は immutable が付く）。
    - 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
      `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
      本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
@@ -198,4 +201,5 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 - OpenNext: [Cloudflare](https://opennext.js.org/cloudflare) / [Get Started](https://opennext.js.org/cloudflare/get-started) / [Environment variables](https://opennext.js.org/cloudflare/howtos/env-vars) / [Image optimization](https://opennext.js.org/cloudflare/howtos/image)
 - Cloudflare Workers: [Pricing](https://developers.cloudflare.com/workers/platform/pricing/) / [Limits](https://developers.cloudflare.com/workers/platform/limits/) / [Static Assets の課金](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/) / [Workers Builds の上限](https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/) / [Build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)
+- Cloudflare Workers Cache: [Workers Cache](https://developers.cloudflare.com/workers/cache/) / [Limitations（zone の設定は無効）](https://developers.cloudflare.com/workers/cache/limitations/)
 - Cloudflare Images: [Pricing](https://developers.cloudflare.com/images/pricing/) / [Optimize with Workers](https://developers.cloudflare.com/images/optimization/binding/) / [Troubleshooting（9422）](https://developers.cloudflare.com/images/reference/troubleshooting/) / [Changelog 2026-07-01: バインディングの課金単位](https://developers.cloudflare.com/changelog/post/2026-07-01-binding-unique-transformations/)
