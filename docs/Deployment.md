@@ -104,7 +104,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   プレビュー経由でも本番の枠を消費しうる前提で扱う。
 - **`/_next/image*` のキャッシュ方針をデプロイ前に決めて実測する。** zone の Cache Rule は Worker の応答には効かないため、
   Workers Cache を有効化するか（課金の試算が必要）、キャッシュ不要と確認する。本番相当環境で `curl -I` により
-  `Cache-Control`・`cf-cache-status` を実測する。詳細は未決事項 2。
+  `Cache-Control`・`cf-cache-status` を実測する。詳細は[画像最適化](#画像最適化)を参照。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
 - Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
 
@@ -122,6 +122,43 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 5. `next.config.ts`: `initOpenNextCloudflareForDev()` を呼ぶ。`rewrites` は開発時のみ有効。
    `images.unoptimized` は使わず、画像最適化は `wrangler.jsonc` の `images.binding: IMAGES` で有効化する（#327）。
 6. `public/_headers` を追加（`/_next/static/*` に `Cache-Control: public,max-age=31536000,immutable`）。
+
+## 画像最適化
+
+`next/image` の画像最適化は Cloudflare Images（`IMAGES` バインディング）を使う（#327。決定と代替案は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。
+`wrangler.jsonc` の `images.binding` で有効化し、`next.config.ts` の `images.unoptimized` は使わない。
+
+- `preview` で確認済み: ヘッダーロゴ（PNG、約 1.4MB）が WebP 約 2KB、イベント画像（1200x600 の JPEG）が
+  w=640 で約 19KB・w=1920 で約 125KB の WebP になる。
+- 費用: ユニーク変換 月 5,000 回まで無料。有料化する場合は Images Paid を契約する（最初の 5,000 変換を含み、以降 1,000 変換あたり $0.50）。
+- 無料枠超過時の挙動・枠の単位は公式には断定できない: 公式の「新規変換は `9422`・キャッシュ済みは配信継続」の記載は URL ベースの変換についてのもので、
+  `IMAGES` バインディング経由で同じ挙動になるかは明記されていない。枠の共有範囲（アカウント単位か）の明記もない
+  （変換の使用量分析がアカウント単位で提供されていることは確認済み）。「キャッシュ済みは配信継続」がこの構成で成り立つかは、
+  下記のキャッシュ方式とデプロイ前の実測で確認する。
+  出典: [Images pricing](https://developers.cloudflare.com/images/pricing/) / [Troubleshooting（9422）](https://developers.cloudflare.com/images/reference/troubleshooting/) / [Changelog 2026-07-01（バインディングの課金単位）](https://developers.cloudflare.com/changelog/post/2026-07-01-binding-unique-transformations/)
+- `minimumCacheTTL` は OpenNext では未対応。OpenNext が `Cache-Control: public, max-age=315360000, immutable` を付けるのは
+  `/_next/static/media*`（静的 import。ヘッダーロゴは #327 で対応済み）か取得元が `immutable` の場合のみで、R2 の画像などには付かない。
+- キャッシュの方式: zone の Cache Rule は Worker の応答には効かない（[Workers Cache](https://developers.cloudflare.com/workers/cache/) の
+  「No zone configuration for caching applies to Workers Caching. Cache Rules … have no effect on a Worker's cache.」）。次のどちらかを選ぶ。
+  - **(a) Workers Cache を使う**（`wrangler.jsonc` に `"cache": { "enabled": true }`。[Images バインディング](https://developers.cloudflare.com/images/optimization/binding/)が推奨）。
+    有効にすると静的アセットのリクエストも standard rate で課金される（"Caching bills requests that are normally free"）ため、
+    月 1,000 万件の含まれる量に収まるか試算してから判断する。`Cache-Control` が付かない応答は heuristic freshness 扱いで、
+    既定の TTL は公式に明記されていない。パージは Worker 側の `ctx.cache.purge()` のみで、zone からの URL パージはできない。
+  - **(b) Workers Cache を使わない**。R2 の画像は表示のたびに変換が走る。表示回数の多い画像はブラウザキャッシュ
+    （静的 import。ロゴは対応済み）で影響を抑える。
+- どちらの場合も、**デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` を2回実行し、
+  `Cache-Control`・`cf-cache-status` を実測して最終確認する（静的 import の画像は immutable が付く）。
+- 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
+  `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
+  本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
+  絞り込みは #334 で対応し、**#334 が close するまでデプロイしない**（絞らないと、許可した取得元の任意の画像を
+  誰でもこの最適化を通して変換でき、変換数の費用が発生しうる）。
+- 補足: OpenNext 1.20.11 はリダイレクト先 URL を `remotePatterns` で再検証しない（初回 URL のみ検証。
+  例: `picsum.photos` は `fastly.picsum.photos` へリダイレクトする）。許可する取得元はリダイレクト先も含めて確認する。
+- #334 で `pathname` を追加する際の注意: Google アバターには現行の `/a/...` と旧形式の `/a-/...` があるため、
+  実 API の URL 形式を確認してから確定する（例: `/a*/**`）。
+- 注意: `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装で `width`・`height`・`rotate`・`format` のみ対応。
+  `fit`・`quality` の効き方は本番（high-fidelity）と異なる場合がある。
 
 ## SNS シェア（OGP）を追加するとき
 
@@ -145,47 +182,14 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   超過分はリクエスト 100 万件あたり $0.30、CPU 100 万ミリ秒あたり $0.02。
 - 静的ファイルの配信は無料・無制限。
 - 画像最適化は Cloudflare Images（`IMAGES` バインディング、#327）を使う: ユニーク変換 月 5,000 回まで無料。
-  無料枠を超えると新規変換が `9422` エラーになる（公式の記載は URL ベースの変換についてのもので、バインディング経由の挙動は未確認。詳細は未決事項 2）。
+  無料枠を超えると新規変換が `9422` エラーになる（公式の記載は URL ベースの変換についてのもので、バインディング経由の挙動は未確認。詳細は[画像最適化](#画像最適化)を参照）。
   有料化する場合は Images Paid を契約する（最初の 5,000 変換を含み、以降 1,000 変換あたり $0.50）。Workers とは別のサービス・別の課金。
 - 1 PV あたりの SSR の CPU 時間は未計測。
 
 ## 未決事項・今後の作業
 
 1. **フロントのドメイン**: `natuportal.org` のどのサブドメインを使うか。
-2. **画像最適化の方式**: 解決済み（#327、決定は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。
-   Cloudflare Images の `IMAGES` バインディングを採用
-   （`wrangler.jsonc` の `images.binding`。OpenNext が推奨する有効化方法。`next.config.ts` の `images.unoptimized` は使わない）。
-   - `preview` で確認済み: ヘッダーロゴ（PNG、約 1.4MB）が WebP 約 2KB、イベント画像（1200x600 の JPEG）が
-     w=640 で約 19KB・w=1920 で約 125KB の WebP になる。
-   - 費用: ユニーク変換 月 5,000 回まで無料。有料化する場合は Images Paid を契約する（最初の 5,000 変換を含み、以降 1,000 変換あたり $0.50）。
-   - 無料枠超過時の挙動・枠の単位は公式には断定できない: 公式の「新規変換は `9422`・キャッシュ済みは配信継続」の記載は URL ベースの変換についてのもので、
-     `IMAGES` バインディング経由で同じ挙動になるかは明記されていない。枠の共有範囲（アカウント単位か）の明記もない
-     （変換の使用量分析がアカウント単位で提供されていることは確認済み）。また、この構成の `/_next/image` は Cache Rule を設定しない限り
-     CDN にキャッシュされないため、「キャッシュ済みは配信継続」が成り立つのは Cache Rule 設定後になる見込み。
-     出典: [Images pricing](https://developers.cloudflare.com/images/pricing/) / [Troubleshooting（9422）](https://developers.cloudflare.com/images/reference/troubleshooting/) / [Changelog 2026-07-01（バインディングの課金単位）](https://developers.cloudflare.com/changelog/post/2026-07-01-binding-unique-transformations/)
-   - `minimumCacheTTL` は OpenNext では未対応。OpenNext が `Cache-Control: public, max-age=315360000, immutable` を付けるのは
-     `/_next/static/media*`（静的 import。ヘッダーロゴは #327 で対応済み）か取得元が `immutable` の場合のみで、R2 の画像などには付かない。
-   - キャッシュの方式: zone の Cache Rule は Worker の応答には効かない（[Workers Cache](https://developers.cloudflare.com/workers/cache/) の
-     「No zone configuration for caching applies to Workers Caching. Cache Rules … have no effect on a Worker's cache.」）。次のどちらかを選ぶ。
-     - **(a) Workers Cache を使う**（`wrangler.jsonc` に `"cache": { "enabled": true }`。[Images バインディング](https://developers.cloudflare.com/images/optimization/binding/)が推奨）。
-       有効にすると静的アセットのリクエストも standard rate で課金される（"Caching bills requests that are normally free"）ため、
-       月 1,000 万件の含まれる量に収まるか試算してから判断する。`Cache-Control` が付かない応答は heuristic freshness 扱いで、
-       既定の TTL は公式に明記されていない。パージは Worker 側の `ctx.cache.purge()` のみで、zone からの URL パージはできない。
-     - **(b) Workers Cache を使わない**。R2 の画像は表示のたびに変換が走る。表示回数の多い画像はブラウザキャッシュ
-       （静的 import。ロゴは対応済み）で影響を抑える。
-   - どちらの場合も、**デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` を2回実行し、
-     `Cache-Control`・`cf-cache-status` を実測して最終確認する（静的 import の画像は immutable が付く）。
-   - 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
-     `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
-     本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
-     絞り込みは #334 で対応し、**#334 が close するまでデプロイしない**（絞らないと、許可した取得元の任意の画像を
-     誰でもこの最適化を通して変換でき、変換数の費用が発生しうる）。
-   - 補足: OpenNext 1.20.11 はリダイレクト先 URL を `remotePatterns` で再検証しない（初回 URL のみ検証。
-     例: `picsum.photos` は `fastly.picsum.photos` へリダイレクトする）。許可する取得元はリダイレクト先も含めて確認する。
-   - #334 で `pathname` を追加する際の注意: Google アバターには現行の `/a/...` と旧形式の `/a-/...` があるため、
-     実 API の URL 形式を確認してから確定する（例: `/a*/**`）。
-   - 注意: `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装で `width`・`height`・`rotate`・`format` のみ対応。
-     `fit`・`quality` の効き方は本番（high-fidelity）と異なる場合がある。
+2. **画像最適化の方式**: 解決済み（#327、決定は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。詳細は[画像最適化](#画像最適化)を参照。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
    - Next.js 15.5.27 は OpenNext 1.20.11 の対応範囲（`>=15.5.27 <16`）内。
    - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため
