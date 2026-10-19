@@ -11,7 +11,7 @@ ADR-0001 でフロントエンドを Cloudflare Workers（OpenNext）にデプ�
 
 - OpenNext で `next/image` の最適化を使うには、`wrangler.jsonc` の画像バインディングか独自 loader のどちらかが必要。
 - 最適化を使っている箇所: SiteHeader（ロゴ）、EventCard（主催者アバター）、イベント詳細・活動レポートの画像カルーセル。
-  ヘッダーロゴは `public/images/NatuEve_logo.png`（約 1.4MB）で、全ページに表示される。
+  ヘッダーロゴは `src/assets/images/NatuEve_logo.png`（約 1.4MB、静的 import）で、全ページに表示される。
 - 画像の取得元は R2 の公開ドメイン（`assets.natuportal.org`）と Google のプロフィール画像（`lh3.googleusercontent.com`）を想定。
 - 費用は小さく抑えたい。
 
