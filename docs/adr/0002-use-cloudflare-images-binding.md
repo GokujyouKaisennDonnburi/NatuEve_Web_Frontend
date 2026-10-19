@@ -41,8 +41,8 @@ ADR-0001 でフロントエンドを Cloudflare Workers（OpenNext）にデプ�
 - 費用: ユニーク変換 月 5,000 回まで無料。超過時の挙動・有料化（Images Paid）を含め、詳細は [Deployment.md](../Deployment.md) を参照。
 - 最適化レスポンスは自動では CDN にキャッシュされず、デプロイ前の対応が必要（詳細は [Deployment.md](../Deployment.md)）。
 - ローカルの `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装のため、`fit`・`quality` の効き方が本番と異なる場合がある。
-- 許可する画像の取得元のパス制限は #334 で対応し、完了までデプロイしない。変換枠はアカウント単位で
-  プレビュー環境とも共有される（詳細は [Deployment.md](../Deployment.md)）。
+- 許可する画像の取得元のパス制限は #334 で対応し、完了までデプロイしない。変換枠の共有範囲は公式に明記されていないが、
+  プレビュー環境とも枠を消費しうる前提で扱う（詳細は [Deployment.md](../Deployment.md)）。
 
 ## 検討した代替案
 
