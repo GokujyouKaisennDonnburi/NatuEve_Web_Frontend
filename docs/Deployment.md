@@ -143,7 +143,10 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   - **(a) Workers Cache を使う**（`wrangler.jsonc` に `"cache": { "enabled": true }`。[Images バインディング](https://developers.cloudflare.com/images/optimization/binding/)が推奨）。
     有効にすると静的アセットのリクエストも standard rate で課金される（"Caching bills requests that are normally free"）ため、
     月 1,000 万件の含まれる量に収まるか試算してから判断する。`Cache-Control` が付かない応答は heuristic freshness 扱いで、
-    既定の TTL は公式に明記されていない。パージは Worker 側の `ctx.cache.purge()` のみで、zone からの URL パージはできない。
+    ステータスごとの既定 TTL が適用される（200 は 2 時間、404 は 3 分など。表にないステータスは既定ではキャッシュされない）。
+    OpenNext はパージしないため、同じ URL の画像差し替えは最大 2 時間反映されない
+    （再デプロイではバージョンがキャッシュキーに含まれるためキャッシュがリセットされる）。
+    パージは Worker 側の `ctx.cache.purge()` のみで、zone からの URL パージはできない。
   - **(b) Workers Cache を使わない**。R2 の画像は表示のたびに変換が走る。表示回数の多い画像はブラウザキャッシュ
     （静的 import。ロゴは対応済み）で影響を抑える。
 - どちらの場合も、**デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` を2回実行し、
@@ -205,5 +208,5 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 - OpenNext: [Cloudflare](https://opennext.js.org/cloudflare) / [Get Started](https://opennext.js.org/cloudflare/get-started) / [Environment variables](https://opennext.js.org/cloudflare/howtos/env-vars) / [Image optimization](https://opennext.js.org/cloudflare/howtos/image)
 - Cloudflare Workers: [Pricing](https://developers.cloudflare.com/workers/platform/pricing/) / [Limits](https://developers.cloudflare.com/workers/platform/limits/) / [Static Assets の課金](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/) / [Workers Builds の上限](https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/) / [Build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)
-- Cloudflare Workers Cache: [Workers Cache](https://developers.cloudflare.com/workers/cache/) / [Limitations（zone の設定は無効）](https://developers.cloudflare.com/workers/cache/limitations/)
+- Cloudflare Workers Cache: [Workers Cache](https://developers.cloudflare.com/workers/cache/) / [Configuration（Cache-Control なしの既定 TTL）](https://developers.cloudflare.com/workers/cache/configuration/) / [Limitations（zone の設定は無効）](https://developers.cloudflare.com/workers/cache/limitations/)
 - Cloudflare Images: [Pricing](https://developers.cloudflare.com/images/pricing/) / [Optimize with Workers](https://developers.cloudflare.com/images/optimization/binding/) / [Troubleshooting（9422）](https://developers.cloudflare.com/images/reference/troubleshooting/) / [Changelog 2026-07-01: バインディングの課金単位](https://developers.cloudflare.com/changelog/post/2026-07-01-binding-unique-transformations/)
