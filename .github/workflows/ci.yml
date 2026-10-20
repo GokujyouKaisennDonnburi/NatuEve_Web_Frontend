@@ -78,6 +78,18 @@ jobs:
       group: deploy-production
       cancel-in-progress: false
 
+    # 本番用の値は production Environment の Secrets / Variables から注入する。
+    # `${{ vars.NEXT_PUBLIC_* }}` は Environment 未設定時にリポジトリ Variables へフォールバックする
+    # （quality ジョブが CI 用に同名を設定している）ため、本番用には PROD_ 接頭辞の名前にする。
+    # PROD_ 接頭辞の変数はリポジトリに存在しないため、Environment 未設定なら空になり検証ステップで失敗する。
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      NEXT_PUBLIC_API_BASE_URL: ${{ vars.PROD_NEXT_PUBLIC_API_BASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -97,17 +109,23 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # 本番用の値は production Environment の Secrets / Variables から注入する。
+      # 空文字の NEXT_PUBLIC_* でもビルドは通る（apiClient は相対パスへフォールバックする）ため、
+      # production Environment の設定漏れを deploy 前にここで検知する。
+      - name: Validate required variables
+        run: |
+          missing=0
+          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID NEXT_PUBLIC_API_BASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
+            if [ -z "${!v}" ]; then
+              echo "::error::$v が未設定です。production Environment の Secrets / Variables を確認してください。"
+              missing=1
+            fi
+          done
+          exit $missing
+
       # CI には .env.local がないため、docs/Deployment.md の「ローカルの値が混ざる」問題は起きない。
       # NEXT_PUBLIC_USE_MSW は変数化せず false を直書きする（設定ミスでモック認証が有効になるのを防ぐ）。
       # NEXT_PUBLIC_* の値はビルド時にコードへ埋め込まれる。
       - name: Deploy (Cloudflare Workers)
         run: bun run deploy
         env:
-          NEXT_TELEMETRY_DISABLED: "1"
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_USE_MSW: "false"

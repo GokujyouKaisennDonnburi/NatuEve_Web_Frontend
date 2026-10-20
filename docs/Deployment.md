@@ -108,20 +108,25 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - wrangler は環境変数の `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を読むことを確認済み（wrangler 4.150.0）。
 - CI には `.env.local` がないため、docs/Deployment.md にある「ローカルの値が混ざる」問題は起きない。
 - top-level の `concurrency` は `cancel-in-progress` を PR イベントのみに限定している（`github.event_name == 'pull_request'`）。変更しないと、main への連続マージで実行中のデプロイがキャンセルされる。
+- deploy ジョブの先頭で「Validate required variables」ステップが必須の Secrets / Variables が空でないか検証する。
+  空文字の `NEXT_PUBLIC_*` でもビルドは通る（`apiClient` は `NEXT_PUBLIC_API_BASE_URL` 未設定時に相対パスへフォールバックする）ため、設定漏れは deploy 前にここで検知する。
 
-### GitHub 側の設定（未設定ならデプロイが失敗する）
+### GitHub 側の設定（いずれかが未設定なら検証ステップでデプロイが失敗する）
 
 Settings → Environments → `production`（ブランチ制限: `main` のみ。これにより PR のワークフローからトークンが使えない）:
 
-| 種別 | 名前 | 値 |
-|---|---|---|
-| Secret | `CLOUDFLARE_API_TOKEN` | Cloudflare の API トークン（権限は「Edit Cloudflare Workers」、対象アカウントを絞る） |
-| Secret | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare のアカウント ID |
-| Variable | `NEXT_PUBLIC_API_BASE_URL` | 本番 API のオリジン（#329） |
-| Variable | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL（#329） |
-| Variable | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の anon キー（#329） |
+| 種別 | 名前 | ワークフロー env への割り当て | 値 |
+|---|---|---|---|
+| Secret | `CLOUDFLARE_API_TOKEN` | `CLOUDFLARE_API_TOKEN` | Cloudflare の API トークン（権限は「Edit Cloudflare Workers」、対象アカウントを絞る） |
+| Secret | `CLOUDFLARE_ACCOUNT_ID` | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare のアカウント ID |
+| Variable | `PROD_NEXT_PUBLIC_API_BASE_URL` | `NEXT_PUBLIC_API_BASE_URL` | 本番 API のオリジン（#329） |
+| Variable | `PROD_NEXT_PUBLIC_SUPABASE_URL` | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL（#329） |
+| Variable | `PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY` | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の anon キー（#329） |
 
-- リポジトリの Variables に同名の `NEXT_PUBLIC_SUPABASE_*` がある（quality ジョブが使用）。名前が重なった場合は Environment の値が優先されるため、本番の値は Environment 側に入れる。
+- 本番用の Variables は `PROD_` 接頭辞を付ける。`${{ vars.NEXT_PUBLIC_* }}` は Environment 未設定時にリポジトリ Variables へフォールバックする
+  （リポジトリの Variables に `NEXT_PUBLIC_SUPABASE_*` があり、quality ジョブが CI 用に使用している）ため、
+  接頭辞のない同名にすると設定漏れがフォールバックで隠れる。`PROD_` 接頭辞の変数はリポジトリに存在しないため、
+  Environment 未設定なら空になり検証ステップで失敗する。
 - `NEXT_PUBLIC_USE_MSW` は変数にせず、ワークフローに `false` を直書きする（設定ミスで本番のモック認証が有効になるのを防ぐ）。
 - Cloudflare ダッシュボードで Git 連携（Workers Builds）を接続しない（二重デプロイ防止）。
 
