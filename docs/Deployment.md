@@ -97,7 +97,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
   恒久対応として、#330 で CI からのデプロイに限定する。
 - **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（#334）。** デプロイのブロッカーとして扱う。
-  開発用ホストは `next.config.ts` から削除済みで、本番ビルド（`NEXT_PUBLIC_USE_MSW=false`）にはモック用の取得元を含めない。
+  開発用の取得元は本番ビルド（`NEXT_PUBLIC_USE_MSW=false`）の許可リストから外している（placehold.co・example.com は削除、picsum.photos・i.pravatar.cc は MSW ビルドでのみ許可）。
   #334 の AC は現状「開発用の取得元を本番で外す」のみで `pathname` 制限を含まないため、**#334 が close しただけで完了と判断しない**。
   **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
   変換枠（ユニーク変換/月）の使用量はアカウント単位で分析・集計される（枠の共有範囲についての公式の明記は確認できていない）ため、
