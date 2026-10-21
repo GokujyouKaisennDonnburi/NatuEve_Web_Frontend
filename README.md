@@ -72,7 +72,7 @@ git clone <repository-url>
 # プロジェクトへ移動
 cd <project-name>
 
-# Node.js を .nvmrc の版にする（nvm の場合。2 回目以降は nvm use）
+# Node.js を .nvmrc の版にする（nvm（macOS / Linux / WSL）の場合。入っていれば切り替えだけ行う）
 nvm install
 
 # 依存関係をインストール
