@@ -36,13 +36,13 @@ Atomic Design、services、hooks、types、utils、constants、mocks を分け�
 | ツール | 推奨バージョン | 用途 |
 | --- | --- | --- |
 | Git | 最新安定版 | リポジトリの取得と管理 |
-| Node.js | 22 LTS | 開発用の補助環境として利用 |
+| Node.js | 24 LTS（版は `.nvmrc` に固定） | 開発用の補助環境として利用 |
 | Bun | 1.2.21 以上 | 依存関係のインストールと各種実行 |
 
 補足:
 
 - このプロジェクトは Bun を前提にしています。
-- Node.js は README 上でも 22 LTS を推奨しています。
+- Node.js は README 上でも 24 LTS を推奨しています。版は `.nvmrc` に固定しているため、nvm を使う場合はリポジトリ直下で `nvm use` を実行すると同じ版に切り替わります。
 - VSCode では、TypeScript と Biome の拡張機能を入れておくと作業しやすくなります。
 
 ---
