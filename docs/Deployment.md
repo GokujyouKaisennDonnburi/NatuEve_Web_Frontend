@@ -102,14 +102,17 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 #330 で Workers Builds ではなく GitHub Actions を採用した（public リポジトリで無料利用可）。
 
-`.github/workflows/ci.yml` に `deploy` ジョブを追加済み。`main` への push で quality ジョブ（lint / format / typecheck / test / build）が通った後に、production 環境へ自動デプロイする。PR の実行ではデプロイしない。
+`main` への push で quality ジョブ（lint / format / typecheck / test）が通った後に、production 環境へ自動デプロイする。PR の実行ではデプロイしない。
 
 - スクリプトは `package.json` の `deploy`（`opennextjs-cloudflare build && opennextjs-cloudflare deploy`）をそのまま使う。OpenNext のビルドは内部で `next build` を呼び、`NEXT_PUBLIC_*` の値はビルド時にコードへ埋め込まれる。
 - wrangler は環境変数の `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を読むことを確認済み（wrangler 4.150.0）。
 - CI には `.env.local` がないため、docs/Deployment.md にある「ローカルの値が混ざる」問題は起きない。
 - top-level の `concurrency` は `cancel-in-progress` を PR イベントのみに限定している（`github.event_name == 'pull_request'`）。変更しないと、main への連続マージで実行中のデプロイがキャンセルされる。
-- deploy ジョブの先頭で「Validate required variables」ステップが必須の Secrets / Variables が空でないか検証する。
+- deploy ジョブの先頭で「Validate required variables」ステップが必須の Variables が空でないか検証する。
   空文字の `NEXT_PUBLIC_*` でもビルドは通る（`apiClient` は `NEXT_PUBLIC_API_BASE_URL` 未設定時に相対パスへフォールバックする）ため、設定漏れは deploy 前にここで検知する。
+- Secret / Variable は必要なステップにのみ渡す。`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` は Deploy ステップに限定し、checkout・依存インストールなどのステップには渡さない。
+- 使用する 3 つの Action（checkout・setup-bun・setup-node）は完全コミット SHA で固定する（タグ差し替えによるサプライチェーン攻撃の防止。更新は Dependabot に任せる）。
+- quality ジョブの `Build (Next.js)` ステップは PR イベントのみで実行する。main への push では deploy ジョブが本番 env でビルドする（quality との二重ビルドを避ける）。
 
 ### GitHub 側の設定（いずれかが未設定なら検証ステップでデプロイが失敗する）
 
@@ -135,6 +138,9 @@ Settings → Environments → `production`（ブランチ制限: `main` のみ�
 - 本番 URL（`#328` の独自ドメインが決まるまで `https://<name>.workers.dev`。Workers 名は `natueve-web-frontend`）を API 側の `CORS_ALLOW_ORIGINS` に追加する必要がある（ワイルドカード非対応、NatuEve_API ADR-0033）。未追加だと API 呼び出しが失敗する。
 - Supabase Auth のリダイレクト許可にも本番 URL を追加する。
 - #334（画像最適化で許可する画像の取得元を本番用に絞る）が閉じるまでは本番公開しない。
+  そのため `wrangler.jsonc` に `"workers_dev": false` を設定済みで、マージしてデプロイしても workers.dev からは到達不可能
+  （CORS / Supabase Auth の設定前に Worker だけが公開されることを防ぐ）。
+  #334 完了後に行を削除する（workers.dev で公開する場合）。独自ドメイン（#328）を割り当てる場合は false のままルートを追加してもよい。
 
 ## 導入時に必要な変更
 

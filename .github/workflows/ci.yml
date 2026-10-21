@@ -23,17 +23,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # SHA 固定（サプライチェーン攻撃対策）。更新は Dependabot に任せる。
+        # checkout v4.4.0
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        # setup-bun v2.2.0
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: "1.2.21"
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        # setup-node v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
 
@@ -52,7 +56,10 @@ jobs:
       - name: Test (Vitest)
         run: bun run test
 
+      # main への push では deploy ジョブの opennextjs-cloudflare build（内部で next build）が
+      # 本番 env でビルドするため、quality 側のビルドは PR イベントのみでよい。
       - name: Build (Next.js)
+        if: github.event_name == 'pull_request'
         run: bun run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
@@ -78,31 +85,28 @@ jobs:
       group: deploy-production
       cancel-in-progress: false
 
-    # 本番用の値は production Environment の Secrets / Variables から注入する。
+    # Secret / Variable は必要なステップにのみ渡す（checkout や依存インストールなどのステップに
+    # トークンを露出させず、第三者コードの侵害時に窃取できる範囲を狭める）。
     # `${{ vars.NEXT_PUBLIC_* }}` は Environment 未設定時にリポジトリ Variables へフォールバックする
     # （quality ジョブが CI 用に同名を設定している）ため、本番用には PROD_ 接頭辞の名前にする。
     # PROD_ 接頭辞の変数はリポジトリに存在しないため、Environment 未設定なら空になり検証ステップで失敗する。
-    env:
-      NEXT_TELEMETRY_DISABLED: "1"
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      NEXT_PUBLIC_API_BASE_URL: ${{ vars.PROD_NEXT_PUBLIC_API_BASE_URL }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # checkout v4.4.0
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        # setup-bun v2.2.0
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: "1.2.21"
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        # setup-node v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
 
@@ -112,20 +116,31 @@ jobs:
       # 空文字の NEXT_PUBLIC_* でもビルドは通る（apiClient は相対パスへフォールバックする）ため、
       # production Environment の設定漏れを deploy 前にここで検知する。
       - name: Validate required variables
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.PROD_NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
           missing=0
-          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID NEXT_PUBLIC_API_BASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
+          for v in NEXT_PUBLIC_API_BASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
             if [ -z "${!v}" ]; then
-              echo "::error::$v が未設定です。production Environment の Secrets / Variables を確認してください。"
+              echo "::error::$v が未設定です。production Environment の Variables を確認してください。"
               missing=1
             fi
           done
           exit $missing
 
       # CI には .env.local がないため、docs/Deployment.md の「ローカルの値が混ざる」問題は起きない。
-      # NEXT_PUBLIC_USE_MSW は変数化せず false を直書きする（設定ミスでモック認証が有効になるのを防ぐ）。
+      # NEXT_PUBLIC_USE_MSW は変数化せず false を直書きする（設定ミスで本番のモック認証が有効になるのを防ぐ）。
       # NEXT_PUBLIC_* の値はビルド時にコードへ埋め込まれる。
+      # Cloudflare の Secrets はこのステップにのみ渡す（wrangler が環境変数から読む。wrangler 4.150.0 で確認済み）。
       - name: Deploy (Cloudflare Workers)
         run: bun run deploy
         env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.PROD_NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_USE_MSW: "false"
