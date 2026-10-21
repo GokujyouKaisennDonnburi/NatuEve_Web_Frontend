@@ -42,7 +42,7 @@ Atomic Design、services、hooks、types、utils、constants、mocks を分け�
 補足:
 
 - このプロジェクトは Bun を前提にしています。
-- Node.js は README 上でも 24 LTS を推奨しています。版は `.nvmrc` に固定しているため、nvm を使う場合はリポジトリ直下で `nvm use` を実行すると同じ版に切り替わります。
+- Node.js は README 上でも 24 LTS を推奨しています。版は `.nvmrc` に固定しています。nvm（macOS / Linux / WSL）など `.nvmrc` を読めるツールでは、リポジトリ直下で `nvm use` を実行すると同じ版に切り替わります。それ以外のツールでは、`.nvmrc` に書かれた版を指定してインストールしてください。
 - VSCode では、TypeScript と Biome の拡張機能を入れておくと作業しやすくなります。
 
 ---
