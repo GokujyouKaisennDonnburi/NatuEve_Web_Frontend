@@ -42,9 +42,7 @@ Atomic Design、services、hooks、types、utils、constants、mocks を分け�
 補足:
 
 - このプロジェクトは Bun を前提にしています。
-- Node.js は README 上でも 24 LTS を推奨しています。版は `.nvmrc` に固定しています。
-  - nvm（macOS / Linux / WSL）の場合は、リポジトリ直下で `nvm install` を実行します（`.nvmrc` の版が入っていなければインストールし、入っていれば切り替えだけ行います）。
-  - それ以外のツールでは、`.nvmrc` に書かれた版を指定してインストールしてください。
+- Node.js は README 上でも 24 LTS を推奨しています。版は `.nvmrc` に固定しています（合わせ方は「5. 依存関係インストール」を参照）。
 - VSCode では、TypeScript と Biome の拡張機能を入れておくと作業しやすくなります。
 
 ---
@@ -62,7 +60,15 @@ cd <project-name>
 
 ## 5. 依存関係インストール
 
+Node.js を `.nvmrc` の版に合わせてから、依存関係をインストールします。
+
+- nvm（macOS / Linux / WSL）の場合は、リポジトリ直下で `nvm install` を実行します（`.nvmrc` の版が入っていなければインストールし、入っていれば切り替えだけ行います）。
+- それ以外のツールでは、`.nvmrc` に書かれた版を指定してインストールしてください。
+
 ```bash
+# Node.js を .nvmrc の版にする（nvm の場合）
+nvm install
+
 bun install
 ```
 

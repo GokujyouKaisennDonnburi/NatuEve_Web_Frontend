@@ -73,6 +73,7 @@ git clone <repository-url>
 cd <project-name>
 
 # Node.js を .nvmrc の版にする（nvm（macOS / Linux / WSL）の場合。入っていれば切り替えだけ行う）
+# nvm 以外のツールでは、.nvmrc に書かれた版を指定してインストールする（詳細は docs/Tech.md）
 nvm install
 
 # 依存関係をインストール
@@ -261,6 +262,7 @@ public/mockServiceWorker.js
 
 ## ドキュメント
 
+* [環境構築手順書（docs/Tech.md）](docs/Tech.md)
 * [デプロイ構成（docs/Deployment.md）](docs/Deployment.md)
 * [設計判断の記録 ADR（docs/adr/）](docs/adr/README.md)
 
