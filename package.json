@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.22.1"
   },
   "packageManager": "bun@1.2.21",
   "scripts": {
@@ -46,7 +46,7 @@
     "@tailwindcss/postcss": "^4.1.8",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^16.1.0",
-    "@types/node": "^22.15.0",
+    "@types/node": "^24.19.2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.3.4",
