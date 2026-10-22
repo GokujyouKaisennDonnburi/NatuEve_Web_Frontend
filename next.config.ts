@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
-type ImageRemotePattern = NonNullable<
+// テストでも同じ型を使い、Next.js 側の型変更に追従する。
+export type ImageRemotePattern = NonNullable<
   NonNullable<NextConfig["images"]>["remotePatterns"]
 >[number];
 
