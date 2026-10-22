@@ -152,9 +152,10 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
     `s-maxage=31536000, stale-while-revalidate=2592000` を付けるため、次のデプロイまでエッジにキャッシュされる
     （データはブラウザ側で取得し、デプロイでキャッシュも空になるため実害は小さい見込み）。
     パス単位では絞れず、キャッシュさせたくない応答には `Cache-Control: no-store`（または `private`）を付ける
-    （動的ルートには Next.js が付ける）。なお画像応答は `Vary: Accept` のため Accept ごとにキャッシュが分かれる。
-  - **(b) Workers Cache を使わない**。R2 の画像は表示のたびに変換が走る。表示回数の多い画像はブラウザキャッシュ
-    （静的 import。ロゴは対応済み）で影響を抑える。
+    （動的ルートには Next.js が付ける）。なお画像応答は `Vary: Accept` のため Accept ごとにキャッシュが分かれる（`format`・`quality` はユニーク変換の判定から除外されるため、変換枠の消費は増えない）。
+  - **(b) Workers Cache を使わない**。R2 の画像は表示のたびに変換が走る。同じ画像・同じパラメータの変換は
+    月 1 回だけ数えるため、表示のたびに枠は減らない（主な影響は変換を待つ応答時間）。表示回数の多い画像は
+    ブラウザキャッシュ（静的 import。ロゴは対応済み）で影響を抑える。
 - どちらの場合も、**デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` を2回実行し、
   `Cache-Control`・`cf-cache-status` を実測して最終確認する（静的 import の画像は immutable が付く）。
 - 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
