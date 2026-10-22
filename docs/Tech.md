@@ -4,7 +4,7 @@
 
 ## 1. プロジェクト概要
 
-NatuEve Web Frontend は、Next.js 15 / React 19 / TypeScript 5 を土台にしたフロントエンドのスターター構成です。
+NatuEve Web Frontend は、Next.js 16 / React 19 / TypeScript 5 を土台にしたフロントエンドのスターター構成です。
 Atomic Design、services、hooks、types、utils、constants、mocks を分けて、初心者でも役割を追いやすいように整理しています。
 
 現在の構成では、ホーム画面、ドキュメント画面、ユーザー画面を持ち、MSW を使った開発用モック API も含めています。
@@ -15,7 +15,7 @@ Atomic Design、services、hooks、types、utils、constants、mocks を分け�
 
 | カテゴリ | ツール | バージョン |
 | --- | --- | --- |
-| フレームワーク | Next.js | 15.5.27 |
+| フレームワーク | Next.js | 16.4.2 |
 | ランタイム | React | 19.1.0 |
 | 言語 | TypeScript | 5.8.3 |
 | スタイリング | Tailwind CSS | 4.1.8 |
@@ -109,7 +109,10 @@ bun run build
 bun run check
 ```
 
-このコマンドは Biome のチェックと TypeScript の `tsc --noEmit` をまとめて実行します。
+このコマンドは Biome のチェック、`next typegen`（`next-env.d.ts` などの型の生成）、TypeScript の `tsc --noEmit` をまとめて実行します。
+
+`next-env.d.ts` は Next.js が生成するファイルで、Git では管理していません。
+clone した直後にエディタで型エラー（画像の import など）が出る場合は、`bunx next typegen` を実行してください（`bun run dev`・`bun run build`・`bun run check` でも生成されます）。
 
 ---
 

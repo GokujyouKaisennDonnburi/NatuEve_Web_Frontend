@@ -128,7 +128,7 @@ export function SiteHeader() {
               alt=""
               fill
               sizes="(max-width: 639px) 40px, 48px"
-              priority
+              preload
               className="object-contain"
             />
           </div>
