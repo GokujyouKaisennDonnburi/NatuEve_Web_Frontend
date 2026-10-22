@@ -81,7 +81,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
   ```jsonc
   "routes": [
-    { "pattern": "natueve-web.natuportal.org", "custom_domain": true }
+    { "pattern": "natueve-web.natuportal.org", "custom_domain": true, "previews_enabled": false }
   ]
   ```
 
@@ -89,9 +89,11 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   Custom Domain の DNS レコードと証明書は Cloudflare が作る。
 - workers.dev の URL と、バージョンごとの Version URL（旧称 Preview URL。`wrangler.jsonc` の `preview_urls`）は、
   #330（PR #340）で `"workers_dev": false` と `"preview_urls": false` を明示して無効にする。`routes` を追加してもこの 2 つは無効のまま。
-  `preview_urls` が無効にするのは Version URL で、Workers Builds のブランチ単位のプレビュー（Previews）とは別の機能。
+  `preview_urls` は、Version URL と、workers.dev 上の Previews（ブランチごとの環境）の URL の両方を制御する。
   - 参考（wrangler 4.150.0 の `getSubdomainValues`）: `workers_dev` を省略すると、`routes` があれば `false`、なければ `true`。
     `preview_urls` を省略すると Worker の今の設定を変えない。どちらも省略に頼らず明示する。
+- 独自ドメイン側で Previews を配信するかは、Custom Domain の route の `previews_enabled` で別に制御する。
+  既定値は公式ドキュメントに記載がないため、上の例のとおり `"previews_enabled": false` を明示する。
 
 ### 割り当てる時期
 
