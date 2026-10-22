@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NatuEve Web Frontend",
-  description: "Next.js 15 + Tailwind CSS 4 + Biome + MSW + shadcn/ui starter",
+  title: "なちゅいべ",
+  description: "なちゅいべは、自然を楽しむイベントを「探したい人」と「開催したい人」をつなぐサービスです。",
 };
 
 export default function RootLayout({
