@@ -87,8 +87,9 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 - `natuportal.org` のゾーンは、デプロイ先と同じ Cloudflare アカウントにある（Active。2026-10-22 時点）。
   Custom Domain の DNS レコードと証明書は Cloudflare が作る。
-- workers.dev の URL とバージョンごとの Preview URL は、#330（PR #340）で `wrangler.jsonc` に
-  `"workers_dev": false` と `"preview_urls": false` を明示して無効にする。`routes` を追加してもこの 2 つは無効のまま。
+- workers.dev の URL と、バージョンごとの Version URL（旧称 Preview URL。`wrangler.jsonc` の `preview_urls`）は、
+  #330（PR #340）で `"workers_dev": false` と `"preview_urls": false` を明示して無効にする。`routes` を追加してもこの 2 つは無効のまま。
+  `preview_urls` が無効にするのは Version URL で、Workers Builds のブランチ単位のプレビュー（Previews）とは別の機能。
   - 参考（wrangler 4.150.0 の `getSubdomainValues`）: `workers_dev` を省略すると、`routes` があれば `false`、なければ `true`。
     `preview_urls` を省略すると Worker の今の設定を変えない。どちらも省略に頼らず明示する。
 
@@ -96,7 +97,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 `routes` を追加したデプロイの時点で、このドメインに誰でもアクセスできるようになる。
 そのため、次がすべてそろってから `routes` を追加する PR を出す（#328 の残りの作業）。
-workers.dev の URL での公開は、これとは別に `workers_dev` と `preview_urls` で止める（#330 で扱う）。
+workers.dev の URL と Version URL での公開は、これとは別に `workers_dev` と `preview_urls` で止める（#330 で扱う）。
 
 - #342（OpenNext のビルドが失敗する問題）が解決している（PR #345 で解決済み）。
 - #330（CI からのデプロイ）ができている。ローカルからはデプロイしない（後述の「ビルドとデプロイ」）。
@@ -115,7 +116,8 @@ workers.dev の URL での公開は、これとは別に `workers_dev` と `prev
   wrangler は対話できない環境（CI）では `override_existing_dns_record` と `override_existing_origin` を `true` にする（wrangler 4.150.0）。
   `pattern` を書き間違えると、ほかのサービスのホスト名を奪うおそれがある。
   例えば API の `natueve-api.natuportal.org` は、同じアカウントの中継用 Worker の Custom Domain にする方針になっている（NatuEve_API ADR-0034）。
-  `routes` を追加する PR では、`pattern` の綴りと、そのホスト名に既存の DNS レコードがないことをダッシュボードで確かめてからマージする。
+  `routes` を追加する PR では、`pattern` の綴り、そのホスト名に既存の DNS レコードがないこと、
+  ほかの Worker の Custom Domain に割り当てられていないことをダッシュボードで確かめてからマージする。
 - **今の API トークンで Custom Domain を割り当てられるかは未確認。**
   トークンは「Edit Cloudflare Workers」テンプレートで作っているが、Custom Domain に必要な権限は公式ドキュメントで確認できなかった。
   最初のデプロイで権限のエラーが出たら、トークンに権限を足す。
