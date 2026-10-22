@@ -148,7 +148,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
      公式のサポートポリシーでは「各メジャー版はリリースから 2 年間 Maintenance LTS」とされ、15 は 2024-10-21 リリースのため、
      まもなくサポート対象から外れる見込み（終了日は明記されていない）。
      また、Next.js 17 のリリース日が追加された OpenNext に上げると、15 は 2 年の期限で判定され、再びビルドが失敗する。
-     Next.js 16 への移行は #346 で行う。
+     #346 で Next.js 16（16.4.2）に移行した。
    - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため
      App Router では実質無効（CSS は通常どおり配信され、実害なし）。
 4. **プレビュー環境の API の接続先**: プレビュー用のビルドが本番の API・DB を使わないよう、ビルド変数を分けるか決める。
