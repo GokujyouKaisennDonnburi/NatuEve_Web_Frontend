@@ -11,7 +11,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 |---|---|---|
 | **Cloudflare Workers（Paid プラン）** | Next.js の SSR と静的ファイルの配信 | 確定 |
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
-| Cloudflare DNS | 独自ドメインの割り当て（`natuportal.org` のサブドメイン） | 予定（サブドメイン名は未決） |
+| Cloudflare DNS | 独自ドメインの割り当て（`natueve-web.natuportal.org`。Workers の Custom Domain） | サブドメインは決定（#328）。割り当ては後述の条件がそろってから |
 | Cloudflare Workers Builds | GitHub 連携による自動ビルド・デプロイ、ブランチごとのプレビュー URL | 予定（GitHub Actions と比較して決める） |
 | Cloudflare Images | `next/image` の画像最適化 | 未決 |
 
@@ -54,6 +54,66 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 - Workers Paid の 1 リクエストあたりの CPU 上限は既定 30 秒（最大 5 分）。無料プランは 10ms。
 - `public/_headers` で `/_next/static/*` に長期キャッシュ（`Cache-Control: public,max-age=31536000,immutable`）を付ける。
+
+## 独自ドメイン
+
+本番のドメインは `natueve-web.natuportal.org` に決めた（#328）。API の `natueve-api.natuportal.org` と名前をそろえている。
+
+| 項目 | 値 | 使う場所 |
+|---|---|---|
+| 本番のオリジン | `https://natueve-web.natuportal.org` | API の `CORS_ALLOW_ORIGINS`（NatuEve_API #218） |
+| OAuth のリダイレクト先 | `https://natueve-web.natuportal.org/auth/callback` | Supabase Auth のリダイレクト許可（#332） |
+
+- リダイレクト先は `src/services/auth.ts` の `redirectTo`（`${window.location.origin}/auth/callback`）で決まる。
+  Supabase にはオリジンだけでなく、パスを含むこの URL を登録する。
+- モバイルアプリ（NatuEve_Mobile）は API を直接呼ぶため、このドメインを使わない。
+  将来、共有リンクからアプリを開く（App Links / Universal Links）場合は、このドメインに検証用のファイル（`/.well-known/` 配下）を置く。
+
+### 割り当て方法
+
+- `wrangler.jsonc` の `routes` に Custom Domain として書き、デプロイで割り当てる。
+  設定をリポジトリで管理するため、ダッシュボードからは割り当てない。
+
+  ```jsonc
+  "routes": [
+    { "pattern": "natueve-web.natuportal.org", "custom_domain": true }
+  ]
+  ```
+
+- `natuportal.org` のゾーンは、デプロイ先と同じ Cloudflare アカウントにある（Active。2026-10-22 時点）。
+  Custom Domain の DNS レコードと証明書は Cloudflare が作る。
+- `routes` があると、`workers_dev` を省略したときの値は `false` になり、workers.dev の URL では配信しない
+  （wrangler 4.150.0 の `getSubdomainValues`）。`routes` がない今は、省略すると `true`（workers.dev で配信する）になる。
+- バージョンごとの Preview URL（`preview_urls`）は、省略すると Worker の今の設定を変えない（同じく `getSubdomainValues`）。
+  公開を止めておくなら `false` を明示する。
+
+### 割り当てる時期
+
+`routes` を追加したデプロイの時点で、このドメインに誰でもアクセスできるようになる。
+そのため、次がすべてそろってから `routes` を追加する PR を出す（#328 の残りの作業）。
+workers.dev の URL での公開は、これとは別に `workers_dev` と `preview_urls` で止める（#330 で扱う）。
+
+- #342（OpenNext のビルドが失敗する問題）が解決している。解決するまでデプロイできない。
+- #330（CI からのデプロイ）ができている。ローカルからはデプロイしない（後述の「ビルドとデプロイ」）。
+- #334（画像の取得元を本番用に絞る）が閉じている。閉じるまでは本番を公開しない。
+- 上の表の値を、API の `CORS_ALLOW_ORIGINS` と Supabase Auth のリダイレクト許可に登録している。
+  登録していないと、公開した直後から API の呼び出しとログインが失敗する。
+
+追加したら、`https://natueve-web.natuportal.org` でトップページが HTTPS で表示されることを確認する。
+
+### 注意
+
+- **CI からのデプロイでは、既存の DNS レコードやほかの Worker への割り当てが、確認なしで上書きされる。**
+  wrangler は対話できない環境（CI）では `override_existing_dns_record` と `override_existing_origin` を `true` にする（wrangler 4.150.0）。
+  `pattern` を書き間違えると、ほかのサービスのホスト名を奪うおそれがある。
+  例えば API の `natueve-api.natuportal.org` は、同じアカウントの中継用 Worker の Custom Domain にする方針になっている（NatuEve_API ADR-0034）。
+  `routes` を追加する PR では、`pattern` の綴りと、そのホスト名に既存の DNS レコードがないことをダッシュボードで確かめてからマージする。
+- **今の API トークンで Custom Domain を割り当てられるかは未確認。**
+  トークンは「Edit Cloudflare Workers」テンプレートで作っているが、Custom Domain に必要な権限は公式ドキュメントで確認できなかった。
+  最初のデプロイで権限のエラーが出たら、トークンに権限を足す。
+- **`routes` から消しても、Custom Domain が外れないことがある。**
+  wrangler は Custom Domain の route が 1 件もないと、Custom Domain の API を呼ばない（wrangler 4.150.0）。
+  外すときは、ダッシュボードでも外れたことを確かめる。
 
 ## 環境変数
 
@@ -138,7 +198,8 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 ## 未決事項・今後の作業
 
-1. **フロントのドメイン**: `natuportal.org` のどのサブドメインを使うか。
+1. **フロントのドメイン**: 解決済み（#328 で `natueve-web.natuportal.org` に決定。上の「独自ドメイン」を参照）。
+   割り当て（`routes` の追加）は、「割り当てる時期」の条件がそろってから行う。
 2. **画像最適化の方式**: 最適化なし（`unoptimized`）か、Cloudflare Images か。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
    - Next.js 15.5.27 は OpenNext 1.20.11 の対応範囲（`>=15.5.27 <16`）内。
