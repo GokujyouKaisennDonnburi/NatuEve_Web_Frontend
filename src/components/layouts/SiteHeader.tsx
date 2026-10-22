@@ -6,6 +6,7 @@ import {
 } from "@/components/layouts/AuthProvider";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
+import { APP_NAME } from "@/constants/config";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { Menu, Plus, X } from "lucide-react";
@@ -36,7 +37,7 @@ type CreateEventButtonProps = ComponentPropsWithoutRef<typeof Button> & {
 const HEADER_NAV_ITEMS = [
   { href: ROUTES.EVENT_LIST, label: "イベントを探す" },
   { href: ROUTES.COMING_SOON, label: "主催者の方へ" },
-  { href: ROUTES.ABOUT, label: "なちゅいべとは" },
+  { href: ROUTES.ABOUT, label: `${APP_NAME}とは` },
 ] as const;
 
 export function SiteHeader() {
@@ -133,7 +134,7 @@ export function SiteHeader() {
           </div>
           <div className="flex min-w-0 flex-col items-start gap-0 sm:flex-row sm:items-end sm:gap-2">
             <span className="whitespace-nowrap text-base font-bold tracking-tight text-emerald-700 sm:text-lg">
-              なちゅいべ
+              {APP_NAME}
             </span>
             <span className="whitespace-nowrap text-[10px] text-slate-500">
               by NatuPortal

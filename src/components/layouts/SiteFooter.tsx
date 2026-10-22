@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { APP_NAME } from "@/constants/config";
 import { ROUTES } from "@/constants/routes";
 
 const FOOTER_LINK_CLASS_NAME =
@@ -19,7 +20,7 @@ export function SiteFooter() {
             >
               <div className="flex items-end gap-2">
                 <span className="text-lg font-bold text-emerald-700">
-                  なちゅいべ
+                  {APP_NAME}
                 </span>
                 <span className="text-[11px] text-slate-500">
                   by NatuPortal

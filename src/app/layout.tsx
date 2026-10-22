@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/layouts/AppLayout";
+import { APP_DESCRIPTION, APP_NAME } from "@/constants/config";
 import { MSWProvider } from "@/mocks/MSWProvider";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -15,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "なちゅいべ",
-  description: "なちゅいべは、自然を楽しむイベントを「探したい人」と「開催したい人」をつなぐサービスです。",
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
 };
 
 export default function RootLayout({
