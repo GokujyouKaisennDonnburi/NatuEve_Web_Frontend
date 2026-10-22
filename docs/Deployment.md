@@ -182,7 +182,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
   恒久対応として、#330 で CI からのデプロイに限定する。
 - **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（pathname 制限の追跡 issue は未作成。作成後に番号・リンクを追記する）。** デプロイのブロッカーとして扱う。
-  開発用の取得元は本番ビルド（`NEXT_PUBLIC_USE_MSW` 未設定または `false`）の許可リストから外している（placehold.co・example.com は削除、picsum.photos・i.pravatar.cc は MSW ビルドでのみ許可）。この除外は `src/__tests__/nextConfigImageHosts.test.ts` で検証している。
+  開発用の取得元は本番ビルド（`NEXT_PUBLIC_USE_MSW` が `true` 以外。未設定・`false` を含む）の許可リストから外している（placehold.co・example.com は削除、picsum.photos・i.pravatar.cc は MSW ビルドでのみ許可）。この除外は `src/__tests__/nextConfigImageHosts.test.ts` で検証している。
   #334 の AC は「開発用の取得元を本番で外す」のみで `pathname` 制限を含まないため、**#334 が close しただけで完了と判断しない**（pathname 制限は別途起票して対応する）。
   **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
   変換枠（ユニーク変換/月）の使用量はアカウント単位で分析・集計される（枠の共有範囲についての公式の明記は確認できていない）ため、
@@ -247,7 +247,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   `Cache-Control`・`cf-cache-status` を実測して最終確認する（静的 import の画像は immutable が付く）。
 - 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
   `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
-  本番ビルド（`NEXT_PUBLIC_USE_MSW` 未設定または `false`）にはモック用の取得元が入らない（`src/__tests__/nextConfigImageHosts.test.ts` で設定値を検証）。
+  本番ビルド（`NEXT_PUBLIC_USE_MSW` が `true` 以外。未設定・`false` を含む）にはモック用の取得元が入らない（`src/__tests__/nextConfigImageHosts.test.ts` で設定値を検証）。
   残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
   絞り込み（`pathname` 制限）は追跡 issue 未作成のため別途起票して対応し、**`pathname` 制限が完了するまでデプロイしない**
   （#334 の AC 外であり、#334 が close しただけでは判断しない。絞らないと、許可した取得元の任意の画像を誰でもこの最適化を通して変換でき、

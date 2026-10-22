@@ -32,7 +32,7 @@ const mockImageHosts: ImageRemotePattern[] = [
 ];
 
 // MSW を使うビルドでのみモック用の取得元を許可する。
-// 未設定・false（本番ビルド）ではモック用を含めない（安全側のデフォルト）。
+// `true` 以外（未設定・`false` を含む）ではモック用を含めない（安全側のデフォルト）。
 const isMswEnabled = process.env.NEXT_PUBLIC_USE_MSW === "true";
 
 // Next.jsの設定ファイル
