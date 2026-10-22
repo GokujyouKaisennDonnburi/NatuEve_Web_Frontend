@@ -63,10 +63,14 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | 項目 | 値 | 使う場所 |
 |---|---|---|
 | 本番のオリジン | `https://natueve-web.natuportal.org` | API の `CORS_ALLOW_ORIGINS`（NatuEve_API #218） |
-| OAuth のリダイレクト先 | `https://natueve-web.natuportal.org/auth/callback` | Supabase Auth のリダイレクト許可（#332） |
+| OAuth のリダイレクト先 | `https://natueve-web.natuportal.org/auth/callback` | Supabase Auth の Redirect URLs（#332） |
+| Supabase Auth の Site URL | 変えるかは要相談 | Supabase Auth の Site URL（#332）。下の注を参照 |
 
 - リダイレクト先は `src/services/auth.ts` の `redirectTo`（`${window.location.origin}/auth/callback`）で決まる。
   Supabase にはオリジンだけでなく、パスを含むこの URL を登録する。
+- Supabase Auth の Site URL は、`redirectTo` を指定しない認証フローなどで使われる既定の URL。
+  Supabase の Auth は NatuPortal のほかのプロダクトと共有しているため、Site URL をこのオリジンに変えるかは、
+  ほかのプロダクトの担当と相談して決める（#332）。このアプリの OAuth は `redirectTo` を必ず指定している。
 - モバイルアプリ（NatuEve_Mobile）は API を直接呼ぶため、このドメインを使わない。
   将来、共有リンクからアプリを開く（App Links / Universal Links）場合は、このドメインに検証用のファイル（`/.well-known/` 配下）を置く。
 
@@ -83,10 +87,10 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 - `natuportal.org` のゾーンは、デプロイ先と同じ Cloudflare アカウントにある（Active。2026-10-22 時点）。
   Custom Domain の DNS レコードと証明書は Cloudflare が作る。
-- `routes` があると、`workers_dev` を省略したときの値は `false` になり、workers.dev の URL では配信しない
-  （wrangler 4.150.0 の `getSubdomainValues`）。`routes` がない今は、省略すると `true`（workers.dev で配信する）になる。
-- バージョンごとの Preview URL（`preview_urls`）は、省略すると Worker の今の設定を変えない（同じく `getSubdomainValues`）。
-  公開を止めておくなら `false` を明示する。
+- workers.dev の URL とバージョンごとの Preview URL は、#330（PR #340）で `wrangler.jsonc` に
+  `"workers_dev": false` と `"preview_urls": false` を明示して無効にする。`routes` を追加してもこの 2 つは無効のまま。
+  - 参考（wrangler 4.150.0 の `getSubdomainValues`）: `workers_dev` を省略すると、`routes` があれば `false`、なければ `true`。
+    `preview_urls` を省略すると Worker の今の設定を変えない。どちらも省略に頼らず明示する。
 
 ### 割り当てる時期
 
@@ -98,6 +102,8 @@ workers.dev の URL での公開は、これとは別に `workers_dev` と `prev
 - #330（CI からのデプロイ）ができている。ローカルからはデプロイしない（後述の「ビルドとデプロイ」）。
 - #334（画像の取得元を本番用に絞る）で、本番の取得元の `pathname` 制限が入っている。
   Issue が閉じたことだけでは判断しない（後述の「画像最適化」を参照）。それまでは本番を公開しない。
+- API の独自ドメインに HTTPS で届く（`https://natueve-api.natuportal.org/health` が `{"status":"ok"}` を返す）。
+  NatuEve_API の `docs/Deployment.md`「独自ドメイン経由の検証（#226）」が済んでいること。済んでいないと、公開した直後から API の呼び出しがすべて失敗する。
 - 上の表の値を、API の `CORS_ALLOW_ORIGINS` と Supabase Auth のリダイレクト許可に登録している。
   登録していないと、公開した直後から API の呼び出しとログインが失敗する。
 
