@@ -2,7 +2,7 @@
 
 NatuEve のフロントエンド開発用リポジトリです。
 
-Next.js 15 + React 19 + TypeScript 5 + Tailwind CSS 4 + Biome 2 + MSW 2 + shadcn/ui をベースに構築しています。
+Next.js 16 + React 19 + TypeScript 5 + Tailwind CSS 4 + Biome 2 + MSW 2 + shadcn/ui をベースに構築しています。
 
 Atomic Design を前提としたディレクトリ構成を採用し、初心者から経験者まで開発に参加しやすい構成を目指しています。
 
@@ -122,6 +122,9 @@ bun run check
 
 Biome と TypeScript のチェックをまとめて実行します。
 
+`next-env.d.ts` は Next.js が生成するファイルで、Git では管理していません。
+clone した直後にエディタで型エラー（画像の import など）が出る場合は、`bunx next typegen` を実行してください（`bun run dev`・`bun run build`・`bun run check` でも生成されます）。
+
 ### コード品質チェック
 
 ```bash
@@ -146,7 +149,7 @@ bun run format:check
 
 | カテゴリ       | ツール          | バージョン   |
 | ---------- | ------------ | ------- |
-| フレームワーク    | Next.js      | ^15.5.28 |
+| フレームワーク    | Next.js      | ^16.4.2 |
 | ランタイム      | React        | ^19.1.0 |
 | 言語         | TypeScript   | ^5.8.3  |
 | スタイリング     | Tailwind CSS | ^4.1.8  |
