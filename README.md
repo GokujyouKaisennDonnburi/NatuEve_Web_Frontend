@@ -54,7 +54,7 @@ NatuEve Web Frontend は、Next.js App Router を利用したフロントエン�
 | ツール     | 推奨バージョン   | 用途           |
 | ------- | --------- | ------------ |
 | Git     | 最新安定版     | ソースコード管理     |
-| Node.js | 22 LTS    | 開発補助環境       |
+| Node.js | 24 LTS（版は `.nvmrc` に固定） | 開発補助環境       |
 | Bun     | 1.2.21    | パッケージ管理・実行環境 |
 | VSCode  | 最新安定版     | 開発エディタ       |
 
@@ -71,6 +71,10 @@ git clone <repository-url>
 
 # プロジェクトへ移動
 cd <project-name>
+
+# Node.js を .nvmrc の版にする（nvm（macOS / Linux / WSL）の場合。入っていれば切り替えだけ行う）
+# nvm 以外のツールでは、.nvmrc に書かれた版を指定してインストールする（詳細は docs/Tech.md）
+nvm install
 
 # 依存関係をインストール
 bun install
@@ -258,6 +262,7 @@ public/mockServiceWorker.js
 
 ## ドキュメント
 
+* [環境構築手順書（docs/Tech.md）](docs/Tech.md)
 * [デプロイ構成（docs/Deployment.md）](docs/Deployment.md)
 * [設計判断の記録 ADR（docs/adr/）](docs/adr/README.md)
 
