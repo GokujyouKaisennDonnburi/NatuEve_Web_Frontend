@@ -5,10 +5,15 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
+  # production Environment の設定後に手動でデプロイを走らせるためのトリガー
+  # （vars.DEPLOY_ENABLED を true にしてから、main を対象に実行する）。
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # PR は古い実行をキャンセルするが、main への push（デプロイ job を含む）はキャンセルしない。
+  # 変更がないと連続マージ時に実行中のデプロイが中断されるため（#330）。
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   quality:
@@ -21,17 +26,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # SHA 固定（サプライチェーン攻撃対策）。更新は Dependabot に任せる。
+        # checkout v4.4.0
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        # setup-bun v2.2.0
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: "1.2.21"
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        # setup-node v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .nvmrc
 
@@ -50,7 +59,10 @@ jobs:
       - name: Test (Vitest)
         run: bun run test
 
+      # main への push では deploy ジョブの opennextjs-cloudflare build（内部で next build）が
+      # 本番 env でビルドするため、quality 側のビルドは PR イベントのみでよい。
       - name: Build (Next.js)
+        if: github.event_name == 'pull_request'
         run: bun run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
@@ -59,3 +71,87 @@ jobs:
           # 将来サーバ側から呼ばれる可能性に備えリポジトリの Variables から注入する。
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+  deploy:
+    name: Deploy (production)
+    needs: quality
+    # main の push でのみ自動デプロイする。workflow_dispatch でも main を対象になら実行可。
+    # ただし前提の Environment 変数（PROD_*）が設定されるまでスケジューラが走るたび失敗するのを
+    # 避けるため、リポジトリ Variables の DEPLOY_ENABLED == 'true' をデプロイ全体のゲートにする
+    # （Environment の Variables はジョブ開始後にしか取れず、ジョブの if では使えないため、
+    # ゲートはリポジトリ側に置く）。初期値は未設定で skip。設定後、true に変更して有効化する。
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    environment: production
+
+    permissions:
+      contents: read
+
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+
+    # Secret / Variable は必要なステップにのみ渡す（checkout や依存インストールなどのステップに
+    # トークンを露出させず、第三者コードの侵害時に窃取できる範囲を狭める）。
+    # `${{ vars.NEXT_PUBLIC_* }}` は Environment 未設定時にリポジトリ Variables へフォールバックする
+    # （quality ジョブが CI 用に同名を設定している）ため、本番用には PROD_ 接頭辞の名前にする。
+    # PROD_ 接頭辞の変数はリポジトリに存在しないため、Environment 未設定なら空になり検証ステップで失敗する。
+
+    steps:
+      - name: Checkout
+        # checkout v4.4.0
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        # setup-bun v2.2.0
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: "1.2.21"
+
+      - name: Setup Node
+        # setup-node v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # 空文字の NEXT_PUBLIC_* でもビルドは通る（apiClient は相対パスへフォールバックする）ため、
+      # production Environment の設定漏れを deploy 前にここで検知する。
+      - name: Validate required variables
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.PROD_NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          missing=0
+          for v in NEXT_PUBLIC_API_BASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
+            if [ -z "${!v}" ]; then
+              echo "::error::$v が未設定です。production Environment の Variables を確認してください。"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      # CI には .env.local がないため、docs/Deployment.md の「ローカルの値が混ざる」問題は起きない。
+      # NEXT_PUBLIC_USE_MSW は変数化せず false を直書きする（設定ミスで本番のモック認証が有効になるのを防ぐ）。
+      # NEXT_PUBLIC_* の値はビルド時にコードへ埋め込まれる。
+      # Cloudflare の Secrets はこのステップにのみ渡す（wrangler が環境変数から読む。wrangler 4.150.0 で確認済み）。
+      - name: Deploy (Cloudflare Workers)
+        run: bun run deploy
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.PROD_NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_USE_MSW: "false"

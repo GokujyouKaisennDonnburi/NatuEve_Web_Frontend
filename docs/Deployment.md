@@ -12,7 +12,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 | **Cloudflare Workers（Paid プラン）** | Next.js の SSR と静的ファイルの配信 | 確定 |
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
 | Cloudflare DNS | 独自ドメインの割り当て（`natuportal.org` のサブドメイン） | 予定（サブドメイン名は未決） |
-| Cloudflare Workers Builds | GitHub 連携による自動ビルド・デプロイ、ブランチごとのプレビュー URL | 予定（GitHub Actions と比較して決める） |
+| Cloudflare Workers Builds | GitHub 連携による自動ビルド・デプロイ、ブランチごとのプレビュー URL | 不採用（#330 で GitHub Actions を採用）。**ダッシュボードの Git 連携を接続しないこと（GitHub Actions と二重にデプロイされるため）** |
 | **Cloudflare Images（`IMAGES` バインディング）** | `next/image` の画像最適化 | 確定（#327） |
 
 フロントエンドの接続先（既存）:
@@ -59,7 +59,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 ## 環境変数
 
 環境変数はアプリ用とビルド環境用の 2 種類に分かれる。本番ではどちらもビルド環境の変数として設定する
-（Workers Builds なら「Build variables and secrets」、GitHub Actions なら同等の環境変数。どちらを使うかは未決事項 5）。
+（GitHub Actions では production Environment の Secrets / Variables から注入する。#330 で採用）。
 
 ### アプリ用（`NEXT_PUBLIC_*`）
 
@@ -78,7 +78,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 | 変数 | 本番の値 | 備考 |
 |---|---|---|
-| `BUN_VERSION` | `1.2.21` | ビルド環境の既定は 1.2.15。`package.json` の `packageManager` に合わせる |
+| `BUN_VERSION` | `1.2.21` | ビルド環境の既定は 1.2.15。`package.json` の `packageManager` に合わせる。**Workers Builds 専用。** GitHub Actions では `setup-bun` でバージョンを固定するため不要 |
 
 - 値を変えたら再ビルドが必要。
 - ローカル開発は従来どおり `.env.local` を使う。Workers のランタイムで確認する場合は `.dev.vars`（`NEXTJS_ENV=development`）を使う。
@@ -95,7 +95,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   やむを得ずローカルから実行する場合は、本番の値を環境変数として明示的に渡す（`process.env` は `.env.local` より優先される）。
   その際、**`.env.local` にある `NEXT_PUBLIC_*` はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
   特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
-  恒久対応として、#330 で CI からのデプロイに限定する。
+  恒久対応済み: #330 で CI からのデプロイに限定した（上の「CI/CD」を参照）。
 - **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（#334）。** デプロイのブロッカーとして扱う。
   開発用の取得元は本番ビルド（`NEXT_PUBLIC_USE_MSW=false`）の許可リストから外している（placehold.co・example.com は削除、picsum.photos・i.pravatar.cc は MSW ビルドでのみ許可）。
   #334 の AC は現状「開発用の取得元を本番で外す」のみで `pathname` 制限を含まないため、**#334 が close しただけで完了と判断しない**。
@@ -107,6 +107,75 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   `Cache-Control`・`cf-cache-status` を実測する。詳細は[画像最適化](#画像最適化)を参照。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
 - Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
+
+## CI/CD（GitHub Actions）
+
+#330 で Workers Builds ではなく GitHub Actions を採用した（public リポジトリで無料利用可）。
+
+`main` への push で quality ジョブ（lint / format / typecheck / test）が通った後に、production 環境へ自動デプロイする。PR の実行ではデプロイしない。
+
+- スクリプトは `package.json` の `deploy`（`opennextjs-cloudflare build && opennextjs-cloudflare deploy`）をそのまま使う。OpenNext のビルドは内部で `next build` を呼び、`NEXT_PUBLIC_*` の値はビルド時にコードへ埋め込まれる。
+- wrangler は環境変数の `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を読むことを確認済み（wrangler 4.150.0）。
+- CI には `.env.local` がないため、docs/Deployment.md にある「ローカルの値が混ざる」問題は起きない。
+- top-level の `concurrency` は `cancel-in-progress` を PR イベントのみに限定している（`github.event_name == 'pull_request'`）。変更しないと、main への連続マージで実行中のデプロイがキャンセルされる。
+- deploy ジョブの実行条件は「リポジトリ Variables の `DEPLOY_ENABLED == 'true'` ＋ main への push または main 対象の `workflow_dispatch`」。
+  本番 Variables（`PROD_*`）の設定前にマージしても、ジョブが skip するため main の CI は赤くならない。
+  設定が完了したら `DEPLOY_ENABLED` を `true` にして有効化する。
+  また、Variables 設定後は Actions タブから `CI` ワークフローを main 対象で手動実行（Run workflow）すれば即デプロイできる。
+  `DEPLOY_ENABLED` をリポジトリ側に置くのは、Environment の Variables はジョブ開始時まで参照できず、ジョブの `if` では使えないため。
+- deploy ジョブの先頭で「Validate required variables」ステップが必須の Variables が空でないか検証する。
+  空文字の `NEXT_PUBLIC_*` でもビルドは通る（`apiClient` は `NEXT_PUBLIC_API_BASE_URL` 未設定時に相対パスへフォールバックする）ため、設定漏れは deploy 前にここで検知する。
+- Secret / Variable は必要なステップにのみ渡す。`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` は Deploy ステップに限定し、checkout・依存インストールなどのステップには渡さない。
+- 使用する 3 つの Action（checkout・setup-bun・setup-node）は完全コミット SHA で固定する（タグ差し替えによるサプライチェーン攻撃の防止。更新は Dependabot に任せる）。
+- quality ジョブの `Build (Next.js)` ステップは PR イベントのみで実行する。main への push では deploy ジョブが本番 env でビルドする（quality との二重ビルドを避ける）。
+
+### GitHub 側の設定（いずれかが未設定なら検証ステップでデプロイが失敗する）
+
+Settings → Environments → `production`（ブランチ制限: `main` のみ。これにより PR のワークフローからトークンが使えない）:
+
+| 種別 | 名前 | ワークフロー env への割り当て | 値 |
+|---|---|---|---|
+| Secret | `CLOUDFLARE_API_TOKEN` | `CLOUDFLARE_API_TOKEN` | Cloudflare の API トークン（権限は「Edit Cloudflare Workers」、対象アカウントを絞る） |
+| Secret | `CLOUDFLARE_ACCOUNT_ID` | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare のアカウント ID |
+| Variable | `PROD_NEXT_PUBLIC_API_BASE_URL` | `NEXT_PUBLIC_API_BASE_URL` | 本番 API のオリジン（#329） |
+| Variable | `PROD_NEXT_PUBLIC_SUPABASE_URL` | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL（#329） |
+| Variable | `PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY` | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の anon キー（#329） |
+
+- 本番用の Variables は `PROD_` 接頭辞を付ける。`${{ vars.NEXT_PUBLIC_* }}` は Environment 未設定時にリポジトリ Variables へフォールバックする
+  （リポジトリの Variables に `NEXT_PUBLIC_SUPABASE_*` があり、quality ジョブが CI 用に使用している）ため、
+  接頭辞のない同名にすると設定漏れがフォールバックで隠れる。`PROD_` 接頭辞の変数はリポジトリに存在しないため、
+  Environment 未設定なら空になり検証ステップで失敗する。
+- `NEXT_PUBLIC_USE_MSW` は変数にせず、ワークフローに `false` を直書きする（設定ミスで本番のモック認証が有効になるのを防ぐ）。
+- Cloudflare ダッシュボードで Git 連携（Workers Builds）を接続しない（二重デプロイ防止）。
+
+### デプロイの有効化（リポジトリ側）
+
+Settings → Secrets and variables → Actions → Variables:
+
+| 種別 | 名前 | 値 | 補足 |
+|---|---|---|---|
+| Variable | `DEPLOY_ENABLED` | **未設定**（マージ時点）。production Environment の設定完了後に `true` へ変更 | deploy ジョブの実行可否ゲート。未設定・`true` 以外なら deploy ジョブは skip する |
+
+production Environment の設定（上の表）が完了したら、`DEPLOY_ENABLED` を `true` にしたうえで
+Actions タブから手動実行するか、main に push して最初のデプロイを行う。
+
+### デプロイ時の注意
+
+- 本番 URL（`#328` の独自ドメインが決まるまで `https://natueve-web-frontend.<サブドメイン>.workers.dev`。
+  サブドメインは Cloudflare アカウントの workers.dev サブドメイン）を API 側の `CORS_ALLOW_ORIGINS` に追加する必要がある（ワイルドカード非対応、NatuEve_API ADR-0033）。未追加だと API 呼び出しが失敗する。
+- Supabase Auth のリダイレクト許可にも本番 URL を追加する。
+  ダッシュボード（Authentication → URL Configuration → Redirect URLs）に `https://<本番オリジン>/auth/callback` を
+  登録する（コードは `redirectTo: ${window.location.origin}/auth/callback` を使う。src/services/auth.ts 参照）。
+  オリジン単位 `https://<本番オリジン>/**` でも動作するが、パスまで書いた値が設定ミスを防ぎやすい。
+- #334（画像最適化で許可する画像の取得元を本番用に絞る）が閉じるまでは本番公開しない
+  （上の「ビルドとデプロイ」のとおり #334 閉止後も `pathname` 制限が完了するまで deploy 自体を行わない）。
+  そのため `wrangler.jsonc` に `"workers_dev": false` と `"preview_urls": false` を設定済みで、マージしてデプロイしても
+  workers.dev（Direct URL・`natueve-web-frontend.<サブドメイン>.workers.dev`）からも Preview URL
+  （`<version>-natueve-web-frontend.<サブドメイン>.workers.dev`）からも到達不可能
+  （CORS / Supabase Auth の設定前に Worker だけが公開されることを防ぐ）。
+  `preview_urls` を設定するのは、wrangler は `preview_urls` を省略した場合に Worker 側の既存設定を変更しない一方、
+  `workers_dev` だけの指定では Preview URL が残るため（wrangler 4.150.0 の挙動で確認）。
+  公開段階で両行を削除する（workers.dev で公開する場合）。独自ドメイン（#328）を割り当てる場合は false のままルートを追加してもよい。
 
 ## 導入時に必要な変更
 
@@ -207,12 +276,15 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
    - Next.js 15.5.27 は OpenNext 1.20.11 の対応範囲（`>=15.5.27 <16`）内。
    - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため
      App Router では実質無効（CSS は通常どおり配信され、実害なし）。
-4. **プレビュー環境の API の接続先**: プレビュー用のビルドが本番の API・DB を使わないよう、ビルド変数を分けるか決める。
-5. **CI/CD**: Workers Builds か GitHub Actions か。
+4. **プレビュー環境の API の接続先**: #330 で方針決定済み。**プレビュー環境は後回し**（本番自動デプロイが動いてから別途進める）。
+   - プレビューの URL は都度変わるため API の `CORS_ALLOW_ORIGINS` + Supabase Auth のリダイレクト許可の扱いが課題。
+   - MSW を使うプレビューは #334 が閉じるまで公開できない。
+   - OpenNext の `upload` で URL に別名を付けられる。
+5. **CI/CD**: 解決済み（#330 で GitHub Actions を採用。上の「CI/CD」を参照）。
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
    - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
    - 本番のオリジンは #328 で決まり次第、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
-   - URL が変わる Workers Builds のプレビュー環境は、そのままでは許可できないため、扱いを #330 で決める。
+     #328 で独自ドメインが決まるまでは `https://natueve-web-frontend.<サブドメイン>.workers.dev` を設定する。
 
 ## 参考（料金・仕様の出典）
 
