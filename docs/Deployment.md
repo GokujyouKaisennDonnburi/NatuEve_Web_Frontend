@@ -105,6 +105,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 1. 依存パッケージの追加: `@opennextjs/cloudflare@1.20.11`、`wrangler@4.150.0`（devDependencies）。
    OpenNext の対応範囲に合わせて Next.js も 15.5.27 に更新。
+   いずれも #326 当時の版。今の版は `package.json` を参照する（OpenNext 1.20.11 では #342 のビルド失敗が起きる）。
 2. `wrangler.jsonc`（`compatibility_date: 2025-05-05`、`nodejs_compat`、`global_fetch_strictly_public`）と
    `open-next.config.ts` を追加。
 3. `package.json` に `preview`・`deploy`・`upload`・`cf-typegen` スクリプトを追加。
@@ -143,6 +144,11 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 3. **ビルドの確認**: 解決済み（#326 で検証）。
    - Next.js 15.5.28 は OpenNext 1.20.13 の対応範囲（`>=15.5.28 <16 || >=16.4.1`）内（#342 で更新）。
    - OpenNext 1.20.12 以前は、Next.js のメジャー版がリリースから 2 年経つとビルドを止めていた（Next.js 15 は 2026-10-21 から失敗）。1.20.13 からは、2 つ後のメジャー版（Next.js 17）のリリース日が `@opennextjs/aws` の日付表に追加されるまで対応扱いになる（`dist/build/helper.js` の `isNextVersionSupported`）。
+   - これは OpenNext 側の判定の話で、Next.js 15 自体は Maintenance LTS（重大なバグ修正と必要なセキュリティ修正だけが出る）。
+     公式のサポートポリシーでは「各メジャー版はリリースから 2 年間 Maintenance LTS」とされ、15 は 2024-10-21 リリースのため、
+     まもなくサポート対象から外れる見込み（終了日は明記されていない）。
+     また、Next.js 17 のリリース日が追加された OpenNext に上げると、15 は 2 年の期限で判定され、再びビルドが失敗する。
+     Next.js 16 への移行は #346 で行う。
    - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため
      App Router では実質無効（CSS は通常どおり配信され、実害なし）。
 4. **プレビュー環境の API の接続先**: プレビュー用のビルドが本番の API・DB を使わないよう、ビルド変数を分けるか決める。
