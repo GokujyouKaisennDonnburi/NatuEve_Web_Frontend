@@ -15,7 +15,7 @@ Atomic Design、services、hooks、types、utils、constants、mocks を分け�
 
 | カテゴリ | ツール | バージョン |
 | --- | --- | --- |
-| フレームワーク | Next.js | 15.5.27 |
+| フレームワーク | Next.js | 15.5.28 |
 | ランタイム | React | 19.1.0 |
 | 言語 | TypeScript | 5.8.3 |
 | スタイリング | Tailwind CSS | 4.1.8 |

@@ -53,7 +53,7 @@ SSR できる形でデプロイする。**
   Node 用の middleware と Edge ランタイムには対応していない。
 - **Workers のランタイムは Node.js と完全には互換でない**: 使える Node の機能は一部で、ライブラリによっては動かない可能性がある。
 - **`experimental.optimizeCss`（critters）は App Router では無効**: ビルドは #326 で検証済み。
-  Next.js 15.5.27 は OpenNext 1.20.11 の対応範囲内で、OpenNext のビルドは通る。
+  Next.js 15.5.28 は OpenNext 1.20.13 の対応範囲内で、OpenNext のビルドは通る（#342 で更新）。
   ただし critters は Pages Router のみ適用のため、App Router では実質無効
   （CSS は通常どおり配信され、実害なし）。App Router でも同効果が必要になったら別の手段を検討する。
 - **環境ごとに再ビルドが必要**: `NEXT_PUBLIC_*` はビルド時に埋め込まれるため。

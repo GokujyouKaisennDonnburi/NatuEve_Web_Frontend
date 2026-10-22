@@ -141,7 +141,8 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 1. **フロントのドメイン**: `natuportal.org` のどのサブドメインを使うか。
 2. **画像最適化の方式**: 最適化なし（`unoptimized`）か、Cloudflare Images か。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
-   - Next.js 15.5.27 は OpenNext 1.20.11 の対応範囲（`>=15.5.27 <16`）内。
+   - Next.js 15.5.28 は OpenNext 1.20.13 の対応範囲（`>=15.5.28 <16 || >=16.4.1`）内（#342 で更新）。
+   - OpenNext 1.20.12 以前は、Next.js のメジャー版がリリースから 2 年経つとビルドを止めていた（Next.js 15 は 2026-10-21 から失敗）。1.20.13 からは、2 つ後のメジャー版（Next.js 17）のリリース日が `@opennextjs/aws` の日付表に追加されるまで対応扱いになる（`dist/build/helper.js` の `isNextVersionSupported`）。
    - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため
      App Router では実質無効（CSS は通常どおり配信され、実害なし）。
 4. **プレビュー環境の API の接続先**: プレビュー用のビルドが本番の API・DB を使わないよう、ビルド変数を分けるか決める。
