@@ -1,5 +1,6 @@
 "use client";
 
+import natuEveLogo from "@/assets/images/NatuEve_logo.png";
 import {
   useAuthContext,
   useCurrentUserContext,
@@ -123,7 +124,7 @@ export function SiteHeader() {
         >
           <div className="relative h-10 w-10 shrink-0 sm:h-12 sm:w-12">
             <Image
-              src="/images/NatuEve_logo.png"
+              src={natuEveLogo}
               alt=""
               fill
               sizes="(max-width: 639px) 40px, 48px"
