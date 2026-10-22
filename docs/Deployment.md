@@ -126,7 +126,7 @@ workers.dev の URL での公開は、これとは別に `workers_dev` と `prev
 
 | 変数 | 本番の値 | 備考 |
 |---|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | 本番 API のオリジン | API のドメインは NatuEve_API 側で決める |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://natueve-api.natuportal.org` | NatuEve_API の本番オリジン（API の中継用 Worker の Custom Domain。NatuEve_API ADR-0034） |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | ブラウザに渡る前提の値 |
 | `NEXT_PUBLIC_USE_MSW` | `false` | 本番ではモックを使わない |
@@ -209,7 +209,7 @@ workers.dev の URL での公開は、これとは別に `workers_dev` と `prev
 5. **CI/CD**: Workers Builds か GitHub Actions か。
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
    - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
-   - 本番のオリジンは #328 で決まり次第、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
+   - 本番のオリジン `https://natueve-web.natuportal.org`（#328 で決定。上の「独自ドメイン」を参照）を、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
    - URL が変わる Workers Builds のプレビュー環境は、そのままでは許可できないため、扱いを #330 で決める。
 
 ## 参考（料金・仕様の出典）
