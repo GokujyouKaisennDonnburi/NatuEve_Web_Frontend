@@ -101,7 +101,10 @@ bun run build
 bun run check
 ```
 
-このコマンドは Biome のチェックと TypeScript の `tsc --noEmit` をまとめて実行します。
+このコマンドは Biome のチェック、`next typegen`（`next-env.d.ts` などの型の生成）、TypeScript の `tsc --noEmit` をまとめて実行します。
+
+`next-env.d.ts` は Next.js が生成するファイルで、Git では管理していません。
+clone した直後にエディタで型エラー（画像の import など）が出る場合は、`bunx next typegen` を実行してください（`bun run dev`・`bun run build`・`bun run check` でも生成されます）。
 
 ---
 
