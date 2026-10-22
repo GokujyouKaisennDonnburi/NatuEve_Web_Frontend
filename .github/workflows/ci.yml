@@ -5,6 +5,9 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
+  # production Environment の設定後に手動でデプロイを走らせるためのトリガー
+  # （vars.DEPLOY_ENABLED を true にしてから、main を対象に実行する）。
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -72,7 +75,15 @@ jobs:
   deploy:
     name: Deploy (production)
     needs: quality
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # main の push でのみ自動デプロイする。workflow_dispatch でも main を対象になら実行可。
+    # ただし前提の Environment 変数（PROD_*）が設定されるまでスケジューラが走るたび失敗するのを
+    # 避けるため、リポジトリ Variables の DEPLOY_ENABLED == 'true' をデプロイ全体のゲートにする
+    # （Environment の Variables はジョブ開始後にしか取れず、ジョブの if では使えないため、
+    # ゲートはリポジトリ側に置く）。初期値は未設定で skip。設定後、true に変更して有効化する。
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

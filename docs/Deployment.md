@@ -108,6 +108,11 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - wrangler は環境変数の `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を読むことを確認済み（wrangler 4.150.0）。
 - CI には `.env.local` がないため、docs/Deployment.md にある「ローカルの値が混ざる」問題は起きない。
 - top-level の `concurrency` は `cancel-in-progress` を PR イベントのみに限定している（`github.event_name == 'pull_request'`）。変更しないと、main への連続マージで実行中のデプロイがキャンセルされる。
+- deploy ジョブの実行条件は「リポジトリ Variables の `DEPLOY_ENABLED == 'true'` ＋ main への push または main 対象の `workflow_dispatch`」。
+  本番 Variables（`PROD_*`）の設定前にマージしても、ジョブが skip するため main の CI は赤くならない。
+  設定が完了したら `DEPLOY_ENABLED` を `true` にして有効化する。
+  また、Variables 設定後は Actions タブから `CI` ワークフローを main 対象で手動実行（Run workflow）すれば即デプロイできる。
+  `DEPLOY_ENABLED` をリポジトリ側に置くのは、Environment の Variables はジョブ開始時まで参照できず、ジョブの `if` では使えないため。
 - deploy ジョブの先頭で「Validate required variables」ステップが必須の Variables が空でないか検証する。
   空文字の `NEXT_PUBLIC_*` でもビルドは通る（`apiClient` は `NEXT_PUBLIC_API_BASE_URL` 未設定時に相対パスへフォールバックする）ため、設定漏れは deploy 前にここで検知する。
 - Secret / Variable は必要なステップにのみ渡す。`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` は Deploy ステップに限定し、checkout・依存インストールなどのステップには渡さない。
@@ -133,14 +138,33 @@ Settings → Environments → `production`（ブランチ制限: `main` のみ�
 - `NEXT_PUBLIC_USE_MSW` は変数にせず、ワークフローに `false` を直書きする（設定ミスで本番のモック認証が有効になるのを防ぐ）。
 - Cloudflare ダッシュボードで Git 連携（Workers Builds）を接続しない（二重デプロイ防止）。
 
+### デプロイの有効化（リポジトリ側）
+
+Settings → Secrets and variables → Actions → Variables:
+
+| 種別 | 名前 | 値 | 補足 |
+|---|---|---|---|
+| Variable | `DEPLOY_ENABLED` | **未設定**（マージ時点）。production Environment の設定完了後に `true` へ変更 | deploy ジョブの実行可否ゲート。未設定・`true` 以外なら deploy ジョブは skip する |
+
+production Environment の設定（上の表）が完了したら、`DEPLOY_ENABLED` を `true` にしたうえで
+Actions タブから手動実行するか、main に push して最初のデプロイを行う。
+
 ### デプロイ時の注意
 
-- 本番 URL（`#328` の独自ドメインが決まるまで `https://<name>.workers.dev`。Workers 名は `natueve-web-frontend`）を API 側の `CORS_ALLOW_ORIGINS` に追加する必要がある（ワイルドカード非対応、NatuEve_API ADR-0033）。未追加だと API 呼び出しが失敗する。
+- 本番 URL（`#328` の独自ドメインが決まるまで `https://natueve-web-frontend.<サブドメイン>.workers.dev`。
+  サブドメインは Cloudflare アカウントの workers.dev サブドメイン）を API 側の `CORS_ALLOW_ORIGINS` に追加する必要がある（ワイルドカード非対応、NatuEve_API ADR-0033）。未追加だと API 呼び出しが失敗する。
 - Supabase Auth のリダイレクト許可にも本番 URL を追加する。
+  ダッシュボード（Authentication → URL Configuration → Redirect URLs）に `https://<本番オリジン>/auth/callback` を
+  登録する（コードは `redirectTo: ${window.location.origin}/auth/callback` を使う。src/services/auth.ts 参照）。
+  オリジン単位 `https://<本番オリジン>/**` でも動作するが、パスまで書いた値が設定ミスを防ぎやすい。
 - #334（画像最適化で許可する画像の取得元を本番用に絞る）が閉じるまでは本番公開しない。
-  そのため `wrangler.jsonc` に `"workers_dev": false` を設定済みで、マージしてデプロイしても workers.dev からは到達不可能
+  そのため `wrangler.jsonc` に `"workers_dev": false` と `"preview_urls": false` を設定済みで、マージしてデプロイしても
+  workers.dev（Direct URL・`natueve-web-frontend.<サブドメイン>.workers.dev`）からも Preview URL
+  （`<version>-natueve-web-frontend.<サブドメイン>.workers.dev`）からも到達不可能
   （CORS / Supabase Auth の設定前に Worker だけが公開されることを防ぐ）。
-  #334 完了後に行を削除する（workers.dev で公開する場合）。独自ドメイン（#328）を割り当てる場合は false のままルートを追加してもよい。
+  `preview_urls` を設定するのは、wrangler は `preview_urls` を省略した場合に Worker 側の既存設定を変更しない一方、
+  `workers_dev` だけの指定では Preview URL が残るため（wrangler 4.150.0 の挙動で確認）。
+  #334 完了後に両行を削除する（workers.dev で公開する場合）。独自ドメイン（#328）を割り当てる場合は false のままルートを追加してもよい。
 
 ## 導入時に必要な変更
 

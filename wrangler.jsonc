@@ -1,9 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "natueve-web-frontend",
-  // #334（画像最適化で許可する画像の取得元を本番用に絞る）が閉じるまで workers.dev での公開を抑止する。
-  // #334 完了後はこの行を削除する（または #328 の独自ドメインを割り当てたまま false を維持する）。
+  // #334（画像最適化で許可する画像の取得元を本番用に絞る）が閉じるまで workers.dev / Preview URL での公開を抑止する。
+  // preview_urls を省略すると wrangler は Worker 側の既存設定を変更しないため（wrangler 4.150.0 で確認済み）、
+  // 何も公開したくないこの期間は両方に false を明示する必要がある。
+  // #334 完了後はこの 2 行を削除する（または #328 の独自ドメインを割り当てたまま false を維持する）。
   "workers_dev": false,
+  "preview_urls": false,
   "main": ".open-next/worker.js",
   "compatibility_date": "2025-05-05",
   "compatibility_flags": [
