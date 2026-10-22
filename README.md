@@ -2,7 +2,7 @@
 
 NatuEve のフロントエンド開発用リポジトリです。
 
-Next.js 15 + React 19 + TypeScript 5 + Tailwind CSS 4 + Biome 2 + MSW 2 + shadcn/ui をベースに構築しています。
+Next.js 16 + React 19 + TypeScript 5 + Tailwind CSS 4 + Biome 2 + MSW 2 + shadcn/ui をベースに構築しています。
 
 Atomic Design を前提としたディレクトリ構成を採用し、初心者から経験者まで開発に参加しやすい構成を目指しています。
 
@@ -54,7 +54,7 @@ NatuEve Web Frontend は、Next.js App Router を利用したフロントエン�
 | ツール     | 推奨バージョン   | 用途           |
 | ------- | --------- | ------------ |
 | Git     | 最新安定版     | ソースコード管理     |
-| Node.js | 22 LTS    | 開発補助環境       |
+| Node.js | 24 LTS（版は `.nvmrc` に固定） | 開発補助環境       |
 | Bun     | 1.2.21    | パッケージ管理・実行環境 |
 | VSCode  | 最新安定版     | 開発エディタ       |
 
@@ -71,6 +71,10 @@ git clone <repository-url>
 
 # プロジェクトへ移動
 cd <project-name>
+
+# Node.js を .nvmrc の版にする（nvm（macOS / Linux / WSL）の場合。入っていれば切り替えだけ行う）
+# nvm 以外のツールでは、.nvmrc に書かれた版を指定してインストールする（詳細は docs/Tech.md）
+nvm install
 
 # 依存関係をインストール
 bun install
@@ -122,6 +126,9 @@ bun run check
 
 Biome と TypeScript のチェックをまとめて実行します。
 
+`next-env.d.ts` は Next.js が生成するファイルで、Git では管理していません。
+clone した直後にエディタで型エラー（画像の import など）が出る場合は、`bunx next typegen` を実行してください（`bun run dev`・`bun run build`・`bun run check` でも生成されます）。
+
 ### コード品質チェック
 
 ```bash
@@ -146,7 +153,7 @@ bun run format:check
 
 | カテゴリ       | ツール          | バージョン   |
 | ---------- | ------------ | ------- |
-| フレームワーク    | Next.js      | ^15.5.27 |
+| フレームワーク    | Next.js      | ^16.4.2 |
 | ランタイム      | React        | ^19.1.0 |
 | 言語         | TypeScript   | ^5.8.3  |
 | スタイリング     | Tailwind CSS | ^4.1.8  |
@@ -258,6 +265,7 @@ public/mockServiceWorker.js
 
 ## ドキュメント
 
+* [環境構築手順書（docs/Tech.md）](docs/Tech.md)
 * [デプロイ構成（docs/Deployment.md）](docs/Deployment.md)
 * [設計判断の記録 ADR（docs/adr/）](docs/adr/README.md)
 

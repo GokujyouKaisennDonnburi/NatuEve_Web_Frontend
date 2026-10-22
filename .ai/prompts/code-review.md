@@ -5,7 +5,7 @@
 
 ## 前提
 
-- 対象: React 19 + Next.js 15 + TypeScript のフロントエンド
+- 対象: React 19 + Next.js 16 + TypeScript のフロントエンド
 - 既存スタック: Bun, Biome, Vitest, MSW, Tailwind CSS v4, Radix UI
 - 設計ガイドライン: `AGENTS.md` および `docs/skill/` 配下を参照
 - コメントは **日本語** で投稿してください

@@ -53,6 +53,7 @@ export function EventReportImageCarousel({
               src={normalizeAssetUrl(url)}
               alt="レポート画像"
               fill
+              sizes="(min-width: 1024px) 320px, (min-width: 640px) 33vw, calc(100vw - 64px)"
               className="object-contain"
             />
           </div>
