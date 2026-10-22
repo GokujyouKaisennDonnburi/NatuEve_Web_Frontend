@@ -37,6 +37,7 @@ export function EventImageCarousel({
           src={mainImage}
           alt="イベント画像"
           fill
+          sizes="(min-width: 1024px) 768px, calc(100vw - 80px)"
           unoptimized={unoptimized}
           className="object-contain"
         />

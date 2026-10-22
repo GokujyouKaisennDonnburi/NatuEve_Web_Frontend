@@ -13,7 +13,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
 | Cloudflare DNS | 独自ドメインの割り当て（`natuportal.org` のサブドメイン） | 予定（サブドメイン名は未決） |
 | Cloudflare Workers Builds | GitHub 連携による自動ビルド・デプロイ、ブランチごとのプレビュー URL | 不採用（#330 で GitHub Actions を採用）。**ダッシュボードの Git 連携を接続しないこと（GitHub Actions と二重にデプロイされるため）** |
-| Cloudflare Images | `next/image` の画像最適化 | 未決 |
+| **Cloudflare Images（`IMAGES` バインディング）** | `next/image` の画像最適化 | 確定（#327） |
 
 フロントエンドの接続先（既存）:
 
@@ -50,6 +50,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | `compatibility_flags` | `nodejs_compat` を含める |
 | `assets` | `directory`: `.open-next/assets`、`binding`: `ASSETS` |
 | `services` | `WORKER_SELF_REFERENCE`（自分自身の Worker 名を指定） |
+| `images` | `binding`: `IMAGES`（Cloudflare Images で画像最適化を有効化。#327） |
 | プラン | Workers Paid |
 
 - Workers Paid の 1 リクエストあたりの CPU 上限は既定 30 秒（最大 5 分）。無料プランは 10ms。
@@ -69,7 +70,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | `NEXT_PUBLIC_API_BASE_URL` | 本番 API のオリジン | API のドメインは NatuEve_API 側で決める |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | ブラウザに渡る前提の値 |
-| `NEXT_PUBLIC_USE_MSW` | `false` | 本番ではモックを使わない |
+| `NEXT_PUBLIC_USE_MSW` | `false` | 本番ではモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327） |
 
 ### ビルド環境用
 
@@ -95,6 +96,15 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   その際、**`.env.local` にある `NEXT_PUBLIC_*` はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
   特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
   恒久対応済み: #330 で CI からのデプロイに限定した（上の「CI/CD」を参照）。
+- **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（#334）。** デプロイのブロッカーとして扱う。
+  開発用の取得元は本番ビルド（`NEXT_PUBLIC_USE_MSW=false`）の許可リストから外している（placehold.co・example.com は削除、picsum.photos・i.pravatar.cc は MSW ビルドでのみ許可）。
+  #334 の AC は現状「開発用の取得元を本番で外す」のみで `pathname` 制限を含まないため、**#334 が close しただけで完了と判断しない**。
+  **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
+  変換枠（ユニーク変換/月）の使用量はアカウント単位で分析・集計される（枠の共有範囲についての公式の明記は確認できていない）ため、
+  プレビュー経由でも本番の枠を消費しうる前提で扱う。
+- **`/_next/image*` のキャッシュ方針をデプロイ前に決めて実測する。** zone の Cache Rule は Worker の応答には効かないため、
+  Workers Cache を有効化するか（課金の試算が必要）、キャッシュ不要と確認する。本番相当環境で `curl -I` により
+  `Cache-Control`・`cf-cache-status` を実測する。詳細は[画像最適化](#画像最適化)を参照。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
 - Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
 
@@ -157,14 +167,15 @@ Actions タブから手動実行するか、main に push して最初のデプ�
   ダッシュボード（Authentication → URL Configuration → Redirect URLs）に `https://<本番オリジン>/auth/callback` を
   登録する（コードは `redirectTo: ${window.location.origin}/auth/callback` を使う。src/services/auth.ts 参照）。
   オリジン単位 `https://<本番オリジン>/**` でも動作するが、パスまで書いた値が設定ミスを防ぎやすい。
-- #334（画像最適化で許可する画像の取得元を本番用に絞る）が閉じるまでは本番公開しない。
+- #334（画像最適化で許可する画像の取得元を本番用に絞る）が閉じるまでは本番公開しない
+  （上の「ビルドとデプロイ」のとおり #334 閉止後も `pathname` 制限が完了するまで deploy 自体を行わない）。
   そのため `wrangler.jsonc` に `"workers_dev": false` と `"preview_urls": false` を設定済みで、マージしてデプロイしても
   workers.dev（Direct URL・`natueve-web-frontend.<サブドメイン>.workers.dev`）からも Preview URL
   （`<version>-natueve-web-frontend.<サブドメイン>.workers.dev`）からも到達不可能
   （CORS / Supabase Auth の設定前に Worker だけが公開されることを防ぐ）。
   `preview_urls` を設定するのは、wrangler は `preview_urls` を省略した場合に Worker 側の既存設定を変更しない一方、
   `workers_dev` だけの指定では Preview URL が残るため（wrangler 4.150.0 の挙動で確認）。
-  #334 完了後に両行を削除する（workers.dev で公開する場合）。独自ドメイン（#328）を割り当てる場合は false のままルートを追加してもよい。
+  公開段階で両行を削除する（workers.dev で公開する場合）。独自ドメイン（#328）を割り当てる場合は false のままルートを追加してもよい。
 
 ## 導入時に必要な変更
 
@@ -178,8 +189,58 @@ Actions タブから手動実行するか、main に push して最初のデプ�
 3. `package.json` に `preview`・`deploy`・`upload`・`cf-typegen` スクリプトを追加。
 4. `.gitignore` に `.open-next`・`.dev.vars*`・`.wrangler` を追加。
 5. `next.config.ts`: `initOpenNextCloudflareForDev()` を呼ぶ。`rewrites` は開発時のみ有効。
-   画像最適化の方式は未決（未決事項 2）。
+   `images.unoptimized` は使わず、画像最適化は `wrangler.jsonc` の `images.binding: IMAGES` で有効化する（#327）。
 6. `public/_headers` を追加（`/_next/static/*` に `Cache-Control: public,max-age=31536000,immutable`）。
+
+## 画像最適化
+
+`next/image` の画像最適化は Cloudflare Images（`IMAGES` バインディング）を使う（#327。決定と代替案は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。
+`wrangler.jsonc` の `images.binding` で有効化し、`next.config.ts` の `images.unoptimized` は使わない。
+
+- `preview` で確認済み: ヘッダーロゴ（PNG、約 1.4MB）が WebP 約 2KB、イベント画像（1200x600 の JPEG）が
+  w=640 で約 19KB・w=1920 で約 125KB の WebP になる。
+- 費用: ユニーク変換 月 5,000 回まで無料。Free プランのままなら超過分の課金はない（新規変換が `9422` で失敗する。バインディング経由の挙動は未確認。次項参照）。
+  課金が発生するのは Images Paid を契約した場合（最初の 5,000 変換を含み、以降 1,000 変換あたり $0.50）。
+- 無料枠超過時の挙動・枠の単位は公式には断定できない: 公式の「新規変換は `9422`・キャッシュ済みは配信継続」の記載は URL ベースの変換についてのもので、
+  `IMAGES` バインディング経由で同じ挙動になるかは明記されていない。枠の共有範囲（アカウント単位か）の明記もない
+  （変換の使用量分析がアカウント単位で提供されていることは確認済み）。「キャッシュ済みは配信継続」がこの構成で成り立つかは、
+  下記のキャッシュ方式とデプロイ前の実測で確認する。
+  出典: [Images pricing](https://developers.cloudflare.com/images/pricing/) / [Troubleshooting（9422）](https://developers.cloudflare.com/images/reference/troubleshooting/) / [Changelog 2026-07-01（バインディングの課金単位）](https://developers.cloudflare.com/changelog/post/2026-07-01-binding-unique-transformations/)
+- `minimumCacheTTL` は OpenNext では未対応。OpenNext が `Cache-Control: public, max-age=315360000, immutable` を付けるのは
+  `/_next/static/media*`（静的 import。ヘッダーロゴは #327 で対応済み）か取得元が `immutable` の場合のみで、R2 の画像などには付かない。
+- キャッシュの方式: zone の Cache Rule は Worker の応答には効かない（[Workers Cache](https://developers.cloudflare.com/workers/cache/) の
+  「No zone configuration for caching applies to Workers Caching. Cache Rules … have no effect on a Worker's cache.」）。次のどちらかを選ぶ。
+  - **(a) Workers Cache を使う**（`wrangler.jsonc` に `"cache": { "enabled": true }`。[Images バインディング](https://developers.cloudflare.com/images/optimization/binding/)が推奨）。
+    有効にすると静的アセットのリクエストも standard rate で課金される（"Caching bills requests that are normally free"）ため、
+    月 1,000 万件の含まれる量に収まるか試算してから判断する。`Cache-Control` が付かない応答は heuristic freshness 扱いで、
+    ステータスごとの既定 TTL が適用される（200 は 2 時間、404 は 3 分など。表にないステータスは既定ではキャッシュされない）。
+    OpenNext はパージしないため、同じ URL の画像差し替えは最大 2 時間反映されない
+    （再デプロイではバージョンがキャッシュキーに含まれるためキャッシュがリセットされる）。
+    パージは Worker 側の `ctx.cache.purge()` のみで、zone からの URL パージはできない。
+    対象は画像に限らず、HTML を含む Worker の全応答。プリレンダー HTML には OpenNext が
+    `s-maxage=31536000, stale-while-revalidate=2592000` を付けるため、次のデプロイまでエッジにキャッシュされる
+    （データはブラウザ側で取得し、デプロイでキャッシュも空になるため実害は小さい見込み）。
+    パス単位では絞れず、キャッシュさせたくない応答には `Cache-Control: no-store`（または `private`）を付ける
+    （動的ルートには Next.js が付ける）。なお画像応答は `Vary: Accept` のため Accept ごとにキャッシュが分かれる（`format`・`quality` はユニーク変換の判定から除外されるため、変換枠の消費は増えない）。
+  - **(b) Workers Cache を使わない**。R2 の画像は表示のたびに変換が走る。同じ画像・同じパラメータの変換は
+    月 1 回だけ数えるため、表示のたびに枠は減らない（主な影響は変換を待つ応答時間）。表示回数の多い画像は
+    ブラウザキャッシュ（静的 import。ロゴは対応済み）で影響を抑える。
+- どちらの場合も、**デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` を2回実行し、
+  `Cache-Control`・`cf-cache-status` を実測して最終確認する（静的 import の画像は immutable が付く）。
+- 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
+  `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
+  本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
+  絞り込み（`pathname` 制限）は #334 で対応し、**`pathname` 制限が完了するまでデプロイしない**
+  （#334 が close しただけでは判断しない。絞らないと、許可した取得元の任意の画像を誰でもこの最適化を通して変換でき、
+  無料枠（月 5,000 ユニーク変換）を消費する。超過すると新規変換が `9422` で失敗して画像が表示されなくなる。
+  Free プランのままなら超過分の課金はない（課金が発生するのは Images Paid を契約した場合。
+  バインディング経由の `9422` の挙動は上記のとおり未確認））。
+- 補足: OpenNext 1.20.11 はリダイレクト先 URL を `remotePatterns` で再検証しない（初回 URL のみ検証。
+  例: `picsum.photos` は `fastly.picsum.photos` へリダイレクトする）。許可する取得元はリダイレクト先も含めて確認する。
+- #334 で `pathname` を追加する際の注意: Google アバターには現行の `/a/...` と旧形式の `/a-/...` があるため、
+  実 API の URL 形式を確認してから確定する（例: `/a*/**`）。
+- 注意: `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装で `width`・`height`・`rotate`・`format` のみ対応。
+  `fit`・`quality` の効き方は本番（high-fidelity）と異なる場合がある。
 
 ## SNS シェア（OGP）を追加するとき
 
@@ -198,16 +259,19 @@ Actions タブから手動実行するか、main に push して最初のデプ�
 | 中 | 30 万 | $5 | |
 | 大 | 300 万 | $5〜 | 1 PV あたり CPU 10ms と仮定すると 3,000 万ミリ秒で、含まれる量ちょうど |
 
+- Cloudflare Images（画像最適化）の費用は上の表に含まない。無料枠を超えると Images Paid の契約が必要になる（下記参照）。
 - Workers Paid に含まれる量: リクエスト 月 1,000 万件、CPU 月 3,000 万ミリ秒。
   超過分はリクエスト 100 万件あたり $0.30、CPU 100 万ミリ秒あたり $0.02。
 - 静的ファイルの配信は無料・無制限。
-- 画像最適化に Cloudflare Images を使う場合: 月 5,000 変換まで無料。超えた分は有料プランで 1,000 変換あたり $0.50。
+- 画像最適化は Cloudflare Images（`IMAGES` バインディング、#327）を使う: ユニーク変換 月 5,000 回まで無料。
+  無料枠を超えると新規変換が `9422` エラーになる（公式の記載は URL ベースの変換についてのもので、バインディング経由の挙動は未確認。詳細は[画像最適化](#画像最適化)を参照）。
+  有料化する場合は Images Paid を契約する（最初の 5,000 変換を含み、以降 1,000 変換あたり $0.50）。Workers とは別のサービス・別の課金。
 - 1 PV あたりの SSR の CPU 時間は未計測。
 
 ## 未決事項・今後の作業
 
 1. **フロントのドメイン**: `natuportal.org` のどのサブドメインを使うか。
-2. **画像最適化の方式**: 最適化なし（`unoptimized`）か、Cloudflare Images か。
+2. **画像最適化の方式**: 解決済み（#327、決定は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。詳細は[画像最適化](#画像最適化)を参照。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
    - Next.js 15.5.27 は OpenNext 1.20.11 の対応範囲（`>=15.5.27 <16`）内。
    - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため
@@ -226,4 +290,5 @@ Actions タブから手動実行するか、main に push して最初のデプ�
 
 - OpenNext: [Cloudflare](https://opennext.js.org/cloudflare) / [Get Started](https://opennext.js.org/cloudflare/get-started) / [Environment variables](https://opennext.js.org/cloudflare/howtos/env-vars) / [Image optimization](https://opennext.js.org/cloudflare/howtos/image)
 - Cloudflare Workers: [Pricing](https://developers.cloudflare.com/workers/platform/pricing/) / [Limits](https://developers.cloudflare.com/workers/platform/limits/) / [Static Assets の課金](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/) / [Workers Builds の上限](https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/) / [Build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)
-- Cloudflare Images: [Pricing](https://developers.cloudflare.com/images/pricing/)
+- Cloudflare Workers Cache: [Workers Cache](https://developers.cloudflare.com/workers/cache/) / [Configuration（Cache-Control なしの既定 TTL）](https://developers.cloudflare.com/workers/cache/configuration/) / [Limitations（zone の設定は無効）](https://developers.cloudflare.com/workers/cache/limitations/)
+- Cloudflare Images: [Pricing](https://developers.cloudflare.com/images/pricing/) / [Optimize with Workers](https://developers.cloudflare.com/images/optimization/binding/) / [Troubleshooting（9422）](https://developers.cloudflare.com/images/reference/troubleshooting/) / [Changelog 2026-07-01: バインディングの課金単位](https://developers.cloudflare.com/changelog/post/2026-07-01-binding-unique-transformations/)

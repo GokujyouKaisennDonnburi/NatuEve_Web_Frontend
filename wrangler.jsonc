@@ -17,6 +17,10 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "images": {
+    // 画像最適化（Cloudflare Images）を有効化する。参考: https://opennext.js.org/cloudflare/howtos/image
+    "binding": "IMAGES"
+  },
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",

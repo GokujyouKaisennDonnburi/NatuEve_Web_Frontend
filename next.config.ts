@@ -1,6 +1,39 @@
 import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
+type ImageRemotePattern = NonNullable<
+  NonNullable<NextConfig["images"]>["remotePatterns"]
+>[number];
+
+// 本番でも使う画像の取得元（R2 の公開ドメイン、Google のプロフィール画像）
+const productionImageHosts: ImageRemotePattern[] = [
+  {
+    protocol: "https",
+    hostname: "assets.natuportal.org",
+  },
+  {
+    protocol: "https",
+    hostname: "lh3.googleusercontent.com",
+  },
+];
+
+// MSW のモックデータ（src/mocks/**・src/services/mockAuth.ts）でのみ使う画像の取得元。
+// モックの画像 URL を変えるときは、ホストをここに追加して URL と許可リストを揃える。
+const mockImageHosts: ImageRemotePattern[] = [
+  {
+    protocol: "https",
+    hostname: "picsum.photos",
+  },
+  {
+    protocol: "https",
+    hostname: "i.pravatar.cc",
+  },
+];
+
+// MSW を使うビルドでのみモック用の取得元を許可する。
+// 未設定・false（本番ビルド）ではモック用を含めない（安全側のデフォルト）。
+const isMswEnabled = process.env.NEXT_PUBLIC_USE_MSW === "true";
+
 // Next.jsの設定ファイル
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -26,32 +59,9 @@ const nextConfig: NextConfig = {
 
   // 画像のリモートパターン設定
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "placehold.co",
-      },
-      {
-        protocol: "https",
-        hostname: "picsum.photos",
-      },
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-      },
-      {
-        protocol: "https",
-        hostname: "example.com",
-      },
-      {
-        protocol: "https",
-        hostname: "assets.natuportal.org",
-      },
-      {
-        protocol: "https",
-        hostname: "i.pravatar.cc",
-      },
-    ],
+    remotePatterns: isMswEnabled
+      ? [...productionImageHosts, ...mockImageHosts]
+      : productionImageHosts,
   },
 };
 
