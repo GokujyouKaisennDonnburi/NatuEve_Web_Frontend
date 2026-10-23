@@ -93,7 +93,8 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   - 参考（wrangler 4.150.0 の `getSubdomainValues`）: `workers_dev` を省略すると、`routes` があれば `false`、なければ `true`。
     `preview_urls` を省略すると Worker の今の設定を変えない。どちらも省略に頼らず明示する。
 - 独自ドメイン側で Previews を配信するかは、Custom Domain の route の `previews_enabled` で別に制御する。
-  既定値は公式ドキュメントに記載がないため、上の例のとおり `"previews_enabled": false` を明示する。
+  省略すると API の既定（本番は有効、Previews は無効）になる（[wrangler 4.85.0 のリリースノート](https://github.com/cloudflare/workers-sdk/releases/tag/wrangler%404.85.0)）。
+  意図をはっきりさせるため、上の例では `"previews_enabled": false` を書く。
 
 ### 割り当てる時期
 
