@@ -12,7 +12,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 |---|---|---|
 | **Cloudflare Workers（Paid プラン）** | Next.js の SSR と静的ファイルの配信 | 確定 |
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
-| Cloudflare DNS | 独自ドメインの割り当て（`natuportal.org` のサブドメイン） | 予定（サブドメイン名は未決） |
+| Cloudflare DNS | 独自ドメインの割り当て（`natueve-web.natuportal.org`。Workers の Custom Domain） | サブドメインは決定（#328）。割り当ては後述の条件がそろってから |
 | Cloudflare Workers Builds | GitHub 連携による自動ビルド・デプロイ、ブランチごとのプレビュー URL | 予定（GitHub Actions と比較して決める） |
 | **Cloudflare Images（`IMAGES` バインディング）** | `next/image` の画像最適化 | 確定（#327） |
 
@@ -57,6 +57,91 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - Workers Paid の 1 リクエストあたりの CPU 上限は既定 30 秒（最大 5 分）。無料プランは 10ms。
 - `public/_headers` で `/_next/static/*` に長期キャッシュ（`Cache-Control: public,max-age=31536000,immutable`）を付ける。
 
+## 独自ドメイン
+
+本番のドメインは `natueve-web.natuportal.org` に決めた（#328）。API の `natueve-api.natuportal.org` と名前をそろえている。
+
+| 項目 | 値 | 使う場所 |
+|---|---|---|
+| 本番のオリジン | `https://natueve-web.natuportal.org` | API の `CORS_ALLOW_ORIGINS`（NatuEve_API #218） |
+| OAuth のリダイレクト先 | `https://natueve-web.natuportal.org/auth/callback` | Supabase Auth の Redirect URLs（#332） |
+| Supabase Auth の Site URL | 変えるかは要相談 | Supabase Auth の Site URL（#332）。下の注を参照 |
+
+- リダイレクト先は `src/services/auth.ts` の `redirectTo`（`${window.location.origin}/auth/callback`）で決まる。
+  Supabase にはオリジンだけでなく、パスを含むこの URL を登録する。
+- Supabase Auth の Site URL は、`redirectTo` を指定しない認証フローなどで使われる既定の URL。
+  Supabase の Auth は NatuPortal のほかのプロダクトと共有しているため、Site URL をこのオリジンに変えるかは、
+  ほかのプロダクトの担当と相談して決める（#332）。このアプリの OAuth は `redirectTo` を必ず指定している。
+- モバイルアプリ（NatuEve_Mobile）は API を直接呼ぶため、このドメインを使わない。
+  将来、共有リンクからアプリを開く（App Links / Universal Links）場合は、このドメインに検証用のファイル（`/.well-known/` 配下）を置く。
+
+### 割り当て方法
+
+- `wrangler.jsonc` の `routes` に Custom Domain として書き、デプロイで割り当てる。
+  設定をリポジトリで管理するため、ダッシュボードからは割り当てない。
+
+  ```jsonc
+  "routes": [
+    { "pattern": "natueve-web.natuportal.org", "custom_domain": true, "previews_enabled": false }
+  ]
+  ```
+
+- `natuportal.org` のゾーンは、デプロイ先と同じ Cloudflare アカウントにある（Active。2026-10-22 時点）。
+  Custom Domain の DNS レコードと証明書は Cloudflare が作る。
+- workers.dev の URL と、バージョンごとの Version URL（旧称 Preview URL。`wrangler.jsonc` の `preview_urls`）は、
+  #330（PR #340）で `"workers_dev": false` と `"preview_urls": false` を明示して無効にする。`routes` を追加してもこの 2 つは無効のまま。
+  `preview_urls` は、Version URL と、workers.dev 上の Previews（ブランチごとの環境）の URL の両方を制御する。
+  - 参考（wrangler 4.150.0 の `getSubdomainValues`）: `workers_dev` を省略すると、`routes` が 1 件以上あれば `false`、0 件（空の配列を含む）なら `true`。
+    `preview_urls` を省略すると Worker の今の設定を変えない。どちらも省略に頼らず明示する。
+- 独自ドメイン側の配信は、Custom Domain の route の `enabled`（本番）と `previews_enabled`（Previews）で別々に制御する。
+  省略すると API の既定（本番は有効、Previews は無効）になる（[wrangler 4.85.0 のリリースノート](https://github.com/cloudflare/workers-sdk/releases/tag/wrangler%404.85.0)）。
+  意図をはっきりさせるため、上の例では `"previews_enabled": false` を書く。`enabled` は書かず、本番は既定の有効のままにする。
+  - `"enabled": false` にすると本番の配信を止められる。ただし公式に載っているのは `"previews_enabled": true` と組み合わせて
+    Previews 専用にする使い方だけで、両方を `false` にした（何も配信しない）ときの挙動は確認できていない。
+    そのため「`enabled: false` で先に設定しておく」方法は取らず、下の条件がそろってから `routes` を追加する。
+
+### 割り当てる時期
+
+`routes` を追加したデプロイの時点で、このドメインに誰でもアクセスできるようになる（上の例は `enabled` を書かず、本番が有効になるため）。
+そのため、次がすべてそろってから `routes` を追加する PR を出す（#328 の残りの作業）。
+workers.dev の URL と Version URL での公開は、これとは別に `workers_dev` と `preview_urls` で止める（#330 で扱う）。
+
+- #342（OpenNext のビルドが失敗する問題）が解決している（PR #345 で解決済み）。
+- #330（CI からのデプロイ）ができている。ローカルからはデプロイしない（後述の「ビルドとデプロイ」）。
+- 本番の取得元の `pathname` 制限が入っている（#351）。#334 の AC には含まれないため、#334 が閉じたことでは判断しない
+  （後述の「画像最適化」を参照）。それまでは本番を公開しない。
+- API の独自ドメインに HTTPS で届く（`https://natueve-api.natuportal.org/health` が `{"status":"ok"}` を返す）。
+  NatuEve_API の `docs/Deployment.md`「独自ドメイン経由の検証（#226）」が済んでいること。済んでいないと、公開した直後から API の呼び出しがすべて失敗する。
+- 上の表の本番のオリジンを API の `CORS_ALLOW_ORIGINS` に、OAuth のリダイレクト先を Supabase Auth の Redirect URLs に登録している
+  （Site URL は共有プロジェクトのため要相談で、この条件には含めない）。
+  登録していないと、公開した直後から API の呼び出しとログインが失敗する。
+
+追加したら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Redirect URLs の登録の誤りは分からないため、3 つとも確かめる。
+
+- トップページが HTTPS で表示される。
+- ブラウザから API を呼べる（イベント一覧が表示され、CORS のエラーが出ない）。
+- Google でログインし、`/auth/callback` を経てログイン済みになる（Supabase の Redirect URLs が通る。#332 の AC と同じ）。
+
+### 注意
+
+- **CI からのデプロイでは、既存の DNS レコードやほかの Worker への割り当てが、確認なしで上書きされる。**
+  wrangler は対話できない環境（CI）では `override_existing_dns_record` と `override_existing_origin` を `true` にする（wrangler 4.150.0）。
+  `pattern` を書き間違えると、ほかのサービスのホスト名を奪うおそれがある。
+  例えば API の `natueve-api.natuportal.org` は、同じアカウントの中継用 Worker の Custom Domain にする方針になっている（NatuEve_API ADR-0034）。
+  `routes` を追加する PR では、`pattern` の綴り、そのホスト名に既存の DNS レコードがないこと、
+  ほかの Worker の Custom Domain に割り当てられていないことをダッシュボードで確かめてからマージする。
+- **Custom Domain の割り当てには、対象ゾーンの Zone > Workers Routes > Write が必要**（[Workers roles and permissions](https://developers.cloudflare.com/workers/authorization/workers/)）。
+  割り当てた後のデプロイには、割り当てを変えない限りこの権限はいらない。
+  今のトークンは「Edit Cloudflare Workers」テンプレートで作っており、この権限は含まれる
+  （[API token templates](https://developers.cloudflare.com/fundamentals/api/reference/template/)）。
+  `routes` を追加する前に、トークンの Zone のスコープに `natuportal.org` が入っていることをダッシュボードで確かめる。
+- **`routes` から消しても、Custom Domain は外れない。**
+  wrangler は Custom Domain の route が 1 件もないと、Custom Domain の API を呼ばない（wrangler 4.150.0）。
+  このリポジトリの Custom Domain は 1 つなので、`routes` から消すと 0 件になり、割り当ては残る
+  （複数あるうちの一部だけを消した場合の挙動は未確認）。
+  外すときは、Cloudflare のダッシュボードで Worker の Custom Domain を削除し、
+  `https://natueve-web.natuportal.org` が Worker に割り当たっていないことを確認する。
+
 ## 環境変数
 
 環境変数はアプリ用とビルド環境用の 2 種類に分かれる。本番・検証ともどちらもビルド環境の変数として設定する
@@ -69,7 +154,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 | 変数 | 本番の値 | 検証環境の値 | 備考 |
 |---|---|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | 本番 API のオリジン | 検証用 API のオリジン（NatuEve_API ADR-0036 の検証環境） | API のドメインは NatuEve_API 側で決める。検証環境の値は #330 で決める |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://natueve-api.natuportal.org` | 検証用 API のオリジン（NatuEve_API ADR-0036 の検証環境） | NatuEve_API の本番オリジン（API の中継用 Worker の Custom Domain。NatuEve_API ADR-0034）。検証環境の値は #330 で決める |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | 検証用プロジェクトの URL（NatuEve_API ADR-0036 と同じ検証用プロジェクト。#332 の検証版の登録が必要） | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | 検証用プロジェクトの公開キー | ブラウザに渡る前提の値 |
 | `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。変数化せず直書きする |
@@ -98,12 +183,15 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   その際、**`.env.local` にある `NEXT_PUBLIC_*` はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
   特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
   恒久対応として、#330 で CI からのデプロイに限定する。
-- **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（#334）。検証環境へのデプロイも同様に公開しない（ADR-0003）。** デプロイのブロッカーとして扱う。
-  開発用の取得元は本番ビルド（`NEXT_PUBLIC_USE_MSW=false`）の許可リストから外している（placehold.co・example.com は削除、picsum.photos・i.pravatar.cc は MSW ビルドでのみ許可）。
-  #334 の AC は現状「開発用の取得元を本番で外す」のみで `pathname` 制限を含まないため、**#334 が close しただけで完了と判断しない**。
+- **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。検証環境へのデプロイも同様に公開しない（ADR-0003）。** デプロイのブロッカーとして扱う。
+  開発用の取得元は本番ビルド（`NEXT_PUBLIC_USE_MSW` が `true` 以外。未設定・`false` を含む）の許可リストから外している（placehold.co・example.com は削除、picsum.photos・i.pravatar.cc は MSW ビルドでのみ許可）。この除外は `src/__tests__/nextConfigImageHosts.test.ts` で検証している。
+  #334 の AC は「開発用の取得元を本番で外す」のみで `pathname` 制限を含まないため、**#334 が close しただけで完了と判断しない**（pathname 制限は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応する）。
   **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
   変換枠（ユニーク変換/月）の使用量はアカウント単位で分析・集計される（枠の共有範囲についての公式の明記は確認できていない）ため、
   プレビュー経由でも本番の枠を消費しうる前提で扱う。
+- **`natuportal.org` ゾーンの Images > Transformations が無効であることをデプロイ前に再確認する（#334）。**
+  有効な場合、`/cdn-cgi/image/...` は `/_next/image` を通らず `remotePatterns` が効かず、同ゾーンの
+  `assets.natuportal.org` の画像を誰でも変換できる。
 - **`/_next/image*` のキャッシュ方針をデプロイ前に決めて実測する。** zone の Cache Rule は Worker の応答には効かないため、
   Workers Cache を有効化するか（課金の試算が必要）、キャッシュ不要と確認する。本番相当環境で `curl -I` により
   `Cache-Control`・`cf-cache-status` を実測する。詳細は[画像最適化](#画像最適化)を参照。
@@ -131,6 +219,10 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 `next/image` の画像最適化は Cloudflare Images（`IMAGES` バインディング）を使う（#327。決定と代替案は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。
 `wrangler.jsonc` の `images.binding` で有効化し、`next.config.ts` の `images.unoptimized` は使わない。
 
+- 独自 loader（`loaderFile`）は使っていない。許可する取得元は `next.config.ts` の `images.remotePatterns` で制御するため、
+  Cloudflare ダッシュボードでの取得元制限は不要。`natuportal.org` ゾーンの Images > Transformations も無効にしているため、
+  `/cdn-cgi/image/...` 経由の変換はできない（#334 の AC 2 は対象外）。無効にしている理由は
+  「ゾーンの Transformations を無効にする理由」を参照。
 - `preview` で確認済み: ヘッダーロゴ（PNG、約 1.4MB）が WebP 約 2KB、イベント画像（1200x600 の JPEG）が
   w=640 で約 19KB・w=1920 で約 125KB の WebP になる。
 - 費用: ユニーク変換 月 5,000 回まで無料。Free プランのままなら超過分の課金はない（新規変換が `9422` で失敗する。バインディング経由の挙動は未確認。次項参照）。
@@ -163,18 +255,33 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   `Cache-Control`・`cf-cache-status` を実測して最終確認する（静的 import の画像は immutable が付く）。
 - 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
   `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
-  本番ビルドにはモック用の取得元が入らない。残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
-  絞り込み（`pathname` 制限）は #334 で対応し、**`pathname` 制限が完了するまでデプロイしない**
-  （#334 が close しただけでは判断しない。絞らないと、許可した取得元の任意の画像を誰でもこの最適化を通して変換でき、
+  本番ビルド（`NEXT_PUBLIC_USE_MSW` が `true` 以外。未設定・`false` を含む）にはモック用の取得元が入らない（`src/__tests__/nextConfigImageHosts.test.ts` で設定値を検証）。
+  残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
+  絞り込み（`pathname` 制限）は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応し、**`pathname` 制限が完了するまでデプロイしない**
+  （#334 の AC 外であり、#334 が close しただけでは判断しない。絞らないと、許可した取得元の任意の画像を誰でもこの最適化を通して変換でき、
   無料枠（月 5,000 ユニーク変換）を消費する。超過すると新規変換が `9422` で失敗して画像が表示されなくなる。
   Free プランのままなら超過分の課金はない（課金が発生するのは Images Paid を契約した場合。
   バインディング経由の `9422` の挙動は上記のとおり未確認））。
 - 補足: OpenNext 1.20.11 はリダイレクト先 URL を `remotePatterns` で再検証しない（初回 URL のみ検証。
   例: `picsum.photos` は `fastly.picsum.photos` へリダイレクトする）。許可する取得元はリダイレクト先も含めて確認する。
-- #334 で `pathname` を追加する際の注意: Google アバターには現行の `/a/...` と旧形式の `/a-/...` があるため、
+- `pathname` を追加する際の注意: Google アバターには現行の `/a/...` と旧形式の `/a-/...` があるため、
   実 API の URL 形式を確認してから確定する（例: `/a*/**`）。
 - 注意: `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装で `width`・`height`・`rotate`・`format` のみ対応。
   `fit`・`quality` の効き方は本番（high-fidelity）と異なる場合がある。
+
+### ゾーンの Transformations を無効にする理由
+
+`natuportal.org` ゾーンの Images > Transformations は無効にしている（2026-10-23 時点で確認）。
+有効にすると `/cdn-cgi/image/...` という URL 経由の画像変換が使えるが、本構成では次の理由で無効のまま運用する。
+
+- **URL 変換は `/_next/image` を通らない**: `/cdn-cgi/image/...` は `next/image` の `/_next/image` を通らないため、`next.config.ts` の `images.remotePatterns` による取得元の制限が効かない。
+- **同一ゾーンの画像が対象になる**: Cloudflare は既定で、Transformations を有効にしたゾーンと同じゾーンの画像をソースとして許可する。`assets.natuportal.org` は `natuportal.org` と同じゾーン（Cloudflare 経由のホスト）なので、有効にすると誰でも `assets.natuportal.org` の画像を変換できる。
+- **変換枠を消費する**: 変換はユニーク変換数で課金・枠消費される（月 5,000 回まで無料）。第三者による変換で枠を消費すると、新規変換が `9422` で失敗して画像が表示されなくなる可能性がある。Images Paid を契約している場合は費用も発生する。
+- **許可取得元が Any origin だと影響が広がる**: 許可取得元を「Any origin」に設定している場合、外部の任意画像も変換対象になり、リスクと費用がさらに大きくなる。
+- **`IMAGES` バインディングは別経路**: バインディングは Worker が受け取った画像データを変換する方式で、公式ドキュメントの前提条件にはゾーンの Transformations 設定は挙がっていない（不要との明記はない）。デプロイ後に `/_next/image` が変換済み画像を返すことは実測で確認する。
+- **本構成では不要**: 画像最適化は `IMAGES` バインディングを使うため URL 変換を必要とせず、独自 loader も採用していない。
+
+デプロイ前に、この設定が無効のままであることを再確認する。有効化する場合は `remotePatterns` では制御できない変換経路ができるため、AC 2 の対象として扱い、許可取得元の制限や費用・可用性への影響を別途検討する。
 
 ## SNS シェア（OGP）を追加するとき
 
@@ -204,7 +311,8 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 ## 未決事項・今後の作業
 
-1. **フロントのドメイン**: `natuportal.org` のどのサブドメインを使うか。
+1. **フロントのドメイン**: 解決済み（#328 で `natueve-web.natuportal.org` に決定。上の「独自ドメイン」を参照）。
+   割り当て（`routes` の追加）は、「割り当てる時期」の条件がそろってから行う。
 2. **画像最適化の方式**: 解決済み（#327、決定は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。詳細は[画像最適化](#画像最適化)を参照。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
    - Next.js 16.4.2 は OpenNext 1.20.13 の対応範囲（`>=15.5.28 <16 || >=16.4.1`）内（#346 で更新）。
@@ -222,7 +330,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
    Workers Builds の Git 連携は使わない。実装は #330 で行う。**#330 の受け入れ基準「main へのマージで本番に自動デプロイ」は本 ADR に合わせて「main へのマージで検証環境へ、承認後に本番へ」に直す必要がある。**
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
    - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
-   - 本番のオリジンは #328 で決まり次第、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
+   - 本番のオリジン `https://natueve-web.natuportal.org`（#328 で決定。上の「独自ドメイン」を参照）を、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
    - 検証環境のオリジン（ADR-0003。サブドメイン名は #328 と合わせて決める）も、検証用 API の `CORS_ALLOW_ORIGINS` に設定する（API 側の作業）。
    - URL が変わる Workers Builds のプレビュー環境は、そのままでは許可できないため、扱いを #330 で決める。
 
