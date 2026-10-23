@@ -2,7 +2,7 @@
 
 - ステータス: Accepted
 - 日付: 2026-10-16
-- 関連: #327, #334, ADR-0001
+- 関連: #327, #334, #351, ADR-0001
 
 ## コンテキストと課題
 
@@ -20,6 +20,11 @@ ADR-0001 でフロントエンドを Cloudflare Workers（OpenNext）にデプ�
 `wrangler.jsonc` に `images.binding: "IMAGES"` を追加し、Cloudflare Images の `IMAGES` バインディングで
 `next/image` の画像最適化を有効にする。
 
+`natuportal.org` ゾーンの Images > Transformations は無効のまま運用する。`/cdn-cgi/image/...` は
+`/_next/image` を通らず `remotePatterns` が効かないため、有効にすると同ゾーンの `assets.natuportal.org` の画像を
+誰でも変換でき、変換枠を消費する（詳細は [Deployment.md](../Deployment.md) の
+「ゾーンの Transformations を無効にする理由」を参照）。
+
 ## 理由
 
 - OpenNext が標準で対応している方式で、設定の追加だけで有効にできる（ページのコード変更が不要）。
@@ -27,7 +32,7 @@ ADR-0001 でフロントエンドを Cloudflare Workers（OpenNext）にデプ�
   イベント画像（1200x600 の JPEG）が w=640 で約 19KB・w=1920 で約 125KB になった。
 - 月 5,000 ユニーク変換まで無料で、初期規模なら追加費用はほぼ発生しない見込み。
 - ホスト単位の制限はビルド時の `next.config.ts`（`images.remotePatterns`）で効く。
-  ただし `lh3.googleusercontent.com` は任意パスの画像を変換でき、パス制限は #334 で対応する。
+  ただし `lh3.googleusercontent.com` は任意パスの画像を変換でき、パス制限は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応する（#334 の AC には含まれない）。
 
 ## 影響（結果）
 
@@ -41,7 +46,7 @@ ADR-0001 でフロントエンドを Cloudflare Workers（OpenNext）にデプ�
 - 費用: ユニーク変換 月 5,000 回まで無料。超過時の挙動・有料化（Images Paid）を含め、詳細は [Deployment.md](../Deployment.md) を参照。
 - 最適化レスポンスのキャッシュに zone の Cache Rule は効かない（Worker の応答のため）。Workers Cache（`cache.enabled`。静的アセットも課金対象）を使うか、使わずにブラウザキャッシュ（静的 import）で抑えるかをデプロイ前に決める（詳細は [Deployment.md](../Deployment.md)）。
 - ローカルの `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装のため、`fit`・`quality` の効き方が本番と異なる場合がある。
-- 許可する画像の取得元のパス制限は #334 で対応し、完了までデプロイしない。変換枠の共有範囲は公式に明記されていないが、
+- 許可する画像の取得元のパス制限は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応し、完了までデプロイしない。変換枠の共有範囲は公式に明記されていないが、
   プレビュー環境とも枠を消費しうる前提で扱う（詳細は [Deployment.md](../Deployment.md)）。
 
 ## 検討した代替案
