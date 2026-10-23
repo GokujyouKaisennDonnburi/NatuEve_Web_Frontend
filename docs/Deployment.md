@@ -92,20 +92,23 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   `preview_urls` は、Version URL と、workers.dev 上の Previews（ブランチごとの環境）の URL の両方を制御する。
   - 参考（wrangler 4.150.0 の `getSubdomainValues`）: `workers_dev` を省略すると、`routes` が 1 件以上あれば `false`、0 件（空の配列を含む）なら `true`。
     `preview_urls` を省略すると Worker の今の設定を変えない。どちらも省略に頼らず明示する。
-- 独自ドメイン側で Previews を配信するかは、Custom Domain の route の `previews_enabled` で別に制御する。
+- 独自ドメイン側の配信は、Custom Domain の route の `enabled`（本番）と `previews_enabled`（Previews）で別々に制御する。
   省略すると API の既定（本番は有効、Previews は無効）になる（[wrangler 4.85.0 のリリースノート](https://github.com/cloudflare/workers-sdk/releases/tag/wrangler%404.85.0)）。
-  意図をはっきりさせるため、上の例では `"previews_enabled": false` を書く。
+  意図をはっきりさせるため、上の例では `"previews_enabled": false` を書く。`enabled` は書かず、本番は既定の有効のままにする。
+  - `"enabled": false` にすると本番の配信を止められる。ただし公式に載っているのは `"previews_enabled": true` と組み合わせて
+    Previews 専用にする使い方だけで、両方を `false` にした（何も配信しない）ときの挙動は確認できていない。
+    そのため「`enabled: false` で先に設定しておく」方法は取らず、下の条件がそろってから `routes` を追加する。
 
 ### 割り当てる時期
 
-`routes` を追加したデプロイの時点で、このドメインに誰でもアクセスできるようになる。
+`routes` を追加したデプロイの時点で、このドメインに誰でもアクセスできるようになる（上の例は `enabled` を書かず、本番が有効になるため）。
 そのため、次がすべてそろってから `routes` を追加する PR を出す（#328 の残りの作業）。
 workers.dev の URL と Version URL での公開は、これとは別に `workers_dev` と `preview_urls` で止める（#330 で扱う）。
 
 - #342（OpenNext のビルドが失敗する問題）が解決している（PR #345 で解決済み）。
 - #330（CI からのデプロイ）ができている。ローカルからはデプロイしない（後述の「ビルドとデプロイ」）。
-- #334（画像の取得元を本番用に絞る）で、本番の取得元の `pathname` 制限が入っている。
-  Issue が閉じたことだけでは判断しない（後述の「画像最適化」を参照）。それまでは本番を公開しない。
+- 本番の取得元の `pathname` 制限が入っている（#351）。#334 の AC には含まれないため、#334 が閉じたことでは判断しない
+  （後述の「画像最適化」を参照）。それまでは本番を公開しない。
 - API の独自ドメインに HTTPS で届く（`https://natueve-api.natuportal.org/health` が `{"status":"ok"}` を返す）。
   NatuEve_API の `docs/Deployment.md`「独自ドメイン経由の検証（#226）」が済んでいること。済んでいないと、公開した直後から API の呼び出しがすべて失敗する。
 - 上の表の本番のオリジンを API の `CORS_ALLOW_ORIGINS` に、OAuth のリダイレクト先を Supabase Auth の Redirect URLs に登録している
@@ -126,9 +129,11 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   例えば API の `natueve-api.natuportal.org` は、同じアカウントの中継用 Worker の Custom Domain にする方針になっている（NatuEve_API ADR-0034）。
   `routes` を追加する PR では、`pattern` の綴り、そのホスト名に既存の DNS レコードがないこと、
   ほかの Worker の Custom Domain に割り当てられていないことをダッシュボードで確かめてからマージする。
-- **今の API トークンで Custom Domain を割り当てられるかは未確認。**
-  トークンは「Edit Cloudflare Workers」テンプレートで作っているが、Custom Domain に必要な権限は公式ドキュメントで確認できなかった。
-  最初のデプロイで権限のエラーが出たら、トークンに権限を足す。
+- **Custom Domain の割り当てには、対象ゾーンの Zone > Workers Routes > Write が必要**（[Workers roles and permissions](https://developers.cloudflare.com/workers/authorization/workers/)）。
+  割り当てた後のデプロイには、割り当てを変えない限りこの権限はいらない。
+  今のトークンは「Edit Cloudflare Workers」テンプレートで作っており、この権限は含まれる
+  （[API token templates](https://developers.cloudflare.com/fundamentals/api/reference/template/)）。
+  `routes` を追加する前に、トークンの Zone のスコープに `natuportal.org` が入っていることをダッシュボードで確かめる。
 - **`routes` から消しても、Custom Domain は外れない。**
   wrangler は Custom Domain の route が 1 件もないと、Custom Domain の API を呼ばない（wrangler 4.150.0）。
   このリポジトリの Custom Domain は 1 つなので、`routes` から消すと 0 件になり、割り当ては残る
