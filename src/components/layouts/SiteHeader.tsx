@@ -7,6 +7,7 @@ import {
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { APP_NAME } from "@/constants/config";
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { Menu, Plus, X } from "lucide-react";
@@ -35,9 +36,9 @@ type CreateEventButtonProps = ComponentPropsWithoutRef<typeof Button> & {
 };
 
 const HEADER_NAV_ITEMS = [
-  { href: ROUTES.EVENT_LIST, label: "イベントを探す" },
-  { href: ROUTES.COMING_SOON, label: "主催者の方へ" },
-  { href: ROUTES.ABOUT, label: `${APP_NAME}とは` },
+  { href: ROUTES.EVENT_LIST, label: PAGE_TITLES.EVENT_LIST },
+  { href: ROUTES.COMING_SOON, label: PAGE_TITLES.COMING_SOON },
+  { href: ROUTES.ABOUT, label: PAGE_TITLES.ABOUT },
 ] as const;
 
 export function SiteHeader() {
@@ -107,7 +108,7 @@ export function SiteHeader() {
       return;
     }
     if (!user?.id) {
-      toast.error("イベントを投稿するにはサインインしてください。");
+      toast.error(`${PAGE_TITLES.EVENT_POST}するにはサインインしてください。`);
       return;
     }
     router.push(ROUTES.EVENT_POST);
@@ -185,9 +186,9 @@ export function SiteHeader() {
               <CreateEventButton
                 type="button"
                 onClick={handleCreateEvent}
-                aria-label="イベントを投稿"
+                aria-label={PAGE_TITLES.EVENT_POST}
               >
-                イベントを投稿
+                {PAGE_TITLES.EVENT_POST}
               </CreateEventButton>
             ) : (
               <button
@@ -195,7 +196,7 @@ export function SiteHeader() {
                 onClick={handleCreateEvent}
                 className="rounded-full px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
               >
-                イベントを投稿
+                {PAGE_TITLES.EVENT_POST}
               </button>
             )}
           </div>
@@ -225,7 +226,7 @@ export function SiteHeader() {
               size="icon-sm"
               className="rounded-full p-0 transition-shadow hover:ring-2 hover:ring-[#9ABD5A]/60 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
-              <Link href={ROUTES.MYPAGE} aria-label="マイページへ">
+              <Link href={ROUTES.MYPAGE} aria-label={`${PAGE_TITLES.MYPAGE}へ`}>
                 <GlobalUserAvatar
                   name={user.name}
                   iconUrl={user.avatarUrl}
@@ -281,7 +282,7 @@ export function SiteHeader() {
                       />
                     </span>
                   )}
-                  イベントを投稿
+                  {PAGE_TITLES.EVENT_POST}
                 </button>
               )}
 
@@ -296,7 +297,7 @@ export function SiteHeader() {
                     iconUrl={user.avatarUrl}
                     className="border-[#9ABD5A]/60 shadow-none"
                   />
-                  マイページへ
+                  {PAGE_TITLES.MYPAGE}へ
                 </Link>
               ) : !isLoading ? (
                 <Link

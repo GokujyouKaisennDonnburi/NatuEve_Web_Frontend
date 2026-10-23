@@ -4,6 +4,7 @@ import { BackLink } from "@/components/atoms/BackLink";
 import { useCurrentUserContext } from "@/components/layouts/AuthProvider";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import { ROUTES } from "@/constants/routes";
 import { useMyEvents } from "@/hooks/useMyEvents";
 import { signOut } from "@/services/auth";
@@ -150,7 +151,7 @@ export default function MyPage() {
       <BackLink href="/">前の画面にもどる</BackLink>
 
       <h1 className="font-['Zen_Maru_Gothic'] text-2xl font-bold tracking-[0.56px] text-[#272E24] sm:text-[28px]">
-        マイページ
+        {PAGE_TITLES.MYPAGE}
       </h1>
 
       <ProfileHeader

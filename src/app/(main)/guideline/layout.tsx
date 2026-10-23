@@ -1,8 +1,9 @@
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "投稿ガイドライン",
+  title: PAGE_TITLES.GUIDELINE,
 };
 
 export default function GuidelineLayout({

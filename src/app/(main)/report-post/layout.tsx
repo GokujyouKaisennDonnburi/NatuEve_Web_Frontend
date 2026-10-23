@@ -1,8 +1,9 @@
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "活動レポートを投稿",
+  title: PAGE_TITLES.REPORT_POST,
 };
 
 export default function ReportPostLayout({

@@ -1,8 +1,9 @@
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "イベント詳細",
+  title: PAGE_TITLES.EVENT_DETAIL,
 };
 
 export default function EventDetailLayout({

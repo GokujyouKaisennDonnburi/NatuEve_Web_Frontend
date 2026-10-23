@@ -13,6 +13,7 @@ import { ReportPostForm } from "@/components/organisms/report-post/ReportPostFor
 import { ReportPostPreview } from "@/components/organisms/report-post/ReportPostPreview";
 import { REPORT_POST_PREVIEW_SCROLL_MAPPING } from "@/components/organisms/report-post/reportPostPreviewScroll";
 import { Card, CardContent } from "@/components/ui/card";
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import { ROUTES } from "@/constants/routes";
 import { useEditPreviewMode } from "@/hooks/useEditPreviewMode";
 import { useObjectUrls } from "@/hooks/useObjectUrls";
@@ -291,13 +292,13 @@ function ReportPostPageContent() {
       {/* ページヘッダー */}
       <div className="mx-auto w-full max-w-5xl">
         <PageHeader
-          title="活動レポートを投稿"
+          title={PAGE_TITLES.REPORT_POST}
           backHref={
             eventId
               ? `/event/${encodeURIComponent(eventId)}`
               : ROUTES.EVENT_LIST
           }
-          backLabel="イベント詳細にもどる"
+          backLabel={`${PAGE_TITLES.EVENT_DETAIL}にもどる`}
         />
       </div>
 
