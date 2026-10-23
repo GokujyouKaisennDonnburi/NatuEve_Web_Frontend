@@ -90,7 +90,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - workers.dev の URL と、バージョンごとの Version URL（旧称 Preview URL。`wrangler.jsonc` の `preview_urls`）は、
   #330（PR #340）で `"workers_dev": false` と `"preview_urls": false` を明示して無効にする。`routes` を追加してもこの 2 つは無効のまま。
   `preview_urls` は、Version URL と、workers.dev 上の Previews（ブランチごとの環境）の URL の両方を制御する。
-  - 参考（wrangler 4.150.0 の `getSubdomainValues`）: `workers_dev` を省略すると、`routes` があれば `false`、なければ `true`。
+  - 参考（wrangler 4.150.0 の `getSubdomainValues`）: `workers_dev` を省略すると、`routes` が 1 件以上あれば `false`、0 件（空の配列を含む）なら `true`。
     `preview_urls` を省略すると Worker の今の設定を変えない。どちらも省略に頼らず明示する。
 - 独自ドメイン側で Previews を配信するかは、Custom Domain の route の `previews_enabled` で別に制御する。
   省略すると API の既定（本番は有効、Previews は無効）になる（[wrangler 4.85.0 のリリースノート](https://github.com/cloudflare/workers-sdk/releases/tag/wrangler%404.85.0)）。
@@ -108,7 +108,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   Issue が閉じたことだけでは判断しない（後述の「画像最適化」を参照）。それまでは本番を公開しない。
 - API の独自ドメインに HTTPS で届く（`https://natueve-api.natuportal.org/health` が `{"status":"ok"}` を返す）。
   NatuEve_API の `docs/Deployment.md`「独自ドメイン経由の検証（#226）」が済んでいること。済んでいないと、公開した直後から API の呼び出しがすべて失敗する。
-- 上の表の値を、API の `CORS_ALLOW_ORIGINS` と Supabase Auth のリダイレクト許可に登録している。
+- 上の表の本番のオリジンを API の `CORS_ALLOW_ORIGINS` に、OAuth のリダイレクト先を Supabase Auth の Redirect URLs に登録している
+  （Site URL は共有プロジェクトのため要相談で、この条件には含めない）。
   登録していないと、公開した直後から API の呼び出しとログインが失敗する。
 
 追加したら、`https://natueve-web.natuportal.org` でトップページが HTTPS で表示されることを確認する。
