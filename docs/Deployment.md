@@ -112,7 +112,11 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   （Site URL は共有プロジェクトのため要相談で、この条件には含めない）。
   登録していないと、公開した直後から API の呼び出しとログインが失敗する。
 
-追加したら、`https://natueve-web.natuportal.org` でトップページが HTTPS で表示されることを確認する。
+追加したら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Redirect URLs の登録の誤りは分からないため、3 つとも確かめる。
+
+- トップページが HTTPS で表示される。
+- ブラウザから API を呼べる（イベント一覧が表示され、CORS のエラーが出ない）。
+- Google でログインし、`/auth/callback` を経てログイン済みになる（Supabase の Redirect URLs が通る。#332 の AC と同じ）。
 
 ### 注意
 
@@ -125,9 +129,12 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 - **今の API トークンで Custom Domain を割り当てられるかは未確認。**
   トークンは「Edit Cloudflare Workers」テンプレートで作っているが、Custom Domain に必要な権限は公式ドキュメントで確認できなかった。
   最初のデプロイで権限のエラーが出たら、トークンに権限を足す。
-- **`routes` から消しても、Custom Domain が外れないことがある。**
+- **`routes` から消しても、Custom Domain は外れない。**
   wrangler は Custom Domain の route が 1 件もないと、Custom Domain の API を呼ばない（wrangler 4.150.0）。
-  外すときは、ダッシュボードでも外れたことを確かめる。
+  このリポジトリの Custom Domain は 1 つなので、`routes` から消すと 0 件になり、割り当ては残る
+  （複数あるうちの一部だけを消した場合の挙動は未確認）。
+  外すときは、Cloudflare のダッシュボードで Worker の Custom Domain を削除し、
+  `https://natueve-web.natuportal.org` が Worker に割り当たっていないことを確認する。
 
 ## 環境変数
 
