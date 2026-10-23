@@ -187,6 +187,9 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
   変換枠（ユニーク変換/月）の使用量はアカウント単位で分析・集計される（枠の共有範囲についての公式の明記は確認できていない）ため、
   プレビュー経由でも本番の枠を消費しうる前提で扱う。
+- **`natuportal.org` ゾーンの Images > Transformations が無効であることをデプロイ前に再確認する（#334）。**
+  有効な場合、`/cdn-cgi/image/...` は Worker と `remotePatterns` を通らず、同ゾーンの
+  `assets.natuportal.org` の画像を誰でも変換できる。
 - **`/_next/image*` のキャッシュ方針をデプロイ前に決めて実測する。** zone の Cache Rule は Worker の応答には効かないため、
   Workers Cache を有効化するか（課金の試算が必要）、キャッシュ不要と確認する。本番相当環境で `curl -I` により
   `Cache-Control`・`cf-cache-status` を実測する。詳細は[画像最適化](#画像最適化)を参照。
@@ -214,7 +217,10 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 `next/image` の画像最適化は Cloudflare Images（`IMAGES` バインディング）を使う（#327。決定と代替案は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。
 `wrangler.jsonc` の `images.binding` で有効化し、`next.config.ts` の `images.unoptimized` は使わない。
 
-- 独自 loader（`loaderFile`）は使っていない。許可する取得元は `next.config.ts` の `images.remotePatterns` で制御するため、Cloudflare ダッシュボードでの取得元制限は不要（#334 の AC 2 は対象外）。
+- 独自 loader（`loaderFile`）は使っていない。許可する取得元は `next.config.ts` の `images.remotePatterns` で制御するため、
+  Cloudflare ダッシュボードでの取得元制限は不要。`natuportal.org` ゾーンの Images > Transformations も無効にしているため、
+  `/cdn-cgi/image/...` 経由の変換はできない（#334 の AC 2 は対象外）。無効にしている理由は
+  「ゾーンの Transformations を無効にする理由」を参照。
 - `preview` で確認済み: ヘッダーロゴ（PNG、約 1.4MB）が WebP 約 2KB、イベント画像（1200x600 の JPEG）が
   w=640 で約 19KB・w=1920 で約 125KB の WebP になる。
 - 費用: ユニーク変換 月 5,000 回まで無料。Free プランのままなら超過分の課金はない（新規変換が `9422` で失敗する。バインディング経由の挙動は未確認。次項参照）。
@@ -260,6 +266,20 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   実 API の URL 形式を確認してから確定する（例: `/a*/**`）。
 - 注意: `preview`（`wrangler dev`）の `IMAGES` は low-fidelity 実装で `width`・`height`・`rotate`・`format` のみ対応。
   `fit`・`quality` の効き方は本番（high-fidelity）と異なる場合がある。
+
+### ゾーンの Transformations を無効にする理由
+
+`natuportal.org` ゾーンの Images > Transformations は無効にしている（2026-10-23 時点で確認）。
+有効にすると `/cdn-cgi/image/...` という URL 経由の画像変換が使えるが、本構成では次の理由で無効のまま運用する。
+
+- **URL 変換は Worker を通らない**: `/cdn-cgi/image/...` は Cloudflare のエッジで処理され、`next/image` の `/_next/image` や Worker を通らない。このため `next.config.ts` の `images.remotePatterns` による取得元の制限が効かない。
+- **同一ゾーンの画像が対象になる**: Cloudflare は既定で、Transformations を有効にしたゾーンと同じゾーンの画像をソースとして許可する。`assets.natuportal.org` は `natuportal.org` と同じゾーン（Cloudflare 経由のホスト）なので、有効にすると誰でも `assets.natuportal.org` の画像を変換できる。
+- **変換枠を消費する**: 変換はユニーク変換数で課金・枠消費される（月 5,000 回まで無料）。第三者による変換で枠を消費すると、新規変換が `9422` で失敗して画像が表示されなくなる可能性がある。Images Paid を契約している場合は費用も発生する。
+- **許可取得元が Any origin だと影響が広がる**: 許可取得元を「Any origin」に設定している場合、外部の任意画像も変換対象になり、リスクと費用がさらに大きくなる。
+- **`IMAGES` バインディングは別経路**: バインディングは Worker が受け取った画像データを変換する方式で、公式ドキュメント上はゾーンの Transformations 設定を必要としない。デプロイ後に `/_next/image` が変換済み画像を返すことは実測で確認する。
+- **本構成では不要**: 画像最適化は `IMAGES` バインディングを使うため URL 変換を必要とせず、独自 loader も採用していない。
+
+デプロイ前に、この設定が無効のままであることを再確認する。有効化する場合は `remotePatterns` では制御できない変換経路ができるため、AC 2 の対象として扱い、許可取得元の制限や費用・可用性への影響を別途検討する。
 
 ## SNS シェア（OGP）を追加するとき
 

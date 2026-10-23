@@ -20,6 +20,11 @@ ADR-0001 でフロントエンドを Cloudflare Workers（OpenNext）にデプ�
 `wrangler.jsonc` に `images.binding: "IMAGES"` を追加し、Cloudflare Images の `IMAGES` バインディングで
 `next/image` の画像最適化を有効にする。
 
+`natuportal.org` ゾーンの Images > Transformations は無効のまま運用する。`/cdn-cgi/image/...` は
+Worker を通らず `remotePatterns` が効かないため、有効にすると同ゾーンの `assets.natuportal.org` の画像を
+誰でも変換でき、変換枠を消費する（詳細は [Deployment.md](../Deployment.md) の
+「ゾーンの Transformations を無効にする理由」を参照）。
+
 ## 理由
 
 - OpenNext が標準で対応している方式で、設定の追加だけで有効にできる（ページのコード変更が不要）。
