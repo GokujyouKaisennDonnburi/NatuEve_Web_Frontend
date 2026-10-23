@@ -13,7 +13,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 | **Cloudflare Workers（Paid プラン）** | Next.js の SSR と静的ファイルの配信 | 確定 |
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
 | Cloudflare DNS | 独自ドメインの割り当て（`natueve-web.natuportal.org`。Workers の Custom Domain） | サブドメインは決定（#328）。割り当ては後述の条件がそろってから |
-| Cloudflare Workers Builds | GitHub 連携による自動ビルド・デプロイ、ブランチごとのプレビュー URL | 予定（GitHub Actions と比較して決める） |
+| Cloudflare Workers Builds | 使わない（GitHub Actions を採用。ADR-0003）。ダッシュボードで Git 連携を接続しない |
 | **Cloudflare Images（`IMAGES` バインディング）** | `next/image` の画像最適化 | 確定（#327） |
 
 フロントエンドの接続先（既存）:
@@ -157,7 +157,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 | `NEXT_PUBLIC_API_BASE_URL` | `https://natueve-api.natuportal.org` | 検証用 API のオリジン（NatuEve_API ADR-0036 の検証環境） | NatuEve_API の本番オリジン（API の中継用 Worker の Custom Domain。NatuEve_API ADR-0034）。検証環境の値は #330 で決める |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | 検証用プロジェクトの URL（NatuEve_API ADR-0036 と同じ検証用プロジェクト。#332 の検証版の登録が必要） | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | 検証用プロジェクトの公開キー | ブラウザに渡る前提の値 |
-| `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。変数化せず直書きする |
+| `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。GitHub Environment の変数には置かず、ワークフローの `env:` に `"false"` を固定する（#330 で実装） |
 
 ### ビルド環境用
 
@@ -165,7 +165,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 
 | 変数 | 本番の値 | 備考 |
 |---|---|---|
-| `BUN_VERSION` | `1.2.21` | ビルド環境の既定は 1.2.15。`package.json` の `packageManager` に合わせる |
+| `BUN_VERSION` | `1.2.21` | Workers Builds 用の設定。ビルド環境の既定は 1.2.15 のため `package.json` の `packageManager` に合わせる。GitHub Actions では `setup-bun` の `bun-version` で固定するため、この変数は使わない |
 
 - 値を変えたら再ビルドが必要。
 - ローカル開発は従来どおり `.env.local` を使う。Workers のランタイムで確認する場合は `.dev.vars`（`NEXTJS_ENV=development`）を使う。
@@ -196,7 +196,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   Workers Cache を有効化するか（課金の試算が必要）、キャッシュ不要と確認する。本番相当環境で `curl -I` により
   `Cache-Control`・`cf-cache-status` を実測する。詳細は[画像最適化](#画像最適化)を参照。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
-- Workers Builds の上限（Paid）: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
+- Workers Builds は使わない（ADR-0003）。Workers Builds（Paid）の上限の参考値: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
 
 ## 導入時に必要な変更
 
@@ -327,12 +327,13 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 4. **プレビュー環境・検証環境の API の接続先**: 方針は解決済み（ADR-0003）。main へのマージで検証環境へ自動デプロイし、本番へは承認後に同じコミットから本番用にビルドしたものを出す。
    検証環境は本番と同じ構成で固定オリジンを持ち、検証用 API・検証用 Auth に繋ぐ。実装は #330 で行う。
 5. **CI/CD**: 方針は解決済み（ADR-0003）。GitHub Actions で、main へのマージで検証環境へ自動デプロイし、本番へは `production` 環境の承認後にデプロイする。
-   Workers Builds の Git 連携は使わない。実装は #330 で行う。**#330 の受け入れ基準「main へのマージで本番に自動デプロイ」は本 ADR に合わせて「main へのマージで検証環境へ、承認後に本番へ」に直す必要がある。**
+   Workers Builds の Git 連携は使わない。実装は #330 で行う（#330 の受け入れ基準は本 ADR の方式に更新済み）。
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
    - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
    - 本番のオリジン `https://natueve-web.natuportal.org`（#328 で決定。上の「独自ドメイン」を参照）を、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
    - 検証環境のオリジン（ADR-0003。サブドメイン名は #328 と合わせて決める）も、検証用 API の `CORS_ALLOW_ORIGINS` に設定する（API 側の作業）。
-   - URL が変わる Workers Builds のプレビュー環境は、そのままでは許可できないため、扱いを #330 で決める。
+   - GitHub Actions でブランチごとのプレビュー環境を設ける場合は、URL が変わるたびに API の `CORS_ALLOW_ORIGINS` と
+     Supabase Auth のリダイレクト許可への登録が必要になる（API はワイルドカード非対応）。扱いは #330 で決める。
 
 ## 参考（料金・仕様の出典）
 
