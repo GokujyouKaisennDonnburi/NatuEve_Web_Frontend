@@ -3,6 +3,7 @@ node_modules
 
 # Next.js build output
 .next
+next-env.d.ts
 out
 
 # General build artifacts
@@ -32,6 +33,12 @@ pnpm-debug.log*
 
 # Deployment
 .vercel
+
+# OpenNext (Cloudflare Workers)
+.open-next
+.dev.vars*
+!.dev.vars.example
+.wrangler
 
 # OS files
 .DS_Store

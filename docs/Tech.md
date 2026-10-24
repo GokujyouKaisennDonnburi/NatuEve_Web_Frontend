@@ -4,7 +4,7 @@
 
 ## 1. プロジェクト概要
 
-NatuEve Web Frontend は、Next.js 15 / React 19 / TypeScript 5 を土台にしたフロントエンドのスターター構成です。
+NatuEve Web Frontend は、Next.js 16 / React 19 / TypeScript 5 を土台にしたフロントエンドのスターター構成です。
 Atomic Design、services、hooks、types、utils、constants、mocks を分けて、初心者でも役割を追いやすいように整理しています。
 
 現在の構成では、ホーム画面、ドキュメント画面、ユーザー画面を持ち、MSW を使った開発用モック API も含めています。
@@ -15,7 +15,7 @@ Atomic Design、services、hooks、types、utils、constants、mocks を分け�
 
 | カテゴリ | ツール | バージョン |
 | --- | --- | --- |
-| フレームワーク | Next.js | 15.3.3 |
+| フレームワーク | Next.js | 16.4.2 |
 | ランタイム | React | 19.1.0 |
 | 言語 | TypeScript | 5.8.3 |
 | スタイリング | Tailwind CSS | 4.1.8 |
@@ -36,13 +36,13 @@ Atomic Design、services、hooks、types、utils、constants、mocks を分け�
 | ツール | 推奨バージョン | 用途 |
 | --- | --- | --- |
 | Git | 最新安定版 | リポジトリの取得と管理 |
-| Node.js | 22 LTS | 開発用の補助環境として利用 |
+| Node.js | 24 LTS（版は `.nvmrc` に固定） | 開発用の補助環境として利用 |
 | Bun | 1.2.21 以上 | 依存関係のインストールと各種実行 |
 
 補足:
 
 - このプロジェクトは Bun を前提にしています。
-- Node.js は README 上でも 22 LTS を推奨しています。
+- Node.js は README 上でも 24 LTS を推奨しています。版は `.nvmrc` に固定しています（合わせ方は「5. 依存関係インストール」を参照）。
 - VSCode では、TypeScript と Biome の拡張機能を入れておくと作業しやすくなります。
 
 ---
@@ -60,7 +60,15 @@ cd <project-name>
 
 ## 5. 依存関係インストール
 
+Node.js を `.nvmrc` の版に合わせてから、依存関係をインストールします。
+
+- nvm（macOS / Linux / WSL）の場合は、リポジトリ直下で `nvm install` を実行します（`.nvmrc` の版が入っていなければインストールし、入っていれば切り替えだけ行います）。
+- それ以外のツールでは、`.nvmrc` に書かれた版を指定してインストールしてください。
+
 ```bash
+# Node.js を .nvmrc の版にする（nvm の場合）
+nvm install
+
 bun install
 ```
 
@@ -101,7 +109,10 @@ bun run build
 bun run check
 ```
 
-このコマンドは Biome のチェックと TypeScript の `tsc --noEmit` をまとめて実行します。
+このコマンドは Biome のチェック、`next typegen`（`next-env.d.ts` などの型の生成）、TypeScript の `tsc --noEmit` をまとめて実行します。
+
+`next-env.d.ts` は Next.js が生成するファイルで、Git では管理していません。
+clone した直後にエディタで型エラー（画像の import など）が出る場合は、`bunx next typegen` を実行してください（`bun run dev`・`bun run build`・`bun run check` でも生成されます）。
 
 ---
 
@@ -233,5 +244,7 @@ src/
 | `bun run format` | 自動整形 |
 | `bun run format:check` | フォーマット確認 |
 | `bun run msw:init` | MSW 初期化 |
+| `bun run preview` | Workers ランタイムでのローカル確認（OpenNext、dev を止めてから実行） |
+| `bun run deploy` | Cloudflare へのデプロイ（ローカルからは実行しない、docs/Deployment.md 参照） |
 
 ---

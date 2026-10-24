@@ -1,6 +1,7 @@
 "use client";
 
 import { BackLink } from "@/components/atoms/BackLink";
+import { SignOutButton } from "@/components/atoms/SignOutButton";
 import { useCurrentUserContext } from "@/components/layouts/AuthProvider";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
@@ -150,9 +151,13 @@ export default function MyPage() {
     <div className="mx-auto max-w-[1192px] space-y-6 pt-2 sm:space-y-8">
       <BackLink href="/">前の画面にもどる</BackLink>
 
-      <h1 className="font-['Zen_Maru_Gothic'] text-2xl font-bold tracking-[0.56px] text-[#272E24] sm:text-[28px]">
-        {PAGE_TITLES.MYPAGE}
-      </h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="font-['Zen_Maru_Gothic'] text-2xl font-bold tracking-[0.56px] text-[#272E24] sm:text-[28px]">
+          {PAGE_TITLES.MYPAGE}
+        </h1>
+
+        <SignOutButton onClick={handleSignOut} disabled={isSigningOut} />
+      </div>
 
       <ProfileHeader
         name={profile.displayName}
@@ -162,7 +167,6 @@ export default function MyPage() {
         createdAt={profile.createdAt}
         onUpdateName={handleUpdateName}
         onUpdateDescription={handleUpdateDescription}
-        onSignOut={handleSignOut}
         isSigningOut={isSigningOut}
       />
 

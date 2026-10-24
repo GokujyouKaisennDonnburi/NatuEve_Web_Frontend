@@ -111,7 +111,7 @@ export function InlineTextField({
 
   return (
     <div
-      className={`group flex max-w-full flex-col items-start gap-2 sm:flex-row sm:items-center ${className}`}
+      className={`group flex max-w-full flex-row items-start gap-2 ${className}`}
     >
       <span
         className={`block min-w-0 max-w-full ${textClassName}`}
