@@ -5,7 +5,7 @@ import { SignOutButton } from "@/components/atoms/SignOutButton";
 import { useCurrentUserContext } from "@/components/layouts/AuthProvider";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
-import { PAGE_TITLES } from "@/constants/pageTitles";
+import { UI_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 import { useMyEvents } from "@/hooks/useMyEvents";
 import { signOut } from "@/services/auth";
@@ -153,7 +153,7 @@ export default function MyPage() {
 
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-['Zen_Maru_Gothic'] text-2xl font-bold tracking-[0.56px] text-[#272E24] sm:text-[28px]">
-          {PAGE_TITLES.MYPAGE}
+          {UI_LABELS.MYPAGE_HEADING}
         </h1>
 
         <SignOutButton onClick={handleSignOut} disabled={isSigningOut} />

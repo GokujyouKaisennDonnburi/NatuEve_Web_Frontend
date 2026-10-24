@@ -1,5 +1,6 @@
 import { APP_NAME } from "@/constants/config";
 
+// Next.js の metadata.title 専用。画面内の文言は labels.ts で管理する。
 export const PAGE_TITLES = {
   ABOUT: `${APP_NAME}とは`,
   AUTH_CALLBACK: "サインイン処理中",

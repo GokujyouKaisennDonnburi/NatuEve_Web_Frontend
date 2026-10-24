@@ -8,7 +8,8 @@ import {
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
 import { APP_NAME } from "@/constants/config";
-import { PAGE_TITLES } from "@/constants/pageTitles";
+import { UI_LABELS } from "@/constants/labels";
+import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { Menu, Plus, X } from "lucide-react";
@@ -37,9 +38,9 @@ type CreateEventButtonProps = ComponentPropsWithoutRef<typeof Button> & {
 };
 
 const HEADER_NAV_ITEMS = [
-  { href: ROUTES.EVENT_LIST, label: PAGE_TITLES.EVENT_LIST },
-  { href: ROUTES.COMING_SOON, label: PAGE_TITLES.COMING_SOON },
-  { href: ROUTES.ABOUT, label: PAGE_TITLES.ABOUT },
+  { href: ROUTES.EVENT_LIST, label: UI_LABELS.EVENT_LIST_NAVIGATION },
+  { href: ROUTES.COMING_SOON, label: UI_LABELS.ORGANIZER_NAVIGATION },
+  { href: ROUTES.ABOUT, label: UI_LABELS.ABOUT_NAVIGATION },
 ] as const;
 
 export function SiteHeader() {
@@ -109,7 +110,7 @@ export function SiteHeader() {
       return;
     }
     if (!user?.id) {
-      toast.error(`${PAGE_TITLES.EVENT_POST}するにはサインインしてください。`);
+      toast.error(MESSAGES.EVENT_POST_SIGNIN_REQUIRED);
       return;
     }
     router.push(ROUTES.EVENT_POST);
@@ -187,9 +188,9 @@ export function SiteHeader() {
               <CreateEventButton
                 type="button"
                 onClick={handleCreateEvent}
-                aria-label={PAGE_TITLES.EVENT_POST}
+                aria-label={UI_LABELS.EVENT_POST_BUTTON}
               >
-                {PAGE_TITLES.EVENT_POST}
+                {UI_LABELS.EVENT_POST_BUTTON}
               </CreateEventButton>
             ) : (
               <button
@@ -197,7 +198,7 @@ export function SiteHeader() {
                 onClick={handleCreateEvent}
                 className="rounded-full px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
               >
-                {PAGE_TITLES.EVENT_POST}
+                {UI_LABELS.EVENT_POST_BUTTON}
               </button>
             )}
           </div>
@@ -227,7 +228,7 @@ export function SiteHeader() {
               size="icon-sm"
               className="rounded-full p-0 transition-shadow hover:ring-2 hover:ring-[#9ABD5A]/60 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
-              <Link href={ROUTES.MYPAGE} aria-label={`${PAGE_TITLES.MYPAGE}へ`}>
+              <Link href={ROUTES.MYPAGE} aria-label={UI_LABELS.MYPAGE_LINK}>
                 <GlobalUserAvatar
                   name={user.name}
                   iconUrl={user.avatarUrl}
@@ -283,7 +284,7 @@ export function SiteHeader() {
                       />
                     </span>
                   )}
-                  {PAGE_TITLES.EVENT_POST}
+                  {UI_LABELS.EVENT_POST_BUTTON}
                 </button>
               )}
 
@@ -298,7 +299,7 @@ export function SiteHeader() {
                     iconUrl={user.avatarUrl}
                     className="border-[#9ABD5A]/60 shadow-none"
                   />
-                  {PAGE_TITLES.MYPAGE}へ
+                  {UI_LABELS.MYPAGE_LINK}
                 </Link>
               ) : !isLoading ? (
                 <Link
