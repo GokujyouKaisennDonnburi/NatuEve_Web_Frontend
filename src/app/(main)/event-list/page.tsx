@@ -6,6 +6,7 @@ import { EventCard } from "@/components/organisms/EventCard";
 import { EventListControls } from "@/components/organisms/EventListControls";
 import { FilterDrawer } from "@/components/organisms/FilterDrawer";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
+import { UI_LABELS } from "@/constants/labels";
 import { useEventList } from "@/hooks/useEventList";
 import { useStickyClip } from "@/hooks/useStickyClip";
 import { useTags } from "@/hooks/useTags";
@@ -160,7 +161,7 @@ export default function EventListPage() {
     <div className="mx-auto max-w-[1728px] px-[max(16px,3%)] pt-8 sm:pt-[59px]">
       {/* Title */}
       <h1 className="mb-10 text-[32px] font-normal leading-[46px] text-black sm:mb-[60px] sm:text-[40px] sm:leading-[58px]">
-        イベントを探す
+        {UI_LABELS.EVENT_LIST_HEADING}
       </h1>
 
       {/* Controls (Search + Sort + Filter toggle)

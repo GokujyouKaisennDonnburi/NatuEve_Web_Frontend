@@ -16,6 +16,7 @@ import { EventPostForm } from "@/components/organisms/event-post/EventPostForm";
 import { EventPostPreview } from "@/components/organisms/event-post/EventPostPreview";
 import { EVENT_POST_PREVIEW_SCROLL_MAPPING } from "@/components/organisms/event-post/eventPostPreviewScroll";
 import { EVENT_POST_TOC_SECTIONS } from "@/components/organisms/event-post/eventPostTocSections";
+import { UI_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 import { useEditPreviewMode } from "@/hooks/useEditPreviewMode";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
@@ -72,7 +73,7 @@ export default function EventPostPage() {
     <section className="w-full space-y-6">
       <div className="mx-auto w-full max-w-5xl">
         <PageHeader
-          title="イベントを投稿"
+          title={UI_LABELS.EVENT_POST_HEADING}
           backHref={ROUTES.EVENT_LIST}
           backLabel="イベント一覧にもどる"
         />
@@ -123,7 +124,7 @@ export default function EventPostPage() {
                   キャンセル
                 </PillButton>
                 <PillButton tone="brand" type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "送信中…" : "イベントを投稿"}
+                  {isSubmitting ? "送信中…" : UI_LABELS.EVENT_POST_SUBMIT}
                 </PillButton>
               </div>
             </div>

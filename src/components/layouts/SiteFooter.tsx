@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { APP_NAME } from "@/constants/config";
+import { UI_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 
 const FOOTER_LINK_CLASS_NAME =
@@ -19,7 +21,7 @@ export function SiteFooter() {
             >
               <div className="flex items-end gap-2">
                 <span className="text-lg font-bold text-emerald-700">
-                  なちゅいべ
+                  {APP_NAME}
                 </span>
                 <span className="text-[11px] text-slate-500">
                   by NatuPortal
@@ -54,7 +56,7 @@ export function SiteFooter() {
                   href={ROUTES.EVENT_LIST}
                   className={FOOTER_LINK_CLASS_NAME}
                 >
-                  イベントを探す
+                  {UI_LABELS.EVENT_LIST_NAVIGATION}
                 </Link>
               </li>
               <li>
@@ -70,14 +72,16 @@ export function SiteFooter() {
 
           {/* 主催者の方へ */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-slate-900">主催者の方へ</p>
+            <p className="text-xs font-semibold text-slate-900">
+              {UI_LABELS.ORGANIZER_SECTION_HEADING}
+            </p>
             <ul className="space-y-1">
               <li>
                 <Link
                   href={ROUTES.EVENT_POST}
                   className={FOOTER_LINK_CLASS_NAME}
                 >
-                  イベントを投稿する
+                  {UI_LABELS.EVENT_POST_ACTION}
                 </Link>
               </li>
               <li>
