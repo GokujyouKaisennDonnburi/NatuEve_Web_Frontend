@@ -135,9 +135,10 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 
 ## 環境変数
 
-アプリ用の変数（`NEXT_PUBLIC_*`）とデプロイ用のトークンは、GitHub Actions の Environment に置く（ADR-0003）。
-検証用は `staging`、本番用は `production` の Variables/Secrets に、同じ変数名で置く。デプロイに使う値はリポジトリの Variables/Secrets には置かない
-（今の `ci.yml` の品質チェックのビルドが読むリポジトリの Variables は、デプロイには使わない）。
+接続先の変数（`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY`）とデプロイ用のトークンは、
+GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`、本番用は `production` の Variables/Secrets に、同じ変数名で置く。
+デプロイに使う値はリポジトリの Variables/Secrets には置かない（今の `ci.yml` の品質チェックのビルドが読むリポジトリの Variables は、デプロイには使わない）。
+ビルド時のフラグ（`NEXT_PUBLIC_USE_MSW`・開発用 R2 のフラグ）は Environment に置かず、ワークフローの `env:` に固定する。
 `NEXT_PUBLIC_*` はビルド時に埋め込まれるため、本番と検証で値が違う場合はそれぞれの値でビルドし直す（使い回さない。ADR-0003）。
 
 - 検証デプロイのジョブは `environment: staging`、本番デプロイのジョブは `environment: production` を指定する。
@@ -158,16 +159,23 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 
 ビルド時に使う。`NEXT_PUBLIC_*` はアプリへ埋め込まれ、ブラウザに渡る。本番と検証で接続先が違う変数は、環境ごとに値を分ける。
 本番の値は #329 で `production` の Environment に設定する。
-#329 の受け入れ基準は `BUN_VERSION` と `NEXT_PUBLIC_USE_MSW` を環境変数として設定する内容のままだが、
-ADR-0003 では `BUN_VERSION` は使わず（下記「ビルドに使うツールの版」）、`NEXT_PUBLIC_USE_MSW` はワークフローの `env:` に固定する（下の表）。#329 の受け入れ基準の更新が必要。
+#329 の受け入れ基準は ADR-0003 に合わせて更新済みである（`BUN_VERSION` は使わず。下記「ビルドに使うツールの版」）。
+`NEXT_PUBLIC_USE_MSW` はワークフローの `env:` に固定する（下の表）。
+
+Environment に置く変数（接続先）:
 
 | 変数 | 本番の値 | 検証環境の値 | 備考 |
 |---|---|---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | `https://natueve-api.natuportal.org` | 検証用 API のオリジン（NatuEve_API ADR-0036 の検証環境） | NatuEve_API の本番オリジン（API の中継用 Worker の Custom Domain。NatuEve_API ADR-0034）。検証環境の値は #330 で決める |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | 検証用プロジェクトの URL（NatuEve_API ADR-0036 と同じ検証用プロジェクト。#332 の検証版の登録が必要） | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | 検証用プロジェクトの公開キー | ブラウザに渡る前提の値 |
-| `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。GitHub Environment の変数には置かず、ワークフローの `env:` に `"false"` を固定する（#330 で実装） |
-| 開発用 R2 のフラグ（変数名は #353 で決める） | 立てない | 立てる | 立てると、`next.config.ts` の `remotePatterns` にローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）を、本番と同じ `pathname` 制限付きで加える（#353）。GitHub Environment の変数には置かず、ジョブごとにワークフローの `env:` に固定する（検証ジョブは立て、本番ジョブは立てない。#330 で実装）。本番のビルドで立てると、本番の画像最適化が開発用バケットの画像も変換するようになる |
+
+Environment に置かず、ワークフローの `env:` に固定するフラグ:
+
+| 変数 | 本番の値 | 検証環境の値 | 備考 |
+|---|---|---|---|
+| `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。ワークフローの `env:` に `"false"` を固定する（#330 で実装） |
+| 開発用 R2 のフラグ（変数名は #353 で決める） | 立てない | 立てる | 立てると、`next.config.ts` の `remotePatterns` にローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）を、本番と同じ `pathname` 制限付きで加える（#353）。ジョブごとにワークフローの `env:` に固定する（検証ジョブは立て、本番ジョブは立てない。#330 で実装）。本番のビルドで立てると、本番の画像最適化が開発用バケットの画像も変換するようになる |
 
 - 値を変えたら再ビルドが必要。
 - ローカル開発は従来どおり `.env.local` を使う。Workers のランタイムで確認する場合は `.dev.vars`（`NEXTJS_ENV=development`）を使う。
@@ -405,8 +413,8 @@ ADR-0003 では `BUN_VERSION` は使わず（下記「ビルドに使うツー�
    検証環境は本番と同じ構成で固定オリジンを持ち、検証用 API・検証用 Auth に繋ぐ。実装は #330 で行う。
 5. **CI/CD**: 方針は解決済み（ADR-0003）。GitHub Actions で、main へのマージで検証環境へ自動デプロイし、本番へは `production` 環境の承認後にデプロイする。
    Workers Builds の Git 連携は使わない。実装は #330 で行う。
-   #330 の受け入れ基準には「CI/CD の方式を決める」「プレビューの環境変数を決める」が残っているため、ADR-0003 に合わせて更新が必要
-   （後者は「検証環境（`staging`）の変数の値を決める」に書き換える。ブランチごとのプレビュー環境は下記 7.。#329 も同様。上の「環境変数」）。
+   #330 の受け入れ基準は ADR-0003 に合わせて更新済みである（GitHub Actions の採用、「検証環境（`staging`）の変数の値を決める」への書き換え。#329 も同様。上の「環境変数」）。
+   残る未決はブランチごとのプレビュー環境（下記 7.）のみである。
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
    - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
    - 本番のオリジン `https://natueve-web.natuportal.org`（#328 で決定。上の「独自ドメイン」を参照）を、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。

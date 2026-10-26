@@ -27,8 +27,8 @@ CI/CD の構築（#330）は着手済みで、#330 の受け入れ基準は「ma
 - リポジトリは public で、GitHub の Organization は Free プラン。
   GitHub Environments は Free プランの public リポジトリで使える（NatuEve_API ADR-0036 で確認済み）。
 - API の `CORS_ALLOW_ORIGINS` はワイルドカード非対応（NatuEve_API ADR-0033）。
-  Supabase Auth の Redirect URLs はパスまで含めた一致判定になる（`src/services/auth.ts` の `redirectTo` は `${window.location.origin}/auth/callback`）。
-  そのため検証環境のフロントにも固定のオリジンが要る。
+  そのため検証環境のフロントにも固定のオリジンが要る。Supabase Auth の Redirect URLs はワイルドカードの glob パターンも使えるが、
+  検証用プロジェクトには検証オリジンの `/auth/callback` を登録する（`src/services/auth.ts` の `redirectTo` は `${window.location.origin}/auth/callback`）。
 - Workers Paid（月 $5）はアカウント単位の課金で、含まれる量（月 1,000 万リクエスト・CPU 3,000 万ミリ秒）を共有する。
   Cloudflare Images の無料枠（月 5,000 ユニーク変換）の共有範囲は公式に明記がなく、検証環境経由でも本番の枠を消費しうる前提で扱う（ADR-0002・Deployment.md）。
 
@@ -41,7 +41,8 @@ CI/CD の構築（#330）は着手済みで、#330 の受け入れ基準は「ma
    本番の緊急修正も同じ経路（main → 検証環境 → 承認 → 本番）を通る。
 2. **検証環境へのデプロイ**: main へのマージで自動で行う。
    同じコミット SHA・固定ロックファイル（`bun install --frozen-lockfile`）から、検証環境用の変数でビルドし、検証用の Worker へデプロイする。
-   検証用の変数と Cloudflare の API トークンは GitHub Environments の `staging` に置き、変数名は本番と同じにする（接頭辞は付けない）。
+   接続先の検証用の変数（`NEXT_PUBLIC_*`）と Cloudflare の API トークンは GitHub Environments の `staging` に置き、変数名は本番と同じにする（接頭辞は付けない）。
+   ビルド時のフラグ（`NEXT_PUBLIC_USE_MSW`・#353 の開発用 R2 のフラグ）は Environment に置かず、ワークフローの `env:` に固定する。
    `staging` もデプロイできるブランチを main のみに制限し、管理者による保護ルールのバイパス（Allow administrators to bypass configured protection rules）を無効にする
    （承認者は付けない）。バイパスは既定で有効で、有効のままだと管理者が main 以外の実行で検証用トークンを使えてしまうおそれがある。
    Environment に変数を定義し忘れると同じ名前のリポジトリの Variables が使われるため、ビルドの前に接続先が検証用であることを、
@@ -80,7 +81,7 @@ CI/CD の構築（#330）は着手済みで、#330 の受け入れ基準は「ma
      また、承認待ちの実行がこのグループを持ち続ける場合、次の push の実行（検証環境へのデプロイを含む）が待たされ、さらに次の push で取り消される。
      そのため main への push の実行は、ワークフロー単位のグループに入れない（push のときはグループ名に `github.run_id` を含めるなど。#330 で実装）。
      順序の制御は、上のジョブ単位のグループと最新かの確認だけで行う。
-   - 本番用の変数と Cloudflare の API トークンは `production` 環境に置き、承認を通ったジョブだけが使えるようにする。
+   - 接続先の本番用の変数（`NEXT_PUBLIC_*`）と Cloudflare の API トークンは `production` 環境に置き、承認を通ったジョブだけが使えるようにする。
      どちらのトークンもリポジトリの Secrets には置かない（Environment の Secrets はその Environment を参照するジョブだけが使えるが、
      リポジトリの Secrets は Environment を参照しないジョブからも使える）。
    - ビルドとデプロイはステップを分け、トークンはデプロイのステップの `env:` にだけ渡す。
@@ -158,8 +159,9 @@ CI/CD の構築（#330）は着手済みで、#330 の受け入れ基準は「ma
 - **本番のデータをコピーしない**: 本番の DB には希少種の生息地の座標と個人情報がある。
   検証環境の接続先に複製すると、座標保護（NatuEve_API の CLAUDE.md「座標情報の保護」）の対象が、守りの弱い環境に広がる。
   NatuEve_API ADR-0036 と同じ理由。
-- **検証環境にも固定オリジンを付ける**: API の CORS がワイルドカード非対応で、Supabase のリダイレクト許可も完全一致判定のため、
-  毎回変わるプレビュー URL では検証環境として機能しない。
+- **検証環境にも固定オリジンを付ける**: API の CORS がワイルドカード非対応のため、
+  毎回変わるプレビュー URL では検証環境として機能しない（Supabase Auth の Redirect URLs はワイルドカードも使えるが、
+  検証用プロジェクトには検証オリジンの `/auth/callback` を登録する）。
 - **トークンを検証用と本番用で分け、どちらもルートを変えられないようにする**: 検証環境は main へのマージで自動実行されるため、侵害・誤設定の影響を受けやすい経路である。
   Cloudflare の API トークンがアカウント単位の権限だと、検証用トークンで本番 Worker も更新でき、承認を迂回できてしまう。
   Worker 単位に絞っても、ゾーンの Workers Routes Write があれば本番のドメインを検証用 Worker に向け替えられるため、検証用トークンには付けない。
@@ -204,13 +206,9 @@ CI/CD の構築（#330）は着手済みで、#330 の受け入れ基準は「ma
   - Cloudflare Images の無料枠（月 5,000 ユニーク変換）は共有しうる前提で扱う（共有範囲の公式の明記なし）。
 - **検証環境の確認には API 側の検証環境が要る**: 検証用 API（NatuEve_API #219・#226 の検証）が動いていないと、
   フロントの検証環境だけでは結合を確認できない。CORS と Auth のリダイレクト許可の登録も API 側・Supabase 側の作業になる。
-- **#329・#330 の受け入れ基準の更新が要る**: #330 の受け入れ基準には「main へのマージで検証環境に自動デプロイ」が入っているが、
-  「CI/CD の方式（Workers Builds か GitHub Actions か）を決める」「プレビューの環境変数を決める」が残っている。
-  前者は本 ADR で決まったため、#330 で本 ADR を参照して返信すれば済む。後者は「検証環境（`staging`）の変数の値を決める」に書き換える
-  （ブランチごとのプレビュー環境は Deployment.md の未決事項 7 で、引き続き #330 で扱う）。
-  #329 の受け入れ基準は、`BUN_VERSION` と `NEXT_PUBLIC_USE_MSW` を環境変数として設定する内容のままである。
-  どちらも本 ADR（GitHub Actions を採用。`BUN_VERSION` は使わず、`NEXT_PUBLIC_USE_MSW` はワークフローの `env:` に固定する）に合わせて更新する。
-  ワークフローの実装は #330 で行う。
+- **#329・#330 の受け入れ基準は更新済み**: #330 は「GitHub Actions に決定」と「検証環境（`staging`）の変数の値（`NEXT_PUBLIC_API_BASE_URL` など）を決める」に更新済みである。
+  #329 も `production` Environment の変数を前提に更新済みで、`BUN_VERSION` は使わず、`NEXT_PUBLIC_USE_MSW` はワークフローの `env:` に固定する（本 ADR と同じ）。
+  残る未決はブランチごとのプレビュー環境（Deployment.md の未決事項 7）で、引き続き #330 で扱う。ワークフローの実装は #330 で行う。
 
 ## 検討した代替案
 
