@@ -49,7 +49,7 @@ const isMswEnabled = process.env.NEXT_PUBLIC_USE_MSW === "true";
 
 // ローカル開発・検証環境のビルドでのみ開発用の取得元を許可する。
 // `true` 以外（未設定・`false` を含む）では含めない（安全側のデフォルト）。
-const isDevAssetsEnabled = process.env.NEXT_PUBLIC_USE_DEV_ASSETS === "true";
+const isDevAssetsEnabled = process.env.USE_DEV_ASSETS === "true";
 
 // Next.jsの設定ファイル
 const nextConfig: NextConfig = {

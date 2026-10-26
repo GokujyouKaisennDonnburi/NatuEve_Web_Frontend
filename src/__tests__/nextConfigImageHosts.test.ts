@@ -39,10 +39,10 @@ type ImageHostEnv = {
   useDevAssets?: string;
 };
 
-type ImageHostEnvKey = "NEXT_PUBLIC_USE_MSW" | "NEXT_PUBLIC_USE_DEV_ASSETS";
+type ImageHostEnvKey = "NEXT_PUBLIC_USE_MSW" | "USE_DEV_ASSETS";
 
 const originalUseMsw = process.env.NEXT_PUBLIC_USE_MSW;
-const originalUseDevAssets = process.env.NEXT_PUBLIC_USE_DEV_ASSETS;
+const originalUseDevAssets = process.env.USE_DEV_ASSETS;
 
 const setEnv = (key: ImageHostEnvKey, value: string | undefined) => {
   if (value === undefined) {
@@ -59,7 +59,7 @@ const loadRemotePatternKeys = async ({
   vi.resetModules();
 
   setEnv("NEXT_PUBLIC_USE_MSW", useMsw);
-  setEnv("NEXT_PUBLIC_USE_DEV_ASSETS", useDevAssets);
+  setEnv("USE_DEV_ASSETS", useDevAssets);
 
   const { default: nextConfig } = await import("../../next.config");
   const remotePatterns = nextConfig.images?.remotePatterns ?? [];
@@ -69,7 +69,7 @@ const loadRemotePatternKeys = async ({
 
 afterEach(() => {
   setEnv("NEXT_PUBLIC_USE_MSW", originalUseMsw);
-  setEnv("NEXT_PUBLIC_USE_DEV_ASSETS", originalUseDevAssets);
+  setEnv("USE_DEV_ASSETS", originalUseDevAssets);
 });
 
 describe("next.config.ts の画像取得元", () => {
@@ -96,13 +96,13 @@ describe("next.config.ts の画像取得元", () => {
     ["false", "false"],
     ["TRUE", "TRUE"],
     ["空文字", ""],
-  ])("NEXT_PUBLIC_USE_DEV_ASSETS が %s なら開発用の取得元を許可しない", async (_label, useDevAssets) => {
+  ])("USE_DEV_ASSETS が %s なら開発用の取得元を許可しない", async (_label, useDevAssets) => {
     expect(new Set(await loadRemotePatternKeys({ useDevAssets }))).toEqual(
       new Set(PRODUCTION_PATTERNS),
     );
   });
 
-  it("NEXT_PUBLIC_USE_DEV_ASSETS=true なら開発用の取得元も許可する", async () => {
+  it("USE_DEV_ASSETS=true なら開発用の取得元も許可する", async () => {
     expect(
       new Set(await loadRemotePatternKeys({ useDevAssets: "true" })),
     ).toEqual(new Set([...PRODUCTION_PATTERNS, ...DEVELOPMENT_PATTERNS]));
