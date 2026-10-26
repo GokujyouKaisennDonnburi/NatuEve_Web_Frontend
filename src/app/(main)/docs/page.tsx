@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { UI_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 
 export default function DocsPage() {
@@ -10,7 +9,7 @@ export default function DocsPage() {
         Preview
       </p>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-        {UI_LABELS.DOCS_HEADING}
+        ドキュメントページ
       </h1>
       <p className="mt-4 text-base leading-7 text-slate-600">
         今後実装予定のページです。

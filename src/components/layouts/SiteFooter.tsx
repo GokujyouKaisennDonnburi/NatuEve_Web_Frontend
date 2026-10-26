@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { APP_NAME } from "@/constants/config";
-import { UI_LABELS } from "@/constants/labels";
+import { NAVIGATION_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 
 const FOOTER_LINK_CLASS_NAME =
@@ -56,7 +56,7 @@ export function SiteFooter() {
                   href={ROUTES.EVENT_LIST}
                   className={FOOTER_LINK_CLASS_NAME}
                 >
-                  {UI_LABELS.EVENT_LIST_NAVIGATION}
+                  {NAVIGATION_LABELS.EVENT_LIST}
                 </Link>
               </li>
               <li>
@@ -72,16 +72,14 @@ export function SiteFooter() {
 
           {/* 主催者の方へ */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-slate-900">
-              {UI_LABELS.ORGANIZER_SECTION_HEADING}
-            </p>
+            <p className="text-xs font-semibold text-slate-900">主催者の方へ</p>
             <ul className="space-y-1">
               <li>
                 <Link
                   href={ROUTES.EVENT_POST}
                   className={FOOTER_LINK_CLASS_NAME}
                 >
-                  {UI_LABELS.EVENT_POST_ACTION}
+                  イベントを投稿する
                 </Link>
               </li>
               <li>

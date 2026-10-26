@@ -1,7 +1,7 @@
 import { EventItemBadge } from "@/components/molecules/EventItemBadge";
 import { SurfaceCard } from "@/components/molecules/SurfaceCard";
+import { EVENT_DETAIL_INFO_SECTION_LABEL } from "@/components/molecules/event-detail/eventDetailTocSections";
 import { CardContent } from "@/components/ui/card";
-import { UI_LABELS } from "@/constants/labels";
 import type { EventDetailType } from "./types";
 
 // イベント情報表コンポーネントのプロパティ型定義
@@ -60,7 +60,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
   return (
     <SurfaceCard>
       <CardContent>
-        <h2 className="section-title">{UI_LABELS.EVENT_DETAIL_SECTION}</h2>
+        <h2 className="section-title">{EVENT_DETAIL_INFO_SECTION_LABEL}</h2>
         <div className="overflow-x-auto">
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
             <table className="w-full border-separate border-spacing-0 text-sm">

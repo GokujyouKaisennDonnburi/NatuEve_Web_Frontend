@@ -1,6 +1,9 @@
+// サービス基本情報
 export const APP_NAME = "なちゅいべ";
 export const APP_DESCRIPTION =
   "なちゅいべは、自然を楽しむイベントを「探したい人」と「開催したい人」をつなぐサービスです。";
+
+// API設定
 export const API_BASE_URL = "/api";
 
 // イベント投稿画面のタグ入力欄の上限値。

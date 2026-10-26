@@ -3,7 +3,6 @@
 import { BackLink } from "@/components/atoms/BackLink";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
-import { UI_LABELS } from "@/constants/labels";
 import { useProfileEvents } from "@/hooks/useProfileEvents";
 import { fetchUserProfile } from "@/services/user";
 import type { UserProfileResponse } from "@/types/user";
@@ -93,7 +92,7 @@ export default function UserProfilePage({
       <BackLink href="/">前の画面にもどる</BackLink>
 
       <h1 className="font-['Zen_Maru_Gothic'] text-2xl font-bold tracking-[0.56px] text-[#272E24] sm:text-[28px]">
-        {UI_LABELS.USER_PROFILE_HEADING}
+        プロフィール
       </h1>
 
       <ProfileHeader
