@@ -143,7 +143,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 
 ## 環境変数
 
-環境変数はアプリ用・ビルド設定用・ビルド環境用の 3 種類に分かれる。本番ではいずれもビルド環境の変数として設定する
+環境変数はアプリ用・ビルド設定用・ビルド環境用の 3 種類に分かれる。本番で設定する変数は、ビルド環境の変数として設定する
 （Workers Builds なら「Build variables and secrets」、GitHub Actions なら同等の環境変数。どちらを使うかは未決事項 5）。
 
 ### アプリ用（`NEXT_PUBLIC_*`）
@@ -168,7 +168,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 `USE_DEV_ASSETS` はビルド時に `next.config.ts` の `images.remotePatterns` へ反映される（実行時には変えられない）。
 
 - ローカル開発・`bun run preview`: `.env.local` に `USE_DEV_ASSETS=true` を設定する（`.env.example` の既定）。
-- 検証環境: ビルド環境変数に `USE_DEV_ASSETS=true` を設定する。検証環境での表示確認は、環境ができてから行う（NatuEve_API#219）。
+- 検証環境: 検証用のビルドで `USE_DEV_ASSETS=true` を設定する。検証環境での表示確認は、環境ができてから行う（NatuEve_API#219）。
 - 本番: 未設定（または `false`）。本番の許可リストは `assets.natuportal.org` と `lh3.googleusercontent.com` のまま。
 - `.dev.vars` は Worker の実行時変数なので、このフラグには効かない。値を変えたら再ビルドする。
 - 本番と同じビルドを検証環境にも出す運用にする場合は、本番の許可リストに `assets-dev.natuportal.org` が入るため、この方式は使えない（環境ごとにビルドする前提）。
@@ -275,8 +275,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   - `assets-dev.natuportal.org` は `USE_DEV_ASSETS=true` のビルドでのみ許可する。
   - picsum.photos・i.pravatar.cc は `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する。
   - placehold.co・example.com は削除済み。
-  本番ビルド（`USE_DEV_ASSETS` が `true` 以外。未設定・`false` を含む）には開発用の取得元が入らない
-  （`src/__tests__/nextConfigImageHosts.test.ts` で設定値を検証）。
+  本番ビルド（`USE_DEV_ASSETS`・`NEXT_PUBLIC_USE_MSW` がどちらも `true` 以外。未設定・`false` を含む）には
+  開発用・モック用の取得元が入らない（`src/__tests__/nextConfigImageHosts.test.ts` で設定値を検証）。
   残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
   絞り込み（`pathname` 制限）は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応し、**`pathname` 制限が完了するまでデプロイしない**
   （#334 の AC 外であり、#334 が close しただけでは判断しない。絞らないと、許可した取得元の任意の画像を誰でもこの最適化を通して変換でき、
