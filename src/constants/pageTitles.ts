@@ -10,7 +10,7 @@ export const PAGE_TITLES = {
 
   // サービス案内
   ABOUT: `${APP_NAME}とは`,
-  COMING_SOON: "主催者の方へ",
+  COMING_SOON: "準備中",
   GUIDELINE: "投稿ガイドライン",
   DOCS: "ドキュメント",
 
