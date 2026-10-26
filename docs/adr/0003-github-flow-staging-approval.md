@@ -2,7 +2,7 @@
 
 - ステータス: Accepted
 - 日付: 2026-10-23
-- 関連: #350, #330, #328, #329, #332, #334, #351, ADR-0001, ADR-0002, NatuEve_API ADR-0036
+- 関連: #350, #330, #328, #329, #332, #334, #351, #353, ADR-0001, ADR-0002, NatuEve_API ADR-0036, NatuEve_API ADR-0039
 - 構成の詳細・設定値・月額試算は [docs/Deployment.md](../Deployment.md) を参照
 
 ## コンテキストと課題
@@ -101,7 +101,9 @@ CI/CD の構築（#330）は着手済みで、#330 の受け入れ基準は「ma
    - `production` 環境の設定: 管理者による保護ルールのバイパス（Allow administrators to bypass configured protection rules）を無効にし、
      デプロイできるブランチを main のみに制限する。自分が起動した実行を自分で承認できなくする設定（Prevent self-review）を有効にする。
      main にマージした本人（実行を起動した人）は自分のデプロイを承認できず、承認は必ず別の人が行う。
-4. **検証環境の構成**: 本番と同じ構成にし、接続先はビルド時の環境変数で切り替える。環境ごとのコードの分岐は作らない。
+4. **検証環境の構成**: 本番と同じ構成にし、接続先はビルド時の環境変数で切り替える。アプリの実行時の分岐（環境ごとに処理を変えるコード）は作らない。
+   ビルド時の設定（`next.config.ts` の `remotePatterns`）は、`NEXT_PUBLIC_USE_MSW` と、#353 の開発用 R2 のフラグに限り、ビルド時のフラグで分岐してよい。
+   フラグは本番のビルドでは立てず、本番の許可リストに開発用・モック用の取得元を入れない（ADR-0002・#334）。
    分けるものは次のとおり。
 
    | 対象 | 検証環境で用意するもの | 環境変数 |
@@ -109,13 +111,15 @@ CI/CD の構築（#330）は着手済みで、#330 の受け入れ基準は「ma
    | Cloudflare Workers（検証用の Worker） | 検証用の Worker（本番とは別名。初回は管理者が作る） | —（`wrangler.jsonc` の `env.staging` で分ける。下記の注意を参照） |
    | NatuEve_API | 検証用 API のオリジン（NatuEve_API ADR-0036 の検証用 Cloud Run＋検証用中継 Worker） | `NEXT_PUBLIC_API_BASE_URL` |
    | Supabase Auth | 検証用プロジェクトの Auth（決定事項 5） | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
-   | R2 の公開ドメイン | 検証用バケットの公開 URL（API 側が用意） | `next.config.ts` の `remotePatterns` に追加する（本番の `assets.natuportal.org` とは別ホスト）。本番と同様の `pathname` 制限を付ける（#351 の検証版。ホスト名は環境変数で渡し、環境ごとのコード分岐は作らない。#330 で実装） |
+   | R2 の公開ドメイン | ローカル開発用のバケットを共用する（NatuEve_API ADR-0039。公開ドメイン `assets-dev.natuportal.org`） | `next.config.ts` の `remotePatterns` に、本番以外のビルドのフラグで加える（#353。本番と同じ `pathname` 制限を付ける）。検証環境のビルドではフラグを立て、本番のビルドでは立てない |
+   | R2 の CORS | ローカル開発用のバケットの CORS に、検証フロントのオリジンを加える（NatuEve_API ADR-0039。API 側の作業） | — |
    | モック | 使わない（本番と同じ） | `NEXT_PUBLIC_USE_MSW=false`（GitHub Environment の変数には置かず、ワークフローの `env:` に固定する。#330 で実装） |
    | CORS | 検証用 API の `CORS_ALLOW_ORIGINS` に検証フロントのオリジンを登録する（API 側の作業） | — |
    | Supabase Auth のリダイレクト許可 | 検証用プロジェクトに `https://<検証オリジン>/auth/callback` を登録する（#332 の検証版） | — |
    | 独自ドメイン | 検証用のサブドメイン（例: `natueve-web-staging.natuportal.org`。最終決定は #328 と合わせて行う） | — |
 
-   - 共有するもの: Cloudflare のアカウント（Workers Paid・R2・Images・DNS・`natuportal.org` ゾーン）、GitHub のリポジトリ。
+   - 共有するもの: Cloudflare のアカウント（Workers Paid・R2・Images・DNS・`natuportal.org` ゾーン）、GitHub のリポジトリ、
+     R2 のローカル開発用のバケット（ローカル開発と検証環境で共用。NatuEve_API ADR-0039）。
    - `env.staging` の注意（#330 で実装）:
      - `"routes": []` を必ず書く。`routes` は `env` に引き継がれるため、最上位に将来ルートが足されても検証用 Worker に付かないよう明示する
        （wrangler 4.150.0 の `validateRoutes` は、最上位に Custom Domain があるときに警告を出すだけで止めない）。

@@ -167,7 +167,7 @@ ADR-0003 では `BUN_VERSION` は使わず（下記「ビルドに使うツー�
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | 検証用プロジェクトの URL（NatuEve_API ADR-0036 と同じ検証用プロジェクト。#332 の検証版の登録が必要） | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | 検証用プロジェクトの公開キー | ブラウザに渡る前提の値 |
 | `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。GitHub Environment の変数には置かず、ワークフローの `env:` に `"false"` を固定する（#330 で実装） |
-| 検証用 R2 のホスト名（変数名は #330 で決める） | 置かない | 検証用バケットの公開ホスト名（API 側が用意） | `next.config.ts` の `remotePatterns` に足す（`pathname` 制限付き。ADR-0003 決定 4）。`staging` にだけ置き、本番ジョブではこの変数を参照しない（ワークフローで空に固定する。リポジトリの Variables に置かれても本番のビルドに入らないようにする）。本番のビルドに入ると、本番の画像最適化が検証用 R2 の画像も変換するようになる |
+| 開発用 R2 のフラグ（変数名は #353 で決める） | 立てない | 立てる | 立てると、`next.config.ts` の `remotePatterns` にローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）を、本番と同じ `pathname` 制限付きで加える（#353）。GitHub Environment の変数には置かず、ジョブごとにワークフローの `env:` に固定する（検証ジョブは立て、本番ジョブは立てない。#330 で実装）。本番のビルドで立てると、本番の画像最適化が開発用バケットの画像も変換するようになる |
 
 - 値を変えたら再ビルドが必要。
 - ローカル開発は従来どおり `.env.local` を使う。Workers のランタイムで確認する場合は `.dev.vars`（`NEXTJS_ENV=development`）を使う。
@@ -331,6 +331,8 @@ ADR-0003 では `BUN_VERSION` は使わず（下記「ビルドに使うツー�
 - 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
   `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
   本番ビルド（`NEXT_PUBLIC_USE_MSW` が `true` 以外。未設定・`false` を含む）にはモック用の取得元が入らない（`src/__tests__/nextConfigImageHosts.test.ts` で設定値を検証）。
+  ローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）は、本番以外のビルドのフラグでだけ加える（#353。上の「環境変数」）。
+  本番ビルドには入れない（ADR-0003 決定 4）。
   残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
   絞り込み（`pathname` 制限）は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応し、**`pathname` 制限が完了するまでデプロイしない**
   （#334 の AC 外であり、#334 が close しただけでは判断しない。絞らないと、許可した取得元の任意の画像を誰でもこの最適化を通して変換でき、
@@ -409,6 +411,7 @@ ADR-0003 では `BUN_VERSION` は使わず（下記「ビルドに使うツー�
    - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
    - 本番のオリジン `https://natueve-web.natuportal.org`（#328 で決定。上の「独自ドメイン」を参照）を、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
    - 検証環境のオリジン（ADR-0003。サブドメイン名は #328 と合わせて決める）も、検証用 API の `CORS_ALLOW_ORIGINS` に設定する（API 側の作業）。
+   - 検証環境のオリジンを、R2 のローカル開発用のバケットの CORS にも加える（NatuEve_API ADR-0039。API 側の作業）。
    - GitHub Actions でブランチごとのプレビュー環境を設ける場合は、URL が変わるたびに API の `CORS_ALLOW_ORIGINS` と
      Supabase Auth のリダイレクト許可への登録が必要になる（API はワイルドカード非対応）。扱いは #330 で決める。
 7. **ブランチごとのプレビュー環境の API の接続先**: 未決（#330 で決める）。設ける場合の CORS とリダイレクト許可の扱いは上記 6. を参照。
