@@ -102,6 +102,15 @@ CI/CD の構築（#330）は着手済みで、#330 の受け入れ基準は「ma
    - `production` 環境の設定: 管理者による保護ルールのバイパス（Allow administrators to bypass configured protection rules）を無効にし、
      デプロイできるブランチを main のみに制限する。自分が起動した実行を自分で承認できなくする設定（Prevent self-review）を有効にする。
      main にマージした本人（実行を起動した人）は自分のデプロイを承認できず、承認は必ず別の人が行う。
+   - **Environment は、デプロイのワークフロー（#330）を main に入れる前に管理者が作り、保護ルールを設定しておく**:
+     存在しない Environment を参照するワークフローを実行すると、その名前の Environment が保護ルール・Secrets なしで自動で作られる
+     （[Managing environments for deployment](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)）。
+     そのまま後から Secrets を足すと、承認なしで本番用のトークンを使える状態になりうるため、自動作成に頼らない。
+     - 管理者が `staging`・`production` を作り、決定 2 と上の設定（デプロイできるブランチを main のみ、管理者のバイパスを無効、
+       `production` には Required reviewers と Prevent self-review）を入れてから、変数・Secrets を置く。
+     - #330 の PR をマージする前に、設定を `gh api repos/{owner}/{repo}/environments/{name}`（`can_admins_bypass`・`protection_rules`・
+       `deployment_branch_policy`）と `.../environments/{name}/deployment-branch-policies` で確かめる。
+     - 本番ジョブを有効にした最初の実行で、本番ジョブが承認待ちになることを確かめる。承認待ちにならずに進んだ場合は実行を取り消し、設定を見直す。
 4. **検証環境の構成**: 本番と同じ構成にし、接続先はビルド時の環境変数で切り替える。アプリの実行時の分岐（環境ごとに処理を変えるコード）は作らない。
    ビルド時の設定（`next.config.ts` の `remotePatterns`）は、`NEXT_PUBLIC_USE_MSW` と、#353 の開発用 R2 のフラグに限り、ビルド時のフラグで分岐してよい。
    フラグは本番のビルドでは立てず、本番の許可リストに開発用・モック用の取得元を入れない（ADR-0002・#334）。

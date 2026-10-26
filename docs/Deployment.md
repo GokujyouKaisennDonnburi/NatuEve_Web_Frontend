@@ -144,6 +144,9 @@ GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`�
 
 - 検証デプロイのジョブは `environment: staging`、本番デプロイのジョブは `environment: production` を指定する。
   Environment の Variables/Secrets は、その Environment を参照するジョブだけが使える。
+- **`staging`・`production` は、デプロイのワークフロー（#330）を main に入れる前に管理者が作り、保護ルールを設定しておく**。
+  存在しない Environment を参照して実行すると、保護ルール・Secrets なしの Environment が自動で作られるため、自動作成に頼らない。
+  設定する内容・`gh api` での確認・最初の実行での確認は ADR-0003 決定 3 を参照。
 - **Environment に変数を定義し忘れると、リポジトリの同じ名前の変数が使われる**（同じ名前が複数のレベルにあると Environment が優先される。
   [Variables](https://docs.github.com/en/actions/reference/workflows-and-actions/variables)）。
   今の `ci.yml` はビルドでリポジトリの Variables の `NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY` を参照している
