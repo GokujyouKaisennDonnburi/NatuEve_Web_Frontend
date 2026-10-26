@@ -158,6 +158,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 
 ビルド時に使う。`NEXT_PUBLIC_*` はアプリへ埋め込まれ、ブラウザに渡る。本番と検証で接続先が違う変数は、環境ごとに値を分ける。
 本番の値は #329 で `production` の Environment に設定する。
+#329 の受け入れ基準は `BUN_VERSION` と `NEXT_PUBLIC_USE_MSW` を環境変数として設定する内容のままだが、
+ADR-0003 では `BUN_VERSION` は使わず（下記「ビルドに使うツールの版」）、`NEXT_PUBLIC_USE_MSW` はワークフローの `env:` に固定する（下の表）。#329 の受け入れ基準の更新が必要。
 
 | 変数 | 本番の値 | 検証環境の値 | 備考 |
 |---|---|---|---|
@@ -220,6 +222,10 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   - 1 回目のデプロイ、または Custom Domain を割り当てた後のデプロイが通らない場合は、管理者が Worker を作る・変えるときの手順を変える
     （例: アプリのビルドではない仮のスクリプトを管理者の権限で wrangler から一度デプロイして作る。この場合は ADR-0003 決定 3 の
     「Worker の新規作成は管理者がダッシュボードで行う」も改める）か、ADR-0003 を見直す。どちらにするかは実機の結果を見て #330 で決める。
+  - 通らない API があった場合は、それに要る権限を確かめる。たとえば `fetchWorkerConfig` のルートの取得には Zone > Workers Routes > Read が要る可能性がある。
+    その場合は Read だけを足し、Write は付けない（Read ではルートを変えられない）。足した後、初回・2 回目・Custom Domain を割り当てた後のデプロイをもう一度確かめる。
+    足してよいのは、上の表の「付けない権限」に当たらない Read だけにする。要る権限が表の「付けない権限」に当たる場合
+    （例: アカウント単位の Workers の Read）は権限を広げず、一つ上の項目（手順を変えるか ADR-0003 を見直す）に従う。
   - 失敗がコードのアップロードの後に起きる場合もあるため、成否は wrangler の終了コードとエラーの内容で判定する。
 
 ### ビルドに使うツールの版
@@ -238,6 +244,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 - ローカル開発は従来どおり `bun run dev`（`next dev`）。
 - Workers のランタイムでの確認とデプロイには、OpenNext の `preview`・`deploy` スクリプトを `package.json` に追加して使う。
   OpenNext のビルドは内部で `build` スクリプト（`next build`）を呼ぶ。
+- **デプロイのジョブの GitHub 側の権限を絞る**（ADR-0003 決定 3）: `permissions: contents: read` を明示し、`actions/checkout` は `persist-credentials: false` にする。
+  使う Action はコミット SHA で固定する。ジョブ単位の `permissions` は品質チェックのジョブから引き継がれないため、明示しないとリポジトリの既定（2026-10-26 時点で read）になる。
 - **CI では `bun run deploy` を使わない。** `deploy` スクリプトはビルドとデプロイを続けて実行するため、トークンがビルド（`next build` や依存パッケージのコード）にも渡る。
   ビルドは `opennextjs-cloudflare build`（トークンを渡さない）、デプロイは `opennextjs-cloudflare deploy`（検証は `--env staging`。トークンを渡す）と、ステップを分けて実行する
   （`opennextjs-cloudflare deploy` はビルドしない）。同じジョブのステップはファイルを共有するため、これはトークンの露出を減らすだけで、
@@ -394,7 +402,9 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 4. **検証環境の API の接続先**: 方針は解決済み（ADR-0003）。main へのマージで検証環境へ自動デプロイし、本番へは承認後に同じコミットから本番用にビルドしたものを出す。
    検証環境は本番と同じ構成で固定オリジンを持ち、検証用 API・検証用 Auth に繋ぐ。実装は #330 で行う。
 5. **CI/CD**: 方針は解決済み（ADR-0003）。GitHub Actions で、main へのマージで検証環境へ自動デプロイし、本番へは `production` 環境の承認後にデプロイする。
-   Workers Builds の Git 連携は使わない。実装は #330 で行う（#330 の受け入れ基準は本 ADR の方式に更新済み）。
+   Workers Builds の Git 連携は使わない。実装は #330 で行う。
+   #330 の受け入れ基準には「CI/CD の方式を決める」「プレビューの環境変数を決める」が残っているため、ADR-0003 に合わせて更新が必要
+   （後者は「検証環境（`staging`）の変数の値を決める」に書き換える。ブランチごとのプレビュー環境は下記 7.。#329 も同様。上の「環境変数」）。
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
    - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
    - 本番のオリジン `https://natueve-web.natuportal.org`（#328 で決定。上の「独自ドメイン」を参照）を、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
