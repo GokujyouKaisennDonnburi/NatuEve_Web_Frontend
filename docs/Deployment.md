@@ -131,7 +131,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   確認なしで上書きされる（wrangler は `override_existing_dns_record` と `override_existing_origin` を `true` にする。wrangler 4.150.0）。
   また、Custom Domain の割り当てには対象ゾーンの Zone > Workers Routes > Write が必要で（[Workers roles and permissions](https://developers.cloudflare.com/workers/authorization/workers/)）、
   CI のトークンにこの権限を付けることになる。
-- **外すときもダッシュボードで削除する。** `routes` に Custom Domain がなければ wrangler は Custom Domain の API を呼ばないため、デプロイでは外れない。
+- **外すときもダッシュボードで削除する。** `routes` に Custom Domain がなければ wrangler は Custom Domain を付け替える API を呼ばないため（読み取りの一覧は呼ぶことがある。上の「割り当て方法」）、デプロイでは外れない。
   外したら、`https://natueve-web.natuportal.org` が Worker に割り当たっていないことを確認する。
 
 ## 環境変数
@@ -269,8 +269,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   その際、**`.env.local` にある `NEXT_PUBLIC_*` はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
   特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
   恒久対応として、#330 で CI からのデプロイに限定する。
-- **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。** デプロイのブロッカーとして扱う。
-  #351 より先に #330 が入った場合、検証環境へのデプロイはしてよいが公開しない（Custom Domain を割り当てない）。本番ジョブは #351 が終わるまで無効にしておく（ADR-0003 決定 6）。
+- **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで、本番へデプロイしない（手元の `deploy` も CI の本番ジョブも。[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。** 本番デプロイのブロッカーとして扱う。
+  検証環境へのデプロイは、#351 より先に #330 が入った場合もしてよいが、公開しない（Custom Domain を割り当てない）。本番ジョブは #351 が終わるまで無効にしておく（ADR-0003 決定 6）。
   開発用の取得元は本番ビルド（`NEXT_PUBLIC_USE_MSW` が `true` 以外。未設定・`false` を含む）の許可リストから外している（placehold.co・example.com は削除、picsum.photos・i.pravatar.cc は MSW ビルドでのみ許可）。この除外は `src/__tests__/nextConfigImageHosts.test.ts` で検証している。
   #334 の AC は「開発用の取得元を本番で外す」のみで `pathname` 制限を含まないため、**#334 が close しただけで完了と判断しない**（pathname 制限は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応する）。
   **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
@@ -346,7 +346,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   ローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）は、本番以外のビルドのフラグでだけ加える（#353。上の「環境変数」）。
   本番ビルドには入れない（ADR-0003 決定 4）。
   残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
-  絞り込み（`pathname` 制限）は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応し、**`pathname` 制限が完了するまでデプロイしない**
+  絞り込み（`pathname` 制限）は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応し、**`pathname` 制限が完了するまで本番にデプロイせず、検証環境も公開しない**
   （#334 の AC 外であり、#334 が close しただけでは判断しない。絞らないと、許可した取得元の任意の画像を誰でもこの最適化を通して変換でき、
   無料枠（月 5,000 ユニーク変換）を消費する。超過すると新規変換が `9422` で失敗して画像が表示されなくなる。
   Free プランのままなら超過分の課金はない（課金が発生するのは Images Paid を契約した場合。
@@ -418,7 +418,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 5. **CI/CD**: 方針は解決済み（ADR-0003）。GitHub Actions で、main へのマージで検証環境へ自動デプロイし、本番へは `production` 環境の承認後にデプロイする。
    Workers Builds の Git 連携は使わない。実装は #330 で行う。
    #330 の受け入れ基準は ADR-0003 に合わせて更新済みである（GitHub Actions の採用、「検証環境（`staging`）の変数の値を決める」への書き換え。#329 も同様。上の「環境変数」）。
-   残る未決は、ブランチごとのプレビュー環境（下記 7.）と、検証環境の変数の値（上の「環境変数」）・検証用 Worker の名前・検証用サブドメイン名（ADR-0003 決定 4）である。
+   残る未決は、ブランチごとのプレビュー環境（下記 7.）と、検証環境の変数の値（上の「環境変数」）・検証用 Worker の名前・検証用サブドメイン名・検証用の Custom Domain の割り当て時期（ADR-0003 決定 4）である。
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
    - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
    - 本番のオリジン `https://natueve-web.natuportal.org`（#328 で決定。上の「独自ドメイン」を参照）を、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
