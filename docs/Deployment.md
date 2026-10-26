@@ -85,8 +85,9 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   漏れると API のホスト名（`natueve-api.natuportal.org`）なども付け替えられるため、CI のトークンには付けない。
   割り当ては一度きりの作業なので、ダッシュボードで行う。検証用の Custom Domain も同じ。
 - `wrangler.jsonc` は、最上位も `env.staging` も `"routes": []` を明示する（`env.staging` は書かないと最上位の値を引き継ぐ。ADR-0003 決定 4）。
-  `routes` に Custom Domain が 1 件もなければ、wrangler はデプロイで Custom Domain の API を呼ばない（wrangler 4.150.0）。
+  `routes` に Custom Domain が 1 件もなければ、wrangler はデプロイで Custom Domain を付け替える API を呼ばない（wrangler 4.150.0）。
   そのため、ダッシュボードで割り当てた Custom Domain はデプロイでは変わらない。
+  ただし、読み取りの一覧（アカウント単位の Custom Domain の一覧）は呼ぶことがある。トークンの権限への影響は下の「Cloudflare の API トークン」の「未確認」を参照。
 - `natuportal.org` のゾーンは、デプロイ先と同じ Cloudflare アカウントにある（Active。2026-10-22 時点）。
   Custom Domain の DNS レコードと証明書は Cloudflare が作る。
 - workers.dev の URL と、バージョンごとの Version URL（旧称 Preview URL。`wrangler.jsonc` の `preview_urls`）は、
@@ -414,7 +415,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 5. **CI/CD**: 方針は解決済み（ADR-0003）。GitHub Actions で、main へのマージで検証環境へ自動デプロイし、本番へは `production` 環境の承認後にデプロイする。
    Workers Builds の Git 連携は使わない。実装は #330 で行う。
    #330 の受け入れ基準は ADR-0003 に合わせて更新済みである（GitHub Actions の採用、「検証環境（`staging`）の変数の値を決める」への書き換え。#329 も同様。上の「環境変数」）。
-   残る未決はブランチごとのプレビュー環境（下記 7.）のみである。
+   残る未決は、ブランチごとのプレビュー環境（下記 7.）と、検証環境の変数の値（上の「環境変数」）・検証用 Worker の名前・検証用サブドメイン名（ADR-0003 決定 4）である。
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
    - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
    - 本番のオリジン `https://natueve-web.natuportal.org`（#328 で決定。上の「独自ドメイン」を参照）を、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
