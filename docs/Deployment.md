@@ -171,7 +171,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 - 検証環境: 検証用のビルドで `USE_DEV_ASSETS=true` を設定する。検証環境での表示確認は、環境ができてから行う（NatuEve_API#219）。
 - 本番: 未設定（または `false`）。本番の許可リストは `assets.natuportal.org` と `lh3.googleusercontent.com` のまま。
 - `.dev.vars` は Worker の実行時変数なので、このフラグには効かない。値を変えたら再ビルドする。
-- 本番と同じビルドを検証環境にも出す運用にする場合は、本番の許可リストに `assets-dev.natuportal.org` が入るため、この方式は使えない（環境ごとにビルドする前提）。
+- 本番と同じビルド（`USE_DEV_ASSETS` を設定しない）を検証環境にも出す場合、検証環境でも `assets-dev.natuportal.org` は許可されない。
+- 検証環境で `assets-dev.natuportal.org` を表示するには `USE_DEV_ASSETS=true` でビルドする必要がある。そのビルドを本番にも出すと本番の許可リストに `assets-dev.natuportal.org` が入るため、環境ごとにビルドする。
 
 ### ビルド環境用
 
