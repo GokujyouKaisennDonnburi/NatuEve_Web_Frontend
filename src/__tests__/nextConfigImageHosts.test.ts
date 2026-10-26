@@ -1,4 +1,5 @@
 // @vitest-environment node
+// next.config.ts の設定値だけを検証するため、DOM は使わない。
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ImageRemotePattern } from "../../next.config";

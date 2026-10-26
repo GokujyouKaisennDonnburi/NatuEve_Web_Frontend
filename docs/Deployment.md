@@ -159,6 +159,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 | `NEXT_PUBLIC_USE_DEV_ASSETS` | `false` | 本番以外のビルド用。`true` のときだけ画像最適化で開発用 R2 の公開ドメイン `assets-dev.natuportal.org` を許可する（#353）。未設定・`false` では許可しない |
 
 `NEXT_PUBLIC_USE_DEV_ASSETS` はビルド時に `next.config.ts` の `images.remotePatterns` へ反映される（実行時には変えられない）。
+`next.config.ts` でのみ参照するため、クライアントの JS には埋め込まれない。
 
 - ローカル開発・`bun run preview`: `.env.local` に `NEXT_PUBLIC_USE_DEV_ASSETS=true` を設定する（`.env.example` の既定）。
 - 検証環境: ビルド環境変数に `NEXT_PUBLIC_USE_DEV_ASSETS=true` を設定する。検証環境での表示確認は、環境ができてから行う（NatuEve_API#219）。
