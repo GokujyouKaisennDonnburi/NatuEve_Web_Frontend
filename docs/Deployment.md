@@ -13,8 +13,11 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 | **Cloudflare Workers（Paid プラン）** | Next.js の SSR と静的ファイルの配信 | 確定 |
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
 | Cloudflare DNS | 独自ドメインの割り当て（`natueve-web.natuportal.org`。Workers の Custom Domain） | サブドメインは決定（#328）。割り当ては後述の条件がそろってから |
-| Cloudflare Workers Builds | 使わない（GitHub Actions を採用。ADR-0003）。ダッシュボードで Git 連携を接続しない |
 | **Cloudflare Images（`IMAGES` バインディング）** | `next/image` の画像最適化 | 確定（#327） |
+| **GitHub Actions（Environments）** | ビルドとデプロイ（検証環境は自動、本番は承認後） | 方針は決定（ADR-0003）。実装は #330 |
+
+- 使わないサービス: Cloudflare Workers Builds（Git 連携による Cloudflare 側のビルド）。デプロイは GitHub Actions から行う（ADR-0003）。
+  ダッシュボードで Git 連携を接続しない。
 
 フロントエンドの接続先（既存）:
 
@@ -77,33 +80,29 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 ### 割り当て方法
 
-- `wrangler.jsonc` の `routes` に Custom Domain として書き、デプロイで割り当てる。
-  設定をリポジトリで管理するため、ダッシュボードからは割り当てない。
-
-  ```jsonc
-  "routes": [
-    { "pattern": "natueve-web.natuportal.org", "custom_domain": true, "previews_enabled": false }
-  ]
-  ```
-
+- Custom Domain は、管理者が Cloudflare のダッシュボードで Worker に割り当てる（ADR-0003 決定 3）。`wrangler.jsonc` の `routes` には書かない。
+  `routes` で割り当てるには CI のトークンにゾーンの Workers Routes Write が要る。この権限はゾーン全体に効き、
+  漏れると API のホスト名（`natueve-api.natuportal.org`）なども付け替えられるため、CI のトークンには付けない。
+  割り当ては一度きりの作業なので、ダッシュボードで行う。検証用の Custom Domain も同じ。
+- `wrangler.jsonc` は、最上位も `env.staging` も `"routes": []` を明示する（`env.staging` は書かないと最上位の値を引き継ぐ。ADR-0003 決定 4）。
+  `routes` に Custom Domain が 1 件もなければ、wrangler はデプロイで Custom Domain の API を呼ばない（wrangler 4.150.0）。
+  そのため、ダッシュボードで割り当てた Custom Domain はデプロイでは変わらない。
 - `natuportal.org` のゾーンは、デプロイ先と同じ Cloudflare アカウントにある（Active。2026-10-22 時点）。
   Custom Domain の DNS レコードと証明書は Cloudflare が作る。
 - workers.dev の URL と、バージョンごとの Version URL（旧称 Preview URL。`wrangler.jsonc` の `preview_urls`）は、
-  #330（PR #340）で `"workers_dev": false` と `"preview_urls": false` を明示して無効にする。`routes` を追加してもこの 2 つは無効のまま。
+  #330（PR #340）で `"workers_dev": false` と `"preview_urls": false` を明示して無効にする。Custom Domain を割り当ててもこの 2 つは無効のまま。
   `preview_urls` は、Version URL と、workers.dev 上の Previews（ブランチごとの環境）の URL の両方を制御する。
   - 参考（wrangler 4.150.0 の `getSubdomainValues`）: `workers_dev` を省略すると、`routes` が 1 件以上あれば `false`、0 件（空の配列を含む）なら `true`。
-    `preview_urls` を省略すると Worker の今の設定を変えない。どちらも省略に頼らず明示する。
-- 独自ドメイン側の配信は、Custom Domain の route の `enabled`（本番）と `previews_enabled`（Previews）で別々に制御する。
-  省略すると API の既定（本番は有効、Previews は無効）になる（[wrangler 4.85.0 のリリースノート](https://github.com/cloudflare/workers-sdk/releases/tag/wrangler%404.85.0)）。
-  意図をはっきりさせるため、上の例では `"previews_enabled": false` を書く。`enabled` は書かず、本番は既定の有効のままにする。
-  - `"enabled": false` にすると本番の配信を止められる。ただし公式に載っているのは `"previews_enabled": true` と組み合わせて
-    Previews 専用にする使い方だけで、両方を `false` にした（何も配信しない）ときの挙動は確認できていない。
-    そのため「`enabled: false` で先に設定しておく」方法は取らず、下の条件がそろってから `routes` を追加する。
+    `routes` は `[]` にするため、省略すると workers.dev で公開される。`preview_urls` を省略すると Worker の今の設定を変えない。どちらも省略に頼らず明示する。
+- Custom Domain での配信は、本番（`enabled`）と Previews（`previews_enabled`）で別々に制御される。
+  `routes` でこれらを省略したときの API の既定は、本番が有効、Previews が無効
+  （[wrangler 4.85.0 のリリースノート](https://github.com/cloudflare/workers-sdk/releases/tag/wrangler%404.85.0)）。
+  ダッシュボードで割り当てたときの既定は確かめていないため、割り当てた後、Custom Domain で Previews が配信されていないことを確かめる。
 
 ### 割り当てる時期
 
-`routes` を追加したデプロイの時点で、このドメインに誰でもアクセスできるようになる（上の例は `enabled` を書かず、本番が有効になるため）。
-そのため、次がすべてそろってから `routes` を追加する PR を出す（#328 の残りの作業）。
+割り当てた時点で、このドメインに誰でもアクセスできるようになる。
+そのため、次がすべてそろってから管理者が割り当てる（#328 の残りの作業）。
 workers.dev の URL と Version URL での公開は、これとは別に `workers_dev` と `preview_urls` で止める（#330 で扱う）。
 
 - #342（OpenNext のビルドが失敗する問題）が解決している（PR #345 で解決済み）。
@@ -116,7 +115,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   （Site URL は共有プロジェクトのため要相談で、この条件には含めない）。
   登録していないと、公開した直後から API の呼び出しとログインが失敗する。
 
-追加したら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Redirect URLs の登録の誤りは分からないため、3 つとも確かめる。
+割り当てたら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Redirect URLs の登録の誤りは分からないため、3 つとも確かめる。
 
 - トップページが HTTPS で表示される。
 - ブラウザから API を呼べる（イベント一覧が表示され、CORS のエラーが出ない）。
@@ -124,33 +123,41 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 
 ### 注意
 
-- **CI からのデプロイでは、既存の DNS レコードやほかの Worker への割り当てが、確認なしで上書きされる。**
-  wrangler は対話できない環境（CI）では `override_existing_dns_record` と `override_existing_origin` を `true` にする（wrangler 4.150.0）。
-  `pattern` を書き間違えると、ほかのサービスのホスト名を奪うおそれがある。
+- **割り当てる前に、ホスト名と既存の割り当てを確かめる。** 綴りを誤ると、ほかのサービスのホスト名を奪うおそれがある。
   例えば API の `natueve-api.natuportal.org` は、同じアカウントの中継用 Worker の Custom Domain にする方針になっている（NatuEve_API ADR-0034）。
-  `routes` を追加する PR では、`pattern` の綴り、そのホスト名に既存の DNS レコードがないこと、
-  ほかの Worker の Custom Domain に割り当てられていないことをダッシュボードで確かめてからマージする。
-- **Custom Domain の割り当てには、対象ゾーンの Zone > Workers Routes > Write が必要**（[Workers roles and permissions](https://developers.cloudflare.com/workers/authorization/workers/)）。
-  割り当てた後のデプロイには、割り当てを変えない限りこの権限はいらない。
-  今のトークンは「Edit Cloudflare Workers」テンプレートで作っており、この権限は含まれる
-  （[API token templates](https://developers.cloudflare.com/fundamentals/api/reference/template/)）。
-  `routes` を追加する前に、トークンの Zone のスコープに `natuportal.org` が入っていることをダッシュボードで確かめる。
-- **`routes` から消しても、Custom Domain は外れない。**
-  wrangler は Custom Domain の route が 1 件もないと、Custom Domain の API を呼ばない（wrangler 4.150.0）。
-  このリポジトリの Custom Domain は 1 つなので、`routes` から消すと 0 件になり、割り当ては残る
-  （複数あるうちの一部だけを消した場合の挙動は未確認）。
-  外すときは、Cloudflare のダッシュボードで Worker の Custom Domain を削除し、
-  `https://natueve-web.natuportal.org` が Worker に割り当たっていないことを確認する。
+  割り当てるホスト名の綴り、そのホスト名に既存の DNS レコードがないこと、ほかの Worker の Custom Domain に割り当てられていないことを確かめてから割り当てる。
+- **`wrangler.jsonc` の `routes` に Custom Domain を書かない。** 書くと、CI（対話できない環境）では既存の DNS レコードやほかの Worker への割り当てが、
+  確認なしで上書きされる（wrangler は `override_existing_dns_record` と `override_existing_origin` を `true` にする。wrangler 4.150.0）。
+  また、Custom Domain の割り当てには対象ゾーンの Zone > Workers Routes > Write が必要で（[Workers roles and permissions](https://developers.cloudflare.com/workers/authorization/workers/)）、
+  CI のトークンにこの権限を付けることになる。
+- **外すときもダッシュボードで削除する。** `routes` に Custom Domain がなければ wrangler は Custom Domain の API を呼ばないため、デプロイでは外れない。
+  外したら、`https://natueve-web.natuportal.org` が Worker に割り当たっていないことを確認する。
 
 ## 環境変数
 
-環境変数はアプリ用とビルド環境用の 2 種類に分かれる。本番・検証ともどちらもビルド環境の変数として設定する
-（GitHub Actions の Environment の Variables/Secrets。ADR-0003）。
+アプリ用の変数（`NEXT_PUBLIC_*`）とデプロイ用のトークンは、GitHub Actions の Environment に置く（ADR-0003）。
+検証用は `staging`、本番用は `production` の Variables/Secrets に、同じ変数名で置く。デプロイに使う値はリポジトリの Variables/Secrets には置かない
+（今の `ci.yml` の品質チェックのビルドが読むリポジトリの Variables は、デプロイには使わない）。
 `NEXT_PUBLIC_*` はビルド時に埋め込まれるため、本番と検証で値が違う場合はそれぞれの値でビルドし直す（使い回さない。ADR-0003）。
 
-### アプリ用（`NEXT_PUBLIC_*`）
+- 検証デプロイのジョブは `environment: staging`、本番デプロイのジョブは `environment: production` を指定する。
+  Environment の Variables/Secrets は、その Environment を参照するジョブだけが使える。
+- **Environment に変数を定義し忘れると、リポジトリの同じ名前の変数が使われる**（同じ名前が複数のレベルにあると Environment が優先される。
+  [Variables](https://docs.github.com/en/actions/reference/workflows-and-actions/variables)）。
+  今の `ci.yml` はビルドでリポジトリの Variables の `NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY` を参照している
+  （2026-10-26 時点でリポジトリの Variables は 0 件で、空のままビルドしている）。
+  ここに本番の値を置くと、`staging` に定義し忘れたときに検証環境が本番の共有 Auth に繋がる（ADR-0003 決定 5 の前提が崩れる）。
+  埋め込まれた値は実行時には気づけない。そのため次の 2 つで防ぐ（#330 で実装）。
+  - リポジトリと Organization の Variables には、本番の `NEXT_PUBLIC_*` を置かない。
+  - デプロイのジョブではビルドの前に、`NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_API_BASE_URL` がその環境の接続先
+    （検証デプロイなら検証用、本番デプロイなら本番用）を指していることを確かめ、違えば失敗させる。
+    期待値はワークフローに書く（どちらもブラウザに渡る公開の値で、秘密ではない）。
+    期待値を同じ名前の変数から取ると、定義し忘れたときにリポジトリの値どうしを比べることになり、気づけない。
 
-ビルド時にアプリへ埋め込まれ、ブラウザに渡る。本番と検証で接続先が違う変数は、環境ごとに値を分ける。
+### アプリ用（ビルド時に使う変数）
+
+ビルド時に使う。`NEXT_PUBLIC_*` はアプリへ埋め込まれ、ブラウザに渡る。本番と検証で接続先が違う変数は、環境ごとに値を分ける。
+本番の値は #329 で `production` の Environment に設定する。
 
 | 変数 | 本番の値 | 検証環境の値 | 備考 |
 |---|---|---|---|
@@ -158,24 +165,83 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | 検証用プロジェクトの URL（NatuEve_API ADR-0036 と同じ検証用プロジェクト。#332 の検証版の登録が必要） | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | 検証用プロジェクトの公開キー | ブラウザに渡る前提の値 |
 | `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。GitHub Environment の変数には置かず、ワークフローの `env:` に `"false"` を固定する（#330 で実装） |
-
-### ビルド環境用
-
-ビルドに使うツールの設定。アプリには埋め込まれない。
-
-| 変数 | 本番の値 | 備考 |
-|---|---|---|
-| `BUN_VERSION` | `1.2.21` | Workers Builds 用の設定。ビルド環境の既定は 1.2.15 のため `package.json` の `packageManager` に合わせる。GitHub Actions では `setup-bun` の `bun-version` で固定するため、この変数は使わない |
+| 検証用 R2 のホスト名（変数名は #330 で決める） | 置かない | 検証用バケットの公開ホスト名（API 側が用意） | `next.config.ts` の `remotePatterns` に足す（`pathname` 制限付き。ADR-0003 決定 4）。`staging` にだけ置き、本番ジョブではこの変数を参照しない（ワークフローで空に固定する。リポジトリの Variables に置かれても本番のビルドに入らないようにする）。本番のビルドに入ると、本番の画像最適化が検証用 R2 の画像も変換するようになる |
 
 - 値を変えたら再ビルドが必要。
 - ローカル開発は従来どおり `.env.local` を使う。Workers のランタイムで確認する場合は `.dev.vars`（`NEXTJS_ENV=development`）を使う。
   どちらもコミットしない。
+
+### デプロイ用（Secrets・Variables）
+
+| 名前 | 置き場所 | 備考 |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | `staging`・`production` の Secrets（それぞれ別のトークン） | 権限は次の「Cloudflare の API トークン」を参照。デプロイのステップの `env:` にだけ渡す（ビルドのステップには渡さない。後述の「ビルドとデプロイ」） |
+| `CLOUDFLARE_ACCOUNT_ID` | `staging`・`production` の Variables（秘密ではない） | wrangler は `account_id` がないと `/accounts`・`/memberships` からアカウントを探し、見つからなければ失敗する（wrangler 4.150.0）。Worker 単位のトークンでこれが通るかは確認していないため、明示して渡す |
+
+### Cloudflare の API トークン
+
+検証用と本番用でトークンを分ける（ADR-0003 決定 3）。どちらも、Individual Workers（Worker 単位）のスコープで対象 Worker の Editor だけにする。
+
+| トークン | 付ける権限 | 付けない権限 |
+|---|---|---|
+| 検証用（`staging`） | 検証用 Worker の Editor | アカウント単位の Workers の権限、ゾーンの Workers Routes Write、R2・KV など Workers 以外の書き込み権限 |
+| 本番用（`production`） | 本番 Worker の Editor | 同上 |
+
+- Worker 単位の Editor は、既存の Worker の更新・デプロイはできるが、作成と削除はできない
+  （"Cannot create or delete Workers." "Creating new Workers requires product-level `Admin` access."）。
+  検証用・本番用の Worker の初回作成は、CI のトークンでなく管理者が行う。
+- ルートの追加・変更・削除には、Worker の Editor に加えて、対象ゾーンの Workers Routes Write が要る。
+  Custom Domain は Worker 単位のロールにまだ対応していない（"Custom Domains do not currently support per-Worker roles."）。
+  出典: [Workers roles and permissions](https://developers.cloudflare.com/workers/authorization/workers/)
+- **どちらのトークンにもゾーンの Workers Routes Write を付けない**: この権限はゾーン全体に効く。
+  検証用に付けると本番のドメインを検証用 Worker に向け替えて承認を迂回でき、本番用に付けると API のホスト名（`natueve-api.natuportal.org`）を
+  本番フロントの Worker に付け替えて、API への通信を横取りできてしまう。Custom Domain は管理者がダッシュボードで割り当てる（上の「割り当て方法」）。
+- **どちらのトークンにもアカウント単位の Workers の権限を付けない**: 付けると、同じアカウントにある API の中継用 Worker（NatuEve_API ADR-0034）も書き換えられる。
+- 「Edit Cloudflare Workers」テンプレートは、アカウント単位の Workers Scripts Write に加えて R2・KV の書き込みも含むため
+  （[API token templates](https://developers.cloudflare.com/fundamentals/api/reference/template/)）、検証用・本番用のどちらにも使わない。
+  今あるこのテンプレートのトークンは、新しいトークンに切り替えた後に失効させる（#330）。
+- **未確認（#330 で実機確認）**: wrangler 4.150.0 の `deploy` は、Editor だけのトークンで通るか公式に記載のない API を呼ぶ。
+  - デプロイのたびに、workers.dev の設定の API（`GET`・`POST .../workers/scripts/{name}/subdomain`）を呼ぶ。
+  - 最後にダッシュボードから変更された Worker（`last_deployed_from` が `dash`。ダッシュボードで作った直後など）へのデプロイでは、ダッシュボード側の設定を取りに 6 本の `GET` を並べて呼ぶ
+    （アカウント単位の Custom Domain の一覧・ルート・バインディング・workers.dev の設定・サービスのメタデータ・Cron。`fetchWorkerConfig`）。
+    1 本でも失敗するとデプロイが止まる。Custom Domain は Worker 単位のロールに未対応のため、ここで止まるおそれがある。
+
+  次を実機で確かめてから、トークンの権限を確定する。
+  - 確認は、管理者が本番・検証と同じくダッシュボードで作った使い捨ての Worker と、未使用のダミーのサブドメインで行う
+    （wrangler で作った Worker では初回のデプロイの経路を通らず、確認にならない）。本番・検証の Worker とホスト名では試さない
+    （#351 の前に公開してしまうのを避けるため）。終わったら、使い捨ての Worker・Custom Domain・DNS レコードを削除する。
+  - 通ること: 使い捨ての Worker の Editor だけのトークンで、`"routes": []`・`"workers_dev": false`・`"preview_urls": false` の設定を、
+    作成直後の 1 回目と 2 回目の両方でデプロイできるか。
+  - 割り当てが残ること: 管理者がダミーのサブドメインをダッシュボードで Custom Domain に割り当てた後にもう一度デプロイし、
+    デプロイが通り、割り当てが残るか（「割り当て方法」の「デプロイでは変わらない」の裏付け）。
+  - 拒否されること: 同じトークンで、ダミーのサブドメインを使い捨ての Worker の Custom Domain に付けようとして、拒否されるか。
+    拒否されなければ、Worker 単位の Editor だけでドメインを付け替えられることになり、承認の迂回を防げない。
+    その場合は CI のトークンでの自動デプロイを見直す（ADR-0003 を改める）。
+  - 1 回目のデプロイ、または Custom Domain を割り当てた後のデプロイが通らない場合は、管理者が Worker を作る・変えるときの手順を変える
+    （例: アプリのビルドではない仮のスクリプトを管理者の権限で wrangler から一度デプロイして作る。この場合は ADR-0003 決定 3 の
+    「Worker の新規作成は管理者がダッシュボードで行う」も改める）か、ADR-0003 を見直す。どちらにするかは実機の結果を見て #330 で決める。
+  - 失敗がコードのアップロードの後に起きる場合もあるため、成否は wrangler の終了コードとエラーの内容で判定する。
+
+### ビルドに使うツールの版
+
+環境変数ではなく、ワークフローと設定ファイルで固定する。検証と本番で同じ版を使い、同じコミットからのビルドの同一性を保つ（ADR-0003）。
+
+| ツール | 版 | 固定する場所 |
+|---|---|---|
+| Bun | `1.2.21` | `oven-sh/setup-bun` の `bun-version`（`package.json` の `packageManager` と合わせる） |
+| Node.js | `24.22.1` | `actions/setup-node` の `node-version-file: .nvmrc` |
+
+- 今の `ci.yml` もこの 2 つで固定している。デプロイのジョブも同じ指定にする（#330）。
 
 ## ビルドとデプロイ
 
 - ローカル開発は従来どおり `bun run dev`（`next dev`）。
 - Workers のランタイムでの確認とデプロイには、OpenNext の `preview`・`deploy` スクリプトを `package.json` に追加して使う。
   OpenNext のビルドは内部で `build` スクリプト（`next build`）を呼ぶ。
+- **CI では `bun run deploy` を使わない。** `deploy` スクリプトはビルドとデプロイを続けて実行するため、トークンがビルド（`next build` や依存パッケージのコード）にも渡る。
+  ビルドは `opennextjs-cloudflare build`（トークンを渡さない）、デプロイは `opennextjs-cloudflare deploy`（検証は `--env staging`。トークンを渡す）と、ステップを分けて実行する
+  （`opennextjs-cloudflare deploy` はビルドしない）。同じジョブのステップはファイルを共有するため、これはトークンの露出を減らすだけで、
+  主な防御はトークンの権限の絞り込みである（「Cloudflare の API トークン」。ADR-0003 決定 3）。
 - **ローカルからは `bun run deploy` を実行しない。** Next.js は本番ビルドでも `.env.local` を読み込み
   （読まないのは test のときだけ）、`NEXT_PUBLIC_*` の値はビルド時にコードへ埋め込まれるため、
   ローカルの値（例: `NEXT_PUBLIC_USE_MSW=true`、ローカル API のオリジン）が本番ビルドに混入する。
@@ -183,7 +249,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   その際、**`.env.local` にある `NEXT_PUBLIC_*` はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
   特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
   恒久対応として、#330 で CI からのデプロイに限定する。
-- **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。検証環境へのデプロイも同様に公開しない（ADR-0003）。** デプロイのブロッカーとして扱う。
+- **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。** デプロイのブロッカーとして扱う。
+  #351 より先に #330 が入った場合、検証環境へのデプロイはしてよいが公開しない（Custom Domain を割り当てない）。本番ジョブは #351 が終わるまで無効にしておく（ADR-0003 決定 6）。
   開発用の取得元は本番ビルド（`NEXT_PUBLIC_USE_MSW` が `true` 以外。未設定・`false` を含む）の許可リストから外している（placehold.co・example.com は削除、picsum.photos・i.pravatar.cc は MSW ビルドでのみ許可）。この除外は `src/__tests__/nextConfigImageHosts.test.ts` で検証している。
   #334 の AC は「開発用の取得元を本番で外す」のみで `pathname` 制限を含まないため、**#334 が close しただけで完了と判断しない**（pathname 制限は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応する）。
   **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
@@ -196,7 +263,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   Workers Cache を有効化するか（課金の試算が必要）、キャッシュ不要と確認する。本番相当環境で `curl -I` により
   `Cache-Control`・`cf-cache-status` を実測する。詳細は[画像最適化](#画像最適化)を参照。
 - Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
-- Workers Builds は使わない（ADR-0003）。Workers Builds（Paid）の上限の参考値: ビルド月 6,000 分、同時ビルド 6 本、タイムアウト 20 分。
+- Workers Builds は使わない（ADR-0003）。
 
 ## 導入時に必要な変更
 
@@ -312,7 +379,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 ## 未決事項・今後の作業
 
 1. **フロントのドメイン**: 解決済み（#328 で `natueve-web.natuportal.org` に決定。上の「独自ドメイン」を参照）。
-   割り当て（`routes` の追加）は、「割り当てる時期」の条件がそろってから行う。
+   割り当て（管理者がダッシュボードで行う）は、「割り当てる時期」の条件がそろってから行う。
 2. **画像最適化の方式**: 解決済み（#327、決定は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。詳細は[画像最適化](#画像最適化)を参照。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
    - Next.js 16.4.2 は OpenNext 1.20.13 の対応範囲（`>=15.5.28 <16 || >=16.4.1`）内（#346 で更新）。
@@ -324,7 +391,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
      #346 で Next.js 16（16.4.2）に移行した。
    - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため
      App Router では実質無効（CSS は通常どおり配信され、実害なし）。
-4. **プレビュー環境・検証環境の API の接続先**: 方針は解決済み（ADR-0003）。main へのマージで検証環境へ自動デプロイし、本番へは承認後に同じコミットから本番用にビルドしたものを出す。
+4. **検証環境の API の接続先**: 方針は解決済み（ADR-0003）。main へのマージで検証環境へ自動デプロイし、本番へは承認後に同じコミットから本番用にビルドしたものを出す。
    検証環境は本番と同じ構成で固定オリジンを持ち、検証用 API・検証用 Auth に繋ぐ。実装は #330 で行う。
 5. **CI/CD**: 方針は解決済み（ADR-0003）。GitHub Actions で、main へのマージで検証環境へ自動デプロイし、本番へは `production` 環境の承認後にデプロイする。
    Workers Builds の Git 連携は使わない。実装は #330 で行う（#330 の受け入れ基準は本 ADR の方式に更新済み）。
@@ -334,10 +401,13 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
    - 検証環境のオリジン（ADR-0003。サブドメイン名は #328 と合わせて決める）も、検証用 API の `CORS_ALLOW_ORIGINS` に設定する（API 側の作業）。
    - GitHub Actions でブランチごとのプレビュー環境を設ける場合は、URL が変わるたびに API の `CORS_ALLOW_ORIGINS` と
      Supabase Auth のリダイレクト許可への登録が必要になる（API はワイルドカード非対応）。扱いは #330 で決める。
+7. **ブランチごとのプレビュー環境の API の接続先**: 未決（#330 で決める）。設ける場合の CORS とリダイレクト許可の扱いは上記 6. を参照。
 
 ## 参考（料金・仕様の出典）
 
 - OpenNext: [Cloudflare](https://opennext.js.org/cloudflare) / [Get Started](https://opennext.js.org/cloudflare/get-started) / [Environment variables](https://opennext.js.org/cloudflare/howtos/env-vars) / [Image optimization](https://opennext.js.org/cloudflare/howtos/image)
-- Cloudflare Workers: [Pricing](https://developers.cloudflare.com/workers/platform/pricing/) / [Limits](https://developers.cloudflare.com/workers/platform/limits/) / [Static Assets の課金](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/) / [Workers Builds の上限](https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/) / [Build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)
+- Cloudflare Workers: [Pricing](https://developers.cloudflare.com/workers/platform/pricing/) / [Limits](https://developers.cloudflare.com/workers/platform/limits/) / [Static Assets の課金](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/)
+- Cloudflare の権限: [Workers roles and permissions](https://developers.cloudflare.com/workers/authorization/workers/) / [API token templates](https://developers.cloudflare.com/fundamentals/api/reference/template/)
+- GitHub Actions: [Variables（優先順位）](https://docs.github.com/en/actions/reference/workflows-and-actions/variables) / [Deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments) / [Concurrency](https://docs.github.com/en/actions/using-jobs/using-concurrency) / [Changelog 2026-05-07: concurrency の `queue: max`](https://github.blog/changelog/2026-05-07-github-actions-concurrency-groups-now-allow-larger-queues)
 - Cloudflare Workers Cache: [Workers Cache](https://developers.cloudflare.com/workers/cache/) / [Configuration（Cache-Control なしの既定 TTL）](https://developers.cloudflare.com/workers/cache/configuration/) / [Limitations（zone の設定は無効）](https://developers.cloudflare.com/workers/cache/limitations/)
 - Cloudflare Images: [Pricing](https://developers.cloudflare.com/images/pricing/) / [Optimize with Workers](https://developers.cloudflare.com/images/optimization/binding/) / [Troubleshooting（9422）](https://developers.cloudflare.com/images/reference/troubleshooting/) / [Changelog 2026-07-01: バインディングの課金単位](https://developers.cloudflare.com/changelog/post/2026-07-01-binding-unique-transformations/)
