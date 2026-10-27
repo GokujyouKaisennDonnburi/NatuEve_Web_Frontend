@@ -107,7 +107,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   `routes` でこれらを省略したときの API の既定は、本番が有効、Previews が無効
   （[wrangler 4.85.0 のリリースノート](https://github.com/cloudflare/workers-sdk/releases/tag/wrangler%404.85.0)）。
   ダッシュボードの「Worker URL」で、プロダクション（`workers_dev`）とプレビュー（`preview_urls`）のトグルがともに OFF であることを、検証環境と本番で確認した（2026-10-27。本番は #329 の返信の画像）。
-  Custom Domain 経由の Previews（`previews_enabled`）の設定はダッシュボードに表示されないが、wrangler・ダッシュボードのどちらでも設定していないため、省略時の既定（無効）のまま。Previews は workers.dev・Custom Domain のどちらからも配信されていない。
+  Custom Domain 経由の Previews（`previews_enabled`）の設定はダッシュボードに表示されないが、wrangler・ダッシュボードのどちらでも設定していないため、省略時の既定（無効）とみなせる。値自体は未確認（API の `GET /accounts/{account_id}/workers/domains` で確認できる）で、Previews が workers.dev・Custom Domain のどちらからも配信されていないことの確認は未決事項 1 に残す。
 
 ### 割り当てる時期
 
@@ -563,7 +563,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 ## 未決事項・今後の作業
 
-1. **フロントのドメイン**: 解決済み（#328 で `natueve-web.natuportal.org` に決定し、2026-10-27 に管理者が本番 Worker に割り当てた。割り当て後の 4 点確認と、Previews が配信されていないことの確認も済んだ。上の「独自ドメイン」「割り当てる時期」「割り当て方法」を参照）。
+1. **フロントのドメイン**: 一部解決済み（#328 で `natueve-web.natuportal.org` に決定し、2026-10-27 に管理者が本番 Worker に割り当てた。割り当て後の 4 点確認も済んだ。上の「独自ドメイン」「割り当てる時期」「割り当て方法」を参照）。
+   残る確認: Custom Domain 経由の Previews（`previews_enabled`）が配信されていないこと。設定はしていないため省略時の既定（無効）とみなせるが、値自体は API（`GET /accounts/{account_id}/workers/domains`）で確認していない（上の「割り当て方法」）。
 2. **画像最適化の方式**: 解決済み（#327、決定は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。詳細は[画像最適化](#画像最適化)を参照。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
    - Next.js 16.4.2 は OpenNext 1.20.13 の対応範囲（`>=15.5.28 <16 || >=16.4.1`）内（#346 で更新）。
