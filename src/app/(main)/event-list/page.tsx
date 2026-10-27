@@ -8,9 +8,7 @@ import { FilterDrawer } from "@/components/organisms/FilterDrawer";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
 import { useStickyClip } from "@/hooks/useStickyClip";
-import { useStickySidebarState } from "@/hooks/useStickySidebarState";
 import { useTags } from "@/hooks/useTags";
-import { cn } from "@/lib/utils";
 import type { TagItem } from "@/types/tag";
 import { useMemo, useRef, useState, useCallback } from "react";
 
@@ -69,13 +67,6 @@ export default function EventListPage() {
   const controlsRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   useStickyClip({ barRef: controlsRef, contentRef, bottomMargin: 8 });
-
-  // 絞り込みサイドバーのスクロール状態。
-  // sticky 可能な間は内部スクロールを有効にし、フィルタ領域上のホイール操作で
-  // ウィンドウより先にフィルタ領域がスクロールするようにする。sticky 不可
-  // (イベントが少なく右カラムがカード以下)の場合は高さ制限も内部スクロールも行わない
-  const filterRef = useRef<HTMLElement>(null);
-  const filterScrollState = useStickySidebarState(filterRef);
 
   // FilterDrawer の effect 依存が毎レンダー変化しないよう、クローズ処理は安定参照で渡す
   const handleCloseFilter = useCallback(() => setIsFilterOpen(false), []);
@@ -197,23 +188,14 @@ export default function EventListPage() {
             モバイル(縦長比率)では FilterDrawer が左からスライドするオーバーレイとして表示し、
             デスクトップ(横長比率)では常に左側に表示するサイドバーになる */}
         <FilterDrawer
-          ref={filterRef}
           isOpen={isFilterOpen}
           onClose={handleCloseFilter}
           id="event-list-filters"
         >
+          {/* フィルタ領域内のスクロールが端に達したら、ウィンドウ側のスクロールへ
+              引き継がれるようにする。overscroll-behavior はブラウザ既定(auto)のままにする */}
           <FilterSidebar
-            className={cn(
-              // 高さ制限と内部スクロールは sticky 可能な間だけ付与する。
-              // sticky 前も内部スクロールを有効にすることで、ウィンドウ最上部でも
-              // フィルタ領域がウィンドウより先にスクロールする。
-              // 内部スクロールが端に達した後はウィンドウへ引き継ぐため、
-              // overscroll-behavior はブラウザ既定(auto)のままにする。
-              // なお高さは粘着位置基準の固定値のため、sticky 前はカード下端が
-              // 画面外にはみ出すが、フィルタ領域内のスクロールを優先する
-              filterScrollState !== "none" &&
-                "desktop:max-h-(--filter-sidebar-max-height) desktop:overflow-y-auto desktop:[scrollbar-width:none] desktop:[&::-webkit-scrollbar]:hidden",
-            )}
+            className="desktop:max-h-(--filter-sidebar-max-height) desktop:overflow-y-auto desktop:[scrollbar-width:none] desktop:[&::-webkit-scrollbar]:hidden"
             allTags={allTags}
             frequentTags={frequentTags}
             tagFilterKey={filterResetKey}

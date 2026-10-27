@@ -4,7 +4,7 @@ import { DESKTOP_MEDIA_QUERY } from "@/constants/config";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, type ReactNode, type Ref } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 type FilterDrawerProps = {
   isOpen: boolean;
@@ -12,8 +12,6 @@ type FilterDrawerProps = {
   // FilterIconButton の aria-controls と関連付けるための ID
   id?: string;
   children: ReactNode;
-  // 粘着状態の計測用。ページ側で useStickySidebarState に渡す
-  ref?: Ref<HTMLElement>;
 };
 
 // 狭い画面(縦長比率)では左からスライドインするオーバーレイとして、
@@ -28,7 +26,6 @@ export function FilterDrawer({
   onClose,
   id,
   children,
-  ref,
 }: Readonly<FilterDrawerProps>) {
   // globals.css の desktop バリアントと同じクエリで CSS/JS の挙動を揃える
   const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY);
@@ -117,7 +114,6 @@ export function FilterDrawer({
 
   return (
     <aside
-      ref={ref}
       id={id}
       // 閉じている間は画面外に退避したドロワーへ操作が届かないよう inert 化する
       inert={!isInteractive}
