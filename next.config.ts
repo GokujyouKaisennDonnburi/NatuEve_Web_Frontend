@@ -9,26 +9,32 @@ export type ImageRemotePattern = NonNullable<
 const assetHostname = "assets.natuportal.org";
 const developmentAssetHostname = "assets-dev.natuportal.org";
 
-// 本番でも使う画像の取得元（R2 の公開ドメイン、Google のプロフィール画像）
-const productionImageHosts: ImageRemotePattern[] = [
-  {
+// 本番でも使う画像の取得元（R2 の公開ドメイン）。
+// 画像最適化で変換できる画像を、API が保存するイベント・レポートの画像だけに絞る（#351）。
+// キーは NatuEve_API の buildFinalKey（natueve/{events|reports}/images/{uuid}{.jpg|.png}）に合わせる。
+// ファイル名を UUID の文字（小文字の 16 進数とハイフン）と拡張子に限り、%2F などのエンコードした区切りも通さない。
+// 一時領域（natueve/tmp/）・PDF（natueve/*/documents/）・他プロダクトの画像は許可しない。
+// API の URL にはクエリが付かないため、search: "" でクエリ付きの URL も許可しない。
+// port: "" で既定のポート（443）だけを許可する（Cloudflare は 8443 などの HTTPS の別ポートでも応答するため）。
+// Google のプロフィール画像（lh3.googleusercontent.com）は unoptimized で表示し、ここには含めない。
+const productionImageHosts: ImageRemotePattern[] = ["events", "reports"].map(
+  (destination) => ({
     protocol: "https",
     hostname: assetHostname,
-  },
-  {
-    protocol: "https",
-    hostname: "lh3.googleusercontent.com",
-  },
-];
+    port: "",
+    pathname: `/natueve/${destination}/images/+([0-9a-f-]).@(jpg|png)`,
+    search: "",
+  }),
+);
 
 // ローカル開発・検証環境用の R2 の公開ドメイン（NatuEve_API ADR-0039）。
-// 本番のビルド環境ではフラグを設定しない。本番の assets と同じ制限（pathname など）を引き継ぐ（#351）。
-const developmentImageHosts: ImageRemotePattern[] = productionImageHosts
-  .filter((pattern) => pattern.hostname === assetHostname)
-  .map((pattern) => ({
+// 本番のビルド環境ではフラグを設定しない。キーの形式は本番と同じため、本番と同じ制限を引き継ぐ。
+const developmentImageHosts: ImageRemotePattern[] = productionImageHosts.map(
+  (pattern) => ({
     ...pattern,
     hostname: developmentAssetHostname,
-  }));
+  }),
+);
 
 // MSW のモックデータ（src/mocks/**・src/services/mockAuth.ts）でのみ使う画像の取得元。
 // モックの画像 URL を変えるときは、ホストをここに追加して URL と許可リストを揃える。
