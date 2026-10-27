@@ -61,9 +61,12 @@ jobs:
         run: bun run test
 
       # 接続先の確認と main の最新の確認のスクリプトは、main への push で初めて動く。構文を PR のうちに確かめる（#362 のレビュー）。
+      # bash -n は引数の最初のファイルしか読まないため、1 ファイルずつループで確かめる。
       - name: Check shell scripts
         run: |
-          bash -n .github/scripts/*.sh
+          for script in .github/scripts/*.sh; do
+            bash -n "$script"
+          done
           shellcheck -S warning .github/scripts/*.sh
 
       # main への push では、デプロイのジョブが環境ごとの値でビルドするため、ここでのビルドは PR だけで行う。
