@@ -95,7 +95,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - `wrangler.jsonc` は、最上位も `env.staging` も `"routes": []` を明示する（`env.staging` は書かないと最上位の値を引き継ぐ。ADR-0003 決定 4）。
   `routes` に Custom Domain が 1 件もなければ、wrangler はデプロイで Custom Domain を付け替える API を呼ばない（wrangler 4.150.0）。
   そのため、ダッシュボードで割り当てた Custom Domain はデプロイでは変わらない。
-  ただし、読み取りの一覧（アカウント単位の Custom Domain の一覧）は呼ぶことがある。トークンの権限への影響は下の「Cloudflare の API トークン」の「未確認」を参照。
+  ただし、読み取りの一覧（アカウント単位の Custom Domain の一覧）は呼ぶことがある。Worker 単位の Editor だけのトークンでも通ることを実機で確かめた（下の「Cloudflare の API トークン」）。
 - `natuportal.org` のゾーンは、デプロイ先と同じ Cloudflare アカウントにある（Active。2026-10-22 時点）。
   Custom Domain の DNS レコードと証明書は Cloudflare が作る。
 - workers.dev の URL と、バージョンごとの Version URL（旧称 Preview URL。`wrangler.jsonc` の `preview_urls`）は、
@@ -168,6 +168,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   次がそろってから割り当てる。
   - CI から検証用の Worker へのデプロイが通っている（下の「CI/CD」）。
   - 上のオリジンを検証用 API の `CORS_ALLOW_ORIGINS` と R2 のローカル開発用のバケットの CORS に、リダイレクト先を開発の Auth 用プロジェクトの Redirect URLs に登録している（API 側・Supabase の作業）。
+- 割り当てた後の CI のデプロイが通ることを確かめる（ダッシュボードで作った Worker に Custom Domain を割り当てた後のデプロイは、まだ実機で試していない。下の「Cloudflare の API トークン」）。
 - 割り当てたら、本番と同じ 4 つ（トップページ・API の呼び出し・ログイン・画像の表示）を確かめる。
   画像の表示の確認は、#351 の実データでの確認を兼ねる（`assets-dev.natuportal.org` のキーの形式は本番と同じ）。
 
@@ -256,31 +257,34 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - 「Edit Cloudflare Workers」テンプレートは、アカウント単位の Workers Scripts Write に加えて R2・KV の書き込みも含むため
   （[API token templates](https://developers.cloudflare.com/fundamentals/api/reference/template/)）、検証用・本番用のどちらにも使わない。
   今あるこのテンプレートのトークンは、新しいトークンに切り替えた後に失効させる。
-- **未確認（#330 のマージ前に管理者が実機で確かめる。下の「CI/CD」の「初期設定」）**: wrangler 4.150.0 の `deploy` は、Editor だけのトークンで通るか公式に記載のない API を呼ぶ。
+- **実機で確かめた（2026-10-27、#330。wrangler 4.150.0）**: Editor だけのトークンで `deploy` が通った。そのトークンで `routes` に Custom Domain を書いたデプロイは、ドメインを付けられずに失敗した。
+  wrangler の `deploy` は、Editor だけのトークンで通るか公式に記載のない API を呼ぶため、マージ前に確かめた。
   - デプロイのたびに、workers.dev の設定の API（`GET`・`POST .../workers/scripts/{name}/subdomain`）を呼ぶ。
   - 最後にダッシュボードから変更された Worker（`last_deployed_from` が `dash`。ダッシュボードで作った直後など）へのデプロイでは、ダッシュボード側の設定を取りに 6 本の `GET` を並べて呼ぶ
     （アカウント単位の Custom Domain の一覧・ルート・バインディング・workers.dev の設定・サービスのメタデータ・Cron。`fetchWorkerConfig`）。
-    1 本でも失敗するとデプロイが止まる。Custom Domain は Worker 単位のロールに未対応のため、ここで止まるおそれがある。
+    1 本でも失敗するとデプロイが止まるため、Custom Domain が Worker 単位のロールに未対応なことで止まるおそれがあった。
 
-  次を実機で確かめてから、トークンの権限を確定する。
-  - 確認は、管理者が本番・検証と同じくダッシュボードで作った使い捨ての Worker と、未使用のダミーのサブドメインで行う
-    （wrangler で作った Worker では初回のデプロイの経路を通らず、確認にならない）。本番・検証の Worker とホスト名では試さない
-    （公開の条件（「割り当てる時期」）がそろう前に公開してしまうのを避けるため）。終わったら、使い捨ての Worker・Custom Domain・DNS レコードを削除する。
-  - 通ること: 使い捨ての Worker の Editor だけのトークンで、`"routes": []`・`"workers_dev": false`・`"preview_urls": false` の設定を、
-    作成直後の 1 回目と 2 回目の両方でデプロイできるか。
-  - 割り当てが残ること: 管理者がダミーのサブドメインをダッシュボードで Custom Domain に割り当てた後にもう一度デプロイし、
-    デプロイが通り、割り当てが残るか（「割り当て方法」の「デプロイでは変わらない」の裏付け）。
-  - 拒否されること: 同じトークンで、ダミーのサブドメインを使い捨ての Worker の Custom Domain に付けようとして、拒否されるか。
-    拒否されなければ、Worker 単位の Editor だけでドメインを付け替えられることになり、承認の迂回を防げない。
-    その場合は CI のトークンでの自動デプロイを見直す（ADR-0003 を改める）。
-  - 1 回目のデプロイ、または Custom Domain を割り当てた後のデプロイが通らない場合は、管理者が Worker を作る・変えるときの手順を変える
-    （例: アプリのビルドではない仮のスクリプトを管理者の権限で wrangler から一度デプロイして作る。この場合は ADR-0003 決定 3 の
-    「Worker の新規作成は管理者がダッシュボードで行う」も改める）か、ADR-0003 を見直す。どちらにするかは実機の結果を見て #330 で決める。
-  - 通らない API があった場合は、それに要る権限を確かめる。たとえば `fetchWorkerConfig` のルートの取得には Zone > Workers Routes > Read が要る可能性がある。
-    その場合は Read だけを足し、Write は付けない（Read ではルートを変えられない）。足した後、初回・2 回目・Custom Domain を割り当てた後のデプロイをもう一度確かめる。
-    足してよいのは、上の表の「付けない権限」に当たらない Read だけにする。要る権限が表の「付けない権限」に当たる場合
-    （例: アカウント単位の Workers の Read）は権限を広げず、一つ上の項目（手順を変えるか ADR-0003 を見直す）に従う。
-  - 失敗がコードのアップロードの後に起きる場合もあるため、成否は wrangler の終了コードとエラーの内容で判定する。
+  | 確かめたこと | 使った Worker・トークン | 結果 |
+  |---|---|---|
+  | ダッシュボードで作った直後の Worker への 1 回目のデプロイ（`"routes": []`・`"workers_dev": false`・`"preview_urls": false`） | `natueve-web-frontend-stg`（ダッシュボードで作り、一度もデプロイしていない）と、その Worker の Individual Workers Editor だけのトークン | 通った（`No targets deployed`。公開先はない） |
+  | 2 回目のデプロイ | 同上 | 通った |
+  | 管理者がダッシュボードで Custom Domain を割り当てた後のデプロイ | 使い捨ての Worker（手元の wrangler の OAuth のログインで作られたもの。下の注意を参照）と、その Worker の Individual Workers Editor だけのトークン | 通り、割り当ても残った（「割り当て方法」の「デプロイでは変わらない」の裏付け） |
+  | トークンで Custom Domain を付けようとする（`routes` に `custom_domain: true` を書いてデプロイ） | 同上 | コードのアップロードは通り、トリガーの段階で `The zone "..." does not exist on your account. [code: 10084]`（wrangler がゾーンを名前で引く段階。トークンにゾーンの権限がないため見えない）で失敗し、終了コード 1 になった。ドメインは付かず、割り当て済みの Custom Domain は残った |
+
+  - 確かめたのは、wrangler の `routes`（`custom_domain: true`）で付けられないことまでで、Custom Domain の API にゾーン ID を直接渡したときの結果は確かめていない。
+  - 成否は wrangler の終了コードとエラーの内容で判定した。失敗がコードのアップロードの後に起きると、デプロイの一部（コード）は反映される。
+  - **まだ確かめていない組み合わせ**: ダッシュボードで作った Worker に Custom Domain を割り当てた後のデプロイ（本番・検証とも、この組み合わせになる）。
+    1・2 行目の Worker には Custom Domain がなく、3 行目の Worker は wrangler で作られたもの（ダッシュボードで作った直後の経路を通らない）だった。
+    検証用の Custom Domain を割り当てた後、次の CI のデプロイが通ることを確かめる（上の「検証環境」）。
+  - 本番用のトークン（`natueve-web-frontend` の Individual Workers Editor）は、同じ権限で作ったが実機では試していない。後続の本番のデプロイの最初の実行で確かめる。
+  - 確認の後片付け: 使い捨ての Worker と、その Custom Domain・DNS レコード、確認に使ったトークンを削除する。手元の wrangler の OAuth のログインは、要らなければ `wrangler logout` でログアウトする。
+  - 1 回目の確認は、使い捨ての Worker ではなく検証用の `natueve-web-frontend-stg` で行った。ダッシュボードで作った直後の状態の Worker が、それしかなかったため。
+    確認用の最小のスクリプト（ドメインなし・workers.dev は無効）を載せただけで、公開はしていない。CI の最初のデプロイで上書きされる。
+  - トークンを作る画面では、権限ポリシーを「Workers > (対象の Worker) > Individual Workers Editor」だけにする。
+    同じ画面で選べる Workers Routes Write と、「natuportal アカウント全体」のポリシー（「Edit Cloudflare Workers」テンプレートと同じ中身）は付けない。
+  - 手元で wrangler を実行するときは、`CLOUDFLARE_API_TOKEN` が空だと、wrangler は `wrangler login` の OAuth のログイン（アカウントの全権限）を黙って使う。
+    権限の確認やトークンでの操作では、実行の前にトークンが空でないことを確かめ、`wrangler whoami` が `Account API Token` を表示することを見る
+    （#330 の確認で、トークンが空のまま実行され、OAuth のログインで Worker が新しく作られたことがあった）。
 
 ### ビルドに使うツールの版
 
@@ -380,7 +384,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 1. **Cloudflare の Worker を作る**: 検証用の `natueve-web-frontend-stg`（と、まだなければ本番の `natueve-web-frontend`）をダッシュボードで作る。
    CI のトークン（Worker 単位の Editor）では Worker を作れない（上の「Cloudflare の API トークン」）。
-2. **トークンの権限を実機で確かめてから、検証用・本番用のトークンを作る**（上の「Cloudflare の API トークン」の「未確認」）。
+2. **検証用・本番用のトークンを作る**: 対象の Worker の Individual Workers Editor だけにする（上の「Cloudflare の API トークン」。権限は 2026-10-27 に実機で確かめた）。
 3. **GitHub の Environment を作る**: `staging`・`production` を作り、どちらもデプロイできるブランチを main のみにし、
    管理者による保護ルールのバイパスを無効にする。`production` には Required reviewers と Prevent self-review を設定する。
    Prevent self-review により main にマージした本人は承認できないため、承認者は少なくとも 2 人登録する（ADR-0003「トレードオフ」）。
@@ -561,7 +565,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
    値は上の「環境変数」、名前とドメインは上の「検証環境」を参照。
 5. **CI/CD**: 一部解決済み（#330）。main へのマージで検証環境へ自動でデプロイし、本番は承認の確認用のジョブまでを入れた（上の「CI/CD」）。
    残っている作業は次のとおり。
-   - マージ前の初期設定（上の「CI/CD」の「初期設定」。トークンの権限の実機確認を含む）。
+   - マージ前の初期設定（上の「CI/CD」の「初期設定」）。2026-10-27 に管理者が済ませた（トークンの権限の実機確認を含む）。
    - 承認待ちを確かめた後、本番のデプロイのステップを足す（上の「CI/CD」の「本番のデプロイ」）。
    - 検証環境の Custom Domain の割り当て（上の「検証環境」）。
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
