@@ -391,7 +391,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   `wrangler deploy --dry-run` で警告が出ず、`WORKER_SELF_REFERENCE` が `natueve-web-frontend` を指すことを確かめた（wrangler 4.150.0）。
   GitHub Actions が空文字の環境変数を設定するかも含めて、最初の実行（2026-10-27。#363 のマージ後の実行。コミット `e9caa6a`）で確かめた。ビルドとデプロイのログに環境を指定していないという警告は出ず、空文字が効いていた（`.env.production` に `CLOUDFLARE_ENV` を書くと、OpenNext がその値を読んで別の環境を選びかねないため、書かないこと）。
 - 最初の実行で、必須承認者の承認の後に、本番の Worker `natueve-web-frontend` へのデプロイが成功することを確かめた（2026-10-27 の実行。`Uploaded natueve-web-frontend` の後、`No targets deployed` で routes には触れない。Custom Domain 未割り当てで `workers_dev`・`preview_urls` 無効のため、公開は変わらない）。
-- 本番ビルドで MSW が動いていないことを実機で確かめた（2026-10-27。`NEXT_PUBLIC_USE_MSW` は `"false"` に固定していて、コード上も `MSWProvider` が development 以外では即 returnするため起動しない。DevTools の Service workers に本番オリジンの登録がなく、`mockServiceWorker.js` への実行時リクエストもなく、実データが表示される。#329）。
+- 本番ビルドで MSW が動いていないことを実機で確かめた（2026-10-27。`NEXT_PUBLIC_USE_MSW` は `"false"` に固定していて、コード上も `MSWProvider` が development 以外では即 return するため起動しない。DevTools の Service workers に本番オリジンの登録がなく、`mockServiceWorker.js` への実行時リクエストもなく、実データが表示される。#329）。
 - 本番へ出しても、Custom Domain を割り当てるまでは公開されない（`workers_dev`・`preview_urls` は無効）。割り当ては「割り当てる時期」の条件がそろってから行う。2026-10-27 に #328 で `natueve-web.natuportal.org` を割り当て済みで、本番のドメインは公開済み。割り当て後の 4 点確認（上の「割り当てる時期」）も済んだ。
 
 ### 初期設定（管理者が行う）
