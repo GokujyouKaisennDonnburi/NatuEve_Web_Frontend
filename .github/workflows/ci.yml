@@ -71,8 +71,9 @@ jobs:
           # next.config.ts の分岐を検証環境のビルドに揃える。
           NEXT_PUBLIC_USE_MSW: "false"
           USE_DEV_ASSETS: "true"
-          # NEXT_PUBLIC_* は渡さない。getSupabase() は遅延初期化のため、プリレンダリングで呼ばれない限りビルドに要らない。
-          # 将来サーバ側から呼ぶようになったら、このビルドが失敗して気づける（リポジトリの Variables は使わない。docs/Deployment.md「環境変数」）。
+          # 接続先の NEXT_PUBLIC_*（NEXT_PUBLIC_API_BASE_URL・NEXT_PUBLIC_SUPABASE_*）は渡さない（リポジトリの Variables は使わない。docs/Deployment.md「環境変数」）。
+          # getSupabase() は遅延初期化のため、プリレンダリングで呼ばれない限りビルドに要らない。呼ばれるようになったら、値がないためこのビルドが失敗して気づける。
+          # 値の取り違え（本番と検証など）はビルドが通るため、ここでは分からない（deploy-staging の「Check connection variables」で確かめる）。
 
   deploy-staging:
     name: Deploy (staging)

@@ -277,7 +277,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
     1・2 行目の Worker には Custom Domain がなく、3 行目の Worker は wrangler で作られたもの（ダッシュボードで作った直後の経路を通らない）だった。
     検証用の Custom Domain を割り当てた後、次の CI のデプロイが通ることを確かめる（上の「検証環境」）。
   - 本番用のトークン（`natueve-web-frontend` の Individual Workers Editor）は、同じ権限で作ったが実機では試していない。後続の本番のデプロイの最初の実行で確かめる。
-  - 確認の後片付け: 使い捨ての Worker と、その Custom Domain・DNS レコード、確認に使ったトークンを削除する。手元の wrangler の OAuth のログインは、要らなければ `wrangler logout` でログアウトする。
+  - 確認の後片付け: 使い捨ての Worker と、その Custom Domain・DNS レコード、使い捨ての Worker 用のトークンを削除する。
+    1・2 行目の確認に使った検証用の Worker のトークンは、`staging` の `CLOUDFLARE_API_TOKEN` として使うため削除しない（`staging`・`production` のトークンは残す）。手元の wrangler の OAuth のログインは、要らなければ `wrangler logout` でログアウトする。
   - 1 回目の確認は、使い捨ての Worker ではなく検証用の `natueve-web-frontend-stg` で行った。ダッシュボードで作った直後の状態の Worker が、それしかなかったため。
     確認用の最小のスクリプト（ドメインなし・workers.dev は無効）を載せただけで、公開はしていない。CI の最初のデプロイで上書きされる。
   - トークンを作る画面では、権限ポリシーを「Workers > (対象の Worker) > Individual Workers Editor」だけにする。
@@ -341,7 +342,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 | ジョブ | 起動 | Environment | 内容 |
 |---|---|---|---|
-| `quality` | PR・main への push | — | Lint・Format・Typecheck・Test。ビルドは PR だけで、デプロイと同じコマンドの `opennextjs-cloudflare build --env staging`（トークンなし。接続先の値（`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_*`）は渡さないため、それらの値に依存する失敗は main の `deploy-staging` まで分からない。成果物はデプロイしない） |
+| `quality` | PR・main への push | — | Lint・Format・Typecheck・Test。ビルドは PR だけで、デプロイと同じコマンドの `opennextjs-cloudflare build --env staging`（トークンなし。接続先の値（`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_*`）は渡さない。値がないとビルドが失敗する場合は PR で分かるが、値の取り違えのようにビルドが通る誤りは main の `deploy-staging`（接続先の確認）まで分からない。成果物はデプロイしない） |
 | `deploy-staging` | main への push（`quality` の後） | `staging` | 接続先の確認 → `opennextjs-cloudflare build --env staging` → main の最新かの確認 → `opennextjs-cloudflare deploy --env staging` |
 | `approve-production` | `deploy-staging` の後 | `production`（承認が要る） | 承認待ちになることを確かめる確認用のジョブ。ビルド・デプロイはせず、トークンも使わない（ADR-0003 決定 3） |
 
