@@ -61,17 +61,18 @@ jobs:
         run: bun run test
 
       # main への push では、デプロイのジョブが環境ごとの値でビルドするため、ここでのビルドは PR だけで行う。
-      - name: Build (Next.js)
+      # デプロイと同じ OpenNext のビルド（内部で next build も行う）にし、OpenNext 固有の失敗（#342 など）を PR で見つける。
+      # トークンは使わない。成果物はデプロイしない。
+      - name: Build (OpenNext, staging)
         if: github.event_name == 'pull_request'
-        run: bun run build
+        run: ./node_modules/.bin/opennextjs-cloudflare build --env staging
         env:
           NEXT_TELEMETRY_DISABLED: "1"
-          # NEXT_PUBLIC_* は静的プリレンダリング時に getSupabase() が呼ばれた場合に必要。
-          # 遅延初期化（getSupabase()）によりモジュールロード時は不要だが、
-          # 将来サーバ側から呼ばれる可能性に備えリポジトリの Variables から注入する。
-          # リポジトリの Variables はデプロイには使わず、本番の値も置かない（docs/Deployment.md「環境変数」）。
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # next.config.ts の分岐を検証環境のビルドに揃える。
+          NEXT_PUBLIC_USE_MSW: "false"
+          USE_DEV_ASSETS: "true"
+          # NEXT_PUBLIC_* は渡さない。getSupabase() は遅延初期化のため、プリレンダリングで呼ばれない限りビルドに要らない。
+          # 将来サーバ側から呼ぶようになったら、このビルドが失敗して気づける（リポジトリの Variables は使わない。docs/Deployment.md「環境変数」）。
 
   deploy-staging:
     name: Deploy (staging)

@@ -176,7 +176,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 
 接続先の変数（`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY`）とデプロイ用のトークンは、
 GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`、本番用は `production` の Variables/Secrets に、同じ変数名で置く。
-デプロイに使う値はリポジトリの Variables/Secrets には置かない（今の `ci.yml` の品質チェックのビルドが読むリポジトリの Variables は、デプロイには使わない）。
+デプロイに使う値はリポジトリの Variables/Secrets には置かない（`ci.yml` は、品質チェックのビルドも含めてリポジトリの Variables を参照しない。#330）。
 ビルド時のフラグ（`NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS`）は Environment に置かず、ワークフローの `env:` に固定する。
 `NEXT_PUBLIC_*` と `USE_DEV_ASSETS` はビルド時に反映されるため、本番と検証で値が違う場合はそれぞれの値でビルドし直す（使い回さない。ADR-0003）。
 
@@ -187,8 +187,8 @@ GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`�
   設定する内容・`gh api` での確認・最初の実行での確認は ADR-0003 決定 3 を参照。
 - **Environment に変数を定義し忘れると、リポジトリの同じ名前の変数が使われる**（同じ名前が複数のレベルにあると Environment が優先される。
   [Variables](https://docs.github.com/en/actions/reference/workflows-and-actions/variables)）。
-  今の `ci.yml` はビルドでリポジトリの Variables の `NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY` を参照している
-  （2026-10-26 時点でリポジトリの Variables は 0 件で、空のままビルドしている）。
+  #330 より前の `ci.yml` は、品質チェックのビルドでリポジトリの Variables の `NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY` を参照していた
+  （リポジトリの Variables は 0 件で、空のままビルドしていた）。#330 で参照をやめた（2026-10-27 時点でリポジトリの Variables は 0 件）。
   ここに本番の値を置くと、`staging` に定義し忘れたときに検証環境が本番の Auth に繋がる（ADR-0003 決定 5 の前提が崩れる）。
   埋め込まれた値は実行時には気づけない。そのため次の 2 つで防ぐ（#330。`ci.yml` の「Check connection variables」）。
   - リポジトリと Organization の Variables には、本番の `NEXT_PUBLIC_*` を置かない。
@@ -201,7 +201,7 @@ GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`�
 
 ビルド時に使う。`NEXT_PUBLIC_*` はアプリへ埋め込まれ、ブラウザに渡る。本番と検証で接続先が違う変数は、環境ごとに値を分ける。
 `USE_DEV_ASSETS` はビルド時に `next.config.ts` だけが参照し、アプリには埋め込まれない（クライアントの JS にも渡らない）。
-本番の値は #329 で `production` の Environment に設定する。
+本番の値は `production` の Environment に設定済み（2026-10-27。#329）で、後続の本番のデプロイのジョブで使う（下の「CI/CD」の「本番のデプロイ」）。
 #329 の受け入れ基準は ADR-0003 に合わせて更新済みである（`BUN_VERSION` は使わず。下記「ビルドに使うツールの版」）。
 `NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS` はワークフローの `env:` に固定する（下の表）。
 
@@ -267,7 +267,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   | 確かめたこと | 使った Worker・トークン | 結果 |
   |---|---|---|
   | ダッシュボードで作った直後の Worker への 1 回目のデプロイ（`"routes": []`・`"workers_dev": false`・`"preview_urls": false`） | `natueve-web-frontend-stg`（ダッシュボードで作り、一度もデプロイしていない）と、その Worker の Individual Workers Editor だけのトークン | 通った（`No targets deployed`。公開先はない） |
-  | 2 回目のデプロイ | 同上 | 通った |
+  | 2 回目のデプロイ | 同じ Worker（1 回目で確認用の最小のスクリプトをデプロイした後）と同じトークン | 通った |
   | 管理者がダッシュボードで Custom Domain を割り当てた後のデプロイ | 使い捨ての Worker（手元の wrangler の OAuth のログインで作られたもの。下の注意を参照）と、その Worker の Individual Workers Editor だけのトークン | 通り、割り当ても残った（「割り当て方法」の「デプロイでは変わらない」の裏付け） |
   | トークンで Custom Domain を付けようとする（`routes` に `custom_domain: true` を書いてデプロイ） | 同上 | コードのアップロードは通り、トリガーの段階で `The zone "..." does not exist on your account. [code: 10084]`（wrangler がゾーンを名前で引く段階。トークンにゾーンの権限がないため見えない）で失敗し、終了コード 1 になった。ドメインは付かず、割り当て済みの Custom Domain は残った |
 
@@ -341,7 +341,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 | ジョブ | 起動 | Environment | 内容 |
 |---|---|---|---|
-| `quality` | PR・main への push | — | Lint・Format・Typecheck・Test。ビルド（`next build`）は PR だけ |
+| `quality` | PR・main への push | — | Lint・Format・Typecheck・Test。ビルドは PR だけで、デプロイと同じ `opennextjs-cloudflare build --env staging`（トークンなし。成果物はデプロイしない） |
 | `deploy-staging` | main への push（`quality` の後） | `staging` | 接続先の確認 → `opennextjs-cloudflare build --env staging` → main の最新かの確認 → `opennextjs-cloudflare deploy --env staging` |
 | `approve-production` | `deploy-staging` の後 | `production`（承認が要る） | 承認待ちになることを確かめる確認用のジョブ。ビルド・デプロイはせず、トークンも使わない（ADR-0003 決定 3） |
 
@@ -401,7 +401,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
    | `CLOUDFLARE_API_TOKEN` | Secret | 検証用のトークン | 本番用のトークン |
 
    リポジトリと Organization の Variables・Secrets には置かない（上の「環境変数」）。
-   `production` の値は、後続の本番のデプロイで使う（#329）。
+   `production` の値は、後続の本番のデプロイのジョブで使う（値の設定は #329）。
 5. **設定を確かめる**: `gh api repos/{owner}/{repo}/environments/{name}` で `can_admins_bypass` が `false`、`protection_rules`（`production` は `required_reviewers` と `prevent_self_review: true`）、
    `deployment_branch_policy` を、`.../environments/{name}/deployment-branch-policies` で main のみであることを確かめる。
 6. **マージ後の最初の実行で確かめる**: `deploy-staging` が検証用の Worker にデプロイし、`approve-production` が承認待ちになること。
