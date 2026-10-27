@@ -68,13 +68,21 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 |---|---|---|
 | 本番のオリジン | `https://natueve-web.natuportal.org` | API の `CORS_ALLOW_ORIGINS`（NatuEve_API #218） |
 | OAuth のリダイレクト先 | `https://natueve-web.natuportal.org/auth/callback` | Supabase Auth の Redirect URLs（#332） |
-| Supabase Auth の Site URL | 変えるかは要相談 | Supabase Auth の Site URL（#332）。下の注を参照 |
+| Supabase Auth の Site URL | `https://natueve-web.natuportal.org`（パスを含めないオリジン） | Supabase Auth の Site URL（#332）。下の注を参照 |
 
 - リダイレクト先は `src/services/auth.ts` の `redirectTo`（`${window.location.origin}/auth/callback`）で決まる。
   Supabase にはオリジンだけでなく、パスを含むこの URL を登録する。
-- Supabase Auth の Site URL は、`redirectTo` を指定しない認証フローなどで使われる既定の URL。
-  Supabase の Auth は NatuPortal のほかのプロダクトと共有しているため、Site URL をこのオリジンに変えるかは、
-  ほかのプロダクトの担当と相談して決める（#332）。このアプリの OAuth は `redirectTo` を必ず指定している。
+- Supabase Auth の Site URL は、`redirectTo` を指定しない認証フローなどで使われる既定の URL。このアプリの OAuth は `redirectTo` を必ず指定している。
+  `redirectTo` が許可されないときは、エラーにならず、Referer の URL が許可されていればそこへ、そうでなければ Site URL へ戻される。
+  また、Site URL とスキーム・ホスト・ポートが同じ URL は、Redirect URLs に登録がなくても許可される
+  （supabase/auth の `internal/utilities/request.go` の `GetReferrer`・`IsRedirectURLValid`。2026-10-27 時点の master（`c3348e8`）で確認。
+  本番で動いている Supabase の版では確かめていない）。
+- 本番の Auth はなちゅいべ用の Supabase プロジェクト（Auth 専用。`natueveOAuth`）で、このプロジェクトのみで使い、NatuPortal のほかのプロダクトと共有していない（#332 で確認済み）。
+  そのため Site URL は本番のオリジンにする（#332）。将来ほかのプロダクトと共有する場合は、Site URL をほかのプロダクトの担当と相談して決め直す。
+  モバイルアプリ（NatuEve_Mobile）がこの Auth を使うかは未確認（2026-10-27 時点の main に認証の実装がなく、使うかは決まっていない）。
+  使うことになったら、モバイルのリダイレクト先を Redirect URLs に加える。
+  Site URL を本番のオリジンにすると Redirect URLs がなくてもログインできるが、Redirect URLs への登録は外さない。
+  Site URL をほかのオリジンに変えたときに、ログインが壊れないようにするため。
 - モバイルアプリ（NatuEve_Mobile）は API を直接呼ぶため、このドメインを使わない。
   将来、共有リンクからアプリを開く（App Links / Universal Links）場合は、このドメインに検証用のファイル（`/.well-known/` 配下）を置く。
 
@@ -112,15 +120,20 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   実データで画像が表示されることは、検証環境（`assets-dev.natuportal.org`。キーの形式は本番と同じ）で、割り当ての前に確かめる。
 - API の独自ドメインに HTTPS で届く（`https://natueve-api.natuportal.org/health` が `{"status":"ok"}` を返す）。
   NatuEve_API の `docs/Deployment.md`「独自ドメイン経由の検証（#226）」が済んでいること。済んでいないと、公開した直後から API の呼び出しがすべて失敗する。
-- 上の表の本番のオリジンを API の `CORS_ALLOW_ORIGINS` に、OAuth のリダイレクト先を Supabase Auth の Redirect URLs に登録している
-  （Site URL は共有プロジェクトのため要相談で、この条件には含めない）。
-  登録していないと、公開した直後から API の呼び出しとログインが失敗する。
+- 上の表の本番のオリジンを API の `CORS_ALLOW_ORIGINS` と Supabase Auth の Site URL に、OAuth のリダイレクト先を Supabase Auth の Redirect URLs に登録している。
+  `CORS_ALLOW_ORIGINS` を登録していないと、公開した直後から API の呼び出しが失敗する。
+  Site URL と Redirect URLs は両方とも登録する。どちらか一方が合っていればログインは通るが、Redirect URLs を残す理由は上の「独自ドメイン」の注のとおり。
+  どちらも本番の値になっていないと、ログイン後にその時点の Site URL（本番のオリジンではない）へ戻され、ログインが失敗する。
 
-割り当てたら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Redirect URLs の登録の誤り、画像の許可リストのずれは分からないため、4 つとも確かめる。
+割り当てたら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Supabase Auth の登録の誤り、画像の許可リストのずれは分からないため、4 つとも確かめる。
 
 - トップページが HTTPS で表示される。
 - ブラウザから API を呼べる（イベント一覧が表示され、CORS のエラーが出ない）。
-- Google でログインし、`/auth/callback` を経てログイン済みになる（Supabase の Redirect URLs が通る。#332 の AC と同じ）。
+- Google でログインし、`/auth/callback` を経てログイン済みになる（#332 の AC と同じ）。
+  Site URL と Redirect URLs のどちらかが合っていれば通るため、この確認ではもう一方の誤りは分からない。
+  Site URL が `https://natueve-web.natuportal.org`（パスを含めないオリジン）、Redirect URLs が `https://natueve-web.natuportal.org/auth/callback` のみであることを、
+  Supabase のダッシュボードで別に確かめる。Redirect URLs に開発・プレビュー用の URL や `https://*.natuportal.org/**` のような広いワイルドカードがないことも確かめる（#332 の AC）。
+  検証用の URL は検証用 Auth プロジェクト側で管理し、本番には入れない。
 - 画像が表示される（イベント一覧・イベント詳細・レポート・ヘッダーのアバター）。`pathname` の値が API の画像の URL と合わないと、
   イベント・レポートの画像が `/_next/image` の 400 で表示されない（#351）。
 
@@ -153,7 +166,7 @@ GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`�
   [Variables](https://docs.github.com/en/actions/reference/workflows-and-actions/variables)）。
   今の `ci.yml` はビルドでリポジトリの Variables の `NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY` を参照している
   （2026-10-26 時点でリポジトリの Variables は 0 件で、空のままビルドしている）。
-  ここに本番の値を置くと、`staging` に定義し忘れたときに検証環境が本番の共有 Auth に繋がる（ADR-0003 決定 5 の前提が崩れる）。
+  ここに本番の値を置くと、`staging` に定義し忘れたときに検証環境が本番の Auth に繋がる（ADR-0003 決定 5 の前提が崩れる）。
   埋め込まれた値は実行時には気づけない。そのため次の 2 つで防ぐ（#330 で実装）。
   - リポジトリと Organization の Variables には、本番の `NEXT_PUBLIC_*` を置かない。
   - デプロイのジョブではビルドの前に、`NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_API_BASE_URL` がその環境の接続先
