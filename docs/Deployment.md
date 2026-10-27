@@ -68,13 +68,13 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 |---|---|---|
 | 本番のオリジン | `https://natueve-web.natuportal.org` | API の `CORS_ALLOW_ORIGINS`（NatuEve_API #218） |
 | OAuth のリダイレクト先 | `https://natueve-web.natuportal.org/auth/callback` | Supabase Auth の Redirect URLs（#332） |
-| Supabase Auth の Site URL | 変えるかは要相談 | Supabase Auth の Site URL（#332）。下の注を参照 |
+| Supabase Auth の Site URL | `https://natueve-web.natuportal.org` | Supabase Auth の Site URL（#332）。下の注を参照 |
 
 - リダイレクト先は `src/services/auth.ts` の `redirectTo`（`${window.location.origin}/auth/callback`）で決まる。
   Supabase にはオリジンだけでなく、パスを含むこの URL を登録する。
-- Supabase Auth の Site URL は、`redirectTo` を指定しない認証フローなどで使われる既定の URL。
-  Supabase の Auth は NatuPortal のほかのプロダクトと共有しているため、Site URL をこのオリジンに変えるかは、
-  ほかのプロダクトの担当と相談して決める（#332）。このアプリの OAuth は `redirectTo` を必ず指定している。
+- Supabase Auth の Site URL は、`redirectTo` を指定しない認証フローなどで使われる既定の URL。このアプリの OAuth は `redirectTo` を必ず指定している。
+  本番の Auth はこのアプリ専用の Supabase プロジェクトで、NatuPortal のほかのプロダクトと共有していない（2026-10-27 時点）ため、
+  Site URL は本番のオリジンにする（#332）。将来ほかのプロダクトと共有する場合は、Site URL をほかのプロダクトの担当と相談して決め直す。
 - モバイルアプリ（NatuEve_Mobile）は API を直接呼ぶため、このドメインを使わない。
   将来、共有リンクからアプリを開く（App Links / Universal Links）場合は、このドメインに検証用のファイル（`/.well-known/` 配下）を置く。
 
@@ -112,9 +112,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   （後述の「画像最適化」を参照）。それまでは本番を公開しない。
 - API の独自ドメインに HTTPS で届く（`https://natueve-api.natuportal.org/health` が `{"status":"ok"}` を返す）。
   NatuEve_API の `docs/Deployment.md`「独自ドメイン経由の検証（#226）」が済んでいること。済んでいないと、公開した直後から API の呼び出しがすべて失敗する。
-- 上の表の本番のオリジンを API の `CORS_ALLOW_ORIGINS` に、OAuth のリダイレクト先を Supabase Auth の Redirect URLs に登録している
-  （Site URL は共有プロジェクトのため要相談で、この条件には含めない）。
-  登録していないと、公開した直後から API の呼び出しとログインが失敗する。
+- 上の表の本番のオリジンを API の `CORS_ALLOW_ORIGINS` と Supabase Auth の Site URL に、OAuth のリダイレクト先を Supabase Auth の Redirect URLs に登録している。
+  `CORS_ALLOW_ORIGINS` と Redirect URLs を登録していないと、公開した直後から API の呼び出しとログインが失敗する。
 
 割り当てたら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Redirect URLs の登録の誤りは分からないため、3 つとも確かめる。
 
@@ -151,7 +150,7 @@ GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`�
   [Variables](https://docs.github.com/en/actions/reference/workflows-and-actions/variables)）。
   今の `ci.yml` はビルドでリポジトリの Variables の `NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY` を参照している
   （2026-10-26 時点でリポジトリの Variables は 0 件で、空のままビルドしている）。
-  ここに本番の値を置くと、`staging` に定義し忘れたときに検証環境が本番の共有 Auth に繋がる（ADR-0003 決定 5 の前提が崩れる）。
+  ここに本番の値を置くと、`staging` に定義し忘れたときに検証環境が本番の Auth に繋がる（ADR-0003 決定 5 の前提が崩れる）。
   埋め込まれた値は実行時には気づけない。そのため次の 2 つで防ぐ（#330 で実装）。
   - リポジトリと Organization の Variables には、本番の `NEXT_PUBLIC_*` を置かない。
   - デプロイのジョブではビルドの前に、`NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_API_BASE_URL` がその環境の接続先
