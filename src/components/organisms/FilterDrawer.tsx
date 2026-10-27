@@ -12,7 +12,7 @@ type FilterDrawerProps = {
   // FilterIconButton の aria-controls と関連付けるための ID
   id?: string;
   children: ReactNode;
-  // 粘着状態の計測用。ページ側で useIsStuck に渡す
+  // 粘着状態の計測用。ページ側で useStickySidebarState に渡す
   ref?: Ref<HTMLElement>;
 };
 

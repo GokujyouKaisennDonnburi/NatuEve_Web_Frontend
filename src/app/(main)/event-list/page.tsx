@@ -71,9 +71,9 @@ export default function EventListPage() {
   useStickyClip({ barRef: controlsRef, contentRef, bottomMargin: 8 });
 
   // 絞り込みサイドバーのスクロール状態。
-  // sticky 前は高さだけ維持して内部スクロールを隠し、スクロール位置を保持したまま
-  // ホイール操作をウィンドウへ伝播させる。sticky 不可(イベントが少なく右カラムが
-  // カード以下)の場合は高さ制限も内部スクロールも行わない
+  // sticky 可能な間は内部スクロールを有効にし、フィルタ領域上のホイール操作で
+  // ウィンドウより先にフィルタ領域がスクロールするようにする。sticky 不可
+  // (イベントが少なく右カラムがカード以下)の場合は高さ制限も内部スクロールも行わない
   const filterRef = useRef<HTMLElement>(null);
   const filterScrollState = useStickySidebarState(filterRef);
 
@@ -205,14 +205,14 @@ export default function EventListPage() {
           <FilterSidebar
             className={cn(
               // 高さ制限と内部スクロールは sticky 可能な間だけ付与する。
-              // sticky 位置にいない間は overflow: hidden にしてスクロールコンテナを維持し、
-              // scrollTop を保持したままウィンドウ側をスクロールさせる。
+              // sticky 前も内部スクロールを有効にすることで、ウィンドウ最上部でも
+              // フィルタ領域がウィンドウより先にスクロールする。
               // 内部スクロールが端に達した後はウィンドウへ引き継ぐため、
-              // overscroll-behavior はブラウザ既定(auto)のままにする
+              // overscroll-behavior はブラウザ既定(auto)のままにする。
+              // なお高さは粘着位置基準の固定値のため、sticky 前はカード下端が
+              // 画面外にはみ出すが、フィルタ領域内のスクロールを優先する
               filterScrollState !== "none" &&
-                "desktop:max-h-(--filter-sidebar-max-height) desktop:[scrollbar-width:none] desktop:[&::-webkit-scrollbar]:hidden",
-              filterScrollState === "hidden" && "desktop:overflow-hidden",
-              filterScrollState === "auto" && "desktop:overflow-y-auto",
+                "desktop:max-h-(--filter-sidebar-max-height) desktop:overflow-y-auto desktop:[scrollbar-width:none] desktop:[&::-webkit-scrollbar]:hidden",
             )}
             allTags={allTags}
             frequentTags={frequentTags}
