@@ -144,7 +144,7 @@ describe("next.config.ts の画像取得元", () => {
   });
 });
 
-describe("next.config.ts の画像取得元の pathname・search の制限", () => {
+describe("next.config.ts の画像取得元の pathname・search・port の制限", () => {
   // API が返すイベント画像・レポート画像の URL（NatuEve_API の buildFinalKey。JPEG・PNG のみ）。
   // 末尾が `?` だけの URL は、URL の仕様で search が空になるため通る（docs/Deployment.md に記載）。
   it.each([
