@@ -106,7 +106,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - Custom Domain での配信は、本番（`enabled`）と Previews（`previews_enabled`）で別々に制御される。
   `routes` でこれらを省略したときの API の既定は、本番が有効、Previews が無効
   （[wrangler 4.85.0 のリリースノート](https://github.com/cloudflare/workers-sdk/releases/tag/wrangler%404.85.0)）。
-  ダッシュボードで割り当てたときの既定は確かめていないため、割り当てた後、Custom Domain で Previews が配信されていないことを確かめる。
+  ダッシュボードで割り当てたときの既定は確かめていないため、割り当てた後、Custom Domain で Previews が配信されていないことを確かめる。2026-10-27 に割り当てたが、この確認はまだ済んでいない（#329 の 4 点確認には含まれていない）。
 
 ### 割り当てる時期
 
