@@ -346,6 +346,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 | `deploy-staging` | main への push（`quality` の後） | `staging` | 接続先の確認 → `opennextjs-cloudflare build --env staging` → main の最新かの確認 → `opennextjs-cloudflare deploy --env staging` |
 | `deploy-production` | `deploy-staging` の後、承認を経て | `production`（承認が要る） | 接続先の確認 → `opennextjs-cloudflare build`（本番の値。`USE_DEV_ASSETS` は立てない）→ main の最新かの確認 → `opennextjs-cloudflare deploy`（#362） |
 
+`quality` の表示名（`Lint / Format / Typecheck / Test / Build`）はシェルスクリプトの検査を含めていない。表示名は必須チェックの設定に紐づく可能性があるため、変更は必須チェックへの影響を確認してからにする（#362 のレビュー）。
+
 - 起動は `pull_request` と main への `push` だけ。`workflow_run`・`pull_request_target` は使わない（ADR-0003 決定 3。起動元とデプロイするコミットがずれるため）。
   デプロイは main への push で起動した実行の中で動かす（同）ため、手動でデプロイするための `workflow_dispatch` も設けない（出し直しは下のとおり再実行で行う）。
   デプロイを含む main への push には paths フィルタを付けず、`[skip ci]` も使わない。
@@ -380,12 +382,12 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   main の最新の確認は、承認の後、デプロイの直前に行う（承認待ちの間に main が進んでいたら出さない）。
 - 期待値は本番の値（`https://natueve-api.natuportal.org`・`https://tpszowxdhvthxyqorvwr.supabase.co`）。
 - `USE_DEV_ASSETS` は `"false"` と明示して立てない（`NEXT_PUBLIC_USE_MSW` は `"false"` に固定する。`.env.production` は .gitignore の外でコミットされうるため、未設定に頼らず明示する。#353・#362 のレビュー）。
-- 最上位の設定を使うため、ジョブの `env:` に `CLOUDFLARE_ENV: ""` を置く（ジョブの `env:` は全ステップに継承され、ビルドとデプロイの両方のステップで確実に効く。`CLOUDFLARE_ENV` を参照しない他のステップには、空文字の変数が設定されるだけで影響はない）。
+- 最上位の設定を使うため、ジョブの `env:` に `CLOUDFLARE_ENV: ""` を置く（ジョブの `env:` は全ステップに継承され、空文字が設定される場合には、ビルドとデプロイの両方のステップで効く。`CLOUDFLARE_ENV` を参照しない他のステップには、空文字の変数が設定されるだけで影響はない）。
   `wrangler.jsonc` に `env` があるため、環境を指定しないと wrangler が警告を出す。`--env=""` は OpenNext 1.20.13 が空文字を捨てて wrangler に渡さないため効かない
   （`getWranglerArgs` の `args.env ? [...] : []`）。wrangler は `CLOUDFLARE_ENV` が環境変数にあれば空文字でも指定ありとみなし（`variableName in process.env`）、
   OpenNext は自分の環境変数をそのまま wrangler に渡す。手元で、空の `CLOUDFLARE_ENV` で本番用の `opennextjs-cloudflare build` が通り、
   `wrangler deploy --dry-run` で警告が出ず、`WORKER_SELF_REFERENCE` が `natueve-web-frontend` を指すことを確かめた（wrangler 4.150.0）。
-  GitHub Actions が空文字の環境変数を設定するかは確かめていないため、最初の実行で警告が出ないことをログで確かめる。出ても最上位の設定が使われるため、デプロイ先は変わらない。
+  GitHub Actions が空文字の環境変数を設定するかは確かめていないため、最初の実行で警告が出ないことをログで確かめる。空文字が設定されない場合に出る警告でも、環境の指定は空のままなので最上位の設定が使われ、デプロイ先は変わらない。ただし、`.env.production`（.gitignore の外でコミットされうる）に `CLOUDFLARE_ENV` が書かれていた場合、OpenNext がその値を読んで別の環境を選ぶおそれがあるため、最初の実行で空文字が効いていなければ、ビルドとデプロイの `run` の先頭で `CLOUDFLARE_ENV=""` を明示する。
 - 本番へ出しても、Custom Domain を割り当てるまでは公開されない（`workers_dev`・`preview_urls` は無効）。割り当ては「割り当てる時期」の条件がそろってから行う（#328）。
 
 ### 初期設定（管理者が行う）
