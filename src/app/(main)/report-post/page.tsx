@@ -13,6 +13,7 @@ import { ReportPostForm } from "@/components/organisms/report-post/ReportPostFor
 import { ReportPostPreview } from "@/components/organisms/report-post/ReportPostPreview";
 import { REPORT_POST_PREVIEW_SCROLL_MAPPING } from "@/components/organisms/report-post/reportPostPreviewScroll";
 import { Card, CardContent } from "@/components/ui/card";
+import { BACK_LINK_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 import { useEditPreviewMode } from "@/hooks/useEditPreviewMode";
 import { useObjectUrls } from "@/hooks/useObjectUrls";
@@ -297,7 +298,11 @@ function ReportPostPageContent() {
               ? `/event/${encodeURIComponent(eventId)}`
               : ROUTES.EVENT_LIST
           }
-          backLabel="イベント詳細にもどる"
+          backLabel={
+            eventId
+              ? BACK_LINK_LABELS.EVENT_DETAIL
+              : BACK_LINK_LABELS.EVENT_LIST
+          }
         />
       </div>
 

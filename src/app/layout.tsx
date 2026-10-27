@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/layouts/AppLayout";
+import { APP_DESCRIPTION, APP_NAME } from "@/constants/config";
 import { MSWProvider } from "@/mocks/MSWProvider";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -15,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NatuEve Web Frontend",
-  description: "Next.js 15 + Tailwind CSS 4 + Biome + MSW + shadcn/ui starter",
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
 };
 
 export default function RootLayout({
@@ -25,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
+    <html lang="ja" data-scroll-behavior="smooth">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

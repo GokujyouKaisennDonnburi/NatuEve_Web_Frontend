@@ -16,6 +16,7 @@ import { EventPostForm } from "@/components/organisms/event-post/EventPostForm";
 import { EventPostPreview } from "@/components/organisms/event-post/EventPostPreview";
 import { EVENT_POST_PREVIEW_SCROLL_MAPPING } from "@/components/organisms/event-post/eventPostPreviewScroll";
 import { EVENT_POST_TOC_SECTIONS } from "@/components/organisms/event-post/eventPostTocSections";
+import { BACK_LINK_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 import { useEditPreviewMode } from "@/hooks/useEditPreviewMode";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
@@ -74,7 +75,7 @@ export default function EventPostPage() {
         <PageHeader
           title="イベントを投稿"
           backHref={ROUTES.EVENT_LIST}
-          backLabel="イベント一覧にもどる"
+          backLabel={BACK_LINK_LABELS.EVENT_LIST}
         />
       </div>
       <EditPreviewSwitch {...switchProps} />

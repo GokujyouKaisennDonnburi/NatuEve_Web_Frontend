@@ -53,7 +53,7 @@ jobs:
       - name: Format check (Biome)
         run: bun run format:check
 
-      - name: Typecheck (tsc --noEmit)
+      - name: Typecheck (next typegen + tsc --noEmit)
         run: bun run typecheck
 
       - name: Test (Vitest)
