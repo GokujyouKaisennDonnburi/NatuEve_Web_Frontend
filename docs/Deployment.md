@@ -388,7 +388,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   GitHub Actions が空文字の環境変数を設定するかは確かめていないため、最初の実行で警告が出ないことをログで確かめる。出ても最上位の設定が使われるため、デプロイ先は変わらない。
 - 本番へ出しても、Custom Domain を割り当てるまでは公開されない（`workers_dev`・`preview_urls` は無効）。割り当ては「割り当てる時期」の条件がそろってから行う（#328）。
 
-### 初期設定（#330 をマージする前に管理者が行う）
+### 初期設定（管理者が行う）
 
 存在しない Environment を参照する実行は、保護ルールなしの Environment を自動で作るため、ワークフローを main に入れる前に済ませる（ADR-0003 決定 3）。
 
@@ -413,7 +413,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 5. **設定を確かめる**: `gh api repos/{owner}/{repo}/environments/{name}` で `can_admins_bypass` が `false`、`protection_rules`（`production` は `required_reviewers` と `prevent_self_review: true`）、
    `deployment_branch_policy` を、`.../environments/{name}/deployment-branch-policies` で main のみであることを確かめる。
 6. **マージ後の最初の実行で確かめる**: `deploy-staging` が検証用の Worker にデプロイし、本番のジョブが承認待ちになること。
-   2026-10-27 に #330 の確認用のジョブ（`approve-production`）で確かめた（`a494109` の実行）。
+   #330 のマージ後の実行（2026-10-27）では、確認用のジョブ（`approve-production`）が承認待ちになることを確かめた（`a494109` の実行）。
+   #362 のマージ後の最初の実行で、本番のデプロイのジョブ（`deploy-production`）が承認待ちになることを確かめる。
    - #362 の後は、承認すると本番へデプロイされる。古い実行の承認待ちは、承認せずに却下（Reject）する（承認しても main の最新の確認で止まる。ADR-0003 決定 3）。
    - 確認用のジョブの間（#330〜#362）に承認したものがあれば、デプロイしていないコミットが `production` のデプロイの記録に成功として残っている。
      その間の記録で本番の中身を判断しない（本番の中身は Cloudflare の Worker のデプロイの履歴で確かめる）。
