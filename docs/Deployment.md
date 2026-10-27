@@ -14,7 +14,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
 | Cloudflare DNS | 独自ドメインの割り当て（`natueve-web.natuportal.org`。Workers の Custom Domain） | サブドメインは決定（#328）。割り当ては後述の条件がそろってから |
 | **Cloudflare Images（`IMAGES` バインディング）** | `next/image` の画像最適化 | 確定（#327） |
-| **GitHub Actions（Environments）** | ビルドとデプロイ（検証環境は自動、本番は承認後） | 方針は決定（ADR-0003）。実装は #330 |
+| **GitHub Actions（Environments）** | ビルドとデプロイ（検証環境は自動、本番は承認後） | 検証環境へのデプロイと本番の承認の確認用のジョブを実装（#330）。本番のデプロイのステップは後続。下の「CI/CD」 |
 
 - 使わないサービス: Cloudflare Workers Builds（Git 連携による Cloudflare 側のビルド）。デプロイは GitHub Actions から行う（ADR-0003）。
   ダッシュボードで Git 連携を接続しない。
@@ -53,7 +53,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 | `compatibility_date` | `2025-05-05` 以降（OpenNext の [troubleshooting](https://opennext.js.org/cloudflare/troubleshooting) 参照。古い日付では `FinalizationRegistry` が使えずエラーになる） |
 | `compatibility_flags` | `nodejs_compat` を含める |
 | `assets` | `directory`: `.open-next/assets`、`binding`: `ASSETS` |
-| `services` | `WORKER_SELF_REFERENCE`（自分自身の Worker 名を指定） |
+| `services` | `WORKER_SELF_REFERENCE`（自分自身の Worker 名を指定。`env.staging` では検証用の Worker 名） |
 | `images` | `binding`: `IMAGES`（Cloudflare Images で画像最適化を有効化。#327） |
 | プラン | Workers Paid |
 
@@ -99,7 +99,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - `natuportal.org` のゾーンは、デプロイ先と同じ Cloudflare アカウントにある（Active。2026-10-22 時点）。
   Custom Domain の DNS レコードと証明書は Cloudflare が作る。
 - workers.dev の URL と、バージョンごとの Version URL（旧称 Preview URL。`wrangler.jsonc` の `preview_urls`）は、
-  #330（PR #340）で `"workers_dev": false` と `"preview_urls": false` を明示して無効にする。Custom Domain を割り当ててもこの 2 つは無効のまま。
+  `wrangler.jsonc` の最上位と `env.staging` の両方で `"workers_dev": false` と `"preview_urls": false` を明示して無効にしている（#330）。Custom Domain を割り当ててもこの 2 つは無効のまま。
   `preview_urls` は、Version URL と、workers.dev 上の Previews（ブランチごとの環境）の URL の両方を制御する。
   - 参考（wrangler 4.150.0 の `getSubdomainValues`）: `workers_dev` を省略すると、`routes` が 1 件以上あれば `false`、0 件（空の配列を含む）なら `true`。
     `routes` は `[]` にするため、省略すると workers.dev で公開される。`preview_urls` を省略すると Worker の今の設定を変えない。どちらも省略に頼らず明示する。
@@ -112,10 +112,11 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 割り当てた時点で、このドメインに誰でもアクセスできるようになる。
 そのため、次がすべてそろってから管理者が割り当てる（#328 の残りの作業）。
-workers.dev の URL と Version URL での公開は、これとは別に `workers_dev` と `preview_urls` で止める（#330 で扱う）。
+workers.dev の URL と Version URL での公開は、これとは別に `workers_dev` と `preview_urls` で止めている（#330）。
 
 - #342（OpenNext のビルドが失敗する問題）が解決している（PR #345 で解決済み）。
-- #330（CI からのデプロイ）ができている。ローカルからはデプロイしない（後述の「ビルドとデプロイ」）。
+- CI から本番へデプロイできる。#330 で入れたのは検証環境へのデプロイと本番の承認の確認用のジョブまでで、本番のデプロイのステップは後続で足す（後述の「CI/CD」）。
+  ローカルからはデプロイしない（後述の「ビルドとデプロイ」）。
 - 本番の取得元の `pathname`・`search`・`port` の制限が入っている（#351 で対応済み。後述の「画像最適化」を参照）。
   実データで画像が表示されることは、検証環境（`assets-dev.natuportal.org`。キーの形式は本番と同じ）で、割り当ての前に確かめる。
 - API の独自ドメインに HTTPS で届く（`https://natueve-api.natuportal.org/health` が `{"status":"ok"}` を返す）。
@@ -133,7 +134,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   Site URL と Redirect URLs のどちらかが合っていれば通るため、この確認ではもう一方の誤りは分からない。
   Site URL が `https://natueve-web.natuportal.org`（パスを含めないオリジン）、Redirect URLs が `https://natueve-web.natuportal.org/auth/callback` のみであることを、
   Supabase のダッシュボードで別に確かめる。Redirect URLs に開発・プレビュー用の URL や `https://*.natuportal.org/**` のような広いワイルドカードがないことも確かめる（#332 の AC）。
-  検証用の URL は検証用 Auth プロジェクト側で管理し、本番には入れない。
+  検証用の URL は開発の Auth 用プロジェクト側で管理し、本番には入れない（下の「検証環境」）。
 - 画像が表示される（イベント一覧・イベント詳細・レポート・ヘッダーのアバター）。`pathname` の値が API の画像の URL と合わないと、
   イベント・レポートの画像が `/_next/image` の 400 で表示されない（#351）。
 
@@ -148,6 +149,27 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   CI のトークンにこの権限を付けることになる。
 - **外すときもダッシュボードで削除する。** `routes` に Custom Domain がなければ wrangler は Custom Domain を付け替える API を呼ばないため（読み取りの一覧は呼ぶことがある。上の「割り当て方法」）、デプロイでは外れない。
   外したら、`https://natueve-web.natuportal.org` が Worker に割り当たっていないことを確認する。
+
+### 検証環境
+
+検証環境の名前は、API 側（`natueve-api-stg.natuportal.org`・`natueve-api-relay-stg`）に揃えて `-stg` を付ける（#330）。
+
+| 項目 | 値 | 使う場所 |
+|---|---|---|
+| Worker の名前 | `natueve-web-frontend-stg` | `wrangler.jsonc` の `env.staging` の `name`。管理者がダッシュボードで作る |
+| 検証環境のオリジン | `https://natueve-web-stg.natuportal.org` | 検証用 API の `CORS_ALLOW_ORIGINS`（NatuEve_API の `deploy/cloud-run/staging.yaml`）、R2 のローカル開発用のバケットの CORS（NatuEve_API ADR-0039） |
+| OAuth のリダイレクト先 | `https://natueve-web-stg.natuportal.org/auth/callback` | ローカル開発の Auth 用プロジェクトの Redirect URLs（検証環境は開発と Auth を共有する。NatuEve_API ADR-0041） |
+
+- 検証環境の Auth は、ローカル開発と同じ Auth 用プロジェクトを使う。ADR-0003 決定 5 の「NatuEve_API ADR-0036 の検証用プロジェクト」は、
+  NatuEve_API ADR-0041（ADR-0036 の決定事項 5 を置き換えた）により、この開発の Auth 用プロジェクトになった。
+  そのプロジェクトの Site URL は変えず、Redirect URLs に上のリダイレクト先を加える。
+  本番の Auth には検証用の URL を入れない（上の「割り当てる時期」）。
+- Custom Domain は、本番と同じく管理者がダッシュボードで割り当てる（上の「割り当て方法」「注意」と同じ手順）。
+  次がそろってから割り当てる。
+  - CI から検証用の Worker へのデプロイが通っている（下の「CI/CD」）。
+  - 上のオリジンを検証用 API の `CORS_ALLOW_ORIGINS` と R2 のローカル開発用のバケットの CORS に、リダイレクト先を開発の Auth 用プロジェクトの Redirect URLs に登録している（API 側・Supabase の作業）。
+- 割り当てたら、本番と同じ 4 つ（トップページ・API の呼び出し・ログイン・画像の表示）を確かめる。
+  画像の表示の確認は、#351 の実データでの確認を兼ねる（`assets-dev.natuportal.org` のキーの形式は本番と同じ）。
 
 ## 環境変数
 
@@ -167,7 +189,7 @@ GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`�
   今の `ci.yml` はビルドでリポジトリの Variables の `NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY` を参照している
   （2026-10-26 時点でリポジトリの Variables は 0 件で、空のままビルドしている）。
   ここに本番の値を置くと、`staging` に定義し忘れたときに検証環境が本番の Auth に繋がる（ADR-0003 決定 5 の前提が崩れる）。
-  埋め込まれた値は実行時には気づけない。そのため次の 2 つで防ぐ（#330 で実装）。
+  埋め込まれた値は実行時には気づけない。そのため次の 2 つで防ぐ（#330。`ci.yml` の「Check connection variables」）。
   - リポジトリと Organization の Variables には、本番の `NEXT_PUBLIC_*` を置かない。
   - デプロイのジョブではビルドの前に、`NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_API_BASE_URL` がその環境の接続先
     （検証デプロイなら検証用、本番デプロイなら本番用）を指していることを確かめ、違えば失敗させる。
@@ -186,16 +208,16 @@ Environment に置く変数（接続先）:
 
 | 変数 | 本番の値 | 検証環境の値 | 備考 |
 |---|---|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | `https://natueve-api.natuportal.org` | 検証用 API のオリジン（NatuEve_API ADR-0036 の検証環境） | NatuEve_API の本番オリジン（API の中継用 Worker の Custom Domain。NatuEve_API ADR-0034）。検証環境の値は #330 で決める |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | 検証用プロジェクトの URL（NatuEve_API ADR-0036 と同じ検証用プロジェクト。#332 の検証版の登録が必要） | |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | 検証用プロジェクトの公開キー | ブラウザに渡る前提の値 |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://natueve-api.natuportal.org` | `https://natueve-api-stg.natuportal.org` | API の中継用 Worker の Custom Domain（NatuEve_API ADR-0034。検証環境は `natueve-api-relay-stg`） |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://tpszowxdhvthxyqorvwr.supabase.co`（本番の Auth `natueveOAuth`。上の「独自ドメイン」） | `https://mxtjfurilkrewjdwslxl.supabase.co`（ローカル開発の Auth 用プロジェクト。NatuEve_API ADR-0041） | 検証環境は、API の検証環境と同じく開発と Auth を共有する。Redirect URLs への登録は下の「検証環境」 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 本番の Auth の公開キー（anon キー） | 開発の Auth 用プロジェクトの公開キー | ブラウザに渡る前提の値 |
 
 Environment に置かず、ワークフローの `env:` に固定するフラグ:
 
 | 変数 | 本番の値 | 検証環境の値 | 備考 |
 |---|---|---|---|
-| `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。ワークフローの `env:` に `"false"` を固定する（#330 で実装） |
-| `USE_DEV_ASSETS` | 未設定（または `false`） | `true` | `true` のときだけ、`next.config.ts` の `remotePatterns` にローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）を、本番と同じ `pathname`・`search`・`port` の制限付きで加える（#353・#351）。未設定・`false` では許可しない。ジョブごとにワークフローの `env:` に固定する（検証ジョブは `true`、本番ジョブは立てない。#330 で実装）。本番のビルドで立てると、本番の画像最適化が開発用バケットの画像も変換するようになる |
+| `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。ワークフローの `env:` に `"false"` を固定する（#330） |
+| `USE_DEV_ASSETS` | 未設定（または `false`） | `true` | `true` のときだけ、`next.config.ts` の `remotePatterns` にローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）を、本番と同じ `pathname`・`search`・`port` の制限付きで加える（#353・#351）。未設定・`false` では許可しない。ジョブごとにワークフローの `env:` に固定する（検証ジョブは `true`、本番ジョブは立てない。#330）。本番のビルドで立てると、本番の画像最適化が開発用バケットの画像も変換するようになる |
 
 - 値を変えたら再ビルドが必要。`USE_DEV_ASSETS` は `next.config.ts` の `images.remotePatterns` へビルド時に反映され、実行時には変えられない。
 - ローカル開発は従来どおり `.env.local` を使う。Workers のランタイムで確認する場合は `.dev.vars`（`NEXTJS_ENV=development`）を使う。
@@ -233,8 +255,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - **どちらのトークンにもアカウント単位の Workers の権限を付けない**: 付けると、同じアカウントにある API の中継用 Worker（NatuEve_API ADR-0034）も書き換えられる。
 - 「Edit Cloudflare Workers」テンプレートは、アカウント単位の Workers Scripts Write に加えて R2・KV の書き込みも含むため
   （[API token templates](https://developers.cloudflare.com/fundamentals/api/reference/template/)）、検証用・本番用のどちらにも使わない。
-  今あるこのテンプレートのトークンは、新しいトークンに切り替えた後に失効させる（#330）。
-- **未確認（#330 で実機確認）**: wrangler 4.150.0 の `deploy` は、Editor だけのトークンで通るか公式に記載のない API を呼ぶ。
+  今あるこのテンプレートのトークンは、新しいトークンに切り替えた後に失効させる。
+- **未確認（#330 のマージ前に管理者が実機で確かめる。下の「CI/CD」の「初期設定」）**: wrangler 4.150.0 の `deploy` は、Editor だけのトークンで通るか公式に記載のない API を呼ぶ。
   - デプロイのたびに、workers.dev の設定の API（`GET`・`POST .../workers/scripts/{name}/subdomain`）を呼ぶ。
   - 最後にダッシュボードから変更された Worker（`last_deployed_from` が `dash`。ダッシュボードで作った直後など）へのデプロイでは、ダッシュボード側の設定を取りに 6 本の `GET` を並べて呼ぶ
     （アカウント単位の Custom Domain の一覧・ルート・バインディング・workers.dev の設定・サービスのメタデータ・Cron。`fetchWorkerConfig`）。
@@ -269,7 +291,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 | Bun | `1.2.21` | `oven-sh/setup-bun` の `bun-version`（`package.json` の `packageManager` と合わせる） |
 | Node.js | `24.22.1` | `actions/setup-node` の `node-version-file: .nvmrc` |
 
-- 今の `ci.yml` もこの 2 つで固定している。デプロイのジョブも同じ指定にする（#330）。
+- `ci.yml` の品質チェックのジョブもデプロイのジョブも、この 2 つで固定している（#330）。
 
 ## ビルドとデプロイ
 
@@ -279,7 +301,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - **デプロイのジョブの GitHub 側の権限を絞る**（ADR-0003 決定 3）: `permissions: contents: read` を明示し、`actions/checkout` は `persist-credentials: false` にする。
   使う Action はコミット SHA で固定する。ジョブ単位の `permissions` は品質チェックのジョブから引き継がれないため、明示しないとリポジトリの既定（2026-10-26 時点で read）になる。
 - **CI では `bun run deploy` を使わない。** `deploy` スクリプトはビルドとデプロイを続けて実行するため、トークンがビルド（`next build` や依存パッケージのコード）にも渡る。
-  ビルドは `opennextjs-cloudflare build`（トークンを渡さない）、デプロイは `opennextjs-cloudflare deploy`（検証は `--env staging`。トークンを渡す）と、ステップを分けて実行する
+  ビルドは `opennextjs-cloudflare build`（トークンを渡さない）、デプロイは `opennextjs-cloudflare deploy`（検証は `--env staging`。トークンを渡す。本番は後述の「CI/CD」の「本番のデプロイ」）と、ステップを分けて実行する
   （`opennextjs-cloudflare deploy` はビルドしない）。同じジョブのステップはファイルを共有するため、これはトークンの露出を減らすだけで、
   主な防御はトークンの権限の絞り込みである（「Cloudflare の API トークン」。ADR-0003 決定 3）。
 - **ローカルからは `bun run deploy` を実行しない。** Next.js は本番ビルドでも `.env.local` を読み込み
@@ -288,7 +310,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   やむを得ずローカルから実行する場合は、本番の値を環境変数として明示的に渡す（`process.env` は `.env.local` より優先される）。
   その際、**`.env.local` にあるビルド時に効く値（`NEXT_PUBLIC_*` と `USE_DEV_ASSETS`）はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
   特に `NEXT_PUBLIC_USE_MSW=false` と `USE_DEV_ASSETS=false` を渡し忘れると、モック認証や開発用画像の許可が本番で有効になるため注意）。
-  恒久対応として、#330 で CI からのデプロイに限定する。
+  検証環境・本番とも CI からデプロイする（後述の「CI/CD」。#330）。
 - **本番の取得元（`assets.natuportal.org`）には `pathname`・`search`・`port` の制限を入れている（[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。** 値は[画像最適化](#画像最適化)を参照。
   開発用の `assets-dev.natuportal.org` にも同じ制限を付けている（キー形式は本番と同じ）。この制限を外したり広げたりしたまま本番へデプロイしない。
   本番のビルド環境では、開発用の取得元を次のように外す。
@@ -311,72 +333,76 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 ## CI/CD（GitHub Actions）
 
-#330 で Workers Builds ではなく GitHub Actions を採用した（public リポジトリで無料利用可）。
+ビルドとデプロイは `.github/workflows/ci.yml` で行う（#330。方針は ADR-0003）。
 
-`main` への push で quality ジョブ（lint / format / typecheck / test）が通った後に、production 環境へ自動デプロイする。PR の実行ではデプロイしない。
-
-- スクリプトは `package.json` の `deploy`（`opennextjs-cloudflare build && opennextjs-cloudflare deploy`）をそのまま使う。OpenNext のビルドは内部で `next build` を呼び、`NEXT_PUBLIC_*` の値はビルド時にコードへ埋め込まれる。
-- wrangler は環境変数の `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を読むことを確認済み（wrangler 4.150.0）。
-- CI には `.env.local` がないため、docs/Deployment.md にある「ローカルの値が混ざる」問題は起きない。
-- top-level の `concurrency` は `cancel-in-progress` を PR イベントのみに限定している（`github.event_name == 'pull_request'`）。変更しないと、main への連続マージで実行中のデプロイがキャンセルされる。
-- deploy ジョブの実行条件は「リポジトリ Variables の `DEPLOY_ENABLED == 'true'` ＋ main への push または main 対象の `workflow_dispatch`」。
-  本番 Variables（`PROD_*`）の設定前にマージしても、ジョブが skip するため main の CI は赤くならない。
-  設定が完了したら `DEPLOY_ENABLED` を `true` にして有効化する。
-  また、Variables 設定後は Actions タブから `CI` ワークフローを main 対象で手動実行（Run workflow）すれば即デプロイできる。
-  `DEPLOY_ENABLED` をリポジトリ側に置くのは、Environment の Variables はジョブ開始時まで参照できず、ジョブの `if` では使えないため。
-- deploy ジョブの先頭で「Validate required variables」ステップが必須の Variables が空でないか検証する。
-  空文字の `NEXT_PUBLIC_*` でもビルドは通る（`apiClient` は `NEXT_PUBLIC_API_BASE_URL` 未設定時に相対パスへフォールバックする）ため、設定漏れは deploy 前にここで検知する。
-- Secret / Variable は必要なステップにのみ渡す。`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` は Deploy ステップに限定し、checkout・依存インストールなどのステップには渡さない。
-- 使用する 3 つの Action（checkout・setup-bun・setup-node）は完全コミット SHA で固定する（タグ差し替えによるサプライチェーン攻撃の防止。更新は Dependabot に任せる）。
-- quality ジョブの `Build (Next.js)` ステップは PR イベントのみで実行する。main への push では deploy ジョブが本番 env でビルドする（quality との二重ビルドを避ける）。
-
-### GitHub 側の設定（いずれかが未設定なら検証ステップでデプロイが失敗する）
-
-Settings → Environments → `production`（ブランチ制限: `main` のみ。これにより PR のワークフローからトークンが使えない）:
-
-| 種別 | 名前 | ワークフロー env への割り当て | 値 |
+| ジョブ | 起動 | Environment | 内容 |
 |---|---|---|---|
-| Secret | `CLOUDFLARE_API_TOKEN` | `CLOUDFLARE_API_TOKEN` | Cloudflare の API トークン（権限は「Edit Cloudflare Workers」、対象アカウントを絞る） |
-| Secret | `CLOUDFLARE_ACCOUNT_ID` | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare のアカウント ID |
-| Variable | `PROD_NEXT_PUBLIC_API_BASE_URL` | `NEXT_PUBLIC_API_BASE_URL` | 本番 API のオリジン（#329） |
-| Variable | `PROD_NEXT_PUBLIC_SUPABASE_URL` | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL（#329） |
-| Variable | `PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY` | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の anon キー（#329） |
+| `quality` | PR・main への push | — | Lint・Format・Typecheck・Test。ビルド（`next build`）は PR だけ |
+| `deploy-staging` | main への push（`quality` の後） | `staging` | 接続先の確認 → `opennextjs-cloudflare build --env staging` → main の最新かの確認 → `opennextjs-cloudflare deploy --env staging` |
+| `approve-production` | `deploy-staging` の後 | `production`（承認が要る） | 承認待ちになることを確かめる確認用のジョブ。ビルド・デプロイはせず、トークンも使わない（ADR-0003 決定 3） |
 
-- 本番用の Variables は `PROD_` 接頭辞を付ける。`${{ vars.NEXT_PUBLIC_* }}` は Environment 未設定時にリポジトリ Variables へフォールバックする
-  （リポジトリの Variables に `NEXT_PUBLIC_SUPABASE_*` があり、quality ジョブが CI 用に使用している）ため、
-  接頭辞のない同名にすると設定漏れがフォールバックで隠れる。`PROD_` 接頭辞の変数はリポジトリに存在しないため、
-  Environment 未設定なら空になり検証ステップで失敗する。
-- `NEXT_PUBLIC_USE_MSW` は変数にせず、ワークフローに `false` を直書きする（設定ミスで本番のモック認証が有効になるのを防ぐ）。
-- Cloudflare ダッシュボードで Git 連携（Workers Builds）を接続しない（二重デプロイ防止）。
+- 起動は `pull_request` と main への `push` だけ。`workflow_dispatch`・`workflow_run`・`pull_request_target` は使わない（ADR-0003 決定 3）。
+  デプロイを含む main への push には paths フィルタを付けず、`[skip ci]` も使わない。
+  出し直すときは、main の最新のコミットの実行を再実行する（古いコミットの実行は、下の「main の最新の確認」で止まる）。
+- **同時実行**: ワークフロー単位の `concurrency` は、PR だけ古い実行を取り消す。main への push の実行は `github.run_id` で実行ごとに別のグループにし、取り消さない。
+  デプロイのジョブはジョブ単位のグループ（`deploy-staging`・`deploy-production`）に入れ、`cancel-in-progress: false` と `queue: max` にする
+  （同じ環境へのデプロイは同時に 1 つだけ。待機中のジョブを取り消さない。最大 100 件まで待機できる）。
+- **接続先の確認**（「Check connection variables」）: ビルドの前に、`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL` が
+  ワークフローに書いた期待値（ジョブの `env:` の `EXPECTED_*`）と一致するか、`NEXT_PUBLIC_SUPABASE_ANON_KEY` が空でないかを確かめ、違えば失敗させる
+  （理由は上の「環境変数」）。期待値は上の「アプリ用」の表の値。
+- **main の最新の確認**（「Check this run is the latest main」）: デプロイの直前に、`github.sha` が main の最新のコミットと一致するかを `gh api` で確かめ、
+  一致しない・取得できないときはデプロイせずにジョブを失敗させる（ADR-0003 決定 3）。トークンは `GH_TOKEN: ${{ github.token }}`（`contents: read`）をこのステップにだけ渡す。
+  検証ジョブが失敗すると、本番のジョブは `needs` により実行されず、承認の依頼も出ない。
+- checkout は両方のジョブで実行の `github.sha` を指定する。デプロイしたコミットはジョブのサマリーに書き出す。
+- Cloudflare のトークンはデプロイのステップにだけ渡す。`CLOUDFLARE_ACCOUNT_ID` は Environment の Variables から渡す（上の「デプロイ用」）。
+- `opennextjs-cloudflare` は `./node_modules/.bin/opennextjs-cloudflare` で呼ぶ（bin は `#!/usr/bin/env node` で、Node.js で動く）。
+  `bunx` は使わない。`bunx` は `node_modules` に見つからないと npm から同じ名前のパッケージを取って動かす。
+  npm にはスコープなしの `opennextjs-cloudflare`（`@opennextjs` とは別の公開者）があり、トークンを渡すステップで第三者のコードが動きうるため。
 
-### デプロイの有効化（リポジトリ側）
+### 本番のデプロイ（後続の作業）
 
-Settings → Secrets and variables → Actions → Variables:
+#330 では、本番は承認の確認用のジョブまでを入れる。承認待ちになることを確かめてから（下の「初期設定」の 6.）、
+`approve-production` を本番のデプロイのジョブに置き換える。置き換えるときは次のようにする。
 
-| 種別 | 名前 | 値 | 補足 |
-|---|---|---|---|
-| Variable | `DEPLOY_ENABLED` | **未設定**（マージ時点）。production Environment の設定完了後に `true` へ変更 | deploy ジョブの実行可否ゲート。未設定・`true` 以外なら deploy ジョブは skip する |
+- ステップは `deploy-staging` と同じ並び（接続先の確認 → ビルド → main の最新の確認 → デプロイ → サマリー）にする。
+  main の最新の確認は、承認の後、デプロイの直前に行う（承認待ちの間に main が進んでいたら出さない）。
+- 期待値は本番の値（`https://natueve-api.natuportal.org`・`https://tpszowxdhvthxyqorvwr.supabase.co`）にする。
+- `USE_DEV_ASSETS` は立てない（`NEXT_PUBLIC_USE_MSW` は `"false"` に固定する）。
+- 最上位の設定を使うため、ビルドとデプロイのステップの `env:` に `CLOUDFLARE_ENV: ""` を置く。
+  `wrangler.jsonc` に `env` があるため、環境を指定しないと wrangler が警告を出す。`--env=""` は OpenNext 1.20.13 が空文字を捨てて wrangler に渡さないため効かない
+  （`getWranglerArgs` の `args.env ? [...] : []`）。wrangler は `CLOUDFLARE_ENV` が環境変数にあれば空文字でも指定ありとみなし（`variableName in process.env`）、
+  OpenNext は自分の環境変数をそのまま wrangler に渡す。手元の `wrangler deploy --dry-run` で、空の `CLOUDFLARE_ENV` で警告が消え、最上位の設定が使われることを確かめた（wrangler 4.150.0）。
+  GitHub Actions が空文字の環境変数を設定するかは確かめていないため、置き換えのときに警告が出ないことを実行のログで確かめる。出ても最上位の設定が使われるため、デプロイ先は変わらない。
 
-production Environment の設定（上の表）が完了したら、`DEPLOY_ENABLED` を `true` にしたうえで
-Actions タブから手動実行するか、main に push して最初のデプロイを行う。
+### 初期設定（#330 をマージする前に管理者が行う）
 
-### デプロイ時の注意
+存在しない Environment を参照する実行は、保護ルールなしの Environment を自動で作るため、ワークフローを main に入れる前に済ませる（ADR-0003 決定 3）。
 
-- 本番 URL（`#328` の独自ドメインが決まるまで `https://natueve-web-frontend.<サブドメイン>.workers.dev`。
-  サブドメインは Cloudflare アカウントの workers.dev サブドメイン）を API 側の `CORS_ALLOW_ORIGINS` に追加する必要がある（ワイルドカード非対応、NatuEve_API ADR-0033）。未追加だと API 呼び出しが失敗する。
-- Supabase Auth のリダイレクト許可にも本番 URL を追加する。
-  ダッシュボード（Authentication → URL Configuration → Redirect URLs）に `https://<本番オリジン>/auth/callback` を
-  登録する（コードは `redirectTo: ${window.location.origin}/auth/callback` を使う。src/services/auth.ts 参照）。
-  オリジン単位 `https://<本番オリジン>/**` でも動作するが、パスまで書いた値が設定ミスを防ぎやすい。
-- #334（画像最適化で許可する画像の取得元を本番用に絞る）が閉じるまでは本番公開しない
-  （上の「ビルドとデプロイ」のとおり #334 閉止後も `pathname` 制限が完了するまで deploy 自体を行わない）。
-  そのため `wrangler.jsonc` に `"workers_dev": false` と `"preview_urls": false` を設定済みで、マージしてデプロイしても
-  workers.dev（Direct URL・`natueve-web-frontend.<サブドメイン>.workers.dev`）からも Preview URL
-  （`<version>-natueve-web-frontend.<サブドメイン>.workers.dev`）からも到達不可能
-  （CORS / Supabase Auth の設定前に Worker だけが公開されることを防ぐ）。
-  `preview_urls` を設定するのは、wrangler は `preview_urls` を省略した場合に Worker 側の既存設定を変更しない一方、
-  `workers_dev` だけの指定では Preview URL が残るため（wrangler 4.150.0 の挙動で確認）。
-  公開段階で両行を削除する（workers.dev で公開する場合）。独自ドメイン（#328）を割り当てる場合は false のままルートを追加してもよい。
+1. **Cloudflare の Worker を作る**: 検証用の `natueve-web-frontend-stg`（と、まだなければ本番の `natueve-web-frontend`）をダッシュボードで作る。
+   CI のトークン（Worker 単位の Editor）では Worker を作れない（上の「Cloudflare の API トークン」）。
+2. **トークンの権限を実機で確かめてから、検証用・本番用のトークンを作る**（上の「Cloudflare の API トークン」の「未確認」）。
+3. **GitHub の Environment を作る**: `staging`・`production` を作り、どちらもデプロイできるブランチを main のみにし、
+   管理者による保護ルールのバイパスを無効にする。`production` には Required reviewers と Prevent self-review を設定する。
+   Prevent self-review により main にマージした本人は承認できないため、承認者は少なくとも 2 人登録する（ADR-0003「トレードオフ」）。
+4. **Variables・Secrets を置く**:
+
+   | 名前 | 種別 | `staging` | `production` |
+   |---|---|---|---|
+   | `NEXT_PUBLIC_API_BASE_URL` | Variable | `https://natueve-api-stg.natuportal.org` | `https://natueve-api.natuportal.org` |
+   | `NEXT_PUBLIC_SUPABASE_URL` | Variable | `https://mxtjfurilkrewjdwslxl.supabase.co` | `https://tpszowxdhvthxyqorvwr.supabase.co` |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Variable | 開発の Auth 用プロジェクトの公開キー | 本番の Auth の公開キー |
+   | `CLOUDFLARE_ACCOUNT_ID` | Variable | Cloudflare のアカウント ID | 同左 |
+   | `CLOUDFLARE_API_TOKEN` | Secret | 検証用のトークン | 本番用のトークン |
+
+   リポジトリと Organization の Variables・Secrets には置かない（上の「環境変数」）。
+   `production` の値は、後続の本番のデプロイで使う（#329）。
+5. **設定を確かめる**: `gh api repos/{owner}/{repo}/environments/{name}` で `can_admins_bypass` が `false`、`protection_rules`（`production` は `required_reviewers` と `prevent_self_review: true`）、
+   `deployment_branch_policy` を、`.../environments/{name}/deployment-branch-policies` で main のみであることを確かめる。
+6. **マージ後の最初の実行で確かめる**: `deploy-staging` が検証用の Worker にデプロイし、`approve-production` が承認待ちになること。
+   承認しても本番には何も出ない。古い実行の承認待ちは却下（Reject）する（ADR-0003 決定 3）。
+   - 確認用のジョブを承認して成功させると、デプロイしていないコミットが `production` のデプロイの記録に成功として残る。
+     ADR-0003 決定 3 が避けている状態のため、確認用のジョブの間は `production` のデプロイの記録で本番の中身を判断しない（本番の中身は Cloudflare の Worker のデプロイの履歴で確かめる）。
+   - 承認待ちになることを一度確かめたら、早めに本番のデプロイのジョブに置き換える（上の「本番のデプロイ」）。それまでのマージで出る承認の依頼は、承認せずに却下する。
 
 ## 導入時に必要な変更
 
@@ -528,20 +554,21 @@ Actions タブから手動実行するか、main に push して最初のデプ�
      #346 で Next.js 16（16.4.2）に移行した。
    - `experimental.optimizeCss`（critters）は OpenNext のビルドを通るが、critters は Pages Router のみ適用のため
      App Router では実質無効（CSS は通常どおり配信され、実害なし）。
-4. **検証環境の API の接続先**: 方針は解決済み（ADR-0003）。main へのマージで検証環境へ自動デプロイし、本番へは承認後に同じコミットから本番用にビルドしたものを出す。
-   検証環境は本番と同じ構成で固定オリジンを持ち、検証用 API・検証用 Auth に繋ぐ。実装は #330 で行う。
-5. **CI/CD**: 方針は解決済み（ADR-0003）。GitHub Actions で、main へのマージで検証環境へ自動デプロイし、本番へは `production` 環境の承認後にデプロイする。
-   Workers Builds の Git 連携は使わない。実装は #330 で行う。
-   #330 の受け入れ基準は ADR-0003 に合わせて更新済みである（GitHub Actions の採用、「検証環境（`staging`）の変数の値を決める」への書き換え。#329 も同様。上の「環境変数」）。
-   残る未決は、ブランチごとのプレビュー環境（下記 7.）と、検証環境の変数の値（上の「環境変数」）・検証用 Worker の名前・検証用サブドメイン名・検証用の Custom Domain の割り当て時期（ADR-0003 決定 4）である。
+4. **検証環境の接続先**: 解決済み（#330）。API は `https://natueve-api-stg.natuportal.org`、Auth はローカル開発の Auth 用プロジェクト（NatuEve_API ADR-0041）。
+   値は上の「環境変数」、名前とドメインは上の「検証環境」を参照。
+5. **CI/CD**: 一部解決済み（#330）。main へのマージで検証環境へ自動でデプロイし、本番は承認の確認用のジョブまでを入れた（上の「CI/CD」）。
+   残っている作業は次のとおり。
+   - マージ前の初期設定（上の「CI/CD」の「初期設定」。トークンの権限の実機確認を含む）。
+   - 承認待ちを確かめた後、本番のデプロイのステップを足す（上の「CI/CD」の「本番のデプロイ」）。
+   - 検証環境の Custom Domain の割り当て（上の「検証環境」）。
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
-   - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応（**マージ後に有効**）。
-   - 本番のオリジン `https://natueve-web.natuportal.org`（#328 で決定。上の「独自ドメイン」を参照）を、API 側の環境変数 `CORS_ALLOW_ORIGINS` に設定する（API はワイルドカード非対応、NatuEve_API ADR-0033）。
-   - 検証環境のオリジン（ADR-0003。サブドメイン名は #328 と合わせて決める）も、検証用 API の `CORS_ALLOW_ORIGINS` に設定する（API 側の作業）。
-   - 検証環境のオリジンを、R2 のローカル開発用のバケットの CORS にも加える（NatuEve_API ADR-0039。API 側の作業）。
-   - GitHub Actions でブランチごとのプレビュー環境を設ける場合は、URL が変わるたびに API の `CORS_ALLOW_ORIGINS` と
-     Supabase Auth のリダイレクト許可への登録が必要になる（API はワイルドカード非対応）。扱いは #330 で決める。
-7. **ブランチごとのプレビュー環境の API の接続先**: 未決（#330 で決める）。設ける場合の CORS とリダイレクト許可の扱いは上記 6. を参照。
+   - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応済み（検証環境の `CORS_ALLOW_ORIGINS` を未設定にしたときの既定に含まれる）。
+   - 本番のオリジン `https://natueve-web.natuportal.org` は、API の本番の `CORS_ALLOW_ORIGINS` に設定済み（NatuEve_API の `deploy/cloud-run/production.yaml`）。
+   - 検証環境のオリジン `https://natueve-web-stg.natuportal.org` を、検証用 API の `CORS_ALLOW_ORIGINS`（NatuEve_API の `deploy/cloud-run/staging.yaml`）と、
+     R2 のローカル開発用のバケットの CORS（NatuEve_API ADR-0039）に加える（API 側の作業。API はワイルドカード非対応、NatuEve_API ADR-0033）。
+7. **ブランチごとのプレビュー環境**: 設けない（#330 で決定）。検証環境（main へのマージ後）だけにする。
+   設けると、URL が変わるたびに API の `CORS_ALLOW_ORIGINS`（ワイルドカード非対応）と Supabase Auth の Redirect URLs への登録が要る。
+   必要になったら、この点を含めて改めて検討する。
 
 ## 参考（料金・仕様の出典）
 

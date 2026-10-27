@@ -1,18 +1,19 @@
 name: CI
 
+# PR では品質チェックだけを行う。main への push では品質チェックの後に検証環境へデプロイし、
+# 本番は承認を経て進める（ADR-0003。手順・設定は docs/Deployment.md「ビルドとデプロイ」）。
+# デプロイを含む main への push には paths フィルタを付けず、[skip ci] も使わない（main の最新の確認を通る実行がなくなるため。ADR-0003 決定 3）。
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
-  # production Environment の設定後に手動でデプロイを走らせるためのトリガー
-  # （vars.DEPLOY_ENABLED を true にしてから、main を対象に実行する）。
-  workflow_dispatch:
 
+# PR は同じブランチの古い実行を取り消す。main への push の実行は run_id で実行ごとに別のグループにし、
+# ワークフロー単位では取り消さない（デプロイ中の実行を中断しないため）。デプロイの順序は、
+# ジョブ単位の concurrency とデプロイ直前の main の最新の確認で守る（ADR-0003 決定 3）。
 concurrency:
-  group: ci-${{ github.ref }}
-  # PR は古い実行をキャンセルするが、main への push（デプロイ job を含む）はキャンセルしない。
-  # 変更がないと連続マージ時に実行中のデプロイが中断されるため（#330）。
+  group: ci-${{ github.event_name == 'push' && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -26,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout
-        # SHA 固定（サプライチェーン攻撃対策）。更新は Dependabot に任せる。
+        # SHA 固定（サプライチェーン攻撃対策）。
         # checkout v4.4.0
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -59,8 +60,7 @@ jobs:
       - name: Test (Vitest)
         run: bun run test
 
-      # main への push では deploy ジョブの opennextjs-cloudflare build（内部で next build）が
-      # 本番 env でビルドするため、quality 側のビルドは PR イベントのみでよい。
+      # main への push では、デプロイのジョブが環境ごとの値でビルドするため、ここでのビルドは PR だけで行う。
       - name: Build (Next.js)
         if: github.event_name == 'pull_request'
         run: bun run build
@@ -69,44 +69,45 @@ jobs:
           # NEXT_PUBLIC_* は静的プリレンダリング時に getSupabase() が呼ばれた場合に必要。
           # 遅延初期化（getSupabase()）によりモジュールロード時は不要だが、
           # 将来サーバ側から呼ばれる可能性に備えリポジトリの Variables から注入する。
+          # リポジトリの Variables はデプロイには使わず、本番の値も置かない（docs/Deployment.md「環境変数」）。
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-  deploy:
-    name: Deploy (production)
+  deploy-staging:
+    name: Deploy (staging)
     needs: quality
-    # main の push でのみ自動デプロイする。workflow_dispatch でも main を対象になら実行可。
-    # ただし前提の Environment 変数（PROD_*）が設定されるまでスケジューラが走るたび失敗するのを
-    # 避けるため、リポジトリ Variables の DEPLOY_ENABLED == 'true' をデプロイ全体のゲートにする
-    # （Environment の Variables はジョブ開始後にしか取れず、ジョブの if では使えないため、
-    # ゲートはリポジトリ側に置く）。初期値は未設定で skip。設定後、true に変更して有効化する。
-    if: >-
-      vars.DEPLOY_ENABLED == 'true' &&
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
-    environment: production
+    # Variables・Secrets は staging Environment に置く。staging は main だけがデプロイでき、管理者のバイパスを無効にしておく（ADR-0003 決定 2）。
+    environment: staging
 
+    # Cloudflare のトークンを扱うジョブに GitHub への書き込み権限を渡さない（ADR-0003 決定 3）。
     permissions:
       contents: read
 
+    # 検証環境へのデプロイは同時に 1 つだけにし、途中で中断しない。待機中のジョブを取り消さないよう queue: max にする（ADR-0003 決定 3）。
     concurrency:
-      group: deploy-production
+      group: deploy-staging
       cancel-in-progress: false
+      queue: max
 
-    # Secret / Variable は必要なステップにのみ渡す（checkout や依存インストールなどのステップに
-    # トークンを露出させず、第三者コードの侵害時に窃取できる範囲を狭める）。
-    # `${{ vars.NEXT_PUBLIC_* }}` は Environment 未設定時にリポジトリ Variables へフォールバックする
-    # （quality ジョブが CI 用に同名を設定している）ため、本番用には PROD_ 接頭辞の名前にする。
-    # PROD_ 接頭辞の変数はリポジトリに存在しないため、Environment 未設定なら空になり検証ステップで失敗する。
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      # 接続先の期待値（ブラウザに渡る公開の値）。staging Environment に定義し忘れると同じ名前のリポジトリの Variables が使われるため、
+      # 期待値は変数から取らずにここへ書き、ビルドの前に比べる（docs/Deployment.md「環境変数」）。
+      EXPECTED_API_BASE_URL: https://natueve-api-stg.natuportal.org
+      # ローカル開発の Auth 用プロジェクト（検証環境は開発と Auth を共有する。NatuEve_API ADR-0041）。
+      EXPECTED_SUPABASE_URL: https://mxtjfurilkrewjdwslxl.supabase.co
 
     steps:
       - name: Checkout
         # checkout v4.4.0
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          # push された main の先頭のコミット。同じ実行の中と再実行で変わらない（ADR-0003 決定 3）。
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Setup Bun
@@ -124,34 +125,86 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # 空文字の NEXT_PUBLIC_* でもビルドは通る（apiClient は相対パスへフォールバックする）ため、
-      # production Environment の設定漏れを deploy 前にここで検知する。
-      - name: Validate required variables
+      - name: Check connection variables
         env:
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.PROD_NEXT_PUBLIC_API_BASE_URL }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
-          missing=0
-          for v in NEXT_PUBLIC_API_BASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
-            if [ -z "${!v}" ]; then
-              echo "::error::$v が未設定です。production Environment の Variables を確認してください。"
-              missing=1
-            fi
-          done
-          exit $missing
+          failed=0
+          if [ "$NEXT_PUBLIC_API_BASE_URL" != "$EXPECTED_API_BASE_URL" ]; then
+            echo "::error::NEXT_PUBLIC_API_BASE_URL が検証用の API（${EXPECTED_API_BASE_URL}）ではありません（実際: ${NEXT_PUBLIC_API_BASE_URL:-未設定}）。staging Environment の Variables を確認してください。"
+            failed=1
+          fi
+          if [ "$NEXT_PUBLIC_SUPABASE_URL" != "$EXPECTED_SUPABASE_URL" ]; then
+            echo "::error::NEXT_PUBLIC_SUPABASE_URL が検証用の Auth（${EXPECTED_SUPABASE_URL}）ではありません（実際: ${NEXT_PUBLIC_SUPABASE_URL:-未設定}）。staging Environment の Variables を確認してください。"
+            failed=1
+          fi
+          if [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "::error::NEXT_PUBLIC_SUPABASE_ANON_KEY が未設定です。staging Environment の Variables を確認してください。"
+            failed=1
+          fi
+          exit "$failed"
 
-      # CI には .env.local がないため、docs/Deployment.md の「ローカルの値が混ざる」問題は起きない。
-      # NEXT_PUBLIC_USE_MSW は変数化せず false を直書きする（設定ミスで本番のモック認証が有効になるのを防ぐ）。
-      # NEXT_PUBLIC_* の値はビルド時にコードへ埋め込まれる。
-      # Cloudflare の Secrets はこのステップにのみ渡す（wrangler が環境変数から読む。wrangler 4.150.0 で確認済み）。
-      - name: Deploy (Cloudflare Workers)
-        run: bun run deploy
+      # トークンを渡さずにビルドする（ビルドは依存パッケージのコードも動かすため。ADR-0003 決定 3）。
+      # NEXT_PUBLIC_* と USE_DEV_ASSETS はビルド時に埋め込まれる・反映される。
+      - name: Build (OpenNext)
+        # bunx は手元にないパッケージを npm から取って動かすため、node_modules の bin を直接呼ぶ。
+        run: ./node_modules/.bin/opennextjs-cloudflare build --env staging
         env:
-          NEXT_TELEMETRY_DISABLED: "1"
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.PROD_NEXT_PUBLIC_API_BASE_URL }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.PROD_NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # ビルド時のフラグは Environment に置かず、ここに固定する（docs/Deployment.md「環境変数」）。
           NEXT_PUBLIC_USE_MSW: "false"
+          # 検証環境は開発用の R2（assets-dev.natuportal.org）の画像を表示する（#353）。
+          USE_DEV_ASSETS: "true"
+
+      # 実行の待機中に main が進んでいたら、古いコミットで上書きしないよう止める（ADR-0003 決定 3）。
+      - name: Check this run is the latest main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)" || {
+            echo "::error::main の最新のコミットを取得できませんでした。デプロイしません。"
+            exit 1
+          }
+          if [ "$latest" != "$GITHUB_SHA" ]; then
+            echo "::error::この実行のコミット（${GITHUB_SHA}）は main の最新（${latest}）ではありません。デプロイしません。最新のコミットは、それを含む後の実行で出してください。"
+            exit 1
+          fi
+
+      # トークンはこのステップにだけ渡す。opennextjs-cloudflare deploy はビルドしない。
+      - name: Deploy (Cloudflare Workers)
+        run: ./node_modules/.bin/opennextjs-cloudflare deploy --env staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Summary
+        run: |
+          echo "検証環境にデプロイしたコミット: \`${GITHUB_SHA}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # 本番の承認待ちを確かめるための確認用のジョブ。ビルド・デプロイをせず、トークンも使わない（ADR-0003 決定 3）。
+  # production Environment に Required reviewers と Prevent self-review を設定し、承認待ちになることを確かめてから、
+  # 本番のビルド・デプロイのステップを足す（承認待ちにならなかったときに本番へ出てしまわないよう、確認はデプロイしないジョブで行う）。
+  approve-production:
+    name: Approve (production)
+    needs: deploy-staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    environment: production
+
+    permissions: {}
+
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+      queue: max
+
+    steps:
+      - name: Summary
+        run: |
+          echo "本番の承認を確認したコミット: \`${GITHUB_SHA}\`（確認用のジョブのため、本番へはデプロイしていない）" >> "$GITHUB_STEP_SUMMARY"
