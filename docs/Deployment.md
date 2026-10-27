@@ -143,7 +143,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 
 ## 環境変数
 
-環境変数はアプリ用とビルド環境用の 2 種類に分かれる。本番ではどちらもビルド環境の変数として設定する
+環境変数はアプリ用・ビルド設定用・ビルド環境用の 3 種類に分かれる。本番で設定する変数は、ビルド環境の変数として設定する
 （Workers Builds なら「Build variables and secrets」、GitHub Actions なら同等の環境変数。どちらを使うかは未決事項 5）。
 
 ### アプリ用（`NEXT_PUBLIC_*`）
@@ -156,6 +156,23 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクトの URL | |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase の公開キー（anon キー） | ブラウザに渡る前提の値 |
 | `NEXT_PUBLIC_USE_MSW` | `false` | 本番ではモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327） |
+
+### ビルド設定用（`next.config.ts`）
+
+ビルド時に `next.config.ts` が参照する。アプリには埋め込まれない（クライアントの JS にも渡らない）。
+
+| 変数 | 本番の値 | 備考 |
+|---|---|---|
+| `USE_DEV_ASSETS` | 未設定（または `false`） | ローカル開発・検証環境用。`true` のときだけ画像最適化で開発用 R2 の公開ドメイン `assets-dev.natuportal.org` を許可する（#353）。未設定・`false` では許可しない |
+
+`USE_DEV_ASSETS` はビルド時に `next.config.ts` の `images.remotePatterns` へ反映される（実行時には変えられない）。
+
+- ローカル開発・`bun run preview`: `.env.local` に `USE_DEV_ASSETS=true` を設定する（`.env.example` の既定）。
+- 検証環境: 検証用のビルドで `USE_DEV_ASSETS=true` を設定する。検証環境での表示確認は、環境ができてから行う（NatuEve_API#219）。
+- 本番: 未設定（または `false`）。本番の許可リストは `assets.natuportal.org` と `lh3.googleusercontent.com` のまま。
+- `.dev.vars` は Worker の実行時変数なので、このフラグには効かない。値を変えたら再ビルドする。
+- 本番と同じビルド（`USE_DEV_ASSETS` を設定しない）を検証環境にも出す場合、検証環境でも `assets-dev.natuportal.org` は許可されない。
+- 検証環境で `assets-dev.natuportal.org` を表示するには `USE_DEV_ASSETS=true` でビルドする必要がある。そのビルドを本番にも出すと本番の許可リストに `assets-dev.natuportal.org` が入るため、環境ごとにビルドする。
 
 ### ビルド環境用
 
@@ -175,21 +192,25 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 - Workers のランタイムでの確認とデプロイには、OpenNext の `preview`・`deploy` スクリプトを `package.json` に追加して使う。
   OpenNext のビルドは内部で `build` スクリプト（`next build`）を呼ぶ。
 - **ローカルからは `bun run deploy` を実行しない。** Next.js は本番ビルドでも `.env.local` を読み込み
-  （読まないのは test のときだけ）、`NEXT_PUBLIC_*` の値はビルド時にコードへ埋め込まれるため、
-  ローカルの値（例: `NEXT_PUBLIC_USE_MSW=true`、ローカル API のオリジン）が本番ビルドに混入する。
+  （読まないのは test のときだけ）、`NEXT_PUBLIC_*` と `USE_DEV_ASSETS` はビルド時に反映されるため、
+  ローカルの値（例: `NEXT_PUBLIC_USE_MSW=true`、`USE_DEV_ASSETS=true`、ローカル API のオリジン）が本番ビルドに混入する。
   やむを得ずローカルから実行する場合は、本番の値を環境変数として明示的に渡す（`process.env` は `.env.local` より優先される）。
-  その際、**`.env.local` にある `NEXT_PUBLIC_*` はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
-  特に `NEXT_PUBLIC_USE_MSW=false` を渡し忘れるとモック認証が本番で有効になるため注意）。
+  その際、**`.env.local` にあるビルド時に効く値（`NEXT_PUBLIC_*` と `USE_DEV_ASSETS`）はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
+  特に `NEXT_PUBLIC_USE_MSW=false` と `USE_DEV_ASSETS=false` を渡し忘れると、モック認証や開発用画像の許可が本番で有効になるため注意）。
   恒久対応として、#330 で CI からのデプロイに限定する。
-- **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。** デプロイのブロッカーとして扱う。
-  開発用の取得元は本番ビルド（`NEXT_PUBLIC_USE_MSW` が `true` 以外。未設定・`false` を含む）の許可リストから外している（placehold.co・example.com は削除、picsum.photos・i.pravatar.cc は MSW ビルドでのみ許可）。この除外は `src/__tests__/nextConfigImageHosts.test.ts` で検証している。
+- **本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の `pathname` 制限が完了するまで `deploy` を実行しない（[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。** デプロイのブロッカーとして扱う。`pathname` を入れるときは、開発用の `assets-dev.natuportal.org` にも同じ値を付ける（キー形式は本番と同じ）。
+  本番のビルド環境では、開発用の取得元を次のように外す。
+  - `USE_DEV_ASSETS` が `true` 以外（未設定・`false` を含む）なら、`assets-dev.natuportal.org` を許可しない。
+  - `NEXT_PUBLIC_USE_MSW` が `true` 以外（未設定・`false` を含む）なら、picsum.photos・i.pravatar.cc を許可しない。
+  - placehold.co・example.com は削除済み。
+  この除外は `src/__tests__/nextConfigImageHosts.test.ts` で検証している。
   #334 の AC は「開発用の取得元を本番で外す」のみで `pathname` 制限を含まないため、**#334 が close しただけで完了と判断しない**（pathname 制限は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応する）。
-  **`NEXT_PUBLIC_USE_MSW=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
+  **`NEXT_PUBLIC_USE_MSW=true` または `USE_DEV_ASSETS=true` でビルドしたプレビュー環境も、`pathname` 制限が完了するまで公開しない。**
   変換枠（ユニーク変換/月）の使用量はアカウント単位で分析・集計される（枠の共有範囲についての公式の明記は確認できていない）ため、
   プレビュー経由でも本番の枠を消費しうる前提で扱う。
 - **`natuportal.org` ゾーンの Images > Transformations が無効であることをデプロイ前に再確認する（#334）。**
   有効な場合、`/cdn-cgi/image/...` は `/_next/image` を通らず `remotePatterns` が効かず、同ゾーンの
-  `assets.natuportal.org` の画像を誰でも変換できる。
+  `assets.natuportal.org`・`assets-dev.natuportal.org` の画像を誰でも変換できる。
 - **`/_next/image*` のキャッシュ方針をデプロイ前に決めて実測する。** zone の Cache Rule は Worker の応答には効かないため、
   Workers Cache を有効化するか（課金の試算が必要）、キャッシュ不要と確認する。本番相当環境で `curl -I` により
   `Cache-Control`・`cf-cache-status` を実測する。詳細は[画像最適化](#画像最適化)を参照。
@@ -251,15 +272,23 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
     ブラウザキャッシュ（静的 import。ロゴは対応済み）で影響を抑える。
 - どちらの場合も、**デプロイ前に** `curl -I 'https://<本番URL>/_next/image?url=...&w=...&q=75'` を2回実行し、
   `Cache-Control`・`cf-cache-status` を実測して最終確認する（静的 import の画像は immutable が付く）。
-- 許可する画像の取得元: placehold.co・example.com は削除し、picsum.photos・i.pravatar.cc は
-  `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`next.config.ts`）。
-  本番ビルド（`NEXT_PUBLIC_USE_MSW` が `true` 以外。未設定・`false` を含む）にはモック用の取得元が入らない（`src/__tests__/nextConfigImageHosts.test.ts` で設定値を検証）。
+- 許可する画像の取得元:
+  - `assets-dev.natuportal.org` は `USE_DEV_ASSETS=true` のビルドでのみ許可する。
+  - picsum.photos・i.pravatar.cc は `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する。
+  - placehold.co・example.com は削除済み。
+  本番ビルド（`USE_DEV_ASSETS`・`NEXT_PUBLIC_USE_MSW` がどちらも `true` 以外。未設定・`false` を含む）には
+  開発用・モック用の取得元が入らない（`src/__tests__/nextConfigImageHosts.test.ts` で設定値を検証）。
   残る本番の取得元（`assets.natuportal.org`・`lh3.googleusercontent.com`）の
   絞り込み（`pathname` 制限）は [#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351) で対応し、**`pathname` 制限が完了するまでデプロイしない**
   （#334 の AC 外であり、#334 が close しただけでは判断しない。絞らないと、許可した取得元の任意の画像を誰でもこの最適化を通して変換でき、
   無料枠（月 5,000 ユニーク変換）を消費する。超過すると新規変換が `9422` で失敗して画像が表示されなくなる。
   Free プランのままなら超過分の課金はない（課金が発生するのは Images Paid を契約した場合。
   バインディング経由の `9422` の挙動は上記のとおり未確認））。
+  開発用の `assets-dev.natuportal.org` にも同じ `pathname` 制限を付ける（キー形式は本番と同じ）。
+- ローカル確認: API の `R2_PUBLIC_BASE_URL` を `https://assets-dev.natuportal.org` にし、フロントの `.env.local` に
+  `NEXT_PUBLIC_USE_MSW=false`・`USE_DEV_ASSETS=true`・`NEXT_PUBLIC_API_BASE_URL=http://localhost:8085` を設定する。
+  `bun run dev` で `/event-list`・`/event/<id>`（詳細・レポート）を開き、画像が表示されることと
+  `/_next/image?url=...` が 200 を返すことを確認する。検証環境での確認は環境ができてから行う（NatuEve_API#219）。
 - 補足: OpenNext 1.20.11 はリダイレクト先 URL を `remotePatterns` で再検証しない（初回 URL のみ検証。
   例: `picsum.photos` は `fastly.picsum.photos` へリダイレクトする）。許可する取得元はリダイレクト先も含めて確認する。
 - `pathname` を追加する際の注意: Google アバターには現行の `/a/...` と旧形式の `/a-/...` があるため、
@@ -273,7 +302,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 有効にすると `/cdn-cgi/image/...` という URL 経由の画像変換が使えるが、本構成では次の理由で無効のまま運用する。
 
 - **URL 変換は `/_next/image` を通らない**: `/cdn-cgi/image/...` は `next/image` の `/_next/image` を通らないため、`next.config.ts` の `images.remotePatterns` による取得元の制限が効かない。
-- **同一ゾーンの画像が対象になる**: Cloudflare は既定で、Transformations を有効にしたゾーンと同じゾーンの画像をソースとして許可する。`assets.natuportal.org` は `natuportal.org` と同じゾーン（Cloudflare 経由のホスト）なので、有効にすると誰でも `assets.natuportal.org` の画像を変換できる。
+- **同一ゾーンの画像が対象になる**: Cloudflare は既定で、Transformations を有効にしたゾーンと同じゾーンの画像をソースとして許可する。`assets.natuportal.org`・`assets-dev.natuportal.org` は `natuportal.org` と同じゾーン（Cloudflare 経由のホスト）なので、有効にすると誰でもこれらの画像を変換できる。
 - **変換枠を消費する**: 変換はユニーク変換数で課金・枠消費される（月 5,000 回まで無料）。第三者による変換で枠を消費すると、新規変換が `9422` で失敗して画像が表示されなくなる可能性がある。Images Paid を契約している場合は費用も発生する。
 - **許可取得元が Any origin だと影響が広がる**: 許可取得元を「Any origin」に設定している場合、外部の任意画像も変換対象になり、リスクと費用がさらに大きくなる。
 - **`IMAGES` バインディングは別経路**: バインディングは Worker が受け取った画像データを変換する方式で、公式ドキュメントの前提条件にはゾーンの Transformations 設定は挙がっていない（不要との明記はない）。デプロイ後に `/_next/image` が変換済み画像を返すことは実測で確認する。
