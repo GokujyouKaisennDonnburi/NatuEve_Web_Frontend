@@ -44,7 +44,7 @@ else
         if (parts.length !== 3) process.exit(0);
         try {
           const p = JSON.parse(Buffer.from(parts[1], "base64url").toString());
-          process.stdout.write(`${p.ref ?? ""} ${p.role ?? ""}`);
+          process.stdout.write([p.ref, p.role].filter(Boolean).join(" "));
         } catch {}
       ' -- "$NEXT_PUBLIC_SUPABASE_ANON_KEY")"
       if [ "$claims" != "${expected_ref} anon" ]; then
