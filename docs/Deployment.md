@@ -12,7 +12,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 |---|---|---|
 | **Cloudflare Workers（Paid プラン）** | Next.js の SSR と静的ファイルの配信 | 確定 |
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
-| Cloudflare DNS | 独自ドメインの割り当て（`natueve-web.natuportal.org`。Workers の Custom Domain） | サブドメインは決定（#328）。割り当ては後述の条件がそろってから |
+| Cloudflare DNS | 独自ドメインの割り当て（`natueve-web.natuportal.org`。Workers の Custom Domain） | サブドメインは決定し（#328）、2026-10-27 に割り当て済み。下の「割り当てる時期」 |
 | **Cloudflare Images（`IMAGES` バインディング）** | `next/image` の画像最適化 | 確定（#327） |
 | **GitHub Actions（Environments）** | ビルドとデプロイ（検証環境は自動、本番は承認後） | 実装済み（検証環境 #330、本番 #362）。下の「CI/CD」 |
 
@@ -106,12 +106,13 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - Custom Domain での配信は、本番（`enabled`）と Previews（`previews_enabled`）で別々に制御される。
   `routes` でこれらを省略したときの API の既定は、本番が有効、Previews が無効
   （[wrangler 4.85.0 のリリースノート](https://github.com/cloudflare/workers-sdk/releases/tag/wrangler%404.85.0)）。
-  ダッシュボードで割り当てたときの既定は確かめていないため、割り当てた後、Custom Domain で Previews が配信されていないことを確かめる。
+  ダッシュボードの「Worker URL」で、プロダクション（`workers_dev`）とプレビュー（`preview_urls`）のトグルがともに OFF であることを、検証環境と本番で確認した（2026-10-27。本番は #329 の返信の画像）。
+  Custom Domain 経由の Previews（`previews_enabled`）の値は未確認。ダッシュボードの Domains タブの「+ Add Domain」では「Enable for」で Preview を許可するかを選ぶ（[公式](https://developers.cloudflare.com/workers/previews/custom-domains/)）ため、割り当て時にどう設定されたかも分からない。API（`GET /accounts/{account_id}/workers/domains`）での値の確認と、Custom Domain 経由の Previews が配信されていないことの確認は、未決事項 1 に残す。
 
 ### 割り当てる時期
 
 割り当てた時点で、このドメインに誰でもアクセスできるようになる。
-そのため、次がすべてそろってから管理者が割り当てる（#328 の残りの作業）。
+そのため、次がすべてそろってから管理者が割り当てる（#328。2026-10-27 に割り当て済み）。
 workers.dev の URL と Version URL での公開は、これとは別に `workers_dev` と `preview_urls` で止めている（#330）。
 
 - #342（OpenNext のビルドが失敗する問題）が解決している（PR #345 で解決済み）。
@@ -137,6 +138,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   検証用の URL は開発の Auth 用プロジェクト側で管理し、本番には入れない（下の「検証環境」）。
 - 画像が表示される（イベント一覧・イベント詳細・レポート・ヘッダーのアバター）。`pathname` の値が API の画像の URL と合わないと、
   イベント・レポートの画像が `/_next/image` の 400 で表示されない（#351）。
+
+2026-10-27 に割り当てて、上の 4 つを確かめた（#329）。
 
 ### 注意
 
@@ -168,8 +171,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   次がそろってから割り当てる。
   - CI から検証用の Worker へのデプロイが通っている（下の「CI/CD」）。
   - 上のオリジンを検証用 API の `CORS_ALLOW_ORIGINS` と R2 のローカル開発用のバケットの CORS に、リダイレクト先を開発の Auth 用プロジェクトの Redirect URLs に登録している（API 側・Supabase の作業）。
-- 割り当てた後の CI のデプロイが通ることを確かめる（ダッシュボードで作った Worker に Custom Domain を割り当てた後のデプロイは、まだ実機で試していない。下の「Cloudflare の API トークン」）。
-- 割り当てたら、本番と同じ 4 つ（トップページ・API の呼び出し・ログイン・画像の表示）を確かめる。
+- 割り当てた後の CI のデプロイで、Custom Domain が外れずに応答することを確かめた（2026-10-27。#363 のマージ後の実行で `Deploy (staging)` が成功し、割り当ては生きたまま。下の「Cloudflare の API トークン」）。
+- 割り当て後、本番と同じ 4 つ（トップページ・API の呼び出し・ログイン・画像の表示）を確かめた（2026-10-27）。
   画像の表示の確認は、#351 の実データでの確認を兼ねる（`assets-dev.natuportal.org` のキーの形式は本番と同じ）。
 
 ## 環境変数
@@ -273,10 +276,10 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
   - 確かめたのは、wrangler の `routes`（`custom_domain: true`）で付けられないことまでで、Custom Domain の API にゾーン ID を直接渡したときの結果は確かめていない。
   - 成否は wrangler の終了コードとエラーの内容で判定した。失敗がコードのアップロードの後に起きると、デプロイの一部（コード）は反映される。
-  - **まだ確かめていない組み合わせ**: ダッシュボードで作った Worker に Custom Domain を割り当てた後のデプロイ（本番・検証とも、この組み合わせになる）。
+  - **ダッシュボードで作った Worker に Custom Domain を割り当てた後のデプロイ**: 2026-10-27 に検証環境で確かめた（本番も同じ組み合わせになる。本番の Custom Domain も同日に #328 で割り当て済み。本番の割り当てはデプロイの後に行ったため、割り当て後の CI のデプロイは次の本番のデプロイで同じく確かめる）。
     1・2 行目の Worker には Custom Domain がなく、3 行目の Worker は wrangler で作られたもの（ダッシュボードで作った直後の経路を通らない）だった。
-    検証用の Custom Domain を割り当てた後、次の CI のデプロイが通ることを確かめる（上の「検証環境」）。
-  - 本番用のトークン（`natueve-web-frontend` の Individual Workers Editor）は、同じ権限で作ったが実機では試していない。本番のデプロイのジョブ（#362）の最初の実行で確かめる。
+    検証用の Custom Domain を割り当てた後の CI のデプロイ（#363 のマージ後の実行）で、割り当てが生きたままデプロイが成功することを確かめた（上の「検証環境」）。
+  - 本番用のトークン（`natueve-web-frontend` の Individual Workers Editor）も、同じ権限のまま 2026-10-27 の本番のデプロイ（#363 のマージ後の実行）で確かめた。
   - 確認の後片付け: 使い捨ての Worker と、その Custom Domain・DNS レコード、使い捨ての Worker 用のトークンを削除する。
     1・2 行目の確認に使った検証用の Worker のトークンは、`staging` の `CLOUDFLARE_API_TOKEN` として使うため削除しない（`staging`・`production` のトークンは残す）。手元の wrangler の OAuth のログインは、要らなければ `wrangler logout` でログアウトする。
   - 1 回目の確認は、使い捨ての Worker ではなく検証用の `natueve-web-frontend-stg` で行った。ダッシュボードで作った直後の状態の Worker が、それしかなかったため。
@@ -387,8 +390,10 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   （`getWranglerArgs` の `args.env ? [...] : []`）。wrangler は `CLOUDFLARE_ENV` が環境変数にあれば空文字でも指定ありとみなし（`variableName in process.env`）、
   OpenNext は自分の環境変数をそのまま wrangler に渡す。手元で、空の `CLOUDFLARE_ENV` で本番用の `opennextjs-cloudflare build` が通り、
   `wrangler deploy --dry-run` で警告が出ず、`WORKER_SELF_REFERENCE` が `natueve-web-frontend` を指すことを確かめた（wrangler 4.150.0）。
-  GitHub Actions が空文字の環境変数を設定するかは確かめていないため、最初の実行で警告が出ないことをログで確かめる。空文字が設定されない場合に出る警告でも、環境の指定は空のままなので最上位の設定が使われ、デプロイ先は変わらない。ただし、`.env.production`（.gitignore の外でコミットされうる）に `CLOUDFLARE_ENV` が書かれていた場合、OpenNext がその値を読んで別の環境を選ぶおそれがあるため、最初の実行で空文字が効いていなければ、ビルドとデプロイの `run` の先頭で `CLOUDFLARE_ENV=""` を明示する。
-- 本番へ出しても、Custom Domain を割り当てるまでは公開されない（`workers_dev`・`preview_urls` は無効）。割り当ては「割り当てる時期」の条件がそろってから行う（#328）。
+  GitHub Actions が空文字の環境変数を設定するかも含めて、最初の実行（2026-10-27。#363 のマージ後の実行。コミット `e9caa6a`）で確かめた。ビルドとデプロイのログに環境を指定していないという警告は出ず、空文字が効いていた（`.env.production` に `CLOUDFLARE_ENV` を書くと、OpenNext がその値を読んで別の環境を選びかねないため、書かないこと）。
+- 最初の実行で、必須承認者の承認の後に、本番の Worker `natueve-web-frontend` へのデプロイが成功することを確かめた（2026-10-27 の実行。`Uploaded natueve-web-frontend` の後、`No targets deployed` で routes には触れない。Custom Domain 未割り当てで `workers_dev`・`preview_urls` 無効のため、公開は変わらない）。
+- 本番ビルドで MSW が動いていないことを実機で確かめた（2026-10-27。`NEXT_PUBLIC_USE_MSW` は `"false"` に固定していて、コード上も `MSWProvider` が development 以外では即 return するため起動しない。DevTools の Service workers に本番オリジンの登録がなく、`mockServiceWorker.js` への実行時リクエストもなく、実データが表示される。#329）。
+- 本番へ出しても、Custom Domain を割り当てるまでは公開されない（`workers_dev`・`preview_urls` は無効）。割り当ては「割り当てる時期」の条件がそろってから行う。2026-10-27 に #328 で `natueve-web.natuportal.org` を割り当て済みで、本番のドメインは公開済み。割り当て後の 4 点確認（上の「割り当てる時期」）も済んだ。
 
 ### 初期設定（管理者が行う）
 
@@ -396,7 +401,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 1. **Cloudflare の Worker を作る**: 検証用の `natueve-web-frontend-stg`（と、まだなければ本番の `natueve-web-frontend`）をダッシュボードで作る。
    CI のトークン（Worker 単位の Editor）では Worker を作れない（上の「Cloudflare の API トークン」）。
-2. **検証用・本番用のトークンを作る**: 対象の Worker の Individual Workers Editor だけにする（上の「Cloudflare の API トークン」。検証用のトークンの権限は 2026-10-27 に実機で確かめた。本番用は #362 の最初の実行で確かめる）。
+2. **検証用・本番用のトークンを作る**: 対象の Worker の Individual Workers Editor だけにする（上の「Cloudflare の API トークン」。検証用のトークンの権限は 2026-10-27 に実機で確かめ、本番用も同日の本番のデプロイ（#363 のマージ後の実行）で確かめた）。
 3. **GitHub の Environment を作る**: `staging`・`production` を作り、どちらもデプロイできるブランチを main のみにし、
    管理者による保護ルールのバイパスを無効にする。`production` には Required reviewers と Prevent self-review を設定する。
    Prevent self-review により main にマージした本人は承認できないため、承認者は少なくとも 2 人登録する（ADR-0003「トレードオフ」）。
@@ -415,8 +420,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 5. **設定を確かめる**: `gh api repos/{owner}/{repo}/environments/{name}` で `can_admins_bypass` が `false`、`protection_rules`（`production` は `required_reviewers` と `prevent_self_review: true`）、
    `deployment_branch_policy` を、`.../environments/{name}/deployment-branch-policies` で main のみであることを確かめる。
 6. **マージ後の最初の実行で確かめる**: `deploy-staging` が検証用の Worker にデプロイし、本番のジョブが承認待ちになること。
-   #330 のマージ後の実行（2026-10-27）では、確認用のジョブ（`approve-production`）が承認待ちになることを確かめた（`a494109` の実行）。
-   #362 のマージ後の最初の実行で、本番のデプロイのジョブ（`deploy-production`）が承認待ちになることを確かめる。
+   #330 のマージ後の実行（2026-10-27）では、確認用のジョブ（`approve-production`）が承認待ちになることを確かめ（`a494109` の実行）、
+   #363 のマージ後の最初の実行（2026-10-27。`e9caa6a` の実行）では、`deploy-production` が承認待ちになり、必須承認者の承認の後に本番へのデプロイが成功することを確かめた。
    - #362 の後は、承認すると本番へデプロイされる。古い実行の承認待ちは、承認せずに却下（Reject）する（承認しても main の最新の確認で止まる。ADR-0003 決定 3）。
    - 確認用のジョブの間（#330〜#362）に承認したものがあれば、デプロイしていないコミットが `production` のデプロイの記録に成功として残っている。
      その間の記録で本番の中身を判断しない（本番の中身は Cloudflare の Worker のデプロイの履歴で確かめる）。
@@ -558,8 +563,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 ## 未決事項・今後の作業
 
-1. **フロントのドメイン**: 解決済み（#328 で `natueve-web.natuportal.org` に決定。上の「独自ドメイン」を参照）。
-   割り当て（管理者がダッシュボードで行う）は、「割り当てる時期」の条件がそろってから行う。
+1. **フロントのドメイン**: 一部解決済み（#328 で `natueve-web.natuportal.org` に決定し、2026-10-27 に管理者が本番 Worker に割り当てた。割り当て後の 4 点確認も済んだ。上の「独自ドメイン」「割り当てる時期」「割り当て方法」を参照）。
+   残る確認: Custom Domain 経由の Previews（`previews_enabled`）が配信されていないこと。`wrangler.jsonc` の `routes` では設定していないが、ダッシュボードで割り当てたときにどう設定されたかは分からず、値も API（`GET /accounts/{account_id}/workers/domains`）で確認していない（上の「割り当て方法」）。
 2. **画像最適化の方式**: 解決済み（#327、決定は [ADR-0002](./adr/0002-use-cloudflare-images-binding.md)）。詳細は[画像最適化](#画像最適化)を参照。
 3. **ビルドの確認**: 解決済み（#326 で検証）。
    - Next.js 16.4.2 は OpenNext 1.20.13 の対応範囲（`>=15.5.28 <16 || >=16.4.1`）内（#346 で更新）。
@@ -574,15 +579,15 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 4. **検証環境の接続先**: 解決済み（#330）。API は `https://natueve-api-stg.natuportal.org`、Auth はローカル開発の Auth 用プロジェクト（NatuEve_API ADR-0041）。
    値は上の「環境変数」、名前とドメインは上の「検証環境」を参照。
 5. **CI/CD**: 一部解決済み（#330・#362）。main へのマージで検証環境へ自動でデプロイし、本番は承認を経てデプロイする（上の「CI/CD」）。
-   残っている作業は次のとおり。
    - マージ前の初期設定（上の「CI/CD」の「初期設定」）。2026-10-27 に管理者が済ませた（検証用のトークンの権限の実機確認を含む）。
-   - 承認を経て本番の Worker にデプロイできることを、#362 のマージ後の実行で確かめる。
-   - 検証環境の Custom Domain の割り当て（上の「検証環境」）。
-6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
+   - 承認を経て本番の Worker にデプロイできること。2026-10-27 の #363 のマージ後の実行（`e9caa6a`）で、必須承認者の承認の後に本番へのデプロイが成功することを確かめた。
+   - 検証環境の Custom Domain `natueve-web-stg.natuportal.org` の割り当て。2026-10-27 に管理者が割り当て、割り当て後の CI のデプロイでもドメインが生きていることを確かめた（上の「検証環境」）。
+   - 本番の Custom Domain 割り当て後の CI のデプロイ。割り当ては本番デプロイの後に行ったため、次の本番のデプロイで確かめる（上の「Cloudflare の API トークン」）。
+6. **API 側の CORS**: 解決済み。
    - `http://localhost:8787`（`preview` の wrangler 既定ポート）の許可は NatuEve_API #224 で対応済み（検証環境の `CORS_ALLOW_ORIGINS` を未設定にしたときの既定に含まれる）。
    - 本番のオリジン `https://natueve-web.natuportal.org` は、API の本番の `CORS_ALLOW_ORIGINS` に設定済み（NatuEve_API の `deploy/cloud-run/production.yaml`）。
-   - 検証環境のオリジン `https://natueve-web-stg.natuportal.org` を、検証用 API の `CORS_ALLOW_ORIGINS`（NatuEve_API の `deploy/cloud-run/staging.yaml`）と、
-     R2 のローカル開発用のバケットの CORS（NatuEve_API ADR-0039）に加える（API 側の作業。API はワイルドカード非対応、NatuEve_API ADR-0033）。
+   - 検証環境のオリジン `https://natueve-web-stg.natuportal.org` は、検証用 API の `CORS_ALLOW_ORIGINS`（NatuEve_API の `deploy/cloud-run/staging.yaml`）と、
+     R2 のローカル開発用のバケットの CORS（NatuEve_API ADR-0039）に 2026-10-27 に追加済み。検証環境での確認（上の「検証環境」）で、CORS のエラーが出ないことも確かめた（API はワイルドカード非対応、NatuEve_API ADR-0033）。
 7. **ブランチごとのプレビュー環境**: 設けない（#330 で決定）。検証環境（main へのマージ後）だけにする。
    設けると、URL が変わるたびに API の `CORS_ALLOW_ORIGINS`（ワイルドカード非対応）と Supabase Auth の Redirect URLs への登録が要る。
    必要になったら、この点を含めて改めて検討する。
