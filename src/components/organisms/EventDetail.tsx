@@ -29,6 +29,7 @@ import { PageToc } from "@/components/molecules/PageToc";
 import { SurfaceCard } from "@/components/molecules/SurfaceCard";
 import { EventParticipationButton } from "@/components/organisms/EventParticipationButton";
 import { CardContent } from "@/components/ui/card";
+import { BACK_LINK_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 import { useDeadlineRefresh } from "@/hooks/useDeadlineRefresh";
 import { useEventMembers } from "@/hooks/useEventMembers";
@@ -179,7 +180,9 @@ export function EventDetail({
     >
       {/* 画面上部：もどるリンク・タイトル・ステータス/タグ・主催者 */}
       <header className="space-y-3">
-        <BackLink href={ROUTES.EVENT_LIST}>イベント一覧にもどる</BackLink>
+        <BackLink href={ROUTES.EVENT_LIST}>
+          {BACK_LINK_LABELS.EVENT_LIST}
+        </BackLink>
 
         {/* タイトル */}
         <h1 className="text-2xl font-extrabold text-slate-900 md:text-3xl">

@@ -7,6 +7,9 @@ import {
 } from "@/components/layouts/AuthProvider";
 import { GlobalUserAvatar } from "@/components/molecules/GlobalUserAvatar";
 import { Button } from "@/components/ui/button";
+import { APP_NAME } from "@/constants/config";
+import { NAVIGATION_LABELS } from "@/constants/labels";
+import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { Menu, Plus, X } from "lucide-react";
@@ -15,7 +18,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   type ComponentPropsWithoutRef,
-  type ReactNode,
   useEffect,
   useRef,
   useState,
@@ -29,15 +31,18 @@ type HeaderUser = {
   avatarUrl: string;
 };
 
-// イベント投稿ページへの導線ボタンコンポーネントのprops型
-type CreateEventButtonProps = ComponentPropsWithoutRef<typeof Button> & {
-  children?: ReactNode;
-};
+type CreateEventButtonProps = ComponentPropsWithoutRef<typeof Button>;
 
+// ヘッダー内で繰り返し使う操作文言
+const EVENT_POST_BUTTON_LABEL = "イベントを投稿";
+const MYPAGE_LINK_LABEL = "マイページへ";
+const SIGNIN_LINK_LABEL = "サインイン";
+
+// PC表示とモバイルメニューで共通の主要ナビゲーション
 const HEADER_NAV_ITEMS = [
-  { href: ROUTES.EVENT_LIST, label: "イベントを探す" },
-  { href: ROUTES.COMING_SOON, label: "主催者の方へ" },
-  { href: ROUTES.ABOUT, label: "なちゅいべとは" },
+  { href: ROUTES.EVENT_LIST, label: NAVIGATION_LABELS.EVENT_LIST },
+  { href: ROUTES.COMING_SOON, label: NAVIGATION_LABELS.ORGANIZER },
+  { href: ROUTES.ABOUT, label: NAVIGATION_LABELS.ABOUT },
 ] as const;
 
 export function SiteHeader() {
@@ -107,7 +112,7 @@ export function SiteHeader() {
       return;
     }
     if (!user?.id) {
-      toast.error("イベントを投稿するにはサインインしてください。");
+      toast.error(MESSAGES.EVENT_POST_SIGNIN_REQUIRED);
       return;
     }
     router.push(ROUTES.EVENT_POST);
@@ -134,7 +139,7 @@ export function SiteHeader() {
           </div>
           <div className="flex min-w-0 flex-col items-start gap-0 sm:flex-row sm:items-end sm:gap-2">
             <span className="whitespace-nowrap text-base font-bold tracking-tight text-emerald-700 sm:text-lg">
-              なちゅいべ
+              {APP_NAME}
             </span>
             <span className="whitespace-nowrap text-[10px] text-slate-500">
               by NatuPortal
@@ -185,9 +190,9 @@ export function SiteHeader() {
               <CreateEventButton
                 type="button"
                 onClick={handleCreateEvent}
-                aria-label="イベントを投稿"
+                aria-label={EVENT_POST_BUTTON_LABEL}
               >
-                イベントを投稿
+                {EVENT_POST_BUTTON_LABEL}
               </CreateEventButton>
             ) : (
               <button
@@ -195,7 +200,7 @@ export function SiteHeader() {
                 onClick={handleCreateEvent}
                 className="rounded-full px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
               >
-                イベントを投稿
+                {EVENT_POST_BUTTON_LABEL}
               </button>
             )}
           </div>
@@ -216,7 +221,7 @@ export function SiteHeader() {
               variant="outline"
               className="cursor-pointer rounded-full px-5 text-sm font-medium text-slate-700 transition-colors hover:border-[#9ABD5A]/60 hover:bg-[#F2F7E8] hover:text-[#315E26]"
             >
-              <Link href={ROUTES.SIGNIN}>サインイン</Link>
+              <Link href={ROUTES.SIGNIN}>{SIGNIN_LINK_LABEL}</Link>
             </Button>
           ) : user.id ? (
             <Button
@@ -225,7 +230,7 @@ export function SiteHeader() {
               size="icon-sm"
               className="rounded-full p-0 transition-shadow hover:ring-2 hover:ring-[#9ABD5A]/60 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
-              <Link href={ROUTES.MYPAGE} aria-label="マイページへ">
+              <Link href={ROUTES.MYPAGE} aria-label={MYPAGE_LINK_LABEL}>
                 <GlobalUserAvatar
                   name={user.name}
                   iconUrl={user.avatarUrl}
@@ -281,7 +286,7 @@ export function SiteHeader() {
                       />
                     </span>
                   )}
-                  イベントを投稿
+                  {EVENT_POST_BUTTON_LABEL}
                 </button>
               )}
 
@@ -296,7 +301,7 @@ export function SiteHeader() {
                     iconUrl={user.avatarUrl}
                     className="border-[#9ABD5A]/60 shadow-none"
                   />
-                  マイページへ
+                  {MYPAGE_LINK_LABEL}
                 </Link>
               ) : !isLoading ? (
                 <Link
@@ -304,7 +309,7 @@ export function SiteHeader() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="block rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-[#F2F7E8] hover:text-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
-                  サインイン
+                  {SIGNIN_LINK_LABEL}
                 </Link>
               ) : null}
             </div>
@@ -315,10 +320,9 @@ export function SiteHeader() {
   );
 }
 
-// イベント投稿ページへの導線ボタンのコンポーネント（用途が増えた場合、関数名などは適宜変更）
-export function CreateEventButton({
+function CreateEventButton({
   className,
-  children = "投稿",
+  children,
   ...props
 }: Readonly<CreateEventButtonProps>) {
   return (

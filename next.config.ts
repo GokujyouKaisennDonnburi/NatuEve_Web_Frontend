@@ -6,17 +6,29 @@ export type ImageRemotePattern = NonNullable<
   NonNullable<NextConfig["images"]>["remotePatterns"]
 >[number];
 
+const assetHostname = "assets.natuportal.org";
+const developmentAssetHostname = "assets-dev.natuportal.org";
+
 // 本番でも使う画像の取得元（R2 の公開ドメイン、Google のプロフィール画像）
 const productionImageHosts: ImageRemotePattern[] = [
   {
     protocol: "https",
-    hostname: "assets.natuportal.org",
+    hostname: assetHostname,
   },
   {
     protocol: "https",
     hostname: "lh3.googleusercontent.com",
   },
 ];
+
+// ローカル開発・検証環境用の R2 の公開ドメイン（NatuEve_API ADR-0039）。
+// 本番のビルド環境ではフラグを設定しない。本番の assets と同じ制限（pathname など）を引き継ぐ（#351）。
+const developmentImageHosts: ImageRemotePattern[] = productionImageHosts
+  .filter((pattern) => pattern.hostname === assetHostname)
+  .map((pattern) => ({
+    ...pattern,
+    hostname: developmentAssetHostname,
+  }));
 
 // MSW のモックデータ（src/mocks/**・src/services/mockAuth.ts）でのみ使う画像の取得元。
 // モックの画像 URL を変えるときは、ホストをここに追加して URL と許可リストを揃える。
@@ -34,6 +46,10 @@ const mockImageHosts: ImageRemotePattern[] = [
 // MSW を使うビルドでのみモック用の取得元を許可する。
 // `true` 以外（未設定・`false` を含む）ではモック用を含めない（安全側のデフォルト）。
 const isMswEnabled = process.env.NEXT_PUBLIC_USE_MSW === "true";
+
+// ローカル開発・検証環境のビルドでのみ開発用の取得元を許可する。
+// `true` 以外（未設定・`false` を含む）では含めない（安全側のデフォルト）。
+const isDevAssetsEnabled = process.env.USE_DEV_ASSETS === "true";
 
 // Next.jsの設定ファイル
 const nextConfig: NextConfig = {
@@ -60,9 +76,11 @@ const nextConfig: NextConfig = {
 
   // 画像のリモートパターン設定
   images: {
-    remotePatterns: isMswEnabled
-      ? [...productionImageHosts, ...mockImageHosts]
-      : productionImageHosts,
+    remotePatterns: [
+      ...productionImageHosts,
+      ...(isDevAssetsEnabled ? developmentImageHosts : []),
+      ...(isMswEnabled ? mockImageHosts : []),
+    ],
   },
 };
 
