@@ -15,11 +15,13 @@ const developmentAssetHostname = "assets-dev.natuportal.org";
 // ファイル名を UUID の文字（小文字の 16 進数とハイフン）と拡張子に限り、%2F などのエンコードした区切りも通さない。
 // 一時領域（natueve/tmp/）・PDF（natueve/*/documents/）・他プロダクトの画像は許可しない。
 // API の URL にはクエリが付かないため、search: "" でクエリ付きの URL も許可しない。
+// port: "" で既定のポート（443）だけを許可する（Cloudflare は 8443 などの HTTPS の別ポートでも応答するため）。
 // Google のプロフィール画像（lh3.googleusercontent.com）は unoptimized で表示し、ここには含めない。
 const productionImageHosts: ImageRemotePattern[] = ["events", "reports"].map(
   (destination) => ({
     protocol: "https",
     hostname: assetHostname,
+    port: "",
     pathname: `/natueve/${destination}/images/+([0-9a-f-]).@(jpg|png)`,
     search: "",
   }),

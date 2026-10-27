@@ -12,9 +12,9 @@ vi.mock("@opennextjs/cloudflare", () => ({
 }));
 
 // next.config.ts の設定値を意図的に固定し、許可パターンの回帰を検出する。
-// キー形式: protocol://hostname|port|pathname|search（未設定は ""・"/**"・"(unset)"）。
-// search は完全一致で、"" はクエリなしだけを許可する（末尾 `?` だけは search が空として通る）。
-// 未設定のときだけクエリを問わない。
+// キー形式: protocol://hostname|port|pathname|search（未設定は "(unset)"・"/**"・"(unset)"）。
+// port・search は完全一致で、port の "" は既定のポートだけ、search の "" はクエリなしだけを許可する
+// （末尾 `?` だけは search が空として通る）。未設定のときだけポート・クエリを問わない。
 const ASSET_IMAGE_PATHNAME = "+([0-9a-f-]).@(jpg|png)";
 const PRODUCTION_PATTERNS = [
   `https://assets.natuportal.org||/natueve/events/images/${ASSET_IMAGE_PATHNAME}|`,
@@ -25,8 +25,8 @@ const DEVELOPMENT_PATTERNS = [
   `https://assets-dev.natuportal.org||/natueve/reports/images/${ASSET_IMAGE_PATHNAME}|`,
 ];
 const MOCK_PATTERNS = [
-  "https://picsum.photos||/**|(unset)",
-  "https://i.pravatar.cc||/**|(unset)",
+  "https://picsum.photos|(unset)|/**|(unset)",
+  "https://i.pravatar.cc|(unset)|/**|(unset)",
 ];
 
 const toPatternKey = ({
@@ -38,7 +38,7 @@ const toPatternKey = ({
 }: ImageRemotePattern) =>
   [
     `${protocol?.replace(/:$/, "") ?? "*"}://${hostname}`,
-    port ?? "",
+    port ?? "(unset)",
     pathname ?? "/**",
     search ?? "(unset)",
   ].join("|");
@@ -199,6 +199,10 @@ describe("next.config.ts の画像取得元の pathname・search の制限", () 
     [
       "http",
       `http://assets.natuportal.org/natueve/events/images/${IMAGE_ID}.jpg`,
+    ],
+    [
+      "既定以外のポート",
+      `https://assets.natuportal.org:8443/natueve/events/images/${IMAGE_ID}.jpg`,
     ],
     [
       "開発用のドメイン",
