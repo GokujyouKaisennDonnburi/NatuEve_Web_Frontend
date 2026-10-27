@@ -341,7 +341,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 | ジョブ | 起動 | Environment | 内容 |
 |---|---|---|---|
-| `quality` | PR・main への push | — | Lint・Format・Typecheck・Test。ビルドは PR だけで、デプロイと同じ `opennextjs-cloudflare build --env staging`（トークンなし。成果物はデプロイしない） |
+| `quality` | PR・main への push | — | Lint・Format・Typecheck・Test。ビルドは PR だけで、デプロイと同じコマンドの `opennextjs-cloudflare build --env staging`（トークンなし。接続先の値（`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_*`）は渡さないため、それらの値に依存する失敗は main の `deploy-staging` まで分からない。成果物はデプロイしない） |
 | `deploy-staging` | main への push（`quality` の後） | `staging` | 接続先の確認 → `opennextjs-cloudflare build --env staging` → main の最新かの確認 → `opennextjs-cloudflare deploy --env staging` |
 | `approve-production` | `deploy-staging` の後 | `production`（承認が要る） | 承認待ちになることを確かめる確認用のジョブ。ビルド・デプロイはせず、トークンも使わない（ADR-0003 決定 3） |
 
@@ -400,7 +400,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
    | `CLOUDFLARE_ACCOUNT_ID` | Variable | Cloudflare のアカウント ID | 同左 |
    | `CLOUDFLARE_API_TOKEN` | Secret | 検証用のトークン | 本番用のトークン |
 
-   リポジトリと Organization の Variables・Secrets には置かない（上の「環境変数」）。
+   デプロイに使う Variables・Secrets は、リポジトリと Organization のレベルには置かない（上の「環境変数」）。AI レビュー用の `OPENCODE_API_KEY` など、デプロイに使わないものは対象外。
    `production` の値は、後続の本番のデプロイのジョブで使う（値の設定は #329）。
 5. **設定を確かめる**: `gh api repos/{owner}/{repo}/environments/{name}` で `can_admins_bypass` が `false`、`protection_rules`（`production` は `required_reviewers` と `prevent_self_review: true`）、
    `deployment_branch_policy` を、`.../environments/{name}/deployment-branch-policies` で main のみであることを確かめる。
@@ -412,6 +412,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
      後で足す本番のデプロイのジョブ（記録を作る既定の `deployment: true`）と同じ条件で承認待ちを確かめるためで、
      `deployment: false` のときに Prevent self-review が効くかも公式に書かれていない（[Control deployments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments)）。
    - 承認待ちになることを一度確かめたら、早めに本番のデプロイのジョブに置き換える（上の「本番のデプロイ」）。それまでのマージで出る承認の依頼は、承認せずに却下する。
+     却下すると、`quality` と `deploy-staging` が成功していても、その実行全体は失敗（赤）と表示される見込み（実機では未確認）。その間は、各ジョブの結果を見て判断する。
+     `continue-on-error` で実行を緑に保つことはしない。確認用のジョブの結果が見えなくなり、後で置き換える本番のデプロイのジョブとも条件が変わるため。
 
 ## 導入時に必要な変更
 
