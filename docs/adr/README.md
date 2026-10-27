@@ -18,3 +18,4 @@
 |---|---|---|
 | [0001](./0001-deploy-cloudflare-workers-opennext.md) | フロントエンドを Cloudflare Workers（Paid）に OpenNext でデプロイする | Accepted |
 | [0002](./0002-use-cloudflare-images-binding.md) | `next/image` の画像最適化に Cloudflare Images の `IMAGES` バインディングを使う | Accepted |
+| [0003](./0003-github-flow-staging-approval.md) | GitHub Flow を続け、main へのマージで検証環境へ、承認後に本番へデプロイする | Accepted |
