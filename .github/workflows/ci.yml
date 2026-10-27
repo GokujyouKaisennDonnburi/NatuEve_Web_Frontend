@@ -130,6 +130,7 @@ jobs:
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           failed=0
           if [ "$NEXT_PUBLIC_API_BASE_URL" != "$EXPECTED_API_BASE_URL" ]; then
@@ -142,6 +143,35 @@ jobs:
           fi
           if [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
             echo "::error::NEXT_PUBLIC_SUPABASE_ANON_KEY が未設定です。staging Environment の Variables を確認してください。"
+            failed=1
+          else
+            # 公開キー（JWT）の ref が URL のプロジェクトと同じか、role が anon かを確かめる。
+            # 別のプロジェクトのキーではログインが壊れ、service_role などの秘密のキーはブラウザに渡る JS に埋め込まれてしまうため。
+            # 許可するものだけを通す: 照合できた JWT と、中身を確かめられない公開用の sb_publishable_（警告だけ）。それ以外は失敗させる。
+            expected_ref="${EXPECTED_SUPABASE_URL#https://}"
+            expected_ref="${expected_ref%%.*}"
+            case "$NEXT_PUBLIC_SUPABASE_ANON_KEY" in
+              sb_publishable_*)
+                echo "::warning::NEXT_PUBLIC_SUPABASE_ANON_KEY が JWT ではないため、プロジェクトを確かめられません。"
+                ;;
+              *)
+                claims="$(node -e '
+                  const parts = process.argv[1].split(".");
+                  if (parts.length !== 3) process.exit(0);
+                  try {
+                    const p = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+                    process.stdout.write(`${p.ref ?? ""} ${p.role ?? ""}`);
+                  } catch {}
+                ' -- "$NEXT_PUBLIC_SUPABASE_ANON_KEY")"
+                if [ "$claims" != "${expected_ref} anon" ]; then
+                  echo "::error::NEXT_PUBLIC_SUPABASE_ANON_KEY が検証用の Auth（${expected_ref}）の anon キーではありません（実際: ${claims:-JWT として読めない}）。staging Environment の Variables を確認してください。"
+                  failed=1
+                fi
+                ;;
+            esac
+          fi
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID が未設定です。staging Environment の Variables を確認してください。"
             failed=1
           fi
           exit "$failed"

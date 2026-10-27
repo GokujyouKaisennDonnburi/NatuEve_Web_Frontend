@@ -345,14 +345,16 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 | `deploy-staging` | main への push（`quality` の後） | `staging` | 接続先の確認 → `opennextjs-cloudflare build --env staging` → main の最新かの確認 → `opennextjs-cloudflare deploy --env staging` |
 | `approve-production` | `deploy-staging` の後 | `production`（承認が要る） | 承認待ちになることを確かめる確認用のジョブ。ビルド・デプロイはせず、トークンも使わない（ADR-0003 決定 3） |
 
-- 起動は `pull_request` と main への `push` だけ。`workflow_dispatch`・`workflow_run`・`pull_request_target` は使わない（ADR-0003 決定 3）。
+- 起動は `pull_request` と main への `push` だけ。`workflow_run`・`pull_request_target` は使わない（ADR-0003 決定 3。起動元とデプロイするコミットがずれるため）。
+  デプロイは main への push で起動した実行の中で動かす（同）ため、手動でデプロイするための `workflow_dispatch` も設けない（出し直しは下のとおり再実行で行う）。
   デプロイを含む main への push には paths フィルタを付けず、`[skip ci]` も使わない。
   出し直すときは、main の最新のコミットの実行を再実行する（古いコミットの実行は、下の「main の最新の確認」で止まる）。
 - **同時実行**: ワークフロー単位の `concurrency` は、PR だけ古い実行を取り消す。main への push の実行は `github.run_id` で実行ごとに別のグループにし、取り消さない。
   デプロイのジョブはジョブ単位のグループ（`deploy-staging`・`deploy-production`）に入れ、`cancel-in-progress: false` と `queue: max` にする
   （同じ環境へのデプロイは同時に 1 つだけ。待機中のジョブを取り消さない。最大 100 件まで待機できる）。
 - **接続先の確認**（「Check connection variables」）: ビルドの前に、`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL` が
-  ワークフローに書いた期待値（ジョブの `env:` の `EXPECTED_*`）と一致するか、`NEXT_PUBLIC_SUPABASE_ANON_KEY` が空でないかを確かめ、違えば失敗させる
+  ワークフローに書いた期待値（ジョブの `env:` の `EXPECTED_*`）と一致するかを確かめる。`NEXT_PUBLIC_SUPABASE_ANON_KEY` は、JWT の `ref` が期待値の URL のプロジェクトと同じで `role` が `anon` か
+  （`service_role` などの秘密のキーをブラウザに渡る JS に埋め込まないため。許可するのは照合できた JWT と、中身を確かめられない公開用の `sb_publishable_` のキー（警告だけ）で、それ以外は失敗させる）、`CLOUDFLARE_ACCOUNT_ID` は空でないかを確かめる。違えば失敗させる
   （理由は上の「環境変数」）。期待値は上の「アプリ用」の表の値。
 - **main の最新の確認**（「Check this run is the latest main」）: デプロイの直前に、`github.sha` が main の最新のコミットと一致するかを `gh api` で確かめ、
   一致しない・取得できないときはデプロイせずにジョブを失敗させる（ADR-0003 決定 3）。トークンは `GH_TOKEN: ${{ github.token }}`（`contents: read`）をこのステップにだけ渡す。
@@ -368,7 +370,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 #330 では、本番は承認の確認用のジョブまでを入れる。承認待ちになることを確かめてから（下の「初期設定」の 6.）、
 `approve-production` を本番のデプロイのジョブに置き換える。置き換えるときは次のようにする。
 
-- ステップは `deploy-staging` と同じ並び（接続先の確認 → ビルド → main の最新の確認 → デプロイ → サマリー）にする。
+- ステップは `deploy-staging` と同じ並び（接続先の確認（キーの `ref`・`role` と `CLOUDFLARE_ACCOUNT_ID` を含む）→ ビルド → main の最新の確認 → デプロイ → サマリー）にする。
   main の最新の確認は、承認の後、デプロイの直前に行う（承認待ちの間に main が進んでいたら出さない）。
 - 期待値は本番の値（`https://natueve-api.natuportal.org`・`https://tpszowxdhvthxyqorvwr.supabase.co`）にする。
 - `USE_DEV_ASSETS` は立てない（`NEXT_PUBLIC_USE_MSW` は `"false"` に固定する）。
