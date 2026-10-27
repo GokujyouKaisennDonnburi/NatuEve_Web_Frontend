@@ -73,7 +73,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - リダイレクト先は `src/services/auth.ts` の `redirectTo`（`${window.location.origin}/auth/callback`）で決まる。
   Supabase にはオリジンだけでなく、パスを含むこの URL を登録する。
 - Supabase Auth の Site URL は、`redirectTo` を指定しない認証フローなどで使われる既定の URL。このアプリの OAuth は `redirectTo` を必ず指定している。
-  `redirectTo` が許可されないときも、黙って Site URL に戻される。
+  `redirectTo` が許可されないときは、エラーにならず、Referer の URL が許可されていればそこへ、そうでなければ Site URL へ戻される。
   また、Site URL とスキーム・ホスト・ポートが同じ URL は、Redirect URLs に登録がなくても許可される
   （supabase/auth の `IsRedirectURLValid`。2026-10-27 時点の master で確認）。
 - 本番の Auth はなちゅいべ用の Supabase プロジェクト（Auth 専用）で、NatuPortal のほかのプロダクトと共有していない（2026-10-27 時点）ため、
