@@ -73,8 +73,13 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 - リダイレクト先は `src/services/auth.ts` の `redirectTo`（`${window.location.origin}/auth/callback`）で決まる。
   Supabase にはオリジンだけでなく、パスを含むこの URL を登録する。
 - Supabase Auth の Site URL は、`redirectTo` を指定しない認証フローなどで使われる既定の URL。このアプリの OAuth は `redirectTo` を必ず指定している。
-  本番の Auth はこのアプリ専用の Supabase プロジェクトで、NatuPortal のほかのプロダクトと共有していない（2026-10-27 時点）ため、
+  `redirectTo` が許可されないときも、黙って Site URL に戻される。
+  また、Site URL とスキーム・ホスト・ポートが同じ URL は、Redirect URLs に登録がなくても許可される
+  （supabase/auth の `IsRedirectURLValid`。2026-10-27 時点の master で確認）。
+- 本番の Auth はなちゅいべ用の Supabase プロジェクト（Auth 専用）で、NatuPortal のほかのプロダクトと共有していない（2026-10-27 時点）ため、
   Site URL は本番のオリジンにする（#332）。将来ほかのプロダクトと共有する場合は、Site URL をほかのプロダクトの担当と相談して決め直す。
+  Site URL を本番のオリジンにすると Redirect URLs がなくてもログインできるが、Redirect URLs への登録は外さない。
+  Site URL をほかのオリジンに変えたときに、ログインが壊れないようにするため。
 - モバイルアプリ（NatuEve_Mobile）は API を直接呼ぶため、このドメインを使わない。
   将来、共有リンクからアプリを開く（App Links / Universal Links）場合は、このドメインに検証用のファイル（`/.well-known/` 配下）を置く。
 
@@ -113,13 +118,16 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 - API の独自ドメインに HTTPS で届く（`https://natueve-api.natuportal.org/health` が `{"status":"ok"}` を返す）。
   NatuEve_API の `docs/Deployment.md`「独自ドメイン経由の検証（#226）」が済んでいること。済んでいないと、公開した直後から API の呼び出しがすべて失敗する。
 - 上の表の本番のオリジンを API の `CORS_ALLOW_ORIGINS` と Supabase Auth の Site URL に、OAuth のリダイレクト先を Supabase Auth の Redirect URLs に登録している。
-  `CORS_ALLOW_ORIGINS` と Redirect URLs を登録していないと、公開した直後から API の呼び出しとログインが失敗する。
+  `CORS_ALLOW_ORIGINS` を登録していないと、公開した直後から API の呼び出しが失敗する。
+  Site URL と Redirect URLs のどちらも登録していないと、ログイン後に Site URL の既定値（本番のオリジンではない）へ戻され、ログインが失敗する。
 
-割り当てたら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Redirect URLs の登録の誤りは分からないため、3 つとも確かめる。
+割り当てたら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Supabase Auth の登録の誤りは分からないため、3 つとも確かめる。
 
 - トップページが HTTPS で表示される。
 - ブラウザから API を呼べる（イベント一覧が表示され、CORS のエラーが出ない）。
-- Google でログインし、`/auth/callback` を経てログイン済みになる（Supabase の Redirect URLs が通る。#332 の AC と同じ）。
+- Google でログインし、`/auth/callback` を経てログイン済みになる（#332 の AC と同じ）。
+  Site URL と Redirect URLs のどちらかが合っていれば通るため、この確認では Redirect URLs の登録漏れは分からない。
+  Redirect URLs の値は、Supabase のダッシュボードで別に確かめる。
 
 ### 注意
 
