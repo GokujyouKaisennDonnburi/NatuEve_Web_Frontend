@@ -7,8 +7,8 @@ import { EventListControls } from "@/components/organisms/EventListControls";
 import { FilterDrawer } from "@/components/organisms/FilterDrawer";
 import { FilterSidebar } from "@/components/organisms/FilterSidebar";
 import { useEventList } from "@/hooks/useEventList";
-import { useIsStuck } from "@/hooks/useIsStuck";
 import { useStickyClip } from "@/hooks/useStickyClip";
+import { useStickySidebarState } from "@/hooks/useStickySidebarState";
 import { useTags } from "@/hooks/useTags";
 import { cn } from "@/lib/utils";
 import type { TagItem } from "@/types/tag";
@@ -70,13 +70,12 @@ export default function EventListPage() {
   const contentRef = useRef<HTMLDivElement>(null);
   useStickyClip({ barRef: controlsRef, contentRef, bottomMargin: 8 });
 
-  // 絞り込みサイドバーが sticky 中かどうか。
-  // 高さ制限は sticky 後の上端を基準にしているため、sticky 前(スクロールトップ時)に
-  // 適用するとカード下端が画面外へはみ出して内部スクロールを最後まで表示できない。
-  // また sticky 前は内部スクロール自体を無効にし、絞り込みエリア上のホイール操作を
-  // ウィンドウのスクロールへ伝播させる
+  // 絞り込みサイドバーのスクロール状態。
+  // sticky 前は高さだけ維持して内部スクロールを隠し、スクロール位置を保持したまま
+  // ホイール操作をウィンドウへ伝播させる。sticky 不可(イベントが少なく右カラムが
+  // カード以下)の場合は高さ制限も内部スクロールも行わない
   const filterRef = useRef<HTMLElement>(null);
-  const isFilterStuck = useIsStuck(filterRef);
+  const filterScrollState = useStickySidebarState(filterRef);
 
   // FilterDrawer の effect 依存が毎レンダー変化しないよう、クローズ処理は安定参照で渡す
   const handleCloseFilter = useCallback(() => setIsFilterOpen(false), []);
@@ -205,10 +204,15 @@ export default function EventListPage() {
         >
           <FilterSidebar
             className={cn(
-              // 絞り込みエリアをスクロールコンテナにするのは sticky 中のみ。
-              // sticky 前は高さ制限も内部スクロールも持たせず、ウィンドウ側をスクロールさせる
-              isFilterStuck &&
-                "desktop:max-h-(--filter-sidebar-max-height) desktop:overflow-y-auto desktop:overscroll-contain desktop:[scrollbar-width:none] desktop:[&::-webkit-scrollbar]:hidden",
+              // 高さ制限と内部スクロールは sticky 可能な間だけ付与する。
+              // sticky 位置にいない間は overflow: hidden にしてスクロールコンテナを維持し、
+              // scrollTop を保持したままウィンドウ側をスクロールさせる。
+              // 内部スクロールが端に達した後はウィンドウへ引き継ぐため、
+              // overscroll-behavior はブラウザ既定(auto)のままにする
+              filterScrollState !== "none" &&
+                "desktop:max-h-(--filter-sidebar-max-height) desktop:[scrollbar-width:none] desktop:[&::-webkit-scrollbar]:hidden",
+              filterScrollState === "hidden" && "desktop:overflow-hidden",
+              filterScrollState === "auto" && "desktop:overflow-y-auto",
             )}
             allTags={allTags}
             frequentTags={frequentTags}
