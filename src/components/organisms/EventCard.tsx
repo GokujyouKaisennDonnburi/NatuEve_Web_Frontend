@@ -141,11 +141,13 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
             aria-label={`${event.hostName} のプロフィールへ移動`}
           >
             {event.hostAvatarUrl ? (
+              // Google のプロフィール画像は画像最適化の許可リストに入れないため、最適化せずに表示する（#351）。
               <Image
                 src={event.hostAvatarUrl}
                 alt={`${event.hostName} のアバター`}
                 width={18}
                 height={16}
+                unoptimized
                 className="h-4 w-[18px] rounded-full object-cover"
               />
             ) : (
