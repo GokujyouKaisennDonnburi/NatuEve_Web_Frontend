@@ -24,6 +24,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 | 接続先 | 用途 | 呼び出し元 |
 |---|---|---|
 | NatuEve_API | データの取得・投稿 | ブラウザ（将来は SSR からも） |
+| R2（API のバケット） | 画像・PDF のアップロード（API の presign で得た署名付き URL へ直接 PUT。`src/services/upload.ts`） | ブラウザ |
 | Supabase Auth | ログイン（Google OAuth） | ブラウザ |
 
 ## 構成図
@@ -31,16 +32,29 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 ```
 [ブラウザ]
    │
-   ├─ ページの取得 ──→ Cloudflare Workers（OpenNext）
-   │                    ├─ 静的ファイル（/_next/static/* など）: そのまま返す（Worker は動かない）
-   │                    └─ ページ: Next.js が SSR で返す
+   ├─ ページ・画像の取得 ──→ natueve-web.natuportal.org（Custom Domain）
+   │                          └→ Cloudflare Workers `natueve-web-frontend`（OpenNext）
+   │                               ├─ 静的ファイル（/_next/static/* と public/ 配下）: ASSETS からそのまま返す（Worker は動かない）
+   │                               ├─ ページ: Next.js が SSR で返す
+   │                               └─ 画像（/_next/image）: R2 の公開ドメイン（assets.natuportal.org）から取得し、
+   │                                    Cloudflare Images（IMAGES バインディング）で変換して返す
    │
-   ├─ データの取得・投稿 ──→ NatuEve_API（NEXT_PUBLIC_API_BASE_URL）
+   ├─ データの取得・投稿 ──→ NatuEve_API（natueve-api.natuportal.org。NEXT_PUBLIC_API_BASE_URL）
    │
-   └─ ログイン ──→ Supabase Auth
+   ├─ 画像・PDF のアップロード ──→ R2（API の presign で得た署名付き URL へ直接 PUT）
+   │
+   ├─ アバターの表示 ──→ Google（lh3.googleusercontent.com。画像最適化を通さない）
+   │
+   └─ ログイン ──→ Supabase Auth（本番の Auth `natueveOAuth`。Google OAuth → /auth/callback）
+
+[GitHub Actions（ci.yml）] main への push
+   ├─ deploy-staging（自動） ────→ `natueve-web-frontend-stg`（natueve-web-stg.natuportal.org）
+   └─ deploy-production（承認後）→ `natueve-web-frontend`（natueve-web.natuportal.org）
 ```
 
 - 静的ファイルへのリクエストは Worker を動かさずに返され、課金されない。
+- 検証環境も同じ構成で、接続先だけが変わる（API は `natueve-api-stg.natuportal.org`、Auth は開発の Auth 用プロジェクト、画像は `assets-dev.natuportal.org`）。
+  workers.dev と Version URL は本番・検証とも無効（後述の「割り当て方法」）。
 - 本番では `next.config.ts` の `rewrites`（開発時の `/api` 転送）を使わない。API は `NEXT_PUBLIC_API_BASE_URL` へ直接呼ぶ。
 
 ## Workers の設定
