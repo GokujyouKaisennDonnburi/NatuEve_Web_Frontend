@@ -115,7 +115,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 workers.dev の URL と Version URL での公開は、これとは別に `workers_dev` と `preview_urls` で止めている（#330）。
 
 - #342（OpenNext のビルドが失敗する問題）が解決している（PR #345 で解決済み）。
-- CI から本番へデプロイできる。#330 で入れたのは検証環境へのデプロイと本番の承認の確認用のジョブまでで、本番のデプロイのステップは後続で足す（後述の「CI/CD」）。
+- CI から本番へデプロイできる（**未達**。#330 で入れたのは検証環境へのデプロイと本番の承認の確認用のジョブまでで、本番のデプロイのステップは後続の PR で足す。後述の「CI/CD」の「本番のデプロイ」）。
   ローカルからはデプロイしない（後述の「ビルドとデプロイ」）。
 - 本番の取得元の `pathname`・`search`・`port` の制限が入っている（#351 で対応済み。後述の「画像最適化」を参照）。
   実データで画像が表示されることは、検証環境（`assets-dev.natuportal.org`。キーの形式は本番と同じ）で、割り当ての前に確かめる。
@@ -310,7 +310,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   やむを得ずローカルから実行する場合は、本番の値を環境変数として明示的に渡す（`process.env` は `.env.local` より優先される）。
   その際、**`.env.local` にあるビルド時に効く値（`NEXT_PUBLIC_*` と `USE_DEV_ASSETS`）はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
   特に `NEXT_PUBLIC_USE_MSW=false` と `USE_DEV_ASSETS=false` を渡し忘れると、モック認証や開発用画像の許可が本番で有効になるため注意）。
-  検証環境・本番とも CI からデプロイする（後述の「CI/CD」。#330）。
+  検証環境は CI からデプロイする（#330）。本番も CI からデプロイするが、本番のデプロイのステップは後続の PR で足す（後述の「CI/CD」の「本番のデプロイ」）。それまでは本番へデプロイしない。
 - **本番の取得元（`assets.natuportal.org`）には `pathname`・`search`・`port` の制限を入れている（[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。** 値は[画像最適化](#画像最適化)を参照。
   開発用の `assets-dev.natuportal.org` にも同じ制限を付けている（キー形式は本番と同じ）。この制限を外したり広げたりしたまま本番へデプロイしない。
   本番のビルド環境では、開発用の取得元を次のように外す。
@@ -328,7 +328,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - **`/_next/image*` のキャッシュ方針をデプロイ前に決めて実測する。** zone の Cache Rule は Worker の応答には効かないため、
   Workers Cache を有効化するか（課金の試算が必要）、キャッシュ不要と確認する。本番相当環境で `curl -I` により
   `Cache-Control`・`cf-cache-status` を実測する。詳細は[画像最適化](#画像最適化)を参照。
-- Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可）。
+- Bun はパッケージマネージャーとしてだけ使う（`--bun` フラグは禁止、`bunx` は可。ただし CI の `opennextjs-cloudflare` は `bunx` を使わず `node_modules/.bin` から呼ぶ。後述の「CI/CD」）。
 - Workers Builds は使わない（ADR-0003）。
 
 ## CI/CD（GitHub Actions）
@@ -353,7 +353,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - **main の最新の確認**（「Check this run is the latest main」）: デプロイの直前に、`github.sha` が main の最新のコミットと一致するかを `gh api` で確かめ、
   一致しない・取得できないときはデプロイせずにジョブを失敗させる（ADR-0003 決定 3）。トークンは `GH_TOKEN: ${{ github.token }}`（`contents: read`）をこのステップにだけ渡す。
   検証ジョブが失敗すると、本番のジョブは `needs` により実行されず、承認の依頼も出ない。
-- checkout は両方のジョブで実行の `github.sha` を指定する。デプロイしたコミットはジョブのサマリーに書き出す。
+- checkout は `deploy-staging`（と後続の本番のデプロイのジョブ）で実行の `github.sha` を指定する（`approve-production` は checkout しない）。デプロイしたコミットはジョブのサマリーに書き出す。
 - Cloudflare のトークンはデプロイのステップにだけ渡す。`CLOUDFLARE_ACCOUNT_ID` は Environment の Variables から渡す（上の「デプロイ用」）。
 - `opennextjs-cloudflare` は `./node_modules/.bin/opennextjs-cloudflare` で呼ぶ（bin は `#!/usr/bin/env node` で、Node.js で動く）。
   `bunx` は使わない。`bunx` は `node_modules` に見つからないと npm から同じ名前のパッケージを取って動かす。
@@ -402,6 +402,9 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
    承認しても本番には何も出ない。古い実行の承認待ちは却下（Reject）する（ADR-0003 決定 3）。
    - 確認用のジョブを承認して成功させると、デプロイしていないコミットが `production` のデプロイの記録に成功として残る。
      ADR-0003 決定 3 が避けている状態のため、確認用のジョブの間は `production` のデプロイの記録で本番の中身を判断しない（本番の中身は Cloudflare の Worker のデプロイの履歴で確かめる）。
+     `environment` に `deployment: false` を付けると記録は作られない（2026-03 から。Required reviewers は効く）が、確認用のジョブには付けない。
+     後で足す本番のデプロイのジョブ（記録を作る既定の `deployment: true`）と同じ条件で承認待ちを確かめるためで、
+     `deployment: false` のときに Prevent self-review が効くかも公式に書かれていない（[Control deployments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments)）。
    - 承認待ちになることを一度確かめたら、早めに本番のデプロイのジョブに置き換える（上の「本番のデプロイ」）。それまでのマージで出る承認の依頼は、承認せずに却下する。
 
 ## 導入時に必要な変更
