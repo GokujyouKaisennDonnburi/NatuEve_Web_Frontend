@@ -68,7 +68,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 |---|---|---|
 | 本番のオリジン | `https://natueve-web.natuportal.org` | API の `CORS_ALLOW_ORIGINS`（NatuEve_API #218） |
 | OAuth のリダイレクト先 | `https://natueve-web.natuportal.org/auth/callback` | Supabase Auth の Redirect URLs（#332） |
-| Supabase Auth の Site URL | `https://natueve-web.natuportal.org` | Supabase Auth の Site URL（#332）。下の注を参照 |
+| Supabase Auth の Site URL | `https://natueve-web.natuportal.org`（パスを含めないオリジン） | Supabase Auth の Site URL（#332）。下の注を参照 |
 
 - リダイレクト先は `src/services/auth.ts` の `redirectTo`（`${window.location.origin}/auth/callback`）で決まる。
   Supabase にはオリジンだけでなく、パスを含むこの URL を登録する。
@@ -77,9 +77,12 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   また、Site URL とスキーム・ホスト・ポートが同じ URL は、Redirect URLs に登録がなくても許可される
   （supabase/auth の `internal/utilities/request.go` の `GetReferrer`・`IsRedirectURLValid`。2026-10-27 時点の master（`c3348e8`）で確認。
   本番で動いている Supabase の版では確かめていない）。
-- 本番の Auth はなちゅいべ用の Supabase プロジェクト（Auth 専用）で、NatuPortal のほかのプロダクトと共有していない（2026-10-27 時点。#332 で確認した）ため、
-  Site URL は本番のオリジンにする（#332）。将来ほかのプロダクトと共有する場合は、Site URL をほかのプロダクトの担当と相談して決め直す。
-  モバイルアプリ（NatuEve_Mobile）は、2026-10-27 時点の main に認証の実装がなく、この Auth を使うかは決まっていない。
+- 本番の Auth はなちゅいべ用の Supabase プロジェクト（Auth 専用）で、NatuPortal のほかのプロダクトと共有していない前提で Site URL を本番のオリジンにする（#332）。
+  根拠は 2026-10-27 時点の確認で、Supabase の管理者 kazu692 の 2026-10-23 のコメント（新規プロジェクト `natueveOAuth` への登録:
+  https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/332#issuecomment-6358520095）による。
+  ただしこのコメントは「共有していない」とまでは明記しておらず、#332 の本文と 2026-10-22 のコメントは共有前提のままなので、Issue 側の本文・AC の更新が必要。
+  将来ほかのプロダクトと共有する場合は、Site URL をほかのプロダクトの担当と相談して決め直す。
+  モバイルアプリ（NatuEve_Mobile）がこの Auth を使うかは未確認（2026-10-27 時点の main に認証の実装がなく、使うかは決まっていない）。
   使うことになったら、モバイルのリダイレクト先を Redirect URLs に加える。
   Site URL を本番のオリジンにすると Redirect URLs がなくてもログインできるが、Redirect URLs への登録は外さない。
   Site URL をほかのオリジンに変えたときに、ログインが壊れないようにするため。
@@ -123,7 +126,7 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 - 上の表の本番のオリジンを API の `CORS_ALLOW_ORIGINS` と Supabase Auth の Site URL に、OAuth のリダイレクト先を Supabase Auth の Redirect URLs に登録している。
   `CORS_ALLOW_ORIGINS` を登録していないと、公開した直後から API の呼び出しが失敗する。
   Site URL と Redirect URLs は両方とも登録する。どちらか一方が合っていればログインは通るが、Redirect URLs を残す理由は上の「独自ドメイン」の注のとおり。
-  どちらも本番の値になっていないと、ログイン後に Site URL の既定値（本番のオリジンではない）へ戻され、ログインが失敗する。
+  どちらも本番の値になっていないと、ログイン後にその時点の Site URL（本番のオリジンではない）へ戻され、ログインが失敗する。
 
 割り当てたら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Supabase Auth の登録の誤りは分からないため、3 つとも確かめる。
 
@@ -131,8 +134,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 - ブラウザから API を呼べる（イベント一覧が表示され、CORS のエラーが出ない）。
 - Google でログインし、`/auth/callback` を経てログイン済みになる（#332 の AC と同じ）。
   Site URL と Redirect URLs のどちらかが合っていれば通るため、この確認ではもう一方の誤りは分からない。
-  Site URL が `https://natueve-web.natuportal.org`、Redirect URLs に `https://natueve-web.natuportal.org/auth/callback` があることを、
-  Supabase のダッシュボードで別に確かめる。
+  Site URL が `https://natueve-web.natuportal.org`（パスを含めないオリジン）、Redirect URLs に `https://natueve-web.natuportal.org/auth/callback` があることを、
+  Supabase のダッシュボードで別に確かめる。Redirect URLs に開発・プレビュー以外の不要な URL や `https://*.natuportal.org/**` のような広いワイルドカードがないことも確かめる（#332 の AC）。
 
 ### 注意
 
