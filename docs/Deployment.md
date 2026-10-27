@@ -107,7 +107,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
   `routes` でこれらを省略したときの API の既定は、本番が有効、Previews が無効
   （[wrangler 4.85.0 のリリースノート](https://github.com/cloudflare/workers-sdk/releases/tag/wrangler%404.85.0)）。
   ダッシュボードの「Worker URL」で、プロダクション（`workers_dev`）とプレビュー（`preview_urls`）のトグルがともに OFF であることを、検証環境と本番で確認した（2026-10-27。本番は #329 の返信の画像）。
-  Custom Domain 経由の Previews（`previews_enabled`）の値は未確認。ダッシュボードの Domains タブの「+ Add Domain」では「Enable for」で Preview を許可するかを選ぶ（[公式](https://developers.cloudflare.com/workers/previews/custom-domains/)）ため、割り当て時にどう設定されたかも分からない。API（`GET /accounts/{account_id}/workers/domains`）での値の確認と、Previews が workers.dev・Custom Domain のどちらからも配信されていないことの確認は、未決事項 1 に残す。
+  Custom Domain 経由の Previews（`previews_enabled`）の値は未確認。ダッシュボードの Domains タブの「+ Add Domain」では「Enable for」で Preview を許可するかを選ぶ（[公式](https://developers.cloudflare.com/workers/previews/custom-domains/)）ため、割り当て時にどう設定されたかも分からない。API（`GET /accounts/{account_id}/workers/domains`）での値の確認と、Custom Domain 経由の Previews が配信されていないことの確認は、未決事項 1 に残す。
 
 ### 割り当てる時期
 
