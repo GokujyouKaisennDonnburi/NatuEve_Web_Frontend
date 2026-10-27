@@ -60,6 +60,12 @@ jobs:
       - name: Test (Vitest)
         run: bun run test
 
+      # 接続先の確認と main の最新の確認のスクリプトは、main への push で初めて動く。構文を PR のうちに確かめる（#362 のレビュー）。
+      - name: Check shell scripts
+        run: |
+          bash -n .github/scripts/*.sh
+          shellcheck -S warning .github/scripts/*.sh
+
       # main への push では、デプロイのジョブが環境ごとの値でビルドするため、ここでのビルドは PR だけで行う。
       # デプロイと同じ OpenNext のビルド（内部で next build も行う）にし、OpenNext 固有の失敗（#342 など）を PR で見つける。
       # トークンは使わない。成果物はデプロイしない。
