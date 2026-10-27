@@ -12,7 +12,7 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 |---|---|---|
 | **Cloudflare Workers（Paid プラン）** | Next.js の SSR と静的ファイルの配信 | 確定 |
 | **OpenNext（`@opennextjs/cloudflare`）** | Next.js を Workers で動かすためのアダプタ | 確定 |
-| Cloudflare DNS | 独自ドメインの割り当て（`natueve-web.natuportal.org`。Workers の Custom Domain） | サブドメインは決定（#328）。割り当ては後述の条件がそろってから |
+| Cloudflare DNS | 独自ドメインの割り当て（`natueve-web.natuportal.org`。Workers の Custom Domain） | サブドメインは決定し（#328）、2026-10-27 に割り当て済み。下の「割り当てる時期」 |
 | **Cloudflare Images（`IMAGES` バインディング）** | `next/image` の画像最適化 | 確定（#327） |
 | **GitHub Actions（Environments）** | ビルドとデプロイ（検証環境は自動、本番は承認後） | 実装済み（検証環境 #330、本番 #362）。下の「CI/CD」 |
 
@@ -137,6 +137,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
   検証用の URL は開発の Auth 用プロジェクト側で管理し、本番には入れない（下の「検証環境」）。
 - 画像が表示される（イベント一覧・イベント詳細・レポート・ヘッダーのアバター）。`pathname` の値が API の画像の URL と合わないと、
   イベント・レポートの画像が `/_next/image` の 400 で表示されない（#351）。
+
+2026-10-27 に割り当てて、上の 4 つを確かめた（#329）。
 
 ### 注意
 
@@ -390,7 +392,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   GitHub Actions が空文字の環境変数を設定するかも含めて、最初の実行（2026-10-27。#363 のマージ後の実行。コミット `e9caa6a`）で確かめた。ビルドとデプロイのログに環境を指定していないという警告は出ず、空文字が効いていた（`.env.production` に `CLOUDFLARE_ENV` を書くと、OpenNext がその値を読んで別の環境を選びかねないため、書かないこと）。
 - 最初の実行で、必須承認者の承認の後に、本番の Worker `natueve-web-frontend` へのデプロイが成功することを確かめた（2026-10-27 の実行。`Uploaded natueve-web-frontend` の後、`No targets deployed` で routes には触れない。Custom Domain 未割り当てで `workers_dev`・`preview_urls` 無効のため、公開は変わらない）。
 - 本番ビルドで MSW が動いていないことを実機で確かめた（2026-10-27。`NEXT_PUBLIC_USE_MSW` は `"false"` に固定していて、コード上も `MSWProvider` が development 以外では即 returnするため起動しない。DevTools の Service workers に本番オリジンの登録がなく、`mockServiceWorker.js` への実行時リクエストもなく、実データが表示される。#329）。
-- 本番へ出しても、Custom Domain を割り当てるまでは公開されない（`workers_dev`・`preview_urls` は無効）。割り当ては「割り当てる時期」の条件がそろってから行う。2026-10-27 に #328 で `natueve-web.natuportal.org` を割り当て済みで、割り当て後の 4 点確認（上の「割り当てる時期」）も済んだ。
+- 本番へ出しても、Custom Domain を割り当てるまでは公開されない（`workers_dev`・`preview_urls` は無効）。割り当ては「割り当てる時期」の条件がそろってから行う。2026-10-27 に #328 で `natueve-web.natuportal.org` を割り当て済みで、本番のドメインは公開済み。割り当て後の 4 点確認（上の「割り当てる時期」）も済んだ。
 
 ### 初期設定（管理者が行う）
 
