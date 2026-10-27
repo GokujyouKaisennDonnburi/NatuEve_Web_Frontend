@@ -12,19 +12,21 @@ vi.mock("@opennextjs/cloudflare", () => ({
 }));
 
 // next.config.ts の設定値を意図的に固定し、許可パターンの回帰を検出する。
-// キー形式: protocol://hostname|port|pathname|search（未設定は ""・"/**"・"*"）。
-// search の "" はクエリなしだけを許可し（末尾 `?` だけは search が空として通る）、"*" はクエリを問わない。
+// キー形式: protocol://hostname|port|pathname|search（未設定は ""・"/**"・"(unset)"）。
+// search は完全一致で、"" はクエリなしだけを許可する（末尾 `?` だけは search が空として通る）。
+// 未設定のときだけクエリを問わない。
+const ASSET_IMAGE_PATHNAME = "+([0-9a-f-]).@(jpg|png)";
 const PRODUCTION_PATTERNS = [
-  "https://assets.natuportal.org||/natueve/events/images/*|",
-  "https://assets.natuportal.org||/natueve/reports/images/*|",
+  `https://assets.natuportal.org||/natueve/events/images/${ASSET_IMAGE_PATHNAME}|`,
+  `https://assets.natuportal.org||/natueve/reports/images/${ASSET_IMAGE_PATHNAME}|`,
 ];
 const DEVELOPMENT_PATTERNS = [
-  "https://assets-dev.natuportal.org||/natueve/events/images/*|",
-  "https://assets-dev.natuportal.org||/natueve/reports/images/*|",
+  `https://assets-dev.natuportal.org||/natueve/events/images/${ASSET_IMAGE_PATHNAME}|`,
+  `https://assets-dev.natuportal.org||/natueve/reports/images/${ASSET_IMAGE_PATHNAME}|`,
 ];
 const MOCK_PATTERNS = [
-  "https://picsum.photos||/**|*",
-  "https://i.pravatar.cc||/**|*",
+  "https://picsum.photos||/**|(unset)",
+  "https://i.pravatar.cc||/**|(unset)",
 ];
 
 const toPatternKey = ({
@@ -38,7 +40,7 @@ const toPatternKey = ({
     `${protocol?.replace(/:$/, "") ?? "*"}://${hostname}`,
     port ?? "",
     pathname ?? "/**",
-    search ?? "*",
+    search ?? "(unset)",
   ].join("|");
 
 type ImageHostEnv = {
@@ -144,9 +146,11 @@ describe("next.config.ts の画像取得元", () => {
 
 describe("next.config.ts の画像取得元の pathname・search の制限", () => {
   // API が返すイベント画像・レポート画像の URL（NatuEve_API の buildFinalKey。JPEG・PNG のみ）。
+  // 末尾が `?` だけの URL は、URL の仕様で search が空になるため通る（docs/Deployment.md に記載）。
   it.each([
     `https://assets.natuportal.org/natueve/events/images/${IMAGE_ID}.jpg`,
     `https://assets.natuportal.org/natueve/reports/images/${IMAGE_ID}.png`,
+    `https://assets.natuportal.org/natueve/events/images/${IMAGE_ID}.jpg?`,
   ])("本番ビルドで %s を許可する", async (url) => {
     expect(isAllowed(await loadRemotePatterns(), url)).toBe(true);
   });
@@ -171,6 +175,22 @@ describe("next.config.ts の画像取得元の pathname・search の制限", () 
     [
       "親ディレクトリへの移動",
       `https://assets.natuportal.org/natueve/events/images/../../tmp/${IMAGE_ID}.jpg`,
+    ],
+    [
+      "エンコードした / で親ディレクトリへ移動",
+      "https://assets.natuportal.org/natueve/events/images/..%2F..%2Ftmp%2Fprofile-id%2Fimage.jpg",
+    ],
+    [
+      "エンコードした \\ で親ディレクトリへ移動",
+      "https://assets.natuportal.org/natueve/events/images/..%5C..%5Ctmp%5Cimage.jpg",
+    ],
+    [
+      "JPEG・PNG 以外の拡張子",
+      `https://assets.natuportal.org/natueve/events/images/${IMAGE_ID}.gif`,
+    ],
+    [
+      "UUID 以外のファイル名",
+      "https://assets.natuportal.org/natueve/events/images/image.jpg",
     ],
     [
       "クエリ付き",
@@ -213,5 +233,17 @@ describe("next.config.ts の画像取得元の pathname・search の制限", () 
         `https://assets-dev.natuportal.org/natueve/events/images/${IMAGE_ID}.jpg?v=1`,
       ),
     ).toBe(false);
+  });
+});
+
+describe("next.config.ts のモック用の取得元", () => {
+  // モックの画像 URL はクエリで画像を切り替えるため、search を絞らない。
+  it.each([
+    "https://picsum.photos/1200/600?random=1",
+    "https://i.pravatar.cc/150?img=1",
+  ])("NEXT_PUBLIC_USE_MSW=true なら %s を許可する", async (url) => {
+    expect(isAllowed(await loadRemotePatterns({ useMsw: "true" }), url)).toBe(
+      true,
+    );
   });
 });

@@ -11,7 +11,8 @@ const developmentAssetHostname = "assets-dev.natuportal.org";
 
 // 本番でも使う画像の取得元（R2 の公開ドメイン）。
 // 画像最適化で変換できる画像を、API が保存するイベント・レポートの画像だけに絞る（#351）。
-// キーは NatuEve_API の buildFinalKey（natueve/{events|reports}/images/{uuid}{ext}）に合わせる。
+// キーは NatuEve_API の buildFinalKey（natueve/{events|reports}/images/{uuid}{.jpg|.png}）に合わせる。
+// ファイル名を UUID の文字（小文字の 16 進数とハイフン）と拡張子に限り、%2F などのエンコードした区切りも通さない。
 // 一時領域（natueve/tmp/）・PDF（natueve/*/documents/）・他プロダクトの画像は許可しない。
 // API の URL にはクエリが付かないため、search: "" でクエリ付きの URL も許可しない。
 // Google のプロフィール画像（lh3.googleusercontent.com）は unoptimized で表示し、ここには含めない。
@@ -19,7 +20,7 @@ const productionImageHosts: ImageRemotePattern[] = ["events", "reports"].map(
   (destination) => ({
     protocol: "https",
     hostname: assetHostname,
-    pathname: `/natueve/${destination}/images/*`,
+    pathname: `/natueve/${destination}/images/+([0-9a-f-]).@(jpg|png)`,
     search: "",
   }),
 );

@@ -109,17 +109,20 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 - #342（OpenNext のビルドが失敗する問題）が解決している（PR #345 で解決済み）。
 - #330（CI からのデプロイ）ができている。ローカルからはデプロイしない（後述の「ビルドとデプロイ」）。
 - 本番の取得元の `pathname` 制限が入っている（#351 で対応済み。後述の「画像最適化」を参照）。
+  実データで画像が表示されることは、検証環境（`assets-dev.natuportal.org`。キーの形式は本番と同じ）で、割り当ての前に確かめる。
 - API の独自ドメインに HTTPS で届く（`https://natueve-api.natuportal.org/health` が `{"status":"ok"}` を返す）。
   NatuEve_API の `docs/Deployment.md`「独自ドメイン経由の検証（#226）」が済んでいること。済んでいないと、公開した直後から API の呼び出しがすべて失敗する。
 - 上の表の本番のオリジンを API の `CORS_ALLOW_ORIGINS` に、OAuth のリダイレクト先を Supabase Auth の Redirect URLs に登録している
   （Site URL は共有プロジェクトのため要相談で、この条件には含めない）。
   登録していないと、公開した直後から API の呼び出しとログインが失敗する。
 
-割り当てたら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Redirect URLs の登録の誤りは分からないため、3 つとも確かめる。
+割り当てたら、`https://natueve-web.natuportal.org` で次を確認する。トップページが表示されても、CORS や Redirect URLs の登録の誤り、画像の許可リストのずれは分からないため、4 つとも確かめる。
 
 - トップページが HTTPS で表示される。
 - ブラウザから API を呼べる（イベント一覧が表示され、CORS のエラーが出ない）。
 - Google でログインし、`/auth/callback` を経てログイン済みになる（Supabase の Redirect URLs が通る。#332 の AC と同じ）。
+- 画像が表示される（イベント一覧・イベント詳細・レポート・ヘッダーのアバター）。`pathname` の値が API の画像の URL と合わないと、
+  イベント・レポートの画像が `/_next/image` の 400 で表示されない（#351）。
 
 ### 注意
 
@@ -350,8 +353,11 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   `Cache-Control`・`cf-cache-status` を実測して最終確認する（静的 import の画像は immutable が付く）。
 - 許可する画像の取得元:
   - R2 の公開ドメイン `assets.natuportal.org` は、API が保存するイベント・レポートの画像だけを許可する（#351）。
-    - `pathname`: `/natueve/events/images/*`・`/natueve/reports/images/*`。NatuEve_API の `buildFinalKey`
-      （`natueve/{events|reports}/images/{uuid}{.jpg|.png}`）に合わせる。`*` は 1 階層。
+    - `pathname`: `/natueve/events/images/+([0-9a-f-]).@(jpg|png)`・`/natueve/reports/images/+([0-9a-f-]).@(jpg|png)`。
+      NatuEve_API の `buildFinalKey`（`natueve/{events|reports}/images/{uuid}{.jpg|.png}`。UUID は小文字）に合わせる。
+      ファイル名を UUID の文字と拡張子に限るため、`%2F`・`%5C` のようにエンコードした区切りを含む URL や、JPEG・PNG 以外の拡張子も通らない
+      （`*` にすると 1 階層の任意の文字列に一致し、`..%2F..%2Ftmp%2F...` も通る。R2 がこれをどう解決するかは確かめていない）。
+      書き方は Next.js の glob（picomatch）の extglob で、ビルド時に正規表現になり、OpenNext もその正規表現で判定する。
     - `search`: `""`（クエリ付きの URL は許可しない）。API の画像の URL は `R2_PUBLIC_BASE_URL + "/" + キー` で、クエリが付かない
       （NatuEve_API の `internal/service/object_url.go`）。末尾が `?` だけの URL は、URL の仕様で `search` が空になるため通る
       （画像の中身は同じで、別に数えられたとしても 1 画像あたり 1 通り増えるだけ）。
