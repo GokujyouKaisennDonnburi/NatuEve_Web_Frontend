@@ -251,6 +251,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_USE_MSW: "false"
           # USE_DEV_ASSETS は立てない（本番の許可リストに開発用の R2 を入れない。#353）。
+          # .env.production は .gitignore の外（コミットされうる）ため、未設定に頼らず "false" と明示する（#362 のレビュー）。
+          USE_DEV_ASSETS: "false"
 
       # 承認待ちの間に main が進んでいたら、古いコミットで本番を巻き戻さないよう止める（ADR-0003 決定 3）。
       - name: Check this run is the latest main

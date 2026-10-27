@@ -364,7 +364,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - checkout は両方のデプロイのジョブで実行の `github.sha` を指定する（本番は検証環境に出したのと同じコミットから、本番の値でビルドし直す。成果物は使い回さない）。デプロイしたコミットはジョブのサマリーに書き出す。
 - 接続先の確認と main の最新の確認は、両方のジョブで `bash .github/scripts/check-connection-variables.sh`・`bash .github/scripts/check-latest-main.sh` を呼ぶ。
   期待値の `EXPECTED_*` はジョブの `env:` で渡す。`DEPLOY_ENVIRONMENT` と確認対象の値（`NEXT_PUBLIC_*`・`CLOUDFLARE_ACCOUNT_ID`・`GH_TOKEN`）は、各ステップの `env:` で渡す。
-  `check-latest-main.sh` は `bun install`・ビルドの後に実行するため、それらのステップ（依存パッケージのコードが動く）がスクリプトを書き換えうる。ただし、そのステップが乗っ取られた時点で、デプロイのステップで動く `node_modules/.bin/opennextjs-cloudflare` も書き換えられるため、増える危険は小さいとして受け入れる
+  どちらのスクリプトも `bun install` の後に実行するため、そのステップ（依存パッケージのコードが動く）がスクリプトを書き換えうる（`check-latest-main.sh` はビルドの後にも実行する）。ただし、そのステップが乗っ取られた時点で、デプロイのステップで動く `node_modules/.bin/opennextjs-cloudflare` も書き換えられるため、増える危険は小さいとして受け入れる
   （同じジョブのステップはファイルを共有する。主な防御はトークンの権限の絞り込み。ADR-0003 決定 3）。
 - Cloudflare のトークンはデプロイのステップにだけ渡す。`CLOUDFLARE_ACCOUNT_ID` は Environment の Variables から渡す（上の「デプロイ用」）。
 - `opennextjs-cloudflare` は `./node_modules/.bin/opennextjs-cloudflare` で呼ぶ（bin は `#!/usr/bin/env node` で、Node.js で動く）。
@@ -379,7 +379,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - ステップは `deploy-staging` と同じ並び（接続先の確認（キーの `ref`・`role` と `CLOUDFLARE_ACCOUNT_ID` を含む）→ ビルド → main の最新の確認 → デプロイ → サマリー）。
   main の最新の確認は、承認の後、デプロイの直前に行う（承認待ちの間に main が進んでいたら出さない）。
 - 期待値は本番の値（`https://natueve-api.natuportal.org`・`https://tpszowxdhvthxyqorvwr.supabase.co`）。
-- `USE_DEV_ASSETS` は立てない（`NEXT_PUBLIC_USE_MSW` は `"false"` に固定する）。
+- `USE_DEV_ASSETS` は `"false"` と明示して立てない（`NEXT_PUBLIC_USE_MSW` は `"false"` に固定する。`.env.production` は .gitignore の外でコミットされうるため、未設定に頼らず明示する。#353・#362 のレビュー）。
 - 最上位の設定を使うため、ジョブの `env:` に `CLOUDFLARE_ENV: ""` を置く（ジョブの `env:` は全ステップに継承され、ビルドとデプロイの両方のステップで確実に効く。`CLOUDFLARE_ENV` を参照しない他のステップには、空文字の変数が設定されるだけで影響はない）。
   `wrangler.jsonc` に `env` があるため、環境を指定しないと wrangler が警告を出す。`--env=""` は OpenNext 1.20.13 が空文字を捨てて wrangler に渡さないため効かない
   （`getWranglerArgs` の `args.env ? [...] : []`）。wrangler は `CLOUDFLARE_ENV` が環境変数にあれば空文字でも指定ありとみなし（`variableName in process.env`）、
