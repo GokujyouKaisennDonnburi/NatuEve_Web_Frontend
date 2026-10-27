@@ -390,11 +390,11 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 ### 初期設定（管理者が行う）
 
-存在しない Environment を参照する実行は、保護ルールなしの Environment を自動で作るため、ワークフローを main に入れる前に済ませる（ADR-0003 決定 3）。
+存在しない Environment を参照する実行は、保護ルールなしの Environment を自動で作るため、手順 1〜5 はワークフローを main に入れる前に済ませる（ADR-0003 決定 3。手順 6 はマージ後の確認）。
 
 1. **Cloudflare の Worker を作る**: 検証用の `natueve-web-frontend-stg`（と、まだなければ本番の `natueve-web-frontend`）をダッシュボードで作る。
    CI のトークン（Worker 単位の Editor）では Worker を作れない（上の「Cloudflare の API トークン」）。
-2. **検証用・本番用のトークンを作る**: 対象の Worker の Individual Workers Editor だけにする（上の「Cloudflare の API トークン」。権限は 2026-10-27 に実機で確かめた）。
+2. **検証用・本番用のトークンを作る**: 対象の Worker の Individual Workers Editor だけにする（上の「Cloudflare の API トークン」。検証用のトークンの権限は 2026-10-27 に実機で確かめた。本番用は #362 の最初の実行で確かめる）。
 3. **GitHub の Environment を作る**: `staging`・`production` を作り、どちらもデプロイできるブランチを main のみにし、
    管理者による保護ルールのバイパスを無効にする。`production` には Required reviewers と Prevent self-review を設定する。
    Prevent self-review により main にマージした本人は承認できないため、承認者は少なくとも 2 人登録する（ADR-0003「トレードオフ」）。
@@ -573,7 +573,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
    値は上の「環境変数」、名前とドメインは上の「検証環境」を参照。
 5. **CI/CD**: 一部解決済み（#330・#362）。main へのマージで検証環境へ自動でデプロイし、本番は承認を経てデプロイする（上の「CI/CD」）。
    残っている作業は次のとおり。
-   - マージ前の初期設定（上の「CI/CD」の「初期設定」）。2026-10-27 に管理者が済ませた（トークンの権限の実機確認を含む）。
+   - マージ前の初期設定（上の「CI/CD」の「初期設定」）。2026-10-27 に管理者が済ませた（検証用のトークンの権限の実機確認を含む）。
    - 承認を経て本番の Worker にデプロイできることを、#362 のマージ後の実行で確かめる。
    - 検証環境の Custom Domain の割り当て（上の「検証環境」）。
 6. **API 側の CORS**: 一部解決済み。残っている作業は次のとおり。
