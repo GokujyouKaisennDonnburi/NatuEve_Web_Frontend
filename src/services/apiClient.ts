@@ -46,10 +46,18 @@ export async function apiFetch(
   const { auth = true, headers, ...rest } = init; // authオプションをデフォルトでtrueに設定
   const mergedHeaders = mergeHeaders(headers); // ヘッダーをマージ
 
+  // モック有効時は、認証の有無に関係なく MSW worker の起動を待つ。
+  // 子コンポーネントの effect は MSWProvider より先に実行されるため、
+  // ここで待たないと初回リクエストが MSW を迂回して実 API に届く。
+  // 起動に失敗しても MSWProvider と同様に無視し、通常の fetch を続行する。
+  const isMswEnabled = isMockAuthEnabled();
+  if (isMswEnabled) {
+    await syncMockWorker(true).catch(() => undefined);
+  }
+
   // 認証が必要な場合は、Supabaseのセッションからアクセストークンを取得してAuthorizationヘッダーに設定
   if (auth) {
-    if (isMockAuthEnabled()) {
-      await syncMockWorker(true);
+    if (isMswEnabled) {
       const mockSession = getMockAuthSession();
       if (mockSession?.token) {
         mergedHeaders.set("Authorization", `Bearer ${mockSession.token}`);
