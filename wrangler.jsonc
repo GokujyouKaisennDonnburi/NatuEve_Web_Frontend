@@ -1,6 +1,13 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "natueve-web-frontend",
+  // workers.dev と Preview URL は無効にする。どちらも省略すると Worker 側の設定を変えないか（preview_urls）、
+  // routes が空のときに有効になる（workers_dev）ため、明示する（wrangler 4.150.0。docs/Deployment.md「割り当て方法」）。
+  "workers_dev": false,
+  "preview_urls": false,
+  // Custom Domain はここに書かず、管理者がダッシュボードで割り当てる。
+  // CI のトークンにルートを変える権限を付けないため（ADR-0003 決定 3）。
+  "routes": [],
   "main": ".open-next/worker.js",
   "compatibility_date": "2025-05-05",
   "compatibility_flags": [
@@ -20,5 +27,27 @@
       "binding": "WORKER_SELF_REFERENCE",
       "service": "natueve-web-frontend"
     }
-  ]
+  ],
+  // 検証環境（ADR-0003 決定 4）。`opennextjs-cloudflare build --env staging`・`deploy --env staging` で使う。
+  // Worker の名前は API 側（natueve-api-relay-stg）に揃える。Worker は管理者がダッシュボードで作る。
+  "env": {
+    "staging": {
+      "name": "natueve-web-frontend-stg",
+      // routes・workers_dev・preview_urls は最上位から引き継がれるが、最上位の変更に左右されないよう明示する。
+      "routes": [],
+      "workers_dev": false,
+      "preview_urls": false,
+      // images と services は env に引き継がれないため、宣言し直す。
+      "images": {
+        "binding": "IMAGES"
+      },
+      "services": [
+        {
+          // 検証用の Worker 自身を指す（最上位の値をそのまま写すと本番の Worker を指してしまう）。
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "natueve-web-frontend-stg"
+        }
+      ]
+    }
+  }
 }
