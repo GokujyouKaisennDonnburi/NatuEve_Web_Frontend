@@ -1,8 +1,10 @@
 // @vitest-environment node
-// next.config.ts の設定値だけを検証するため、DOM は使わない。
+// next.config.ts の設定値とモック画像URLの整合を検証するため、DOM は使わない。
 
 // Next.js の内部 API。更新で見つからなくなったら、next build の writeImagesManifest と同じく
 // picomatch の makeRe（dot: true）で pathname を正規表現にして判定する形に置き換える。
+import { mockEventDetails, mockEvents } from "@/mocks/handlers/events/data";
+import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import { matchRemotePattern } from "next/dist/shared/lib/match-remote-pattern";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ImageRemotePattern } from "../../next.config";
@@ -270,5 +272,26 @@ describe("next.config.ts のモック用の取得元", () => {
     expect(
       isAllowed(await loadRemotePatterns({ nodeEnv: "development" }), url),
     ).toBe(false);
+  });
+
+  it("開発環境の許可リストがモックデータの全画像URLを通す", async () => {
+    const urls = [
+      MOCK_AUTH_SESSION.iconUrl,
+      ...mockEvents.map((event) => event.profile.avatarUrl),
+      ...[...mockEventDetails.values()].flatMap((detail) => [
+        detail.organizerAvatarUrl,
+        ...(detail.imageUrls ?? []),
+        ...(detail.imageObjectKeys ?? []),
+        ...(detail.reports?.flatMap((report) => [
+          report.authorAvatarUrl,
+          ...(report.imageUrls ?? []),
+        ]) ?? []),
+      ]),
+    ].filter((url): url is string => typeof url === "string" && url.length > 0);
+
+    const patterns = await loadRemotePatterns({ nodeEnv: "development" });
+    for (const url of urls) {
+      expect(isAllowed(patterns, url), url).toBe(true);
+    }
   });
 });

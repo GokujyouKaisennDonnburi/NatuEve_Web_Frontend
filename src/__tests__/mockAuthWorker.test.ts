@@ -42,4 +42,21 @@ describe("ensureMockWorker", () => {
     expect(workerMock.start).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledTimes(1);
   });
+
+  it("並行して呼ばれても警告は1回だけ", async () => {
+    vi.stubEnv("NEXT_PUBLIC_USE_MSW", "true");
+    workerMock.start.mockRejectedValue(new Error("worker start failed"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const { ensureMockWorker } = await import("@/services/mockAuth");
+
+    await Promise.all([
+      ensureMockWorker(),
+      ensureMockWorker(),
+      ensureMockWorker(),
+    ]);
+
+    expect(workerMock.start).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
 });

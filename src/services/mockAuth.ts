@@ -110,6 +110,7 @@ export function subscribeMockAuthSession(listener: () => void) {
 
 let mockWorkerPromise: Promise<void> | null = null; // モックワーカーの起動状態を保持する Promise
 let mockWorkerFailed = false; // 起動失敗後にリクエストごとの再試行を防ぐ
+let ensurePromise: Promise<void> | null = null; // 並行呼び出しで起動処理を共有する Promise
 
 // モックワーカーを同期する関数
 export async function syncMockWorker(enabled: boolean) {
@@ -150,16 +151,20 @@ export async function syncMockWorker(enabled: boolean) {
   await mockWorkerPromise;
 }
 
-// モックワーカーの起動を待つ。失敗時は1回だけ警告し、以降の呼び出しでは再試行しない。
+// モックワーカーの起動を待つ。並行呼び出しでも警告は1回だけにし、失敗後は再試行しない。
 export async function ensureMockWorker(): Promise<void> {
   if (!isMockAuthEnabled() || mockWorkerFailed) {
     return;
   }
 
-  try {
-    await syncMockWorker(true);
-  } catch (error) {
-    mockWorkerFailed = true;
-    console.warn("MSW worker の起動に失敗しました", error);
-  }
+  ensurePromise ??= syncMockWorker(true)
+    .catch((error) => {
+      mockWorkerFailed = true;
+      console.warn("MSW worker の起動に失敗しました", error);
+    })
+    .finally(() => {
+      ensurePromise = null;
+    });
+
+  await ensurePromise;
 }
