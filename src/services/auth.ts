@@ -3,16 +3,16 @@ import { getSupabase } from "@/lib/supabase";
 import {
   MOCK_AUTH_SESSION,
   clearMockAuthSession,
+  ensureMockWorker,
   getMockAuthSession,
   isMockAuthEnabled,
   setMockAuthSession,
-  syncMockWorker,
 } from "@/services/mockAuth";
 
 // Googleサインインへリダイレクト（モック時はセッションを保存して true を返す）
 export async function signInWithGoogle(): Promise<boolean> {
   if (isMockAuthEnabled()) {
-    await syncMockWorker(true);
+    await ensureMockWorker();
     setMockAuthSession(MOCK_AUTH_SESSION);
     return true;
   }

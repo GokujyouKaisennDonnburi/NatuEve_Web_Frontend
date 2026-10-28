@@ -109,6 +109,7 @@ export function subscribeMockAuthSession(listener: () => void) {
 }
 
 let mockWorkerPromise: Promise<void> | null = null; // モックワーカーの起動状態を保持する Promise
+let mockWorkerFailed = false; // 起動失敗後にリクエストごとの再試行を防ぐ
 
 // モックワーカーを同期する関数
 export async function syncMockWorker(enabled: boolean) {
@@ -119,6 +120,8 @@ export async function syncMockWorker(enabled: boolean) {
 
   // モック認証が無効な場合は、モックワーカーを停止する
   if (!enabled) {
+    // 再度有効化したときに再試行できるよう、失敗状態を戻す
+    mockWorkerFailed = false;
     if (mockWorkerPromise) {
       await mockWorkerPromise.catch(() => undefined);
       const { worker } = await import("@/mocks/browser");
@@ -145,4 +148,18 @@ export async function syncMockWorker(enabled: boolean) {
   }
 
   await mockWorkerPromise;
+}
+
+// モックワーカーの起動を待つ。失敗時は1回だけ警告し、以降の呼び出しでは再試行しない。
+export async function ensureMockWorker(): Promise<void> {
+  if (!isMockAuthEnabled() || mockWorkerFailed) {
+    return;
+  }
+
+  try {
+    await syncMockWorker(true);
+  } catch (error) {
+    mockWorkerFailed = true;
+    console.warn("MSW worker の起動に失敗しました", error);
+  }
 }

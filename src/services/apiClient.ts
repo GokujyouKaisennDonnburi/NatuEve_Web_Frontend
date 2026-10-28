@@ -1,8 +1,8 @@
 import { getSupabase } from "@/lib/supabase";
 import {
+  ensureMockWorker,
   getMockAuthSession,
   isMockAuthEnabled,
-  syncMockWorker,
 } from "@/services/mockAuth";
 
 // API のベース URL。未設定なら相対パス（開発時は MSW がモックする）。
@@ -49,10 +49,9 @@ export async function apiFetch(
   // モック有効時は、認証の有無に関係なく MSW worker の起動を待つ。
   // 子コンポーネントの effect は MSWProvider より先に実行されるため、
   // ここで待たないと初回リクエストが MSW を迂回して実 API に届く。
-  // 起動に失敗しても MSWProvider と同様に無視し、通常の fetch を続行する。
   const isMswEnabled = isMockAuthEnabled();
   if (isMswEnabled) {
-    await syncMockWorker(true).catch(() => undefined);
+    await ensureMockWorker();
   }
 
   // 認証が必要な場合は、Supabaseのセッションからアクセストークンを取得してAuthorizationヘッダーに設定

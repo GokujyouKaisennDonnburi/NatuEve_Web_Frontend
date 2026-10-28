@@ -37,15 +37,18 @@ const developmentImageHosts: ImageRemotePattern[] = productionImageHosts.map(
 );
 
 // MSW のモックデータ（src/mocks/**・src/services/mockAuth.ts）でのみ使う画像の取得元。
-// モックの画像 URL を変えるときは、ホストをここに追加して URL と許可リストを揃える。
+// モックの画像 URL を変えるときは、ホストと pathname をここに追加して URL と許可リストを揃える。
+// search は画像の切り替えに使うため制限しない。
 const mockImageHosts: ImageRemotePattern[] = [
   {
     protocol: "https",
     hostname: "picsum.photos",
+    pathname: "/+([0-9])/+([0-9])",
   },
   {
     protocol: "https",
     hostname: "i.pravatar.cc",
+    pathname: "/@(64|150)",
   },
 ];
 

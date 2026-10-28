@@ -25,8 +25,8 @@ const DEVELOPMENT_PATTERNS = [
   `https://assets-dev.natuportal.org||/natueve/reports/images/${ASSET_IMAGE_PATHNAME}|`,
 ];
 const MOCK_PATTERNS = [
-  "https://picsum.photos|(unset)|/**|(unset)",
-  "https://i.pravatar.cc|(unset)|/**|(unset)",
+  "https://picsum.photos|(unset)|/+([0-9])/+([0-9])|(unset)",
+  "https://i.pravatar.cc|(unset)|/@(64|150)|(unset)",
 ];
 
 const toPatternKey = ({
@@ -55,11 +55,11 @@ const setEnv = (key: ImageHostEnvKey, value: string | undefined) => {
   vi.stubEnv(key, value);
 };
 
-// 既定は Vitest の NODE_ENV=test。本番の安全性は production を明示して検証する。
+// 既定は本番ビルド相当。開発環境の許可は development を明示して検証する。
 const loadRemotePatterns = async ({
   useMsw,
   useDevAssets,
-  nodeEnv = "test",
+  nodeEnv = "production",
 }: ImageHostEnv = {}): Promise<ImageRemotePattern[]> => {
   vi.resetModules();
 
@@ -251,10 +251,24 @@ describe("next.config.ts のモック用の取得元", () => {
   // モックの画像 URL はクエリで画像を切り替えるため、search を絞らない。
   it.each([
     "https://picsum.photos/1200/600?random=292",
+    "https://picsum.photos/600/400?random=1",
     "https://i.pravatar.cc/150?img=1",
+    "https://i.pravatar.cc/64?u=profile-2",
   ])("NEXT_PUBLIC_USE_MSW=true なら %s を許可する", async (url) => {
     expect(isAllowed(await loadRemotePatterns({ useMsw: "true" }), url)).toBe(
       true,
     );
+  });
+
+  it.each([
+    "https://picsum.photos/foo/bar",
+    "https://picsum.photos/1200",
+    "https://picsum.photos/1200/600/extra",
+    "https://i.pravatar.cc/300?img=1",
+    "https://i.pravatar.cc/150/extra",
+  ])("開発環境でも許可外の pathname %s は許可しない", async (url) => {
+    expect(
+      isAllowed(await loadRemotePatterns({ nodeEnv: "development" }), url),
+    ).toBe(false);
   });
 });

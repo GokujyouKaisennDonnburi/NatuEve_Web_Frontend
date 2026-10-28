@@ -220,7 +220,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 | `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。本番ビルドでは `true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。ワークフローの `env:` に `"false"` を固定する（#330） |
 | `USE_DEV_ASSETS` | 未設定（または `false`） | `true` | `true` のときだけ、`next.config.ts` の `remotePatterns` にローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）を、本番と同じ `pathname`・`search`・`port` の制限付きで加える（#353・#351）。未設定・`false` では許可しない。ジョブごとにワークフローの `env:` に固定する（検証ジョブは `true`、本番ジョブは立てない。#330）。本番のビルドで立てると、本番の画像最適化が開発用バケットの画像も変換するようになる |
 
-- 開発環境（`next dev`）の画像最適化では、起動後の `.env.local` 変更が `next.config.ts` に反映されないため、`NEXT_PUBLIC_USE_MSW` の値に関係なくモック用取得元を許可する。開発サーバは外部公開しない。
+- 開発環境（`next dev`）の画像最適化では、起動後の `.env.local` 変更が `next.config.ts` に反映されないため、`NEXT_PUBLIC_USE_MSW` の値に関係なくモック用取得元を許可する。許可する `pathname` は picsum.photos が `/+([0-9])/+([0-9])`、i.pravatar.cc が `/@(64|150)` に限る。開発サーバは外部公開しない。
+- `next dev` は既定で `0.0.0.0` にバインドする。LAN に公開しない場合は `bun run dev -- -H 127.0.0.1` で起動する。
 - 本番ビルドでは値を変えたら再ビルドが必要。`USE_DEV_ASSETS`・`NEXT_PUBLIC_USE_MSW` は `next.config.ts` の `images.remotePatterns` へビルド時に反映され、実行時には変えられない。開発サーバで `.env.local` を変更しても `next.config.ts` は再評価されないため、`USE_DEV_ASSETS` を変える場合は再起動する（モック用取得元は開発環境では常時許可）。
 - ローカル開発は従来どおり `.env.local` を使う。Workers のランタイムで確認する場合は `.dev.vars`（`NEXTJS_ENV=development`）を使う。
   どちらもコミットしない。
@@ -324,8 +325,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
   - 本番ビルドで `NEXT_PUBLIC_USE_MSW` が `true` 以外（未設定・`false` を含む）なら、picsum.photos・i.pravatar.cc を許可しない。
   - placehold.co・example.com は削除済み。
   この除外と `pathname`・`search`・`port` の制限は `src/__tests__/nextConfigImageHosts.test.ts` で検証している。
-  **`NEXT_PUBLIC_USE_MSW=true` でビルドした環境は公開しない。** モック用の取得元（picsum.photos・i.pravatar.cc）は `pathname` を絞っておらず、
-  任意の画像を変換できるため。
+  **`NEXT_PUBLIC_USE_MSW=true` でビルドした環境は公開しない。** モック用の取得元（picsum.photos・i.pravatar.cc）は
+  画像サイズ・アバターサイズのパスに限定しているが、picsum.photos は任意の画像・サイズを指定でき、変換枠を消費しうるため。
   変換枠（ユニーク変換/月）の使用量はアカウント単位で分析・集計される（枠の共有範囲についての公式の明記は確認できていない）ため、
   プレビュー経由でも本番の枠を消費しうる前提で扱う。
 - **`natuportal.org` ゾーンの Images > Transformations が無効であることをデプロイ前に再確認する（#334）。**
@@ -499,7 +500,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
     変えられ、ほかの人のアバターも含めて有効な画像の URL をいくらでも作れるため、`pathname` では変換の数を抑えられない。
     `unoptimized` を外してアバターを最適化に通す場合は、この点を踏まえて改めて検討する。
   - ローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）は `USE_DEV_ASSETS=true` のビルドでのみ許可する（#353。上の「環境変数」）。
-  - picsum.photos・i.pravatar.cc は開発環境では常に、本番ビルドでは `NEXT_PUBLIC_USE_MSW=true` のときだけ許可する（`pathname` は絞らない。MSW を有効にしたビルドと開発サーバは公開しない）。
+  - picsum.photos は `/+([0-9])/+([0-9])`、i.pravatar.cc は `/@(64|150)` に `pathname` を限定する。開発環境では常に、本番ビルドでは `NEXT_PUBLIC_USE_MSW=true` のときだけ許可する（MSW を有効にしたビルドと開発サーバは公開しない）。
   - placehold.co・example.com は削除済み。
   本番ビルド（`USE_DEV_ASSETS`・`NEXT_PUBLIC_USE_MSW` がどちらも `true` 以外。未設定・`false` を含む）には
   開発用・モック用の取得元が入らない（ADR-0003 決定 4。`src/__tests__/nextConfigImageHosts.test.ts` で設定値を検証）。

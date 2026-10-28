@@ -1,6 +1,6 @@
 "use client";
 
-import { syncMockWorker } from "@/services/mockAuth";
+import { ensureMockWorker, syncMockWorker } from "@/services/mockAuth";
 import { useEffect } from "react";
 
 type MSWProviderProps = {
@@ -15,10 +15,13 @@ export function MSWProvider({ children }: Readonly<MSWProviderProps>) {
       return;
     }
 
-    // モックワーカーを同期する。失敗しても無視する。
-    void syncMockWorker(process.env.NEXT_PUBLIC_USE_MSW === "true").catch(
-      () => undefined,
-    );
+    if (process.env.NEXT_PUBLIC_USE_MSW === "true") {
+      // 失敗時の警告と再試行の抑制は ensureMockWorker が行う。
+      void ensureMockWorker();
+    } else {
+      // 起動済みのモックワーカーを停止する。
+      void syncMockWorker(false).catch(() => undefined);
+    }
   }, []);
 
   return children;

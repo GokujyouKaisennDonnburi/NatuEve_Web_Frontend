@@ -1,15 +1,15 @@
 import { apiFetch } from "@/services/apiClient";
-import { isMockAuthEnabled, syncMockWorker } from "@/services/mockAuth";
+import { ensureMockWorker, isMockAuthEnabled } from "@/services/mockAuth";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/services/mockAuth", () => ({
+  ensureMockWorker: vi.fn(),
   getMockAuthSession: vi.fn(),
   isMockAuthEnabled: vi.fn(),
-  syncMockWorker: vi.fn(),
 }));
 
+const mockedEnsureMockWorker = vi.mocked(ensureMockWorker);
 const mockedIsMockAuthEnabled = vi.mocked(isMockAuthEnabled);
-const mockedSyncMockWorker = vi.mocked(syncMockWorker);
 
 const stubFetch = () => {
   const fetchMock = vi.fn().mockResolvedValue(new Response("{}"));
@@ -26,7 +26,7 @@ describe("apiFetch", () => {
   it("MSW 有効時は認証不要のリクエストでも worker の起動を待ってから fetch する", async () => {
     mockedIsMockAuthEnabled.mockReturnValue(true);
     let resolveWorker: () => void = () => undefined;
-    mockedSyncMockWorker.mockReturnValue(
+    mockedEnsureMockWorker.mockReturnValue(
       new Promise<void>((resolve) => {
         resolveWorker = resolve;
       }),
@@ -41,8 +41,7 @@ describe("apiFetch", () => {
     resolveWorker();
     await request;
 
-    expect(mockedSyncMockWorker).toHaveBeenCalledWith(true);
-    expect(mockedSyncMockWorker).toHaveBeenCalledTimes(1);
+    expect(mockedEnsureMockWorker).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -52,18 +51,7 @@ describe("apiFetch", () => {
 
     await apiFetch("/api/v1/events/1", { auth: false });
 
-    expect(mockedSyncMockWorker).not.toHaveBeenCalled();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("worker の起動に失敗しても fetch を続行する", async () => {
-    mockedIsMockAuthEnabled.mockReturnValue(true);
-    mockedSyncMockWorker.mockRejectedValue(new Error("worker start failed"));
-    const fetchMock = stubFetch();
-
-    await apiFetch("/api/v1/events/1", { auth: false });
-
-    expect(mockedSyncMockWorker).toHaveBeenCalledWith(true);
+    expect(mockedEnsureMockWorker).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
