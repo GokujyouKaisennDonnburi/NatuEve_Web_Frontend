@@ -4,6 +4,9 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: PAGE_TITLES.COMING_SOON,
+  alternates: {
+    canonical: "/coming-soon",
+  },
 };
 
 export default function ComingSoonLayout({

@@ -4,6 +4,9 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: PAGE_TITLES.ABOUT,
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export default function AboutLayout({

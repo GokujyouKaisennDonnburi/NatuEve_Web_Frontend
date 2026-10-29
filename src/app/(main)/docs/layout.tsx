@@ -4,6 +4,9 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: PAGE_TITLES.DOCS,
+  alternates: {
+    canonical: "/docs",
+  },
 };
 
 export default function DocsLayout({
