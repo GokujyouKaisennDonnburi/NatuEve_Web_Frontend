@@ -6,6 +6,7 @@ import { HttpResponse, http } from "msw";
 import { MAX_TAG_COUNT } from "@/constants/config";
 import { tagStore } from "@/mocks/handlers/tags";
 
+import { MOCK_AVATAR_URLS } from "../../imageUrls";
 import {
   TOKEN_TO_PROFILE_ID,
   getBearerToken,
@@ -173,7 +174,7 @@ export const eventCreateHandler = http.post(
       profile: {
         id: "mock-user-1",
         displayName: "Aoi Tanaka",
-        avatarUrl: "https://i.pravatar.cc/150?img=1",
+        avatarUrl: MOCK_AVATAR_URLS.avatar1,
       },
       createdAt: new Date().toISOString(),
       // 申込期限は未指定のとき JSON に含めない(締切なし)。

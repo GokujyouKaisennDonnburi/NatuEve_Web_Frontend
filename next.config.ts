@@ -37,21 +37,24 @@ const developmentImageHosts: ImageRemotePattern[] = productionImageHosts.map(
 );
 
 // MSW のモックデータ（src/mocks/**・src/services/mockAuth.ts）でのみ使う画像の取得元。
-// モックの画像 URL を変えるときは、ホストをここに追加して URL と許可リストを揃える。
+// i.pravatar.cc のアバターは next/image の unoptimized で表示するため、ここには含めない。
+// モックの画像 URL を変えるときは、ホストと pathname をここに追加して URL と許可リストを揃える。
+// search は画像の切り替えに使うため制限しない。
 const mockImageHosts: ImageRemotePattern[] = [
   {
     protocol: "https",
     hostname: "picsum.photos",
-  },
-  {
-    protocol: "https",
-    hostname: "i.pravatar.cc",
+    pathname: "/+([0-9])/+([0-9])",
   },
 ];
 
-// MSW を使うビルドでのみモック用の取得元を許可する。
-// `true` 以外（未設定・`false` を含む）ではモック用を含めない（安全側のデフォルト）。
-const isMswEnabled = process.env.NEXT_PUBLIC_USE_MSW === "true";
+// モック用の取得元は、MSW を使うビルドと開発環境でのみ許可する。
+// 本番ビルドでは `true` 以外（未設定・`false` を含む）ならモック用を含めない（安全側のデフォルト）。
+// 開発サーバは起動後に `.env.local` を変更しても next.config.ts を再評価しない。
+// 開発サーバは外部公開しない前提のため、MSW の有効化タイミングに関係なく許可する。
+const isMockImageHostsEnabled =
+  process.env.NEXT_PUBLIC_USE_MSW === "true" ||
+  process.env.NODE_ENV === "development";
 
 // ローカル開発・検証環境のビルドでのみ開発用の取得元を許可する。
 // `true` 以外（未設定・`false` を含む）では含めない（安全側のデフォルト）。
@@ -85,7 +88,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       ...productionImageHosts,
       ...(isDevAssetsEnabled ? developmentImageHosts : []),
-      ...(isMswEnabled ? mockImageHosts : []),
+      ...(isMockImageHostsEnabled ? mockImageHosts : []),
     ],
   },
 };

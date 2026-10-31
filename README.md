@@ -100,6 +100,8 @@ cp .env.example .env.local
 bun run dev
 ```
 
+LAN に公開したくない場合は、`bun run dev -- -H 127.0.0.1` で起動してください（`next dev` は既定で `0.0.0.0` にバインドします）。
+
 起動後に以下へアクセスしてください。
 
 ```text

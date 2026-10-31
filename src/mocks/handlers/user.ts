@@ -4,6 +4,8 @@ import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import type { EventListItem } from "@/types/event";
 import type { UserProfileResponse } from "@/types/user";
 
+import { MOCK_AVATAR_URLS } from "../imageUrls";
+
 // ============================================
 // ユーザー系モックのダミーデータと補助関数
 // ============================================
@@ -38,13 +40,13 @@ const sampleUserProfiles: Readonly<Record<string, UserProfileResponse>> = {
   "profile-1": {
     id: "profile-1",
     displayName: "ナチュビト公式",
-    avatarUrl: "https://i.pravatar.cc/150?img=1",
+    avatarUrl: MOCK_AVATAR_URLS.avatar1,
     description: "自然体験イベントの企画・運営をしています。",
   },
   "profile-2": {
     id: "profile-2",
     displayName: "森の案内人・山田",
-    avatarUrl: "https://i.pravatar.cc/150?img=2",
+    avatarUrl: MOCK_AVATAR_URLS.avatar2,
     description: "週末はよく登山に行きます。自然が大好きです！",
   },
   "profile-3": {
@@ -57,20 +59,20 @@ const sampleUserProfiles: Readonly<Record<string, UserProfileResponse>> = {
   "profile-4": {
     id: "profile-4",
     displayName: "森の案内人・山田",
-    avatarUrl: "https://i.pravatar.cc/150?img=4",
+    avatarUrl: MOCK_AVATAR_URLS.avatar4,
     // 自己紹介未設定（空文字）の表示を確認するためのケース
     description: "",
   },
   "profile-5": {
     id: "profile-5",
     displayName: "ナチュビト公式",
-    avatarUrl: "https://i.pravatar.cc/150?img=5",
+    avatarUrl: MOCK_AVATAR_URLS.avatar5,
     description: "生き物観察ハイクを毎月開催しています。",
   },
   "profile-6": {
     id: "profile-6",
     displayName: "森の案内人・山田",
-    avatarUrl: "https://i.pravatar.cc/150?img=6",
+    avatarUrl: MOCK_AVATAR_URLS.avatar6,
     description: "ビオトープの保全活動をしています。",
   },
   [MOCK_AUTH_SESSION.userId]: {
@@ -118,7 +120,7 @@ const myMockEvents: EventListItem[] = [
 // ▼ マイページ用の初期モックデータ（メモリ上に保持）
 const myProfile = {
   // MeResponse 契約（camelCase）に合わせる
-  avatarUrl: "https://i.pravatar.cc/150?img=9", // 代替アイコンのテスト用。空文字 "" にするとデフォルトの人型アイコンが出ます
+  avatarUrl: MOCK_AVATAR_URLS.myProfile, // 代替アイコンのテスト用。空文字 "" にするとデフォルトの人型アイコンが出ます
   createdAt: "2026-06-22T12:00:00Z",
   description: "イベントを楽しむのが好きです。よろしくお願いします！",
   displayName: "なちゅいべ太郎",

@@ -8,7 +8,7 @@ export const MOCK_AUTH_SESSION: AuthSession = {
   token: "mock-access-token",
   name: "Aoi Tanaka",
   email: "aoi@example.com",
-  // MSW ビルドで許可されるホスト（next.config.ts の mockImageHosts）に合わせる
+  // MSW のアバター画像。next/image では unoptimized で表示するため、許可リストには含めない。
   iconUrl: "https://i.pravatar.cc/150?img=8",
 };
 
@@ -108,7 +108,15 @@ export function subscribeMockAuthSession(listener: () => void) {
   };
 }
 
+const MAX_MOCK_WORKER_FAILURES = 2;
 let mockWorkerPromise: Promise<void> | null = null; // モックワーカーの起動状態を保持する Promise
+let mockWorkerFailures = 0; // 起動失敗回数。上限に達するまで再試行する
+let ensurePromise: Promise<boolean> | null = null; // 並行呼び出しで起動処理を共有する Promise
+
+// モックワーカーの起動失敗回数をリセットする
+export function resetMockWorkerFailures(): void {
+  mockWorkerFailures = 0;
+}
 
 // モックワーカーを同期する関数
 export async function syncMockWorker(enabled: boolean) {
@@ -119,6 +127,8 @@ export async function syncMockWorker(enabled: boolean) {
 
   // モック認証が無効な場合は、モックワーカーを停止する
   if (!enabled) {
+    // 再度有効化したときに再試行できるよう、失敗状態を戻す
+    resetMockWorkerFailures();
     if (mockWorkerPromise) {
       await mockWorkerPromise.catch(() => undefined);
       const { worker } = await import("@/mocks/browser");
@@ -145,4 +155,30 @@ export async function syncMockWorker(enabled: boolean) {
   }
 
   await mockWorkerPromise;
+}
+
+// モックワーカーの起動を待つ。並行呼び出しでも警告は1回にし、失敗は上限回数まで再試行する。
+export async function ensureMockWorker(): Promise<boolean> {
+  if (!isMockAuthEnabled() || mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES) {
+    return false;
+  }
+
+  ensurePromise ??= syncMockWorker(true)
+    .then(() => {
+      resetMockWorkerFailures();
+      return true;
+    })
+    .catch((error) => {
+      mockWorkerFailures += 1;
+      console.warn(
+        `MSW worker の起動に失敗しました（${mockWorkerFailures}/${MAX_MOCK_WORKER_FAILURES}回目）`,
+        error,
+      );
+      return false;
+    })
+    .finally(() => {
+      ensurePromise = null;
+    });
+
+  return ensurePromise;
 }
