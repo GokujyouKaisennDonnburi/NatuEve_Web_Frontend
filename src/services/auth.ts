@@ -6,13 +6,20 @@ import {
   ensureMockWorker,
   getMockAuthSession,
   isMockAuthEnabled,
+  resetMockWorkerFailures,
   setMockAuthSession,
 } from "@/services/mockAuth";
 
 // Googleサインインへリダイレクト（モック時はセッションを保存して true を返す）
 export async function signInWithGoogle(): Promise<boolean> {
   if (isMockAuthEnabled()) {
-    await ensureMockWorker();
+    resetMockWorkerFailures();
+
+    const workerReady = await ensureMockWorker();
+    if (!workerReady) {
+      throw new Error("MSW worker の起動に失敗しました");
+    }
+
     setMockAuthSession(MOCK_AUTH_SESSION);
     return true;
   }
