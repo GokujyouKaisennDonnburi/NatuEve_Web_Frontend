@@ -108,9 +108,15 @@ export function subscribeMockAuthSession(listener: () => void) {
   };
 }
 
+const MAX_MOCK_WORKER_FAILURES = 2;
 let mockWorkerPromise: Promise<void> | null = null; // モックワーカーの起動状態を保持する Promise
-let mockWorkerFailed = false; // 起動失敗後にリクエストごとの再試行を防ぐ
-let ensurePromise: Promise<void> | null = null; // 並行呼び出しで起動処理を共有する Promise
+let mockWorkerFailures = 0; // 起動失敗回数。上限に達するまで再試行する
+let ensurePromise: Promise<boolean> | null = null; // 並行呼び出しで起動処理を共有する Promise
+
+// モックワーカーの起動失敗回数をリセットする
+export function resetMockWorkerFailures(): void {
+  mockWorkerFailures = 0;
+}
 
 // モックワーカーを同期する関数
 export async function syncMockWorker(enabled: boolean) {
@@ -122,7 +128,7 @@ export async function syncMockWorker(enabled: boolean) {
   // モック認証が無効な場合は、モックワーカーを停止する
   if (!enabled) {
     // 再度有効化したときに再試行できるよう、失敗状態を戻す
-    mockWorkerFailed = false;
+    resetMockWorkerFailures();
     if (mockWorkerPromise) {
       await mockWorkerPromise.catch(() => undefined);
       const { worker } = await import("@/mocks/browser");
@@ -151,20 +157,28 @@ export async function syncMockWorker(enabled: boolean) {
   await mockWorkerPromise;
 }
 
-// モックワーカーの起動を待つ。並行呼び出しでも警告は1回だけにし、失敗後は再試行しない。
-export async function ensureMockWorker(): Promise<void> {
-  if (!isMockAuthEnabled() || mockWorkerFailed) {
-    return;
+// モックワーカーの起動を待つ。並行呼び出しでも警告は1回にし、失敗は上限回数まで再試行する。
+export async function ensureMockWorker(): Promise<boolean> {
+  if (!isMockAuthEnabled() || mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES) {
+    return false;
   }
 
   ensurePromise ??= syncMockWorker(true)
+    .then(() => {
+      resetMockWorkerFailures();
+      return true;
+    })
     .catch((error) => {
-      mockWorkerFailed = true;
-      console.warn("MSW worker の起動に失敗しました", error);
+      mockWorkerFailures += 1;
+      console.warn(
+        `MSW worker の起動に失敗しました（${mockWorkerFailures}/${MAX_MOCK_WORKER_FAILURES}回目）`,
+        error,
+      );
+      return false;
     })
     .finally(() => {
       ensurePromise = null;
     });
 
-  await ensurePromise;
+  return ensurePromise;
 }

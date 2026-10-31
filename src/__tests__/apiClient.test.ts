@@ -27,8 +27,8 @@ describe("apiFetch", () => {
     mockedIsMockAuthEnabled.mockReturnValue(true);
     let resolveWorker: () => void = () => undefined;
     mockedEnsureMockWorker.mockReturnValue(
-      new Promise<void>((resolve) => {
-        resolveWorker = resolve;
+      new Promise<boolean>((resolve) => {
+        resolveWorker = () => resolve(true);
       }),
     );
     const fetchMock = stubFetch();
