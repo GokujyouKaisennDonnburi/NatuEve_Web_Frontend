@@ -54,4 +54,15 @@ describe("apiFetch", () => {
     expect(mockedEnsureMockWorker).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("worker の起動に失敗しても fetch を続行する", async () => {
+    mockedIsMockAuthEnabled.mockReturnValue(true);
+    mockedEnsureMockWorker.mockResolvedValue(false);
+    const fetchMock = stubFetch();
+
+    await apiFetch("/api/v1/events/1", { auth: false });
+
+    expect(mockedEnsureMockWorker).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
