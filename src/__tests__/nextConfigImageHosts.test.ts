@@ -4,6 +4,7 @@
 // Next.js の内部 API。更新で見つからなくなったら、next build の writeImagesManifest と同じく
 // picomatch の makeRe（dot: true）で pathname を正規表現にして判定する形に置き換える。
 import { mockEventDetails, mockEvents } from "@/mocks/handlers/events/data";
+import { MOCK_AVATAR_URLS } from "@/mocks/imageUrls";
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import { matchRemotePattern } from "next/dist/shared/lib/match-remote-pattern";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -274,14 +275,18 @@ describe("next.config.ts のモック用の取得元", () => {
     ).toBe(false);
   });
 
-  it("開発環境の許可リストがモックデータの全画像URLを通す", async () => {
+  it("開発環境の許可リストがモックデータで使う画像URLを通す", async () => {
+    for (const detail of mockEventDetails.values()) {
+      expect(detail.imageUrls?.length ?? 0).toBeGreaterThan(0);
+    }
+
     const urls = [
       MOCK_AUTH_SESSION.iconUrl,
+      ...Object.values(MOCK_AVATAR_URLS),
       ...mockEvents.map((event) => event.profile.avatarUrl),
       ...[...mockEventDetails.values()].flatMap((detail) => [
         detail.organizerAvatarUrl,
         ...(detail.imageUrls ?? []),
-        ...(detail.imageObjectKeys ?? []),
         ...(detail.reports?.flatMap((report) => [
           report.authorAvatarUrl,
           ...(report.imageUrls ?? []),
