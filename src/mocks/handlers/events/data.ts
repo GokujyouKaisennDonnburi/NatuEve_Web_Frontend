@@ -1,5 +1,10 @@
 // このファイルは、MSW ハンドラー間で共有するイベントの型・モックデータ・
 // 検索ロジックを定義する。MSW はプロセス内状態のためリロードでリセットされる前提。
+import {
+  MOCK_AVATAR_URLS,
+  mockEventImageUrls,
+  mockReportImageUrls,
+} from "../../imageUrls";
 import { seedEventMembers, seedMyParticipation } from "./participation";
 
 // MockProfile型は、イベントのプロフィール情報を表す型です。
@@ -168,9 +173,7 @@ const createInitialDummyEvents = (): MockEvent[] => {
         id: profileId,
         displayName: index % 2 === 0 ? "ナチュビト公式" : "森の案内人・山田",
         avatarUrl:
-          index % 2 === 0
-            ? "https://i.pravatar.cc/150?img=1"
-            : "https://i.pravatar.cc/150?img=2",
+          index % 2 === 0 ? MOCK_AVATAR_URLS.avatar1 : MOCK_AVATAR_URLS.avatar2,
       },
       createdAt: `${pYyyy}-${pMm}-${pDd}T${pHh}:${pMin}:00+09:00`,
       ...(index % 5 === 0
@@ -219,7 +222,7 @@ const createDeadlinePassedEvent = (): MockEvent => ({
   profile: {
     id: "profile-1",
     displayName: "みずべ保全ネットワーク",
-    avatarUrl: "https://i.pravatar.cc/150?img=1",
+    avatarUrl: MOCK_AVATAR_URLS.avatar1,
   },
   createdAt: daysFromNow(-30),
   tags: SAMPLE_TAG_POOL[0],
@@ -241,7 +244,7 @@ const createOngoingEvent = (): MockEvent => ({
   profile: {
     id: "profile-2",
     displayName: "みどりの会",
-    avatarUrl: "https://i.pravatar.cc/150?img=3",
+    avatarUrl: MOCK_AVATAR_URLS.avatar3,
   },
   createdAt: daysFromNow(-7),
   tags: SAMPLE_TAG_POOL[1],
@@ -295,16 +298,8 @@ const createDefaultMockEventDetail = (
   ...(index % 5 === 0
     ? {}
     : { tags: SAMPLE_TAG_POOL[index % SAMPLE_TAG_POOL.length] }),
-  imageObjectKeys: [
-    `https://picsum.photos/1200/600?random=${index * 3 + 1}`,
-    `https://picsum.photos/1200/600?random=${index * 3 + 2}`,
-    `https://picsum.photos/1200/600?random=${index * 3 + 3}`,
-  ],
-  imageUrls: [
-    `https://picsum.photos/1200/600?random=${index * 3 + 1}`,
-    `https://picsum.photos/1200/600?random=${index * 3 + 2}`,
-    `https://picsum.photos/1200/600?random=${index * 3 + 3}`,
-  ],
+  imageObjectKeys: mockEventImageUrls(index),
+  imageUrls: mockEventImageUrls(index),
   imageFilenames: ["観察風景1.jpg", "観察風景2.jpg", "観察風景3.jpg"],
   pdfObjectKeys: [
     "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
@@ -323,10 +318,7 @@ const createDefaultMockEventDetail = (
         "本日の観察記録です。参加者同士で花や昆虫の名前を確認し、自然の大切さを話し合いました。",
       externalUrl:
         index % 2 === 0 ? `https://example.com/reports/${event.id}` : undefined,
-      imageUrls: [
-        `https://picsum.photos/600/400?random=${index * 5 + 1}`,
-        `https://picsum.photos/600/400?random=${index * 5 + 2}`,
-      ],
+      imageUrls: mockReportImageUrls(index),
       pdfUrls: [
         "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
       ],

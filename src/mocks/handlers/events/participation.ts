@@ -4,6 +4,7 @@
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import type { AbsenceReason, EventMemberProfile } from "@/types/participate";
 
+import { MOCK_AVATAR_URLS } from "../../imageUrls";
 import { TOKEN_TO_PROFILE } from "./auth";
 
 // participation-logs エンドポイントが返す参加履歴1件分の型。
@@ -78,7 +79,7 @@ export const seedMembersForNewEvent = (eventId: string): void => {
       profile: {
         id: "profile-2",
         displayName: "れんさん",
-        avatarUrl: "https://i.pravatar.cc/64?u=profile-2",
+        avatarUrl: MOCK_AVATAR_URLS.smallProfile2,
       },
       createdAt: new Date(base).toISOString(),
     },
