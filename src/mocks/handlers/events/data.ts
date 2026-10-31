@@ -81,6 +81,13 @@ export type MockEventDetail = MockEvent & {
 const toUuid = (n: number): string =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
+// イベント画像の R2 オブジェクトキーを生成する。表示用の imageUrls とは別物。
+const toEventImageObjectKey = (
+  eventIndex: number,
+  imageIndex: number,
+): string =>
+  `natueve/events/images/${toUuid(10000 + eventIndex * 3 + imageIndex)}.jpg`;
+
 // 開発環境でタグ表示の確認ができるようサンプルタグを用意。
 // 一部のイベントはタグ未設定にしておき、未設定時の非表示挙動も検証可能にしている。
 const SAMPLE_TAG_POOL: Array<Array<{ id: string; name: string }>> = [
@@ -298,7 +305,11 @@ const createDefaultMockEventDetail = (
   ...(index % 5 === 0
     ? {}
     : { tags: SAMPLE_TAG_POOL[index % SAMPLE_TAG_POOL.length] }),
-  imageObjectKeys: mockEventImageUrls(index),
+  imageObjectKeys: [
+    toEventImageObjectKey(index, 1),
+    toEventImageObjectKey(index, 2),
+    toEventImageObjectKey(index, 3),
+  ],
   imageUrls: mockEventImageUrls(index),
   imageFilenames: ["観察風景1.jpg", "観察風景2.jpg", "観察風景3.jpg"],
   pdfObjectKeys: [

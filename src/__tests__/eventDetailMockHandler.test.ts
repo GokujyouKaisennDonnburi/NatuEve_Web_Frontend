@@ -1,4 +1,4 @@
-import { mockEvents } from "@/mocks/handlers/events/data";
+import { mockEventDetails, mockEvents } from "@/mocks/handlers/events/data";
 import { server } from "@/mocks/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -11,6 +11,19 @@ afterAll(() => {
 });
 
 describe("イベント詳細モックハンドラー", () => {
+  it("imageObjectKeys は R2 のキー形式で、表示URLを含まない", () => {
+    const keyPattern =
+      /^natueve\/events\/images\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png)$/;
+
+    for (const detail of mockEventDetails.values()) {
+      expect(detail.imageObjectKeys?.length ?? 0).toBeGreaterThan(0);
+
+      for (const key of detail.imageObjectKeys ?? []) {
+        expect(key, detail.id).toMatch(keyPattern);
+      }
+    }
+  });
+
   it("一覧で返すすべてのイベントについて 200 と画像URLを返す", async () => {
     for (const event of mockEvents) {
       const response = await fetch(
