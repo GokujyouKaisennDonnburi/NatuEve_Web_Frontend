@@ -8,7 +8,7 @@ export const MOCK_AUTH_SESSION: AuthSession = {
   token: "mock-access-token",
   name: "Aoi Tanaka",
   email: "aoi@example.com",
-  // MSW ビルド・開発環境で許可されるホスト（next.config.ts の mockImageHosts）に合わせる
+  // MSW のアバター画像。next/image では unoptimized で表示するため、許可リストには含めない。
   iconUrl: "https://i.pravatar.cc/150?img=8",
 };
 

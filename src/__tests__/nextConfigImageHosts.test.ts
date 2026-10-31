@@ -3,7 +3,7 @@
 
 // Next.js の内部 API。更新で見つからなくなったら、next build の writeImagesManifest と同じく
 // picomatch の makeRe（dot: true）で pathname を正規表現にして判定する形に置き換える。
-import { mockEventDetails, mockEvents } from "@/mocks/handlers/events/data";
+import { mockEventDetails } from "@/mocks/handlers/events/data";
 import { MOCK_AVATAR_URLS } from "@/mocks/imageUrls";
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import { matchRemotePattern } from "next/dist/shared/lib/match-remote-pattern";
@@ -29,7 +29,6 @@ const DEVELOPMENT_PATTERNS = [
 ];
 const MOCK_PATTERNS = [
   "https://picsum.photos|(unset)|/+([0-9])/+([0-9])|(unset)",
-  "https://i.pravatar.cc|(unset)|/@(64|150)|(unset)",
 ];
 
 const toPatternKey = ({
@@ -255,8 +254,6 @@ describe("next.config.ts のモック用の取得元", () => {
   it.each([
     "https://picsum.photos/1200/600?random=292",
     "https://picsum.photos/600/400?random=1",
-    "https://i.pravatar.cc/150?img=1",
-    "https://i.pravatar.cc/64?u=profile-2",
   ])("NEXT_PUBLIC_USE_MSW=true なら %s を許可する", async (url) => {
     expect(isAllowed(await loadRemotePatterns({ useMsw: "true" }), url)).toBe(
       true,
@@ -267,36 +264,39 @@ describe("next.config.ts のモック用の取得元", () => {
     "https://picsum.photos/foo/bar",
     "https://picsum.photos/1200",
     "https://picsum.photos/1200/600/extra",
-    "https://i.pravatar.cc/300?img=1",
-    "https://i.pravatar.cc/150/extra",
   ])("開発環境でも許可外の pathname %s は許可しない", async (url) => {
     expect(
       isAllowed(await loadRemotePatterns({ nodeEnv: "development" }), url),
     ).toBe(false);
   });
 
-  it("開発環境の許可リストがモックデータで使う画像URLを通す", async () => {
+  it("開発環境の許可リストがイベント・レポート画像URLを通す", async () => {
     for (const detail of mockEventDetails.values()) {
       expect(detail.imageUrls?.length ?? 0).toBeGreaterThan(0);
     }
 
-    const urls = [
-      MOCK_AUTH_SESSION.iconUrl,
-      ...Object.values(MOCK_AVATAR_URLS),
-      ...mockEvents.map((event) => event.profile.avatarUrl),
-      ...[...mockEventDetails.values()].flatMap((detail) => [
-        detail.organizerAvatarUrl,
+    const urls = [...mockEventDetails.values()]
+      .flatMap((detail) => [
         ...(detail.imageUrls ?? []),
-        ...(detail.reports?.flatMap((report) => [
-          report.authorAvatarUrl,
-          ...(report.imageUrls ?? []),
-        ]) ?? []),
-      ]),
-    ].filter((url): url is string => typeof url === "string" && url.length > 0);
+        ...(detail.reports?.flatMap((report) => report.imageUrls ?? []) ?? []),
+      ])
+      .filter((url) => url.length > 0);
 
     const patterns = await loadRemotePatterns({ nodeEnv: "development" });
     for (const url of urls) {
       expect(isAllowed(patterns, url), url).toBe(true);
+    }
+  });
+
+  it("アバターURLは unoptimized のため許可リストに含めない", async () => {
+    const avatarUrls = [
+      MOCK_AUTH_SESSION.iconUrl,
+      ...Object.values(MOCK_AVATAR_URLS),
+    ].filter((url): url is string => typeof url === "string" && url.length > 0);
+
+    const patterns = await loadRemotePatterns({ nodeEnv: "development" });
+    for (const url of avatarUrls) {
+      expect(isAllowed(patterns, url), url).toBe(false);
     }
   });
 });

@@ -1,4 +1,5 @@
 // モックで使う画像URLを共通化し、next.config.ts の許可パターンとの検証に使う。
+// アバターは next/image の unoptimized で表示するため、remotePatterns には含めない。
 const mockAvatarUrl = (imageId: number): string =>
   `https://i.pravatar.cc/150?img=${imageId}`;
 

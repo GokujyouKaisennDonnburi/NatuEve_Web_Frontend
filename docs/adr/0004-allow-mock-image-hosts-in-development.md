@@ -7,12 +7,13 @@
 ## コンテキストと課題
 
 MSW のモックデータは、イベント画像に `picsum.photos`、アバターに `i.pravatar.cc` を使う。
+アバターは `next/image` の `unoptimized` で表示するため、画像最適化の許可リストには含めない。
 開発サーバの起動後に `.env.local` の `NEXT_PUBLIC_USE_MSW` を `true` にしても、
 `next.config.ts` は再評価されないため、`images.remotePatterns` にモック用の取得元が入らず、
 `next/image` がホスト未設定エラーになる。
 
 また、`next dev` は既定で `0.0.0.0` にバインドする。開発サーバへ LAN やトンネル経由で到達できる場合、
-`pathname` を制限しない許可リストは、`/_next/image` を任意の picsum/pravatar URL の変換に使われるおそれがある。
+`pathname` を制限しない許可リストは、`/_next/image` を任意の picsum URL の変換に使われるおそれがある。
 
 ADR-0003 の決定 4 は、`next.config.ts` のビルド時分岐を `NEXT_PUBLIC_USE_MSW` と開発用 R2 のフラグに限定している。
 本 ADR は、デプロイ対象外の開発環境に限った例外を追加する。
@@ -24,8 +25,8 @@ ADR-0003 の決定 4 は、`next.config.ts` のビルド時分岐を `NEXT_PUBLI
 ただし、開発サーバの画像最適化を任意 URL の変換に使われないよう、`pathname` を実際のモック URL の形式に限定する。
 
 - `picsum.photos`: `/+([0-9])/+([0-9])`
-- `i.pravatar.cc`: `/@(64|150)`
 
+アバター（`i.pravatar.cc`）は `next/image` の `unoptimized` で表示するため、許可リストに含めない。
 本番・検証ビルドは従来どおり `NEXT_PUBLIC_USE_MSW=true` のときだけ許可し、
 CI では `NEXT_PUBLIC_USE_MSW=false` を固定する。
 開発サーバを LAN に公開しない場合は、`bun run dev -- -H 127.0.0.1` で起動する。
@@ -42,13 +43,14 @@ CI では `NEXT_PUBLIC_USE_MSW=false` を固定する。
 
 ### 良い影響
 
-- 開発サーバの起動後に `NEXT_PUBLIC_USE_MSW` を変更しても、モック画像が `next/image` で表示できる。
+- 開発サーバの起動後に `NEXT_PUBLIC_USE_MSW` を変更しても、イベント・レポート画像が `next/image` で表示できる。
 - 本番・検証ビルドの画像取得元は変わらない。
 - `pathname` 制限により、開発サーバが到達可能な状況でも任意パスの画像変換を防げる。
 
 ### トレードオフ・注意
 
 - モック画像のホスト・パス・サイズを変えるときは、`next.config.ts` と `src/__tests__/nextConfigImageHosts.test.ts` を更新する。
+- アバターを `unoptimized` から外して最適化する場合は、`i.pravatar.cc` を許可リストとテストに追加する。
 - `picsum.photos` は任意の数値サイズを許可するため、さらに厳密にする場合は `/1200/600` と `/600/400` のような実際のパスに限定する。
 - 開発サーバを `0.0.0.0` で公開すると、許可したパスの範囲でも画像変換を悪用されうる。LAN に公開しない場合は `-H 127.0.0.1` を使う。
 - `NEXT_PUBLIC_USE_MSW=true` でビルドした環境は、引き続き公開しない（ADR-0002・ADR-0003）。
