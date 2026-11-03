@@ -49,7 +49,6 @@ export const eventCreateHandler = http.post(
       items?: unknown;
       tagIds?: unknown;
       imageObjectKeys?: unknown;
-      imageUrls?: unknown;
       imageFilenames?: unknown;
       pdfObjectKeys?: unknown;
       pdfUrls?: unknown;
@@ -161,25 +160,17 @@ export const eventCreateHandler = http.post(
           : undefined;
     }
 
-    const submittedImageObjectKeys = Array.isArray(body.imageObjectKeys)
-      ? body.imageObjectKeys.filter(
-          (value): value is string =>
-            typeof value === "string" && value.length > 0,
-        )
+    const imageObjectKeys = Array.isArray(body.imageObjectKeys)
+      ? body.imageObjectKeys
+          .filter(
+            (value): value is string =>
+              typeof value === "string" && value.length > 0,
+          )
+          .map(() => `natueve/events/images/${crypto.randomUUID()}.jpg`)
       : [];
-    const imageObjectKeys = submittedImageObjectKeys.map(
-      () => `natueve/events/images/${crypto.randomUUID()}.jpg`,
+    const imageUrls = imageObjectKeys.map(() =>
+      mockEventImageUrl(createdEventImageSeed++),
     );
-    const submittedImageUrls = Array.isArray(body.imageUrls)
-      ? (body.imageUrls as unknown[]).filter(
-          (value): value is string =>
-            typeof value === "string" && value.length > 0,
-        )
-      : [];
-    const imageUrls =
-      submittedImageUrls.length > 0
-        ? submittedImageUrls
-        : imageObjectKeys.map(() => mockEventImageUrl(createdEventImageSeed++));
 
     // 新しいイベントを構築してメモリに追加する
     const eventId = crypto.randomUUID();

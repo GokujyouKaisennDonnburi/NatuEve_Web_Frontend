@@ -167,15 +167,11 @@ export async function ensureMockWorker(): Promise<boolean> {
     return false;
   }
 
-  const retryBlocked =
-    mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES &&
-    Date.now() - lastMockWorkerFailureAt < MOCK_WORKER_RETRY_INTERVAL_MS;
-
-  if (retryBlocked) {
-    return false;
-  }
-
   if (mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES) {
+    if (Date.now() - lastMockWorkerFailureAt < MOCK_WORKER_RETRY_INTERVAL_MS) {
+      return false;
+    }
+
     resetMockWorkerFailures();
   }
 
