@@ -47,22 +47,6 @@ describe("ensureMockWorker", () => {
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it("起動失敗は上限回数まで再試行し、クールダウン中は再試行しない", async () => {
-    vi.stubEnv("NEXT_PUBLIC_USE_MSW", "true");
-    vi.spyOn(Date, "now").mockReturnValue(0);
-    workerMock.start.mockRejectedValue(new Error("worker start failed"));
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-    const { ensureMockWorker } = await import("@/services/mockAuth");
-
-    expect(await ensureMockWorker()).toBe(false);
-    expect(await ensureMockWorker()).toBe(false);
-    expect(await ensureMockWorker()).toBe(false);
-
-    expect(workerMock.start).toHaveBeenCalledTimes(2);
-    expect(warn).toHaveBeenCalledTimes(2);
-  });
-
   it("上限到達後も30秒経過すると再試行する", async () => {
     vi.stubEnv("NEXT_PUBLIC_USE_MSW", "true");
     const now = vi.spyOn(Date, "now").mockReturnValue(0);

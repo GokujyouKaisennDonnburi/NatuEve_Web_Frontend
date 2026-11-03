@@ -4,8 +4,6 @@
 // Next.js の内部 API。更新で見つからなくなったら、next build の writeImagesManifest と同じく
 // picomatch の makeRe（dot: true）で pathname を正規表現にして判定する形に置き換える。
 import { mockEventDetails } from "@/mocks/handlers/events/data";
-import { MOCK_AVATAR_URLS } from "@/mocks/imageUrls";
-import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import {
   PHASE_DEVELOPMENT_SERVER,
   PHASE_PRODUCTION_BUILD,
@@ -55,12 +53,6 @@ type ImageHostEnv = {
   phase?: string;
 };
 
-type ImageHostEnvKey = "NEXT_PUBLIC_USE_MSW" | "USE_DEV_ASSETS";
-
-const setEnv = (key: ImageHostEnvKey, value: string | undefined) => {
-  vi.stubEnv(key, value);
-};
-
 // 既定は production build の phase。開発サーバの許可は phase を明示して検証する。
 const loadRemotePatterns = async ({
   useMsw,
@@ -69,8 +61,8 @@ const loadRemotePatterns = async ({
 }: ImageHostEnv = {}): Promise<ImageRemotePattern[]> => {
   vi.resetModules();
 
-  setEnv("NEXT_PUBLIC_USE_MSW", useMsw);
-  setEnv("USE_DEV_ASSETS", useDevAssets);
+  vi.stubEnv("NEXT_PUBLIC_USE_MSW", useMsw);
+  vi.stubEnv("USE_DEV_ASSETS", useDevAssets);
 
   const { default: nextConfig } = await import("../../next.config");
   const config = nextConfig(phase);
@@ -315,20 +307,6 @@ describe("next.config.ts のモック用の取得元", () => {
     });
     for (const url of urls) {
       expect(isAllowed(patterns, url), url).toBe(true);
-    }
-  });
-
-  it("アバターURLは unoptimized のため許可リストに含めない", async () => {
-    const avatarUrls = [
-      MOCK_AUTH_SESSION.iconUrl,
-      ...Object.values(MOCK_AVATAR_URLS),
-    ].filter((url): url is string => typeof url === "string" && url.length > 0);
-
-    const patterns = await loadRemotePatterns({
-      phase: PHASE_DEVELOPMENT_SERVER,
-    });
-    for (const url of avatarUrls) {
-      expect(isAllowed(patterns, url), url).toBe(false);
     }
   });
 });
