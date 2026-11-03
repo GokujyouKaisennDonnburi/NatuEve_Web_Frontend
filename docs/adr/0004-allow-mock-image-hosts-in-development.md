@@ -20,7 +20,7 @@ ADR-0003 の決定 4 は、`next.config.ts` のビルド時分岐を `NEXT_PUBLI
 
 ## 決定
 
-開発環境（`NODE_ENV=development`）では、`NEXT_PUBLIC_USE_MSW` の値に関係なく、
+開発サーバ（`PHASE_DEVELOPMENT_SERVER`）では、`NEXT_PUBLIC_USE_MSW` の値に関係なく、
 `images.remotePatterns` にモック用の取得元を含める。
 ただし、開発サーバの画像最適化を任意 URL の変換に使われないよう、`pathname` を実際のモック URL の形式に限定する。
 
@@ -35,7 +35,7 @@ CI では `NEXT_PUBLIC_USE_MSW=false` を固定する。
 
 - 開発サーバは起動後の `.env.local` 変更で `next.config.ts` を再評価しないため、
   フラグだけに依存すると、MSW を有効にした直後に画像エラーが残る。
-- `NODE_ENV=development` に限定するため、本番・検証ビルドの許可リストには影響しない。
+- `PHASE_DEVELOPMENT_SERVER` に限定するため、本番・検証ビルドの許可リストには影響しない。
 - `pathname` 制限とバインド先の注意により、開発サーバ経由の画像変換の悪用範囲を狭められる。
 - ADR-0003 の決定 4 を書き換えず、開発環境の例外を新しい決定として記録できる。
 

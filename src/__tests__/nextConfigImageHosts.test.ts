@@ -6,6 +6,10 @@
 import { mockEventDetails } from "@/mocks/handlers/events/data";
 import { MOCK_AVATAR_URLS } from "@/mocks/imageUrls";
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
+import {
+  PHASE_DEVELOPMENT_SERVER,
+  PHASE_PRODUCTION_BUILD,
+} from "next/constants";
 import { matchRemotePattern } from "next/dist/shared/lib/match-remote-pattern";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ImageRemotePattern } from "../../next.config";
@@ -48,29 +52,29 @@ const toPatternKey = ({
 type ImageHostEnv = {
   useMsw?: string;
   useDevAssets?: string;
-  nodeEnv?: "development" | "production" | "test";
+  phase?: string;
 };
 
-type ImageHostEnvKey = "NEXT_PUBLIC_USE_MSW" | "USE_DEV_ASSETS" | "NODE_ENV";
+type ImageHostEnvKey = "NEXT_PUBLIC_USE_MSW" | "USE_DEV_ASSETS";
 
 const setEnv = (key: ImageHostEnvKey, value: string | undefined) => {
   vi.stubEnv(key, value);
 };
 
-// 既定は本番ビルド相当。開発環境の許可は development を明示して検証する。
+// 既定は production build の phase。開発サーバの許可は phase を明示して検証する。
 const loadRemotePatterns = async ({
   useMsw,
   useDevAssets,
-  nodeEnv = "production",
+  phase = PHASE_PRODUCTION_BUILD,
 }: ImageHostEnv = {}): Promise<ImageRemotePattern[]> => {
   vi.resetModules();
 
   setEnv("NEXT_PUBLIC_USE_MSW", useMsw);
   setEnv("USE_DEV_ASSETS", useDevAssets);
-  setEnv("NODE_ENV", nodeEnv);
 
   const { default: nextConfig } = await import("../../next.config");
-  return nextConfig.images?.remotePatterns ?? [];
+  const config = nextConfig(phase);
+  return config.images?.remotePatterns ?? [];
 };
 
 const loadRemotePatternKeys = async (
@@ -97,14 +101,22 @@ describe("next.config.ts の画像取得元", () => {
     ["空文字", ""],
   ])("本番ビルドで NEXT_PUBLIC_USE_MSW が %s なら本番用の取得元だけを許可する", async (_label, useMsw) => {
     expect(
-      new Set(await loadRemotePatternKeys({ useMsw, nodeEnv: "production" })),
+      new Set(
+        await loadRemotePatternKeys({
+          useMsw,
+          phase: PHASE_PRODUCTION_BUILD,
+        }),
+      ),
     ).toEqual(new Set(PRODUCTION_PATTERNS));
   });
 
   it("本番ビルドで NEXT_PUBLIC_USE_MSW=true ならモック用の取得元も許可する", async () => {
     expect(
       new Set(
-        await loadRemotePatternKeys({ useMsw: "true", nodeEnv: "production" }),
+        await loadRemotePatternKeys({
+          useMsw: "true",
+          phase: PHASE_PRODUCTION_BUILD,
+        }),
       ),
     ).toEqual(new Set([...PRODUCTION_PATTERNS, ...MOCK_PATTERNS]));
   });
@@ -114,8 +126,21 @@ describe("next.config.ts の画像取得元", () => {
     ["false", "false"],
   ])("開発環境なら NEXT_PUBLIC_USE_MSW が %s でもモック用の取得元を許可する", async (_label, useMsw) => {
     expect(
-      new Set(await loadRemotePatternKeys({ useMsw, nodeEnv: "development" })),
+      new Set(
+        await loadRemotePatternKeys({
+          useMsw,
+          phase: PHASE_DEVELOPMENT_SERVER,
+        }),
+      ),
     ).toEqual(new Set([...PRODUCTION_PATTERNS, ...MOCK_PATTERNS]));
+  });
+
+  it("NODE_ENV=development でも production build の phase ならモック用取得元を許可しない", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+
+    expect(
+      new Set(await loadRemotePatternKeys({ phase: PHASE_PRODUCTION_BUILD })),
+    ).toEqual(new Set(PRODUCTION_PATTERNS));
   });
 
   it.each([
@@ -266,7 +291,10 @@ describe("next.config.ts のモック用の取得元", () => {
     "https://picsum.photos/1200/600/extra",
   ])("開発環境でも許可外の pathname %s は許可しない", async (url) => {
     expect(
-      isAllowed(await loadRemotePatterns({ nodeEnv: "development" }), url),
+      isAllowed(
+        await loadRemotePatterns({ phase: PHASE_DEVELOPMENT_SERVER }),
+        url,
+      ),
     ).toBe(false);
   });
 
@@ -282,7 +310,9 @@ describe("next.config.ts のモック用の取得元", () => {
       ])
       .filter((url) => url.length > 0);
 
-    const patterns = await loadRemotePatterns({ nodeEnv: "development" });
+    const patterns = await loadRemotePatterns({
+      phase: PHASE_DEVELOPMENT_SERVER,
+    });
     for (const url of urls) {
       expect(isAllowed(patterns, url), url).toBe(true);
     }
@@ -294,7 +324,9 @@ describe("next.config.ts のモック用の取得元", () => {
       ...Object.values(MOCK_AVATAR_URLS),
     ].filter((url): url is string => typeof url === "string" && url.length > 0);
 
-    const patterns = await loadRemotePatterns({ nodeEnv: "development" });
+    const patterns = await loadRemotePatterns({
+      phase: PHASE_DEVELOPMENT_SERVER,
+    });
     for (const url of avatarUrls) {
       expect(isAllowed(patterns, url), url).toBe(false);
     }
