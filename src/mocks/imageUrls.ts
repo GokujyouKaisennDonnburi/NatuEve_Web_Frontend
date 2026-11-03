@@ -17,10 +17,13 @@ export const MOCK_AVATAR_URLS = {
   smallProfile2: mockSmallAvatarUrl("profile-2"),
 } as const;
 
+export const mockEventImageUrl = (seed: number): string =>
+  `https://picsum.photos/1200/600?random=${seed}`;
+
 export const mockEventImageUrls = (index: number): string[] => [
-  `https://picsum.photos/1200/600?random=${index * 3 + 1}`,
-  `https://picsum.photos/1200/600?random=${index * 3 + 2}`,
-  `https://picsum.photos/1200/600?random=${index * 3 + 3}`,
+  mockEventImageUrl(index * 3 + 1),
+  mockEventImageUrl(index * 3 + 2),
+  mockEventImageUrl(index * 3 + 3),
 ];
 
 export const mockReportImageUrls = (index: number): string[] => [
