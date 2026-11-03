@@ -109,13 +109,16 @@ export function subscribeMockAuthSession(listener: () => void) {
 }
 
 const MAX_MOCK_WORKER_FAILURES = 2;
+const MOCK_WORKER_RETRY_INTERVAL_MS = 30_000;
 let mockWorkerPromise: Promise<void> | null = null; // モックワーカーの起動状態を保持する Promise
 let mockWorkerFailures = 0; // 起動失敗回数。上限に達するまで再試行する
+let lastMockWorkerFailureAt = 0; // 上限到達後の再試行を抑える最終失敗時刻
 let ensurePromise: Promise<boolean> | null = null; // 並行呼び出しで起動処理を共有する Promise
 
-// モックワーカーの起動失敗回数をリセットする
+// モックワーカーの起動失敗状態をリセットする
 export function resetMockWorkerFailures(): void {
   mockWorkerFailures = 0;
+  lastMockWorkerFailureAt = 0;
 }
 
 // モックワーカーを同期する関数
@@ -158,9 +161,22 @@ export async function syncMockWorker(enabled: boolean) {
 }
 
 // モックワーカーの起動を待つ。並行呼び出しでも警告は1回にし、失敗は上限回数まで再試行する。
+// 上限到達後は一定時間経過するまで再試行しない。
 export async function ensureMockWorker(): Promise<boolean> {
-  if (!isMockAuthEnabled() || mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES) {
+  if (!isMockAuthEnabled()) {
     return false;
+  }
+
+  const retryBlocked =
+    mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES &&
+    Date.now() - lastMockWorkerFailureAt < MOCK_WORKER_RETRY_INTERVAL_MS;
+
+  if (retryBlocked) {
+    return false;
+  }
+
+  if (mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES) {
+    resetMockWorkerFailures();
   }
 
   ensurePromise ??= syncMockWorker(true)
@@ -170,6 +186,7 @@ export async function ensureMockWorker(): Promise<boolean> {
     })
     .catch((error) => {
       mockWorkerFailures += 1;
+      lastMockWorkerFailureAt = Date.now();
       console.warn(
         `MSW worker の起動に失敗しました（${mockWorkerFailures}/${MAX_MOCK_WORKER_FAILURES}回目）`,
         error,
