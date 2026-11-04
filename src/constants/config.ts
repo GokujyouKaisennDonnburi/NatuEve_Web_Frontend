@@ -2,6 +2,18 @@ export const APP_NAME = "なちゅいべ";
 export const APP_DESCRIPTION =
   "なちゅいべは、自然を楽しむイベントを「探したい人」と「開催したい人」をつなぐサービスです。";
 
+// サイトの公開 URL。metadataBase に使う。
+// 検証環境でも本番の URL を出す（canonical を本番に寄せるため）。
+export const SITE_URL = "https://natueve-web.natuportal.org";
+
+// 既定の OGP 画像。
+export const DEFAULT_OG_IMAGE = {
+  url: "/images/og-default.png",
+  width: 1200,
+  height: 630,
+  alt: APP_NAME,
+};
+
 export const API_BASE_URL = "/api";
 
 // イベント投稿画面のタグ入力欄の上限値。
