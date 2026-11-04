@@ -19,6 +19,7 @@ import {
 } from "@/types/participate";
 import { formatMonthDayTime } from "@/utils/date";
 import { isDeadlinePassed } from "@/utils/participation";
+import { resolveSafeExternalUrl } from "@/utils/validation";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -67,6 +68,10 @@ type EventParticipationButtonProps = {
   // 申込内容 API から取得するため、参加中と判明してから1往復遅れて届く。
   // 未取得の間は undefined となり、人数を伏せて「申し込み済み」とだけ表示する。
   partySize?: number;
+  // イベントの外部申し込みURL（externalUrl）。設定されている（不正値を除く）場合は
+  // モーダルを開かず、押下時に外部サイトへ新規タブで遷移する。
+  // 未設定・null・空文字の場合は従来どおり参加申し込みモーダルを開く。
+  externalUrl?: string | null;
   // 参加申し込み成功後に呼ばれるコールバック。参加状態の再取得をトリガーする。
   onParticipateSuccess?: () => void;
   // 参加キャンセル・欠席連絡の成功後に呼ばれるコールバック。参加状態の再取得をトリガーする。
@@ -158,6 +163,7 @@ export function EventParticipationButton({
   participating = false,
   participationDetail,
   partySize,
+  externalUrl,
   onParticipateSuccess,
   onCancelSuccess,
 }: EventParticipationButtonProps) {
@@ -239,8 +245,17 @@ export function EventParticipationButton({
   };
 
   // 参加申し込みボタンのクリックハンドラ。ピル右側のボタンからモーダルを開く。
+  // externalUrl が有効なイベントは外部サイトでの申し込みのため、
+  // モーダルは開かず新規タブで外部URLへ遷移する（target="_blank" + noopener/noreferrer 相当）。
+  // 不正なURLは null に潰れるため、従来どおりモーダルを開く（クラッシュしない）。
   const handleButtonClick = () => {
     if (disabled || isSessionLoading || isFull || receptionClosed) return;
+
+    const externalHref = resolveSafeExternalUrl(externalUrl);
+    if (externalHref) {
+      window.open(externalHref, "_blank", "noopener,noreferrer");
+      return;
+    }
 
     setIsModalOpen(true);
   };
