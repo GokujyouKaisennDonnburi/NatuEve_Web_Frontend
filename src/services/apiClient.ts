@@ -1,3 +1,4 @@
+import { MOCK_SERVER_ORIGIN } from "@/mocks/constants";
 import { getSupabase } from "@/lib/supabase";
 import {
   getMockAuthSession,
@@ -17,18 +18,29 @@ type ApiFetchOptions = RequestInit & {
 };
 
 // 相対パス（"/api/..." 等）の場合のみベース URL を前置する。
-// ただしモック有効時は、相対パスのままとする（MSW がインターセプト可能に）。
+// ブラウザのモック有効時は相対パスのままとする（MSW がインターセプト可能に）。
+// サーバー側のモック有効時は Node.js 用 MSW が傍受できる固定オリジンへ変換する。
 // 署名付き URL への直 PUT など絶対 URL はそのまま使う。
 const resolveUrl = (input: RequestInfo | URL): RequestInfo | URL => {
-  if (typeof input === "string" && input.startsWith("/")) {
-    // モック有効時は相対パスのみを使用（MSW でインターセプト可能）
-    if (isMockAuthEnabled()) {
-      return input;
-    }
-    // 実 API 時は NEXT_PUBLIC_API_BASE_URL を前置
-    return `${API_BASE_URL}${input}`;
+  if (typeof input !== "string" || !input.startsWith("/")) {
+    return input;
   }
-  return input;
+
+  const mockEnabled = isMockAuthEnabled();
+
+  // ブラウザの MSW は Service Worker が相対パスをインターセプトする
+  if (mockEnabled && typeof window !== "undefined") {
+    return input;
+  }
+
+  // Node.js の fetch は相対 URL を受け付けないため、開発時の Node.js 用 MSW が
+  // インターセプトできる固定オリジンへ変換する
+  if (mockEnabled && process.env.NODE_ENV === "development") {
+    return new URL(input, MOCK_SERVER_ORIGIN).toString();
+  }
+
+  // 実 API 時は NEXT_PUBLIC_API_BASE_URL を前置
+  return `${API_BASE_URL}${input}`;
 };
 
 // ヘッダーをマージする関数を定義
