@@ -1,4 +1,5 @@
 import { apiFetch } from "@/services/apiClient";
+import { EventDetailError } from "@/types/event";
 import type {
   CancelEventRequest,
   CancelEventResponse,
@@ -27,8 +28,11 @@ export async function getEventDetail(
   );
 
   if (!response.ok) {
-    throw new Error(
-      `イベント詳細の取得に失敗しました (Status: ${response.status})`,
+    throw new EventDetailError(
+      response.status === 404
+        ? "イベントが見つかりません"
+        : `イベント詳細の取得に失敗しました (Status: ${response.status})`,
+      response.status,
     );
   }
 
