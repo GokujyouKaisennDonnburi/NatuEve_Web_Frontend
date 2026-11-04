@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: PAGE_TITLES.ABOUT,
+  // 「なちゅいべとは | なちゅいべ」の重複を避けるため absolute にする
+  title: {
+    absolute: PAGE_TITLES.ABOUT,
+  },
 };
 
 export default function AboutLayout({
