@@ -7,6 +7,7 @@ import { mockEventDetails } from "@/mocks/handlers/events/data";
 import {
   PHASE_DEVELOPMENT_SERVER,
   PHASE_PRODUCTION_BUILD,
+  PHASE_PRODUCTION_SERVER,
 } from "next/constants";
 import { matchRemotePattern } from "next/dist/shared/lib/match-remote-pattern";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -53,25 +54,39 @@ type ImageHostEnv = {
   phase?: string;
 };
 
+const loadNextConfig = async (phase: string) => {
+  vi.resetModules();
+  const { default: nextConfig } = await import("../../next.config");
+  return nextConfig(phase);
+};
+
 // 既定は production build の phase。開発サーバの許可は phase を明示して検証する。
 const loadRemotePatterns = async ({
   useMsw,
   useDevAssets,
   phase = PHASE_PRODUCTION_BUILD,
 }: ImageHostEnv = {}): Promise<ImageRemotePattern[]> => {
-  vi.resetModules();
-
   vi.stubEnv("NEXT_PUBLIC_USE_MSW", useMsw);
   vi.stubEnv("USE_DEV_ASSETS", useDevAssets);
 
-  const { default: nextConfig } = await import("../../next.config");
-  const config = nextConfig(phase);
+  const config = await loadNextConfig(phase);
   return config.images?.remotePatterns ?? [];
 };
 
 const loadRemotePatternKeys = async (
   env: ImageHostEnv = {},
 ): Promise<string[]> => (await loadRemotePatterns(env)).map(toPatternKey);
+
+const loadRewrites = async (phase: string) => {
+  const config = await loadNextConfig(phase);
+  const rewrites = config.rewrites;
+
+  if (typeof rewrites !== "function") {
+    throw new Error("next.config.ts の rewrites が関数ではありません");
+  }
+
+  return rewrites();
+};
 
 // Next.js の /_next/image と同じ判定（OpenNext もビルド時に同じ glob を正規表現にして使う）で、
 // 許可リストが URL を通すかを確かめる。
@@ -308,5 +323,23 @@ describe("next.config.ts のモック用の取得元", () => {
     for (const url of urls) {
       expect(isAllowed(patterns, url), url).toBe(true);
     }
+  });
+});
+
+describe("next.config.ts の rewrites", () => {
+  it("開発サーバでは /api をローカルAPIへ転送する", async () => {
+    await expect(loadRewrites(PHASE_DEVELOPMENT_SERVER)).resolves.toEqual([
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:8085/api/:path*",
+      },
+    ]);
+  });
+
+  it.each([
+    PHASE_PRODUCTION_BUILD,
+    PHASE_PRODUCTION_SERVER,
+  ])("本番 phase %s では rewrites を返さない", async (phase) => {
+    await expect(loadRewrites(phase)).resolves.toEqual([]);
   });
 });
