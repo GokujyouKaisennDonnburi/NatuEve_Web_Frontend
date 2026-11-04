@@ -1,3 +1,4 @@
+import { MOCK_AVATAR_URLS } from "@/mocks/imageUrls";
 import type { AuthSession } from "@/types/common";
 
 const STORAGE_KEY = "natu-eve.mock-auth-session";
@@ -9,7 +10,7 @@ export const MOCK_AUTH_SESSION: AuthSession = {
   name: "Aoi Tanaka",
   email: "aoi@example.com",
   // MSW のアバター画像。next/image では unoptimized で表示するため、許可リストには含めない。
-  iconUrl: "https://i.pravatar.cc/150?img=8",
+  iconUrl: MOCK_AVATAR_URLS.authSession,
 };
 
 // モック認証が有効かどうかを判定する関数

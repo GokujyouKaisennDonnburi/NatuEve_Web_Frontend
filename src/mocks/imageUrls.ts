@@ -13,6 +13,7 @@ export const MOCK_AVATAR_URLS = {
   avatar4: mockAvatarUrl(4),
   avatar5: mockAvatarUrl(5),
   avatar6: mockAvatarUrl(6),
+  authSession: mockAvatarUrl(8),
   myProfile: mockAvatarUrl(9),
   smallProfile2: mockSmallAvatarUrl("profile-2"),
 } as const;
