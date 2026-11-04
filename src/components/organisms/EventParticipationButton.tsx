@@ -233,6 +233,13 @@ export function EventParticipationButton({
       ? "現在満員です"
       : "参加を申し込む";
 
+  // externalUrl の有効判定は表示とクリックで共通して使うため、ここで一度だけ解決する。
+  // 不正値は null に潰れ、未設定と同じ扱い（従来表示・モーダル）になる。
+  const externalHref = resolveSafeExternalUrl(externalUrl);
+  // 定員・残り人数の表示は、申し込みをなちゅいべ内で受けるイベントのみ。
+  // 外部URLがあるイベントは外部サイトで定員を管理するため、ボタンだけを出す。
+  const showCapacityBar = !externalHref && hasCapacity;
+
   // コントロールの無効状態を判定
   const isControlDisabled = disabled || isSessionLoading;
 
@@ -251,7 +258,6 @@ export function EventParticipationButton({
   const handleButtonClick = () => {
     if (disabled || isSessionLoading || isFull || receptionClosed) return;
 
-    const externalHref = resolveSafeExternalUrl(externalUrl);
     if (externalHref) {
       window.open(externalHref, "_blank", "noopener,noreferrer");
       return;
@@ -377,12 +383,25 @@ export function EventParticipationButton({
     })();
   };
 
+  // 未参加のときに右端へ出す申し込みボタン。
+  // 外部URLがあるイベントでは定員表示がなくボタンだけが出るため、ここで共通化する。
+  const applyButton = (
+    <Button
+      type="button"
+      disabled={isControlDisabled || isFull || receptionClosed}
+      onClick={handleButtonClick}
+      className="ml-auto h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm"
+    >
+      {buttonLabel}
+    </Button>
+  );
+
   return (
     <>
       <div
         className={cn(
           "mx-auto flex min-h-[56px] w-full items-center justify-between gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-lg sm:min-h-[64px] sm:gap-3 sm:px-5 sm:py-2.5",
-          hasCapacity || participating ? "max-w-[480px]" : "max-w-[340px]",
+          showCapacityBar || participating ? "max-w-[480px]" : "max-w-[340px]",
           isControlDisabled && !participating && "opacity-70",
         )}
       >
@@ -421,6 +440,9 @@ export function EventParticipationButton({
                 : "内容の確認・取り消し"}
             </Button>
           </>
+        ) : externalHref ? (
+          // 外部URLあり：申し込みは外部サイトで行うため、定員表示なしでボタンだけを出す
+          applyButton
         ) : (
           // 未参加：定員・プログレスバー・残り人数 + 参加申込ボタン
           <>
@@ -474,14 +496,7 @@ export function EventParticipationButton({
                 </span>
               </div>
             )}
-            <Button
-              type="button"
-              disabled={isControlDisabled || isFull || receptionClosed}
-              onClick={handleButtonClick}
-              className="ml-auto h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm"
-            >
-              {buttonLabel}
-            </Button>
+            {applyButton}
           </>
         )}
       </div>
