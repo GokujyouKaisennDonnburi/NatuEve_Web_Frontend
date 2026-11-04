@@ -9,7 +9,7 @@ export async function generateMetadata({
   const { id } = await params;
   return {
     title: PAGE_TITLES.EVENT_DETAIL,
-    ...canonicalMetadata(`/event/${id}`),
+    ...canonicalMetadata(`/event/${encodeURIComponent(id)}`),
   };
 }
 

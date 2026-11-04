@@ -10,7 +10,7 @@ export async function generateMetadata({
   const { id } = await params;
   return {
     title: PAGE_TITLES.USER_PROFILE,
-    ...canonicalMetadata(`${ROUTES.USERS}/${id}`),
+    ...canonicalMetadata(`${ROUTES.USERS}/${encodeURIComponent(id)}`),
   };
 }
 
