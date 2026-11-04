@@ -384,7 +384,7 @@ export function EventParticipationButton({
   };
 
   // 未参加のときに出す申し込みボタン。左右の余白の付け方だけが異なるため、
-  // 定員表示ありでは右端（ml-auto）、ボタンだけの外部URLイベントでは中央（mx-auto）に出す。
+  // 定員表示ありでは右端（ml-auto）、ボタンだけの外部URLイベントではそのまま出す。
   const renderApplyButton = (positionClassName: string) => (
     <Button
       type="button"
@@ -399,12 +399,22 @@ export function EventParticipationButton({
     </Button>
   );
 
+  // 外部URLありのイベントは定員表示がなくボタンだけのため、ピルをボタン幅にフィットさせて余白を減らす。
+  const isButtonOnly = Boolean(externalHref) && !participating;
+
   return (
     <>
       <div
         className={cn(
-          "mx-auto flex min-h-[56px] w-full items-center justify-between gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-lg sm:min-h-[64px] sm:gap-3 sm:px-5 sm:py-2.5",
-          showCapacityBar || participating ? "max-w-[480px]" : "max-w-[340px]",
+          "mx-auto flex min-h-[56px] items-center rounded-full border border-slate-200 bg-white py-2 shadow-lg sm:min-h-[64px] sm:py-2.5",
+          isButtonOnly
+            ? // ボタンだけのときはコンテンツ幅に合わせる（左右は内側余白のみ）
+              "w-auto px-4 sm:px-5"
+            : "w-full justify-between gap-2 px-4 sm:gap-3 sm:px-5",
+          !isButtonOnly &&
+            (showCapacityBar || participating
+              ? "max-w-[480px]"
+              : "max-w-[340px]"),
           isControlDisabled && !participating && "opacity-70",
         )}
       >
@@ -444,8 +454,8 @@ export function EventParticipationButton({
             </Button>
           </>
         ) : externalHref ? (
-          // 外部URLあり：申し込みは外部サイトで行うため、定員表示なしでボタンだけを中央に出す
-          renderApplyButton("mx-auto")
+          // 外部URLあり：申し込みは外部サイトで行うため、定員表示なしでボタンだけを出す
+          renderApplyButton("")
         ) : (
           // 未参加：定員・プログレスバー・残り人数 + 参加申込ボタン
           <>
