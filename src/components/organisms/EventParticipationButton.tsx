@@ -408,8 +408,8 @@ export function EventParticipationButton({
         className={cn(
           "mx-auto flex min-h-[56px] items-center rounded-full border border-slate-200 bg-white py-2 shadow-lg sm:min-h-[64px] sm:py-2.5",
           isButtonOnly
-            ? // ボタンだけのときはコンテンツ幅に合わせる（左右は内側余白のみ）
-              "w-auto px-4 sm:px-5"
+            ? // ボタンだけのときはコンテンツ幅に合わせる（flex は w-auto だと親幅いっぱいに伸びるため w-fit が必要）
+              "w-fit px-4 sm:px-5"
             : "w-full justify-between gap-2 px-4 sm:gap-3 sm:px-5",
           !isButtonOnly &&
             (showCapacityBar || participating
