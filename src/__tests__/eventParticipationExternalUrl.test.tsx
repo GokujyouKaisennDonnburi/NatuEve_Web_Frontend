@@ -40,7 +40,13 @@ vi.mock(
   }),
 );
 
-const renderButton = (props: { externalUrl?: string | null } = {}) => {
+const renderButton = (
+  props: {
+    externalUrl?: string | null;
+    capacity?: number;
+    participantCount?: number;
+  } = {},
+) => {
   render(
     <EventParticipationButton
       eventId="event-1"
@@ -49,6 +55,8 @@ const renderButton = (props: { externalUrl?: string | null } = {}) => {
       eventEndDate="2026-11-10T12:00:00+09:00"
       eventLocation="テスト会場"
       costs={[]}
+      capacity={props.capacity}
+      participantCount={props.participantCount}
       {...props}
     />,
   );
@@ -123,5 +131,44 @@ describe("EventParticipationButton の externalUrl 分岐", () => {
 
     expect(openSpy).not.toHaveBeenCalled();
     expect(screen.getByTestId("participation-modal")).toBeInTheDocument();
+  });
+});
+
+describe("EventParticipationButton の externalUrl 表示", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("externalUrl が設定されている場合は定員・残り人数・プログレスバーを出さずボタンだけを出す", () => {
+    renderButton({ externalUrl: "https://example.com/event" });
+
+    expect(
+      screen.getByRole("button", { name: "参加を申し込む" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/定員\d+名/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/残り\d+名/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  });
+
+  it("externalUrl が未設定の場合は従来どおり定員・残り人数・プログレスバーを出す", () => {
+    renderButton({ externalUrl: null, capacity: 30, participantCount: 10 });
+
+    expect(screen.getByText("定員30名")).toBeInTheDocument();
+    expect(screen.getByText("残り20名")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "参加を申し込む" }),
+    ).toBeInTheDocument();
+  });
+
+  it("externalUrl が不正値の場合も従来どおり定員・プログレスバー付きで表示する", () => {
+    renderButton({
+      externalUrl: "not a url",
+      capacity: 30,
+      participantCount: 10,
+    });
+
+    expect(screen.getByText("定員30名")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
   });
 });
