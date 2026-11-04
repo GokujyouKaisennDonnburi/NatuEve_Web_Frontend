@@ -104,6 +104,9 @@ export function EventPostForm({
 
   const getFieldId = (suffix: string) => `${formId}-${suffix}`;
 
+  // 申し込みURLが設定されている間は、申し込みを外部サイトで受けるため定員を扱わない
+  const isExternalReception = Boolean(formState.applicationUrl.trim());
+
   // 送信時、フォームの中で一番上にあるエラー項目へジャンプする。
   // プレビュー表示中の送信では、入力に戻ってフォームが表示されてからジャンプする。
   useJumpToFirstError(containerRef, errors, hidden);
@@ -221,6 +224,12 @@ export function EventPostForm({
           <FormField
             id={getFieldId("capacity")}
             label="定員数"
+            description={
+              // 申し込みURLが設定されている間は定員を受け付けない（外部サイトで管理するため）
+              isExternalReception
+                ? "申し込みURLが設定されているため、定員を受け付けません。"
+                : undefined
+            }
             error={errors.capacity}
           >
             <UnitInput
@@ -236,6 +245,8 @@ export function EventPostForm({
                   normalizeHalfWidthDigits(event.target.value),
                 )
               }
+              // 申し込みURL設定時は定員を入力できない。入力済みの値は URL 入力時に自動クリアされる
+              disabled={isExternalReception}
               placeholder="例: 30"
               aria-invalid={Boolean(errors.capacity)}
             />

@@ -98,10 +98,27 @@ export function useEventPostForm() {
     key: K,
     value: EventPostFormState[K],
   ) => {
-    setFormState((current) => ({
-      ...current,
-      [key]: value,
-    }));
+    setFormState((current) => {
+      const next = { ...current, [key]: value };
+      // 申し込みURLが設定されている間は、申し込みを外部サイトで受けるため定員を受け付けない。
+      // URL の入力が始まった時点で入力済みの定員を自動でクリアする。
+      if (
+        key === "applicationUrl" &&
+        typeof value === "string" &&
+        value.trim() &&
+        next.capacity
+      ) {
+        next.capacity = "";
+      }
+      return next;
+    });
+
+    // 定員のクリアに合わせて、表示中の定員エラーも消す（URL設定時に定員のエラーを出さないため）。
+    if (key === "applicationUrl") {
+      setErrors((current) =>
+        current.capacity ? { ...current, capacity: undefined } : current,
+      );
+    }
   };
 
   // 画像を presign → R2 直 PUT し、イベント作成に渡す objectKey を返す。
@@ -209,8 +226,12 @@ export function useEventPostForm() {
       nextErrors.requiredItems = requiredItemErrors;
     }
 
-    // 定員数の検証（0以上の整数であるか）
+    // 定員数の検証（0以上の整数であるか）。
+    // 申し込みURLが設定されたイベントは外部サイトで受付するため定員を扱わない。
+    // URL設定時は定員の入力・エラーともにクリア済みだが、ここでも検証をスキップし
+    // URL設定時に定員のエラーで送信できなくならないことを保証する。
     if (
+      !formState.applicationUrl.trim() &&
       formState.capacity.trim() &&
       (!/^\d+$/.test(formState.capacity.trim()) ||
         Number(formState.capacity) < 0)
@@ -316,6 +337,10 @@ export function useEventPostForm() {
       // 任意項目（capacity / applicationDeadline / externalUrl / items / objectKeys）は
       // 値があるときだけ付与する。
       const trimmedCapacity = formState.capacity.trim();
+      // 申し込みURLが設定されたイベントは定員を受け付けないため、capacity を payload に含めない
+      const hasExternalApplicationUrl = Boolean(
+        formState.applicationUrl.trim(),
+      );
 
       const payload: CreateEventRequest = {
         title: formState.eventName.trim(),
@@ -333,7 +358,7 @@ export function useEventPostForm() {
         })),
       };
 
-      if (trimmedCapacity) {
+      if (trimmedCapacity && !hasExternalApplicationUrl) {
         payload.capacity = Number(trimmedCapacity);
       }
 
