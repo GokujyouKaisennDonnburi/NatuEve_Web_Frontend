@@ -8,6 +8,8 @@ import type { ReportDetail } from "@/types/report";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+const MAX_DETAIL_RETRIES = 5;
+
 // イベント詳細ページコンポーネント
 export default function EventDetailPage() {
   const params = useParams(); // URLパラメータからイベントIDを取得
@@ -43,10 +45,12 @@ export default function EventDetailPage() {
 
       try {
         // Service を経由してイベント詳細データを取得
-        const data = await getEventDetail(id);
+        const data = await getEventDetail(id, {
+          forceMockWorkerRetry: attempt === MAX_DETAIL_RETRIES,
+        });
         if (!cancelled) setEvent(data);
       } catch (err) {
-        if (!cancelled && attempt < 5) {
+        if (!cancelled && attempt < MAX_DETAIL_RETRIES) {
           shouldKeepLoading = true;
           setTimeout(() => void fetchDetail(attempt + 1), 200 * (attempt + 1));
           return;

@@ -162,16 +162,25 @@ export async function syncMockWorker(enabled: boolean) {
 
 // モックワーカーの起動を待つ。並行呼び出しでも警告は1回にし、失敗は上限回数まで再試行する。
 // 上限到達後は一定時間経過するまで再試行しない。
-export async function ensureMockWorker(): Promise<boolean> {
+export async function ensureMockWorker({
+  force = false,
+}: {
+  force?: boolean;
+} = {}): Promise<boolean> {
   if (!isMockAuthEnabled()) {
     return false;
   }
 
-  if (mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES) {
-    if (Date.now() - lastMockWorkerFailureAt < MOCK_WORKER_RETRY_INTERVAL_MS) {
-      return false;
-    }
+  const retryBlocked =
+    !force &&
+    mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES &&
+    Date.now() - lastMockWorkerFailureAt < MOCK_WORKER_RETRY_INTERVAL_MS;
 
+  if (retryBlocked) {
+    return false;
+  }
+
+  if (mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES && !force) {
     resetMockWorkerFailures();
   }
 
@@ -181,7 +190,10 @@ export async function ensureMockWorker(): Promise<boolean> {
       return true;
     })
     .catch((error) => {
-      mockWorkerFailures += 1;
+      mockWorkerFailures = Math.min(
+        mockWorkerFailures + 1,
+        MAX_MOCK_WORKER_FAILURES,
+      );
       lastMockWorkerFailureAt = Date.now();
       console.warn(
         `MSW worker の起動に失敗しました（${mockWorkerFailures}/${MAX_MOCK_WORKER_FAILURES}回目）`,
