@@ -24,7 +24,8 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
 | 接続先 | 用途 | 呼び出し元 |
 |---|---|---|
 | NatuEve_API | データの取得・投稿 | ブラウザ（将来は SSR からも） |
-| R2（API のバケット） | 画像・PDF のアップロード（API の presign で得た署名付き URL へ直接 PUT。`src/services/upload.ts`） | ブラウザ |
+| R2（API のバケット） | 画像・PDF のアップロード（API の presign で得た署名付き URL へ直接 PUT。`src/services/upload.ts`）、PDF の閲覧（API が返す公開 URL をブラウザが直接開く）、画像最適化の取得元 | ブラウザ（アップロード・PDF の閲覧）、Worker（画像最適化） |
+| Google（`lh3.googleusercontent.com`） | アバター画像の表示（画像最適化を通さない） | ブラウザ |
 | Supabase Auth | ログイン（Google OAuth） | ブラウザ |
 
 ## 構成図
@@ -36,20 +37,24 @@ NatuEve_Web_Frontend の本番デプロイ構成をまとめる。
    │                          └→ Cloudflare Workers `natueve-web-frontend`（OpenNext）
    │                               ├─ 静的ファイル（/_next/static/* と public/ 配下）: ASSETS からそのまま返す（Worker は動かない）
    │                               ├─ ページ: Next.js が SSR で返す
-   │                               └─ 画像（/_next/image）: R2 の公開ドメイン（assets.natuportal.org）から取得し、
+   │                               └─ 画像（/_next/image）: R2 の画像は公開ドメイン（assets.natuportal.org）、
+   │                                    静的 import（ロゴ等）は ASSETS から取得し、
    │                                    Cloudflare Images（IMAGES バインディング）で変換して返す
    │
    ├─ データの取得・投稿 ──→ NatuEve_API（natueve-api.natuportal.org。NEXT_PUBLIC_API_BASE_URL）
    │
    ├─ 画像・PDF のアップロード ──→ R2（API の presign で得た署名付き URL へ直接 PUT）
    │
+   ├─ PDF の閲覧 ──→ R2 の公開ドメイン（assets.natuportal.org）
+   │
    ├─ アバターの表示 ──→ Google（lh3.googleusercontent.com。画像最適化を通さない）
    │
    └─ ログイン ──→ Supabase Auth（本番の Auth `natueveOAuth`。Google OAuth → /auth/callback）
 
 [GitHub Actions（ci.yml）] main への push
-   ├─ deploy-staging（自動） ────→ `natueve-web-frontend-stg`（natueve-web-stg.natuportal.org）
-   └─ deploy-production（承認後）→ `natueve-web-frontend`（natueve-web.natuportal.org）
+   └─ quality
+        └─ deploy-staging（自動） ──→ `natueve-web-frontend-stg`（natueve-web-stg.natuportal.org）
+             └─ deploy-production（承認後） ──→ `natueve-web-frontend`（natueve-web.natuportal.org）
 ```
 
 - 静的ファイルへのリクエストは Worker を動かさずに返され、課金されない。
