@@ -1,117 +1,61 @@
-"use client";
-
-import type { EventDetailType } from "@/components/molecules/event-detail/types";
-import EventDetail from "@/components/organisms/EventDetail";
+import { EventDetailContent } from "@/components/organisms/EventDetailContent";
 import { getEventDetail } from "@/services/event";
-import { getReport } from "@/services/report";
-import type { ReportDetail } from "@/types/report";
-import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { EventDetailError } from "@/types/event";
+import type { EventDetailResponse } from "@/types/event";
+import { buildEventMetadata } from "@/utils/seo";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { cache } from "react";
 
-// イベント詳細ページコンポーネント
-export default function EventDetailPage() {
-  const params = useParams(); // URLパラメータからイベントIDを取得
-  const id = params?.id as string; // イベントIDを文字列として型アサーション
+// イベント詳細の初期 HTML をキャッシュしつつ、更新は1分以内に反映する。
+// 参加人数など変わりやすい値はクライアント側でも再取得する。
+export const revalidate = 60;
 
-  const [event, setEvent] = useState<EventDetailType | null>(null); // イベント詳細データを保持するステート
-  const [report, setReport] = useState<ReportDetail | null>(null); // レポートデータを保持するステート
-  const [loading, setLoading] = useState(true);
+type EventDetailPageProps = {
+  params: Promise<{ id: string }>;
+};
 
-  // イベント詳細を再取得する（ローディング表示は出さない）
-  const refetchEvent = useCallback(async () => {
-    if (!id) return;
+// generateMetadata とページ本体で同じ結果を使い、API の二重呼び出しを避ける。
+// 404 はイベント不存在として null を返し、呼び出し側で notFound() を呼ぶ。
+const getEventDetailForPage = cache(
+  async (eventId: string): Promise<EventDetailResponse | null> => {
     try {
-      const data = await getEventDetail(id);
-      setEvent(data);
-    } catch (err) {
-      console.error("イベント詳細再取得エラー", err);
+      return await getEventDetail(eventId);
+    } catch (error) {
+      if (error instanceof EventDetailError && error.status === 404) {
+        return null;
+      }
+      throw error;
     }
-  }, [id]);
+  },
+);
 
-  // イベント詳細データを取得する副作用フック
-  useEffect(() => {
-    // イベントIDが存在しない場合は何もしない
-    if (!id) return;
+export async function generateMetadata({
+  params,
+}: EventDetailPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const event = await getEventDetailForPage(id);
 
-    // キャンセルフラグを設定して、コンポーネントがアンマウントされた場合に状態更新を防ぐ
-    let cancelled = false;
+  if (!event) {
+    notFound();
+  }
 
-    // イベント詳細データを取得する非同期関数
-    const fetchDetail = async (attempt = 0): Promise<void> => {
-      setLoading(true);
-      let shouldKeepLoading = false;
+  return buildEventMetadata(event);
+}
 
-      try {
-        // Service を経由してイベント詳細データを取得
-        const data = await getEventDetail(id);
-        if (!cancelled) setEvent(data);
-      } catch (err) {
-        if (!cancelled && attempt < 5) {
-          shouldKeepLoading = true;
-          setTimeout(() => void fetchDetail(attempt + 1), 200 * (attempt + 1));
-          return;
-        }
+export default async function EventDetailPage({
+  params,
+}: EventDetailPageProps) {
+  const { id } = await params;
+  const event = await getEventDetailForPage(id);
 
-        console.error("イベント詳細取得エラー", err);
-      } finally {
-        if (!cancelled && !shouldKeepLoading) setLoading(false);
-      }
-    };
-
-    void fetchDetail();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
-
-  // レポートデータを取得する副作用フック
-  // 認証不要・1イベント1レポート。404 は「レポート未投稿」の正常系として扱う。
-  useEffect(() => {
-    if (!id) return;
-
-    // id 変更時に前回のレポートをクリアして表示の取り違えを防ぐ
-    setReport(null);
-    let cancelled = false;
-
-    const fetchReport = async (): Promise<void> => {
-      try {
-        const data = await getReport(id);
-        if (!cancelled) setReport(data);
-      } catch (err) {
-        // レポート取得失敗はイベント表示を妨げない
-        console.error("レポート取得エラー", err);
-      }
-    };
-
-    void fetchReport();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
-
-  if (loading)
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div>読み込み中…</div>
-      </div>
-    );
-
-  // イベントが見つからない場合の表示
-  if (!event)
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div>イベントが見つかりません。</div>
-      </div>
-    );
+  if (!event) {
+    notFound();
+  }
 
   return (
-    // イベント詳細ページのメインコンテンツ
     <div className="mx-auto w-full max-w-5xl">
-      <EventDetail
-        event={event}
-        report={report}
-        onEventRefetch={refetchEvent}
-      />
+      <EventDetailContent key={event.id} initialEvent={event} />
     </div>
   );
 }
