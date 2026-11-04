@@ -383,14 +383,17 @@ export function EventParticipationButton({
     })();
   };
 
-  // 未参加のときに右端へ出す申し込みボタン。
-  // 外部URLがあるイベントでは定員表示がなくボタンだけが出るため、ここで共通化する。
-  const applyButton = (
+  // 未参加のときに出す申し込みボタン。左右の余白の付け方だけが異なるため、
+  // 定員表示ありでは右端（ml-auto）、ボタンだけの外部URLイベントでは中央（mx-auto）に出す。
+  const renderApplyButton = (positionClassName: string) => (
     <Button
       type="button"
       disabled={isControlDisabled || isFull || receptionClosed}
       onClick={handleButtonClick}
-      className="ml-auto h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm"
+      className={cn(
+        "h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm",
+        positionClassName,
+      )}
     >
       {buttonLabel}
     </Button>
@@ -441,8 +444,8 @@ export function EventParticipationButton({
             </Button>
           </>
         ) : externalHref ? (
-          // 外部URLあり：申し込みは外部サイトで行うため、定員表示なしでボタンだけを出す
-          applyButton
+          // 外部URLあり：申し込みは外部サイトで行うため、定員表示なしでボタンだけを中央に出す
+          renderApplyButton("mx-auto")
         ) : (
           // 未参加：定員・プログレスバー・残り人数 + 参加申込ボタン
           <>
@@ -496,7 +499,7 @@ export function EventParticipationButton({
                 </span>
               </div>
             )}
-            {applyButton}
+            {renderApplyButton("ml-auto")}
           </>
         )}
       </div>
