@@ -65,4 +65,18 @@ describe("apiFetch", () => {
     expect(mockedEnsureMockWorker).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("forceMockWorkerRetry 指定時は worker 起動を強制再試行する", async () => {
+    mockedIsMockAuthEnabled.mockReturnValue(true);
+    mockedEnsureMockWorker.mockResolvedValue(false);
+    const fetchMock = stubFetch();
+
+    await apiFetch("/api/v1/events/1", {
+      auth: false,
+      forceMockWorkerRetry: true,
+    });
+
+    expect(mockedEnsureMockWorker).toHaveBeenCalledWith({ force: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
