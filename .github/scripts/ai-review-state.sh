@@ -91,13 +91,13 @@ prepare() {
   state_output=''
   state_status=0
   state_output="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-    --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- ai-review-state:")) | [.id, .body] | @tsv' \
+    --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- ai-review-state:")) | [.id, .updated_at, .body] | @tsv' \
     2>/dev/null)" || state_status=$?
   if [ "$state_status" -ne 0 ]; then
     warn "状態コメントを取得できませんでした。full レビューにフォールバックします。"
     state_output=''
   fi
-  state_line="$(printf '%s\n' "$state_output" | tail -n 1)"
+  state_line="$(printf '%s\n' "$state_output" | sort -t $'\t' -k2,2 | tail -n 1)"
 
   state_comment_id=''
   last_sha=''
@@ -142,27 +142,41 @@ prepare() {
       diff_file=''
     elif [ "$status" -eq 1 ]; then
       diff_file="${RUNNER_TEMP:-/tmp}/ai-review.diff"
-      {
-        printf '## Diff stat\n'
-        git diff --no-color --stat "${base_for_review}..${head_sha}" -- . ':(exclude)bun.lock'
-        printf '\n## Diff\n'
-        git diff --no-color --unified=3 "${base_for_review}..${head_sha}" -- . ':(exclude)bun.lock'
-      } > "$diff_file"
+      if ! {
+        printf '## Diff stat\n' &&
+          git diff --no-color --stat "${base_for_review}..${head_sha}" -- . ':(exclude)bun.lock' &&
+          printf '\n## Diff\n' &&
+          git diff --no-color --unified=3 "${base_for_review}..${head_sha}" -- . ':(exclude)bun.lock'
+      } > "$diff_file"; then
+        warn "差分の生成に失敗しました。full レビューにフォールバックします。"
+        mode='full'
+        base_for_review="$base_sha"
+        diff_file=''
+      fi
 
-      max_bytes="${MAX_DIFF_BYTES:-$DEFAULT_MAX_DIFF_BYTES}"
-      case "$max_bytes" in
-        *[!0-9]*|'')
-          max_bytes="$DEFAULT_MAX_DIFF_BYTES"
-          ;;
-      esac
-      if [ "$(wc -c < "$diff_file")" -gt "$max_bytes" ]; then
-        tmp="${diff_file}.tmp"
-        if ! head -c "$max_bytes" "$diff_file" | iconv -f UTF-8 -t UTF-8 -c > "$tmp"; then
-          head -c "$max_bytes" "$diff_file" > "$tmp" || true
+      if [ "$mode" = 'incremental' ]; then
+        max_bytes="${MAX_DIFF_BYTES:-$DEFAULT_MAX_DIFF_BYTES}"
+        case "$max_bytes" in
+          *[!0-9]*|'')
+            max_bytes="$DEFAULT_MAX_DIFF_BYTES"
+            ;;
+        esac
+        if [ "$(wc -c < "$diff_file")" -gt "$max_bytes" ]; then
+          tmp="${diff_file}.tmp"
+          if ! {
+            head -c "$max_bytes" "$diff_file" | iconv -f UTF-8 -t UTF-8 -c > "$tmp" &&
+              printf '\n\n... (差分が長いため %s バイトで省略しました。残りは head の working tree を読んで確認してください) ...\n' "$max_bytes" >> "$tmp" &&
+              mv "$tmp" "$diff_file"
+          }; then
+            warn "差分のtruncateに失敗しました。full レビューにフォールバックします。"
+            mode='full'
+            base_for_review="$base_sha"
+            diff_file=''
+            rm -f "$tmp" 2>/dev/null || true
+          else
+            diff_truncated='true'
+          fi
         fi
-        printf '\n\n... (差分が長いため %s バイトで省略しました。残りは head の working tree を読んで確認してください) ...\n' "$max_bytes" >> "$tmp"
-        mv "$tmp" "$diff_file"
-        diff_truncated='true'
       fi
     else
       warn "差分の確認に失敗しました。full レビューにフォールバックします。"
@@ -217,15 +231,13 @@ AIレビューの状態管理用コメントです（自動更新）。最終レ
 
   if [ -n "$comment_id" ]; then
     if ! printf '%s\n' "$json_payload" | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" --input - >/dev/null; then
-      warn "状態コメントの更新に失敗しました。新規作成を試みます。"
-      comment_id=''
+      warn "状態コメントの更新に失敗しました。次回のレビューに任せます。"
     fi
+    return 0
   fi
 
-  if [ -z "$comment_id" ]; then
-    if ! printf '%s\n' "$json_payload" | gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --input - >/dev/null; then
-      warn "状態コメントの作成に失敗しました。次回は full レビューになります。"
-    fi
+  if ! printf '%s\n' "$json_payload" | gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --input - >/dev/null; then
+    warn "状態コメントの作成に失敗しました。次回は full レビューになります。"
   fi
 }
 

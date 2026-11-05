@@ -143,14 +143,8 @@ jobs:
           MODE: ${{ steps.prepare.outputs.mode }}
           STATE_COMMENT_ID: ${{ steps.prepare.outputs.state_comment_id }}
           EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          reviewed_sha="$(git rev-parse HEAD 2>/dev/null || printf '%s' "$EVENT_HEAD_SHA")"
-          current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-          if [ "$current_branch" != "$HEAD_REF" ]; then
-            reviewed_sha="$EVENT_HEAD_SHA"
-          fi
-          bash .github/scripts/ai-review-state.sh save "$reviewed_sha" "$MODE" "$STATE_COMMENT_ID"
+          bash .github/scripts/ai-review-state.sh save "$EVENT_HEAD_SHA" "$MODE" "$STATE_COMMENT_ID"
 
       - name: Review mode
         if: always()
