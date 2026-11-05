@@ -143,7 +143,7 @@ describe("useEventPostForm の申し込みURL × 定員の連動", () => {
   });
 });
 
-describe("EventPostForm の定員入力欄の無効化", () => {
+describe("EventPostForm の定員入力欄の非表示", () => {
   // useJumpToFirstError が使う scrollIntoView をスタブする（テスト後は戻す）
   const originalScrollIntoView = Element.prototype.scrollIntoView;
 
@@ -177,7 +177,7 @@ describe("EventPostForm の定員入力欄の無効化", () => {
     ...overrides,
   });
 
-  it("申し込みURLが設定されている間は定員入力欄が無効になる", () => {
+  it("申し込みURLが設定されている間は定員入力欄を表示しない", () => {
     render(
       <EventPostForm
         formState={buildFormState({
@@ -188,7 +188,8 @@ describe("EventPostForm の定員入力欄の無効化", () => {
       />,
     );
 
-    expect(screen.getByLabelText(/定員数/)).toBeDisabled();
+    // 無効化した入力欄を出しっぱなしにしないため、入力欄ごと非表示にする
+    expect(screen.queryByLabelText(/定員数/)).not.toBeInTheDocument();
   });
 
   it("申し込みURLが未設定のときは定員入力欄は入力できる", () => {
@@ -201,42 +202,5 @@ describe("EventPostForm の定員入力欄の無効化", () => {
     );
 
     expect(screen.getByLabelText(/定員数/)).toBeEnabled();
-  });
-
-  it("申し込みURL設定時は定員を受け付けない旨の説明が出る", () => {
-    render(
-      <EventPostForm
-        formState={buildFormState({
-          applicationUrl: "https://example.com/apply",
-        })}
-        errors={{}}
-        setField={() => {}}
-      />,
-    );
-
-    expect(
-      screen.getByText(
-        "申し込みURLが設定されているため、定員を受け付けません。",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("無効化の理由の説明文が入力欄と aria-describedby で関連付く", () => {
-    render(
-      <EventPostForm
-        formState={buildFormState({
-          applicationUrl: "https://example.com/apply",
-        })}
-        errors={{}}
-        setField={() => {}}
-      />,
-    );
-
-    const input = screen.getByLabelText(/定員数/);
-    const describedBy = input.getAttribute("aria-describedby");
-    expect(describedBy).toBeTruthy();
-    expect(document.getElementById(describedBy as string)).toHaveTextContent(
-      "申し込みURLが設定されているため、定員を受け付けません。",
-    );
   });
 });
