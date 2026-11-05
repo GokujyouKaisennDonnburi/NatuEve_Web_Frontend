@@ -250,6 +250,9 @@ export function EventPostForm({
               }
               // 申し込みURL設定時は定員を入力できない。入力済みの値は URL 入力時に自動クリアされる
               disabled={isExternalReception}
+              // 無効時の見た目は市区町村欄（SearchSelect の disabled 時）に合わせる：
+              // 背景をグレー化し、文字色・カーソルで入力不可を示す
+              className="disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 disabled:opacity-100"
               // 無効化の理由を説明文で伝える（スクリーンリーダー向け）
               aria-describedby={
                 isExternalReception ? capacityDescriptionId : undefined
