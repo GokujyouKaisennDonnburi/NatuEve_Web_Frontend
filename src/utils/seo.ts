@@ -12,10 +12,15 @@ export function buildEventDescription(description: string): string | undefined {
     return undefined;
   }
 
-  const characters = Array.from(normalized);
+  // 絵文字の ZWJ シーケンスや結合文字を途中で切らないよう、書記素単位で分割する。
+  const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
+  const segments = Array.from(
+    segmenter.segment(normalized),
+    ({ segment }) => segment,
+  );
 
-  return characters.length > DESCRIPTION_MAX_LENGTH
-    ? `${characters.slice(0, DESCRIPTION_MAX_LENGTH - 1).join("")}…`
+  return segments.length > DESCRIPTION_MAX_LENGTH
+    ? `${segments.slice(0, DESCRIPTION_MAX_LENGTH - 1).join("")}…`
     : normalized;
 }
 

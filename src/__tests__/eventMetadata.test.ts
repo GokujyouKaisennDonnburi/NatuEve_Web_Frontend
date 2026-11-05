@@ -55,4 +55,18 @@ describe("buildEventDescription", () => {
 
     expect(result).toBe(`${"😀".repeat(119)}…`);
   });
+
+  it("ZWJ 絵文字を分割しない", () => {
+    const family = "👨‍👩‍👧‍👦";
+    const result = buildEventDescription(family.repeat(130));
+
+    expect(result).toBe(`${family.repeat(119)}…`);
+  });
+
+  it("結合文字を分割しない", () => {
+    const combined = "か\u3099";
+    const result = buildEventDescription(combined.repeat(130));
+
+    expect(result).toBe(`${combined.repeat(119)}…`);
+  });
 });
