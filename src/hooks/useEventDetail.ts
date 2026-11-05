@@ -6,6 +6,9 @@ import { getReport } from "@/services/report";
 import type { ReportDetail } from "@/types/report";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+// タブ復帰やアプリ切り替えで頻繁に再取得しないための最小間隔。
+const MIN_REFETCH_INTERVAL_MS = 30_000;
+
 export type UseEventDetailResult = {
   // 表示するイベント詳細。SSR 時は initialEvent、再取得後は最新データ。
   event: EventDetailType;
@@ -17,7 +20,7 @@ export type UseEventDetailResult = {
 
 // イベント詳細ページのクライアント側状態を管理するフック。
 // 初期 HTML はサーバーで描画済みのため、マウント時には再取得しない。
-// フォーカス時と参加申し込み / キャンセル後の操作後にのみ最新化する。
+// タブ復帰時と参加申し込み / キャンセル後の操作後にのみ最新化する。
 export function useEventDetail(
   initialEvent: EventDetailType,
 ): UseEventDetailResult {
@@ -28,9 +31,12 @@ export function useEventDetail(
   // アンマウント後の setState を避ける。refetch は effect の外からも呼ばれるため、
   // effect ローカルのフラグではなく ref でコンポーネントの寿命を持つ。
   const isMountedRef = useRef(true);
-  // 取得の世代。フォーカス時の再取得と参加操作後の再取得が競合したとき、
+  // 取得の世代。タブ復帰時の再取得と参加操作後の再取得が競合したとき、
   // 先に始まって後から返ってきた結果で最新を上書きしないようにする。
   const requestIdRef = useRef(0);
+  // 最後に再取得を開始した時刻。初回はマウント時刻として扱い、
+  // 表示直後のタブ復帰で不要なリクエストを送らないようにする。
+  const lastFetchedAtRef = useRef(Date.now());
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -41,6 +47,7 @@ export function useEventDetail(
 
   const refetchEvent = useCallback(async () => {
     const requestId = ++requestIdRef.current;
+    lastFetchedAtRef.current = Date.now();
     const isLatest = () =>
       isMountedRef.current && requestId === requestIdRef.current;
 
@@ -56,15 +63,23 @@ export function useEventDetail(
     }
   }, [eventId]);
 
-  // フォーカスが戻ったときに参加人数などを静かに最新化する。
+  // タブ復帰・アプリ切り替え時に参加人数などを静かに最新化する。
+  // visibilitychange はタブ切り替え、focus はアプリ切り替えを拾う。
+  // 短時間に連続して発火しても、一定間隔内は再取得しない。
   useEffect(() => {
-    const refetchOnFocus = () => {
+    const refetchIfStale = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastFetchedAtRef.current < MIN_REFETCH_INTERVAL_MS) {
+        return;
+      }
       void refetchEvent();
     };
 
-    window.addEventListener("focus", refetchOnFocus);
+    window.addEventListener("focus", refetchIfStale);
+    document.addEventListener("visibilitychange", refetchIfStale);
     return () => {
-      window.removeEventListener("focus", refetchOnFocus);
+      window.removeEventListener("focus", refetchIfStale);
+      document.removeEventListener("visibilitychange", refetchIfStale);
     };
   }, [refetchEvent]);
 
