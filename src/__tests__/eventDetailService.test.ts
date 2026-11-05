@@ -67,6 +67,40 @@ describe("getEventDetail", () => {
 
     await expect(getEventDetail(event.id)).resolves.toEqual(event);
   });
+
+  it("指定した signal を fetch に渡す", async () => {
+    const event = buildEvent();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => event,
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+    const controller = new AbortController();
+
+    await getEventDetail(event.id, controller.signal);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+
+  it("signal 未指定時はタイムアウト用の signal を fetch に渡す", async () => {
+    const event = buildEvent();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => event,
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getEventDetail(event.id);
+
+    const options = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(options.signal).toBeInstanceOf(AbortSignal);
+    expect(options.signal?.aborted).toBe(false);
+  });
 });
 
 describe("getEventDetailOrNull", () => {
