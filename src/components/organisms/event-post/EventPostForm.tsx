@@ -222,14 +222,19 @@ export function EventPostForm({
           description="申し込みの受け付け方を設定します。"
         >
           {/* 申し込みURLが設定されている間は定員を受け付けない（外部サイトで管理するため）。
-              無効化した入力欄を出しっぱなしにすると余計な空白が生じるため、入力欄ごと非表示にする。
+              入力欄だけを非表示にし、ラベルと注意書きは残して理由を伝える。
               入力済みの定員は URL 入力時に自動クリアされる（useEventPostForm の setField）。 */}
-          {isExternalReception ? null : (
-            <FormField
-              id={getFieldId("capacity")}
-              label="定員数"
-              error={errors.capacity}
-            >
+          <FormField
+            id={getFieldId("capacity")}
+            label="定員数"
+            description={
+              isExternalReception
+                ? "申し込みURLが設定されているため、定員を受け付けません。"
+                : undefined
+            }
+            error={errors.capacity}
+          >
+            {isExternalReception ? null : (
               <UnitInput
                 id={getFieldId("capacity")}
                 unit="名"
@@ -246,8 +251,8 @@ export function EventPostForm({
                 placeholder="例: 30"
                 aria-invalid={Boolean(errors.capacity)}
               />
-            </FormField>
-          )}
+            )}
+          </FormField>
 
           <FormField
             id={getFieldId("applicationDeadline")}
