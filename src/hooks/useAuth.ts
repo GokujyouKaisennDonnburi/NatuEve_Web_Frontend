@@ -3,10 +3,10 @@
 
 import { getSupabase } from "@/lib/supabase";
 import {
+  ensureMockWorker,
   getMockAuthSession,
   isMockAuthEnabled,
   subscribeMockAuthSession,
-  syncMockWorker,
 } from "@/services/mockAuth";
 import type { AuthSession } from "@/types/common";
 import { useEffect, useState } from "react";
@@ -57,16 +57,10 @@ export function useAuth() {
 
       // モック認証のセッションを同期し、失敗してもローディングを解除する
       void (async () => {
-        // モックワーカーを同期する
+        // モックワーカーの起動を待つ
         try {
-          await syncMockWorker(true);
+          await ensureMockWorker();
 
-          if (cancelled) {
-            return;
-          }
-
-          setSession(getMockAuthSession());
-        } catch {
           if (cancelled) {
             return;
           }

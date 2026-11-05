@@ -1,8 +1,8 @@
 import { getSupabase } from "@/lib/supabase";
 import {
+  ensureMockWorker,
   getMockAuthSession,
   isMockAuthEnabled,
-  syncMockWorker,
 } from "@/services/mockAuth";
 
 // API のベース URL。未設定なら相対パス（開発時は MSW がモックする）。
@@ -14,6 +14,7 @@ const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(
 // APIリクエスト用のカスタムfetch関数を定義
 type ApiFetchOptions = RequestInit & {
   auth?: boolean;
+  forceMockWorkerRetry?: boolean;
 };
 
 // 相対パス（"/api/..." 等）の場合のみベース URL を前置する。
@@ -43,13 +44,20 @@ export async function apiFetch(
   input: RequestInfo | URL,
   init: ApiFetchOptions = {},
 ) {
-  const { auth = true, headers, ...rest } = init; // authオプションをデフォルトでtrueに設定
+  const { auth = true, forceMockWorkerRetry = false, headers, ...rest } = init; // authオプションをデフォルトでtrueに設定
   const mergedHeaders = mergeHeaders(headers); // ヘッダーをマージ
+
+  // モック有効時は、認証の有無に関係なく MSW worker の起動を待つ。
+  // 子コンポーネントの effect は MSWProvider より先に実行されるため、
+  // ここで待たないと初回リクエストが MSW を迂回して実 API に届く。
+  const isMswEnabled = isMockAuthEnabled();
+  if (isMswEnabled) {
+    await ensureMockWorker({ force: forceMockWorkerRetry });
+  }
 
   // 認証が必要な場合は、Supabaseのセッションからアクセストークンを取得してAuthorizationヘッダーに設定
   if (auth) {
-    if (isMockAuthEnabled()) {
-      await syncMockWorker(true);
+    if (isMswEnabled) {
       const mockSession = getMockAuthSession();
       if (mockSession?.token) {
         mergedHeaders.set("Authorization", `Bearer ${mockSession.token}`);

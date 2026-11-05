@@ -8,6 +8,8 @@ import type { ReportDetail } from "@/types/report";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+const MAX_DETAIL_RETRIES = 5;
+
 // イベント詳細ページコンポーネント
 export default function EventDetailPage() {
   const params = useParams(); // URLパラメータからイベントIDを取得
@@ -15,6 +17,7 @@ export default function EventDetailPage() {
 
   const [event, setEvent] = useState<EventDetailType | null>(null); // イベント詳細データを保持するステート
   const [report, setReport] = useState<ReportDetail | null>(null); // レポートデータを保持するステート
+  const [reportFetchKey, setReportFetchKey] = useState(0); // 詳細復旧後のレポート再取得用キー
   const [loading, setLoading] = useState(true);
 
   // イベント詳細を再取得する（ローディング表示は出さない）
@@ -35,20 +38,35 @@ export default function EventDetailPage() {
 
     // キャンセルフラグを設定して、コンポーネントがアンマウントされた場合に状態更新を防ぐ
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
     // イベント詳細データを取得する非同期関数
     const fetchDetail = async (attempt = 0): Promise<void> => {
+      if (cancelled) return;
+
       setLoading(true);
       let shouldKeepLoading = false;
 
       try {
         // Service を経由してイベント詳細データを取得
-        const data = await getEventDetail(id);
-        if (!cancelled) setEvent(data);
+        const data = await getEventDetail(id, {
+          forceMockWorkerRetry: attempt === MAX_DETAIL_RETRIES,
+        });
+        if (!cancelled) {
+          setEvent(data);
+
+          // リトライで復旧した場合、同じ起動失敗の影響を受けたレポートも再取得する
+          if (attempt > 0) {
+            setReportFetchKey((key) => key + 1);
+          }
+        }
       } catch (err) {
-        if (!cancelled && attempt < 5) {
+        if (!cancelled && attempt < MAX_DETAIL_RETRIES) {
           shouldKeepLoading = true;
-          setTimeout(() => void fetchDetail(attempt + 1), 200 * (attempt + 1));
+          retryTimer = setTimeout(
+            () => void fetchDetail(attempt + 1),
+            200 * (attempt + 1),
+          );
           return;
         }
 
@@ -61,6 +79,7 @@ export default function EventDetailPage() {
     void fetchDetail();
     return () => {
       cancelled = true;
+      if (retryTimer !== undefined) clearTimeout(retryTimer);
     };
   }, [id]);
 
@@ -75,7 +94,9 @@ export default function EventDetailPage() {
 
     const fetchReport = async (): Promise<void> => {
       try {
-        const data = await getReport(id);
+        const data = await getReport(id, {
+          forceMockWorkerRetry: reportFetchKey > 0,
+        });
         if (!cancelled) setReport(data);
       } catch (err) {
         // レポート取得失敗はイベント表示を妨げない
@@ -87,7 +108,7 @@ export default function EventDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, reportFetchKey]);
 
   if (loading)
     return (

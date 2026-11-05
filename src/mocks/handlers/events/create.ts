@@ -6,6 +6,7 @@ import { HttpResponse, http } from "msw";
 import { MAX_TAG_COUNT } from "@/constants/config";
 import { tagStore } from "@/mocks/handlers/tags";
 
+import { MOCK_AVATAR_URLS, mockEventImageUrl } from "../../imageUrls";
 import {
   TOKEN_TO_PROFILE_ID,
   getBearerToken,
@@ -15,6 +16,9 @@ import {
 import type { MockEvent } from "./data";
 import { mockEventDetails, mockEvents } from "./data";
 import { seedMembersForNewEvent } from "./participation";
+
+// 作成イベント用の表示画像URLのシード。初期モックの乱数と衝突しない範囲を使う。
+let createdEventImageSeed = 10000;
 
 export const eventCreateHandler = http.post(
   "/api/v1/events",
@@ -45,7 +49,6 @@ export const eventCreateHandler = http.post(
       items?: unknown;
       tagIds?: unknown;
       imageObjectKeys?: unknown;
-      imageUrls?: unknown;
       imageFilenames?: unknown;
       pdfObjectKeys?: unknown;
       pdfUrls?: unknown;
@@ -157,6 +160,18 @@ export const eventCreateHandler = http.post(
           : undefined;
     }
 
+    const imageObjectKeys = Array.isArray(body.imageObjectKeys)
+      ? body.imageObjectKeys
+          .filter(
+            (value): value is string =>
+              typeof value === "string" && value.length > 0,
+          )
+          .map(() => `natueve/events/images/${crypto.randomUUID()}.jpg`)
+      : [];
+    const imageUrls = imageObjectKeys.map(() =>
+      mockEventImageUrl(createdEventImageSeed++),
+    );
+
     // 新しいイベントを構築してメモリに追加する
     const eventId = crypto.randomUUID();
     const newEvent: MockEvent = {
@@ -173,7 +188,7 @@ export const eventCreateHandler = http.post(
       profile: {
         id: "mock-user-1",
         displayName: "Aoi Tanaka",
-        avatarUrl: "https://i.pravatar.cc/150?img=1",
+        avatarUrl: MOCK_AVATAR_URLS.avatar1,
       },
       createdAt: new Date().toISOString(),
       // 申込期限は未指定のとき JSON に含めない(締切なし)。
@@ -220,16 +235,8 @@ export const eventCreateHandler = http.post(
             };
           })
         : undefined,
-      imageObjectKeys: Array.isArray(body.imageObjectKeys)
-        ? body.imageObjectKeys.filter(
-            (value): value is string => typeof value === "string",
-          )
-        : undefined,
-      imageUrls: Array.isArray(body.imageUrls)
-        ? (body.imageUrls as unknown[]).filter(
-            (value): value is string => typeof value === "string",
-          )
-        : undefined,
+      imageObjectKeys: imageObjectKeys.length > 0 ? imageObjectKeys : undefined,
+      imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
       imageFilenames: Array.isArray(body.imageFilenames)
         ? body.imageFilenames.filter(
             (value): value is string => typeof value === "string",

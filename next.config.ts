@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 // テストでも同じ型を使い、Next.js 側の型変更に追従する。
@@ -37,57 +38,62 @@ const developmentImageHosts: ImageRemotePattern[] = productionImageHosts.map(
 );
 
 // MSW のモックデータ（src/mocks/**・src/services/mockAuth.ts）でのみ使う画像の取得元。
-// モックの画像 URL を変えるときは、ホストをここに追加して URL と許可リストを揃える。
+// i.pravatar.cc のアバターは next/image の unoptimized で表示するため、ここには含めない。
+// モックの画像 URL を変えるときは、ホストと pathname をここに追加して URL と許可リストを揃える。
+// search は画像の切り替えに使うため制限しない。
 const mockImageHosts: ImageRemotePattern[] = [
   {
     protocol: "https",
     hostname: "picsum.photos",
-  },
-  {
-    protocol: "https",
-    hostname: "i.pravatar.cc",
+    pathname: "/+([0-9])/+([0-9])",
   },
 ];
 
-// MSW を使うビルドでのみモック用の取得元を許可する。
-// `true` 以外（未設定・`false` を含む）ではモック用を含めない（安全側のデフォルト）。
-const isMswEnabled = process.env.NEXT_PUBLIC_USE_MSW === "true";
+// MSW を使うビルドかどうか。開発サーバでの許可は phase で判定する。
+// 本番ビルドでは `true` 以外（未設定・`false` を含む）ならモック用を含めない（安全側のデフォルト）。
+const isMswBuild = process.env.NEXT_PUBLIC_USE_MSW === "true";
 
 // ローカル開発・検証環境のビルドでのみ開発用の取得元を許可する。
 // `true` 以外（未設定・`false` を含む）では含めない（安全側のデフォルト）。
 const isDevAssetsEnabled = process.env.USE_DEV_ASSETS === "true";
 
 // Next.jsの設定ファイル
-const nextConfig: NextConfig = {
-  reactStrictMode: true,
+// 開発サーバは起動後に .env.local を変更しても next.config.ts を再評価しないため、
+// phase で開発サーバと判定できたら MSW の有効化タイミングに関係なくモック用取得元を許可する。
+const nextConfig = (phase: string): NextConfig => {
+  const isDevelopmentServer = phase === PHASE_DEVELOPMENT_SERVER;
 
-  experimental: {
-    optimizeCss: true,
-  },
+  return {
+    reactStrictMode: true,
 
-  async rewrites() {
-    // 開発時のみ /api をローカルのAPIサーバーへ転送する。
-    // 本番ビルドでは空を返し、APIはNEXT_PUBLIC_API_BASE_URLへ直接呼ぶ。
-    if (process.env.NODE_ENV !== "development") {
-      return [];
-    }
+    experimental: {
+      optimizeCss: true,
+    },
 
-    return [
-      {
-        source: "/api/:path*",
-        destination: "http://localhost:8085/api/:path*",
-      },
-    ];
-  },
+    async rewrites() {
+      // 開発サーバのみ /api をローカルのAPIサーバーへ転送する。
+      // 本番ビルドでは空を返し、APIはNEXT_PUBLIC_API_BASE_URLへ直接呼ぶ。
+      if (!isDevelopmentServer) {
+        return [];
+      }
 
-  // 画像のリモートパターン設定
-  images: {
-    remotePatterns: [
-      ...productionImageHosts,
-      ...(isDevAssetsEnabled ? developmentImageHosts : []),
-      ...(isMswEnabled ? mockImageHosts : []),
-    ],
-  },
+      return [
+        {
+          source: "/api/:path*",
+          destination: "http://localhost:8085/api/:path*",
+        },
+      ];
+    },
+
+    // 画像のリモートパターン設定
+    images: {
+      remotePatterns: [
+        ...productionImageHosts,
+        ...(isDevAssetsEnabled ? developmentImageHosts : []),
+        ...(isMswBuild || isDevelopmentServer ? mockImageHosts : []),
+      ],
+    },
+  };
 };
 
 export default nextConfig;

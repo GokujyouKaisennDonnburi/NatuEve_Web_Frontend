@@ -209,9 +209,7 @@ export function EventReportList({
     return <ExternalReportCard report={report} externalUrls={externalUrls} />;
   }
 
-  const imageSources = report.imageUrls?.length
-    ? report.imageUrls
-    : (report.imageObjectKeys ?? []);
+  const imageSources = report.imageUrls ?? [];
   const pdfSources = report.pdfUrls?.length
     ? report.pdfUrls
     : (report.pdfObjectKeys ?? []);

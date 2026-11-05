@@ -1,3 +1,4 @@
+import { MOCK_AVATAR_URLS } from "@/mocks/imageUrls";
 import type { AuthSession } from "@/types/common";
 
 const STORAGE_KEY = "natu-eve.mock-auth-session";
@@ -8,8 +9,8 @@ export const MOCK_AUTH_SESSION: AuthSession = {
   token: "mock-access-token",
   name: "Aoi Tanaka",
   email: "aoi@example.com",
-  // MSW ビルドで許可されるホスト（next.config.ts の mockImageHosts）に合わせる
-  iconUrl: "https://i.pravatar.cc/150?img=8",
+  // MSW のアバター画像。next/image では unoptimized で表示するため、許可リストには含めない。
+  iconUrl: MOCK_AVATAR_URLS.authSession,
 };
 
 // モック認証が有効かどうかを判定する関数
@@ -108,7 +109,18 @@ export function subscribeMockAuthSession(listener: () => void) {
   };
 }
 
+const MAX_MOCK_WORKER_FAILURES = 2;
+const MOCK_WORKER_RETRY_INTERVAL_MS = 30_000;
 let mockWorkerPromise: Promise<void> | null = null; // モックワーカーの起動状態を保持する Promise
+let mockWorkerFailures = 0; // 起動失敗回数。上限に達するまで再試行する
+let lastMockWorkerFailureAt = 0; // 上限到達後の再試行を抑える最終失敗時刻
+let ensurePromise: Promise<boolean> | null = null; // 並行呼び出しで起動処理を共有する Promise
+
+// モックワーカーの起動失敗状態をリセットする
+export function resetMockWorkerFailures(): void {
+  mockWorkerFailures = 0;
+  lastMockWorkerFailureAt = 0;
+}
 
 // モックワーカーを同期する関数
 export async function syncMockWorker(enabled: boolean) {
@@ -119,6 +131,8 @@ export async function syncMockWorker(enabled: boolean) {
 
   // モック認証が無効な場合は、モックワーカーを停止する
   if (!enabled) {
+    // 再度有効化したときに再試行できるよう、失敗状態を戻す
+    resetMockWorkerFailures();
     if (mockWorkerPromise) {
       await mockWorkerPromise.catch(() => undefined);
       const { worker } = await import("@/mocks/browser");
@@ -145,4 +159,52 @@ export async function syncMockWorker(enabled: boolean) {
   }
 
   await mockWorkerPromise;
+}
+
+// モックワーカーの起動を待つ。並行呼び出しでも警告は1回にし、失敗は上限回数まで再試行する。
+// 上限到達後は一定時間経過するまで再試行しない。
+export async function ensureMockWorker({
+  force = false,
+}: {
+  force?: boolean;
+} = {}): Promise<boolean> {
+  if (!isMockAuthEnabled()) {
+    return false;
+  }
+
+  const retryBlocked =
+    !force &&
+    mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES &&
+    Date.now() - lastMockWorkerFailureAt < MOCK_WORKER_RETRY_INTERVAL_MS;
+
+  if (retryBlocked) {
+    return false;
+  }
+
+  if (mockWorkerFailures >= MAX_MOCK_WORKER_FAILURES && !force) {
+    resetMockWorkerFailures();
+  }
+
+  ensurePromise ??= syncMockWorker(true)
+    .then(() => {
+      resetMockWorkerFailures();
+      return true;
+    })
+    .catch((error) => {
+      mockWorkerFailures = Math.min(
+        mockWorkerFailures + 1,
+        MAX_MOCK_WORKER_FAILURES,
+      );
+      lastMockWorkerFailureAt = Date.now();
+      console.warn(
+        `MSW worker の起動に失敗しました（${mockWorkerFailures}/${MAX_MOCK_WORKER_FAILURES}回目）`,
+        error,
+      );
+      return false;
+    })
+    .finally(() => {
+      ensurePromise = null;
+    });
+
+  return ensurePromise;
 }

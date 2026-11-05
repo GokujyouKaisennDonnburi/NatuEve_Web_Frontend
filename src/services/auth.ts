@@ -3,16 +3,23 @@ import { getSupabase } from "@/lib/supabase";
 import {
   MOCK_AUTH_SESSION,
   clearMockAuthSession,
+  ensureMockWorker,
   getMockAuthSession,
   isMockAuthEnabled,
+  resetMockWorkerFailures,
   setMockAuthSession,
-  syncMockWorker,
 } from "@/services/mockAuth";
 
 // Googleサインインへリダイレクト（モック時はセッションを保存して true を返す）
 export async function signInWithGoogle(): Promise<boolean> {
   if (isMockAuthEnabled()) {
-    await syncMockWorker(true);
+    resetMockWorkerFailures();
+
+    const workerReady = await ensureMockWorker();
+    if (!workerReady) {
+      throw new Error("MSW worker の起動に失敗しました");
+    }
+
     setMockAuthSession(MOCK_AUTH_SESSION);
     return true;
   }

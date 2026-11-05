@@ -1,8 +1,14 @@
 // @vitest-environment node
-// next.config.ts の設定値だけを検証するため、DOM は使わない。
+// next.config.ts の設定値とモック画像URLの整合を検証するため、DOM は使わない。
 
 // Next.js の内部 API。更新で見つからなくなったら、next build の writeImagesManifest と同じく
 // picomatch の makeRe（dot: true）で pathname を正規表現にして判定する形に置き換える。
+import { mockEventDetails } from "@/mocks/handlers/events/data";
+import {
+  PHASE_DEVELOPMENT_SERVER,
+  PHASE_PRODUCTION_BUILD,
+  PHASE_PRODUCTION_SERVER,
+} from "next/constants";
 import { matchRemotePattern } from "next/dist/shared/lib/match-remote-pattern";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ImageRemotePattern } from "../../next.config";
@@ -25,8 +31,7 @@ const DEVELOPMENT_PATTERNS = [
   `https://assets-dev.natuportal.org||/natueve/reports/images/${ASSET_IMAGE_PATHNAME}|`,
 ];
 const MOCK_PATTERNS = [
-  "https://picsum.photos|(unset)|/**|(unset)",
-  "https://i.pravatar.cc|(unset)|/**|(unset)",
+  "https://picsum.photos|(unset)|/+([0-9])/+([0-9])|(unset)",
 ];
 
 const toPatternKey = ({
@@ -46,37 +51,42 @@ const toPatternKey = ({
 type ImageHostEnv = {
   useMsw?: string;
   useDevAssets?: string;
+  phase?: string;
 };
 
-type ImageHostEnvKey = "NEXT_PUBLIC_USE_MSW" | "USE_DEV_ASSETS";
-
-const originalUseMsw = process.env.NEXT_PUBLIC_USE_MSW;
-const originalUseDevAssets = process.env.USE_DEV_ASSETS;
-
-const setEnv = (key: ImageHostEnvKey, value: string | undefined) => {
-  if (value === undefined) {
-    delete process.env[key];
-  } else {
-    process.env[key] = value;
-  }
+const loadNextConfig = async (phase: string) => {
+  vi.resetModules();
+  const { default: nextConfig } = await import("../../next.config");
+  return nextConfig(phase);
 };
 
+// 既定は production build の phase。開発サーバの許可は phase を明示して検証する。
 const loadRemotePatterns = async ({
   useMsw,
   useDevAssets,
+  phase = PHASE_PRODUCTION_BUILD,
 }: ImageHostEnv = {}): Promise<ImageRemotePattern[]> => {
-  vi.resetModules();
+  vi.stubEnv("NEXT_PUBLIC_USE_MSW", useMsw);
+  vi.stubEnv("USE_DEV_ASSETS", useDevAssets);
 
-  setEnv("NEXT_PUBLIC_USE_MSW", useMsw);
-  setEnv("USE_DEV_ASSETS", useDevAssets);
-
-  const { default: nextConfig } = await import("../../next.config");
-  return nextConfig.images?.remotePatterns ?? [];
+  const config = await loadNextConfig(phase);
+  return config.images?.remotePatterns ?? [];
 };
 
 const loadRemotePatternKeys = async (
   env: ImageHostEnv = {},
 ): Promise<string[]> => (await loadRemotePatterns(env)).map(toPatternKey);
+
+const loadRewrites = async (phase: string) => {
+  const config = await loadNextConfig(phase);
+  const rewrites = config.rewrites;
+
+  if (typeof rewrites !== "function") {
+    throw new Error("next.config.ts の rewrites が関数ではありません");
+  }
+
+  return rewrites();
+};
 
 // Next.js の /_next/image と同じ判定（OpenNext もビルド時に同じ glob を正規表現にして使う）で、
 // 許可リストが URL を通すかを確かめる。
@@ -86,8 +96,7 @@ const isAllowed = (patterns: ImageRemotePattern[], url: string) =>
 const IMAGE_ID = "0f8fad5b-d9cb-469f-a165-70867728950e";
 
 afterEach(() => {
-  setEnv("NEXT_PUBLIC_USE_MSW", originalUseMsw);
-  setEnv("USE_DEV_ASSETS", originalUseDevAssets);
+  vi.unstubAllEnvs();
 });
 
 describe("next.config.ts の画像取得元", () => {
@@ -97,16 +106,48 @@ describe("next.config.ts の画像取得元", () => {
     ["false", "false"],
     ["TRUE", "TRUE"],
     ["空文字", ""],
-  ])("NEXT_PUBLIC_USE_MSW が %s なら本番用の取得元だけを許可する", async (_label, useMsw) => {
-    expect(new Set(await loadRemotePatternKeys({ useMsw }))).toEqual(
-      new Set(PRODUCTION_PATTERNS),
-    );
+  ])("本番ビルドで NEXT_PUBLIC_USE_MSW が %s なら本番用の取得元だけを許可する", async (_label, useMsw) => {
+    expect(
+      new Set(
+        await loadRemotePatternKeys({
+          useMsw,
+          phase: PHASE_PRODUCTION_BUILD,
+        }),
+      ),
+    ).toEqual(new Set(PRODUCTION_PATTERNS));
   });
 
-  it("NEXT_PUBLIC_USE_MSW=true ならモック用の取得元も許可する", async () => {
-    expect(new Set(await loadRemotePatternKeys({ useMsw: "true" }))).toEqual(
-      new Set([...PRODUCTION_PATTERNS, ...MOCK_PATTERNS]),
-    );
+  it("本番ビルドで NEXT_PUBLIC_USE_MSW=true ならモック用の取得元も許可する", async () => {
+    expect(
+      new Set(
+        await loadRemotePatternKeys({
+          useMsw: "true",
+          phase: PHASE_PRODUCTION_BUILD,
+        }),
+      ),
+    ).toEqual(new Set([...PRODUCTION_PATTERNS, ...MOCK_PATTERNS]));
+  });
+
+  it.each([
+    ["未設定", undefined],
+    ["false", "false"],
+  ])("開発環境なら NEXT_PUBLIC_USE_MSW が %s でもモック用の取得元を許可する", async (_label, useMsw) => {
+    expect(
+      new Set(
+        await loadRemotePatternKeys({
+          useMsw,
+          phase: PHASE_DEVELOPMENT_SERVER,
+        }),
+      ),
+    ).toEqual(new Set([...PRODUCTION_PATTERNS, ...MOCK_PATTERNS]));
+  });
+
+  it("NODE_ENV=development でも production build の phase ならモック用取得元を許可しない", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+
+    expect(
+      new Set(await loadRemotePatternKeys({ phase: PHASE_PRODUCTION_BUILD })),
+    ).toEqual(new Set(PRODUCTION_PATTERNS));
   });
 
   it.each([
@@ -243,11 +284,62 @@ describe("next.config.ts の画像取得元の pathname・search・port の制�
 describe("next.config.ts のモック用の取得元", () => {
   // モックの画像 URL はクエリで画像を切り替えるため、search を絞らない。
   it.each([
-    "https://picsum.photos/1200/600?random=1",
-    "https://i.pravatar.cc/150?img=1",
+    "https://picsum.photos/1200/600?random=292",
+    "https://picsum.photos/600/400?random=1",
   ])("NEXT_PUBLIC_USE_MSW=true なら %s を許可する", async (url) => {
     expect(isAllowed(await loadRemotePatterns({ useMsw: "true" }), url)).toBe(
       true,
     );
+  });
+
+  it.each([
+    "https://picsum.photos/foo/bar",
+    "https://picsum.photos/1200",
+    "https://picsum.photos/1200/600/extra",
+  ])("開発環境でも許可外の pathname %s は許可しない", async (url) => {
+    expect(
+      isAllowed(
+        await loadRemotePatterns({ phase: PHASE_DEVELOPMENT_SERVER }),
+        url,
+      ),
+    ).toBe(false);
+  });
+
+  it("開発環境の許可リストがイベント・レポート画像URLを通す", async () => {
+    for (const detail of mockEventDetails.values()) {
+      expect(detail.imageUrls?.length ?? 0).toBeGreaterThan(0);
+    }
+
+    const urls = [...mockEventDetails.values()]
+      .flatMap((detail) => [
+        ...(detail.imageUrls ?? []),
+        ...(detail.reports?.flatMap((report) => report.imageUrls ?? []) ?? []),
+      ])
+      .filter((url) => url.length > 0);
+
+    const patterns = await loadRemotePatterns({
+      phase: PHASE_DEVELOPMENT_SERVER,
+    });
+    for (const url of urls) {
+      expect(isAllowed(patterns, url), url).toBe(true);
+    }
+  });
+});
+
+describe("next.config.ts の rewrites", () => {
+  it("開発サーバでは /api をローカルAPIへ転送する", async () => {
+    await expect(loadRewrites(PHASE_DEVELOPMENT_SERVER)).resolves.toEqual([
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:8085/api/:path*",
+      },
+    ]);
+  });
+
+  it.each([
+    PHASE_PRODUCTION_BUILD,
+    PHASE_PRODUCTION_SERVER,
+  ])("本番 phase %s では rewrites を返さない", async (phase) => {
+    await expect(loadRewrites(phase)).resolves.toEqual([]);
   });
 });

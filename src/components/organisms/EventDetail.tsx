@@ -62,9 +62,7 @@ export function EventDetail({
   // イベント詳細を再取得するコールバック。参加/キャンセル後に最新の定員情報を反映する。
   onEventRefetch?: () => void;
 }) {
-  const images = event.imageUrls?.length
-    ? event.imageUrls
-    : (event.imageObjectKeys ?? []);
+  const images = event.imageUrls ?? [];
   const organizerName = event.organizerName ?? event.profile?.displayName;
   const organizerAvatarUrl =
     event.organizerAvatarUrl ?? event.profile?.avatarUrl;
