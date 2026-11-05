@@ -1,9 +1,11 @@
 import { EventDetailContent } from "@/components/organisms/EventDetailContent";
 import { getEventDetailOrNull } from "@/services/event";
-import { buildEventMetadata } from "@/utils/seo";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { cache } from "react";
+import {
+  getEventDetailMetadata,
+  loadEventDetailOrNotFound,
+} from "./eventDetailMetadata";
 
 // イベント詳細の初期 HTML をキャッシュしつつ、更新は1分以内に反映する。
 // 参加人数など変わりやすい値は、タブ復帰時・参加操作後にクライアント側で再取得する。
@@ -21,24 +23,14 @@ export async function generateMetadata({
   params,
 }: EventDetailPageProps): Promise<Metadata> {
   const { id } = await params;
-  const event = await getEventDetailForPage(id);
-
-  if (!event) {
-    notFound();
-  }
-
-  return buildEventMetadata(event);
+  return getEventDetailMetadata(id, getEventDetailForPage);
 }
 
 export default async function EventDetailPage({
   params,
 }: EventDetailPageProps) {
   const { id } = await params;
-  const event = await getEventDetailForPage(id);
-
-  if (!event) {
-    notFound();
-  }
+  const event = await loadEventDetailOrNotFound(id, getEventDetailForPage);
 
   // SSR とハイドレーションでステータス表示がずれないよう、描画時刻を渡す。
   const initialNow = Date.now();
