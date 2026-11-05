@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 type EventDetailErrorPageProps = {
-  error: Error & { digest?: string };
+  error: unknown;
   retry: () => void;
 };
 
