@@ -2,16 +2,16 @@
 
 import { useEffect } from "react";
 
-type EventDetailErrorProps = {
+type EventDetailErrorPageProps = {
   error: Error & { digest?: string };
   reset: () => void;
 };
 
 // イベント詳細の SSR やクライアント処理で、404 以外の予期しないエラーが起きたときの表示。
-export default function EventDetailError({
+export default function EventDetailErrorPage({
   error,
   reset,
-}: Readonly<EventDetailErrorProps>) {
+}: Readonly<EventDetailErrorPageProps>) {
   useEffect(() => {
     console.error("イベント詳細の表示に失敗しました", error);
   }, [error]);

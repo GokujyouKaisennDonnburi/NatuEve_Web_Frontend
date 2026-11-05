@@ -1,6 +1,6 @@
 import { EventDetailContent } from "@/components/organisms/EventDetailContent";
+import { EventDetailError } from "@/lib/errors";
 import { getEventDetail } from "@/services/event";
-import { EventDetailError } from "@/types/event";
 import type { EventDetailResponse } from "@/types/event";
 import { buildEventMetadata } from "@/utils/seo";
 import type { Metadata } from "next";

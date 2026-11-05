@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { EventDetailError } from "@/lib/errors";
 import { getEventDetail } from "@/services/event";
-import { EventDetailError } from "@/types/event";
 import type { EventDetailResponse } from "@/types/event";
 
 const buildEvent = (): EventDetailResponse => ({

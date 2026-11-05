@@ -1,5 +1,5 @@
+import { EventDetailError } from "@/lib/errors";
 import { apiFetch } from "@/services/apiClient";
-import { EventDetailError } from "@/types/event";
 import type {
   CancelEventRequest,
   CancelEventResponse,
