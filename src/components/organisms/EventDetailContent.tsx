@@ -17,7 +17,10 @@ export function EventDetailContent({
   initialEvent,
   initialNow,
 }: Readonly<EventDetailContentProps>) {
-  const { event, report, refetchEvent } = useEventDetail(initialEvent);
+  const { event, report, refetchEvent } = useEventDetail(
+    initialEvent,
+    initialNow,
+  );
 
   return (
     <EventDetail

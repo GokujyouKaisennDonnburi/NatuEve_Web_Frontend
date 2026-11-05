@@ -23,6 +23,7 @@ export type UseEventDetailResult = {
 // タブ復帰時と参加申し込み / キャンセル後の操作後にのみ最新化する。
 export function useEventDetail(
   initialEvent: EventDetailType,
+  initialNow: number,
 ): UseEventDetailResult {
   const [event, setEvent] = useState(initialEvent);
   const [report, setReport] = useState<ReportDetail | null>(null);
@@ -34,9 +35,9 @@ export function useEventDetail(
   // 取得の世代。タブ復帰時の再取得と参加操作後の再取得が競合したとき、
   // 先に始まって後から返ってきた結果で最新を上書きしないようにする。
   const requestIdRef = useRef(0);
-  // 最後に再取得を開始した時刻。初回はマウント時刻として扱い、
-  // 表示直後のタブ復帰で不要なリクエストを送らないようにする。
-  const lastFetchedAtRef = useRef(Date.now());
+  // 最後に再取得を開始した時刻。初回は SSR の描画時刻として扱い、
+  // revalidate で古い可能性があるキャッシュ HTML の鮮度を正しく見積もる。
+  const lastFetchedAtRef = useRef(initialNow);
   // 実行中のイベント詳細取得。再取得時とアンマウント時に中断する。
   const controllerRef = useRef<AbortController | null>(null);
 
@@ -53,9 +54,9 @@ export function useEventDetail(
   useEffect(() => {
     controllerRef.current?.abort();
     requestIdRef.current += 1;
-    lastFetchedAtRef.current = Date.now();
+    lastFetchedAtRef.current = initialNow;
     setEvent(initialEvent);
-  }, [initialEvent]);
+  }, [initialEvent, initialNow]);
 
   const refetchEvent = useCallback(async () => {
     controllerRef.current?.abort();

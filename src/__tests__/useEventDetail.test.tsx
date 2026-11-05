@@ -41,8 +41,10 @@ const buildEvent = (id: string): EventDetailType => ({
   updatedAt: "2026-01-01T00:00:00+09:00",
 });
 
-const renderEventDetail = (event: EventDetailType = buildEvent("initial")) =>
-  renderHook(() => useEventDetail(event));
+const renderEventDetail = (
+  event: EventDetailType = buildEvent("initial"),
+  initialNow: number = Date.now(),
+) => renderHook(() => useEventDetail(event, initialNow));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -113,9 +115,13 @@ describe("useEventDetail", () => {
       return new Promise(() => {});
     });
 
-    const { rerender } = renderHook(({ event }) => useEventDetail(event), {
-      initialProps: { event: buildEvent("first") },
-    });
+    const now = Date.now();
+    const { rerender } = renderHook(
+      ({ event }) => useEventDetail(event, now),
+      {
+        initialProps: { event: buildEvent("first") },
+      },
+    );
     act(() => {
       rerender({ event: buildEvent("second") });
     });
@@ -142,8 +148,9 @@ describe("useEventDetail", () => {
 
   it("initialEvent が更新されたら event state を同期する", async () => {
     const initial = buildEvent("initial");
+    const now = Date.now();
     const { result, rerender } = renderHook(
-      ({ event }) => useEventDetail(event),
+      ({ event }) => useEventDetail(event, now),
       {
         initialProps: { event: initial },
       },
@@ -166,8 +173,9 @@ describe("useEventDetail", () => {
       return new Promise(() => {});
     });
 
+    const now = Date.now();
     const { result, rerender } = renderHook(
-      ({ event }) => useEventDetail(event),
+      ({ event }) => useEventDetail(event, now),
       { initialProps: { event: buildEvent("initial") } },
     );
     act(() => {
@@ -256,6 +264,26 @@ describe("useEventDetail", () => {
       document.dispatchEvent(new Event("visibilitychange"));
       await Promise.resolve();
     });
+    expect(mockGetEventDetail).toHaveBeenCalledTimes(1);
+  });
+
+  it("initialNow が古い場合はタブ復帰時に30秒待たず再取得する", async () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-09-03T12:00:00+09:00").getTime();
+    vi.setSystemTime(now);
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    mockGetEventDetail.mockResolvedValue(buildEvent("latest"));
+
+    renderEventDetail(buildEvent("initial"), now - 60_000);
+
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      await Promise.resolve();
+    });
+
     expect(mockGetEventDetail).toHaveBeenCalledTimes(1);
   });
 });
