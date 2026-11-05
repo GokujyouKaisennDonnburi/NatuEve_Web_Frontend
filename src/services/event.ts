@@ -39,6 +39,21 @@ export async function getEventDetail(
   return (await response.json()) as EventDetailResponse;
 }
 
+// ページ用のイベント詳細取得ローダー。
+// 404 は「イベント不存在」として null を返し、それ以外のエラーはそのまま送出する。
+export async function getEventDetailOrNull(
+  eventId: string,
+): Promise<EventDetailResponse | null> {
+  try {
+    return await getEventDetail(eventId);
+  } catch (error) {
+    if (error instanceof EventDetailError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 // URLSearchParams に変換するヘルパー。
 const buildEventListParams = (request: EventListRequest): URLSearchParams => {
   const params = new URLSearchParams();

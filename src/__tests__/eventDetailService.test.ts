@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventDetailError } from "@/lib/errors";
-import { getEventDetail } from "@/services/event";
+import { getEventDetail, getEventDetailOrNull } from "@/services/event";
 import type { EventDetailResponse } from "@/types/event";
 
 const buildEvent = (): EventDetailResponse => ({
@@ -66,5 +66,50 @@ describe("getEventDetail", () => {
     );
 
     await expect(getEventDetail(event.id)).resolves.toEqual(event);
+  });
+});
+
+describe("getEventDetailOrNull", () => {
+  it("404 の場合は null を返す", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({}),
+      } as Response),
+    );
+
+    await expect(getEventDetailOrNull("missing")).resolves.toBeNull();
+  });
+
+  it("404 以外のエラーはそのまま送出する", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      } as Response),
+    );
+
+    await expect(getEventDetailOrNull("failed")).rejects.toMatchObject({
+      name: "EventDetailError",
+      status: 500,
+    });
+  });
+
+  it("200 の場合はイベント詳細を返す", async () => {
+    const event = buildEvent();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => event,
+      } as Response),
+    );
+
+    await expect(getEventDetailOrNull(event.id)).resolves.toEqual(event);
   });
 });

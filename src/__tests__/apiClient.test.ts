@@ -23,4 +23,29 @@ describe("apiFetch", () => {
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("開発時のサーバー側 MSW は固定オリジンの絶対 URL に変換する", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    } as Response);
+    vi.stubEnv("NEXT_PUBLIC_USE_MSW", "true");
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubGlobal("window", undefined);
+    vi.stubGlobal("fetch", fetchMock);
+    vi.resetModules();
+
+    const { apiFetch } = await import("@/services/apiClient");
+
+    await apiFetch("/api/v1/events/1", { auth: false });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3000/api/v1/events/1",
+      expect.objectContaining({
+        headers: expect.any(Headers),
+      }),
+    );
+  });
 });
