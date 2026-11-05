@@ -6,7 +6,8 @@ import {
   syncMockWorker,
 } from "@/services/mockAuth";
 
-// API のベース URL。未設定なら相対パス（開発時は MSW がモックする）。
+// API のベース URL。ブラウザでは未設定時に相対パス（開発時は rewrites / MSW）を使うが、
+// サーバー側の実 API 呼び出しでは必須（未設定なら resolveUrl が例外を投げる）。
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(
   /\/$/,
   "",
