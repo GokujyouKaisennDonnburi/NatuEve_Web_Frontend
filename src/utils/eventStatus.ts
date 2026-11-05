@@ -1,6 +1,23 @@
 import { DAYS_BEFORE_DEADLINE } from "@/constants/config";
 import { isDeadlinePassed } from "@/utils/participation";
 
+// Asia/Tokyo は UTC+9 固定（夏時間なし）。
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const JST_DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+// Asia/Tokyo における日付（年・月・日）を返す。
+const getJstDateParts = (date: Date): [number, number, number] => {
+  const [year, month, day] = JST_DATE_FORMATTER.format(date)
+    .split("/")
+    .map(Number);
+  return [year, month, day];
+};
+
 // 開催状況の判定に使う日時。
 type EventStatusSource = {
   // 開催日時(RFC3339)。
@@ -59,14 +76,7 @@ function isDateWithinOneWeek(dateStr: string, now: number): boolean {
   if (target.getTime() <= now) return false;
 
   // Asia/Tokyo における現在の日付（年・月・日）を取得する。
-  // Intl.DateTimeFormat は実行環境のロケール設定に依存しない。
-  const formatter = new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const [y, m, d] = formatter.format(new Date(now)).split("/").map(Number);
+  const [y, m, d] = getJstDateParts(new Date(now));
 
   // 7日後の 23:59:59.999 JST (= 14:59:59.999 UTC) を上限とする。
   const deadlineEnd = new Date(
@@ -74,6 +84,24 @@ function isDateWithinOneWeek(dateStr: string, now: number): boolean {
   );
 
   return target.getTime() <= deadlineEnd.getTime();
+}
+
+// 申込期限が「期限間近」に切り替わる時刻（申込期限の7日前の JST 00:00）を返す。
+// useDeadlineRefresh に渡して、ページを開いたまま日付を跨いでも表示を更新できるようにする。
+export function getFewLeftStartAt(
+  applicationDeadline: string | null | undefined,
+): string | null {
+  if (!applicationDeadline) return null;
+
+  const target = new Date(applicationDeadline);
+
+  if (Number.isNaN(target.getTime())) return null;
+
+  const [year, month, day] = getJstDateParts(target);
+  const boundary =
+    Date.UTC(year, month - 1, day - DAYS_BEFORE_DEADLINE) - JST_OFFSET_MS;
+
+  return new Date(boundary).toISOString();
 }
 
 // イベントの開催状況を判定する共通ルール。

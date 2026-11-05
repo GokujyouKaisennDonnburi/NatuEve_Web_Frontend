@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isReceptionClosed, resolveEventStatus } from "@/utils/eventStatus";
+import {
+  getFewLeftStartAt,
+  isReceptionClosed,
+  resolveEventStatus,
+} from "@/utils/eventStatus";
 
 // 判定はすべて現在時刻との比較のため、境界を確実に踏むよう現在時刻を固定する。
 // 「期限間近」の上限は Asia/Tokyo の日付基準で 7 日後の 23:59:59.999（= 9/10 23:59:59.999 JST）。
@@ -245,6 +249,23 @@ describe("resolveEventStatus", () => {
         applicationDeadline: "2026-09-02T23:59:59+09:00",
       }),
     ).toBe("ongoing");
+  });
+});
+
+describe("getFewLeftStartAt", () => {
+  it("申込期限の7日前のJST 00:00を返す", () => {
+    expect(getFewLeftStartAt("2026-08-29T23:00:00+09:00")).toBe(
+      "2026-08-21T15:00:00.000Z",
+    );
+    expect(getFewLeftStartAt("2026-08-29T00:30:00+09:00")).toBe(
+      "2026-08-21T15:00:00.000Z",
+    );
+  });
+
+  it("未設定・不正な日時は null を返す", () => {
+    expect(getFewLeftStartAt(null)).toBeNull();
+    expect(getFewLeftStartAt(undefined)).toBeNull();
+    expect(getFewLeftStartAt("未定")).toBeNull();
   });
 });
 

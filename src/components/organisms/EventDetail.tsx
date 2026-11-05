@@ -37,7 +37,11 @@ import { useMyEventApplication } from "@/hooks/useMyEventApplication";
 import { useParticipationLogs } from "@/hooks/useParticipationLogs";
 import { cn } from "@/lib/utils";
 import type { ReportDetail } from "@/types/report";
-import { isReceptionClosed, resolveEventStatus } from "@/utils/eventStatus";
+import {
+  getFewLeftStartAt,
+  isReceptionClosed,
+  resolveEventStatus,
+} from "@/utils/eventStatus";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -109,7 +113,12 @@ export function EventDetail({
   // 申込期限切れのイベントは開始日時を境に「受付終了」から「開催中」へ切り替わるため、
   // 開始日時も再描画の境目に含める。
   const now = useDeadlineRefresh(
-    [event.applicationDeadline, event.eventDate, event.endDate],
+    [
+      event.applicationDeadline,
+      getFewLeftStartAt(event.applicationDeadline),
+      event.eventDate,
+      event.endDate,
+    ],
     initialNow,
   );
   const status = resolveEventStatus({
