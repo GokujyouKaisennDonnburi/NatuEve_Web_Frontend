@@ -4,13 +4,13 @@ import { useEffect } from "react";
 
 type EventDetailErrorPageProps = {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 };
 
 // イベント詳細の SSR やクライアント処理で、404 以外の予期しないエラーが起きたときの表示。
 export default function EventDetailErrorPage({
   error,
-  reset,
+  retry,
 }: Readonly<EventDetailErrorPageProps>) {
   useEffect(() => {
     console.error("イベント詳細の表示に失敗しました", error);
@@ -23,7 +23,7 @@ export default function EventDetailErrorPage({
       </h1>
       <button
         type="button"
-        onClick={reset}
+        onClick={retry}
         className="text-sm text-emerald-700 underline transition hover:opacity-80"
       >
         再読み込み
