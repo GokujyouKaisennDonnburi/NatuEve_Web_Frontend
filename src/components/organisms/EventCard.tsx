@@ -33,12 +33,20 @@ type EventCardProps = {
 function EventCardPendingIndicator() {
   const { pending } = useLinkStatus();
 
-  if (!pending) return null;
-
   return (
-    <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/75">
-      <Loading label="イベントを読み込み中..." />
-    </span>
+    <>
+      <span className="sr-only" role="status" aria-live="polite">
+        {pending ? "イベントを読み込み中..." : null}
+      </span>
+      {pending ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/75"
+        >
+          <Loading label="イベントを読み込み中..." />
+        </div>
+      ) : null}
+    </>
   );
 }
 
