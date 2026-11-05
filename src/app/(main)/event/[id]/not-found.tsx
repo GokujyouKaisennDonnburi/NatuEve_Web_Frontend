@@ -14,6 +14,14 @@ export default function EventDetailNotFound() {
       >
         イベント一覧へ
       </Link>
+      {process.env.NODE_ENV === "development" &&
+      process.env.NEXT_PUBLIC_USE_MSW === "true" ? (
+        <p className="max-w-md text-center text-sm text-slate-500">
+          開発時の MSW
+          では、ブラウザで新規作成したイベントはサーバー側に存在しないため、この画面が表示されます。実
+          API モードで確認してください。
+        </p>
+      ) : null}
     </div>
   );
 }
