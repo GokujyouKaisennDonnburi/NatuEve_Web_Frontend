@@ -93,9 +93,12 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       ? `${event.location.slice(0, MAX_LOCATION_LENGTH)}......`
       : event.location;
 
+  // ISR 対象の詳細ページを prefetch すると、一覧枚数分のサーバー描画と
+  // API 呼び出しがユーザー操作前に走るため、遷移時に取得する。
   return (
     <Link
       href={`/event/${event.id}`}
+      prefetch={false}
       aria-label={`${event.title} の詳細へ移動`}
       className="group relative flex min-h-[200px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E3E8DF] bg-white p-4 no-underline shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md sm:h-[132px] sm:min-h-0 sm:flex-row sm:p-0"
     >
