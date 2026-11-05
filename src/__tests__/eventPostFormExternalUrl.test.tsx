@@ -217,7 +217,7 @@ describe("EventPostForm の定員入力欄の非表示", () => {
     ...overrides,
   });
 
-  it("申し込みURLが設定されている間は定員の入力欄だけを非表示にし、ラベルと注意書きは残す", () => {
+  it("申し込みURLが設定されている間は入力欄を外し、ラベルと理由をグループとして関連付けて残す", () => {
     render(
       <EventPostForm
         formState={buildFormState({
@@ -228,15 +228,15 @@ describe("EventPostForm の定員入力欄の非表示", () => {
       />,
     );
 
-    // 入力欄（ボックス）だけを隠す
-    expect(screen.queryByLabelText(/定員数/)).not.toBeInTheDocument();
-    // ラベルと注意書きは残り、入力できない理由を伝える
-    expect(screen.getByText("定員数")).toBeInTheDocument();
+    // 入力欄（ボックス）だけが DOM から外れる
     expect(
-      screen.getByText(
-        "申し込みURLが設定されているため、定員を受け付けません。",
-      ),
-    ).toBeInTheDocument();
+      screen.queryByRole("textbox", { name: /定員数/ }),
+    ).not.toBeInTheDocument();
+    // ラベルと注意書きは role="group" として関連付いたまま残り、理由を伝える
+    const group = screen.getByRole("group", { name: /定員数/ });
+    expect(group).toHaveAccessibleDescription(
+      "申し込みURLが設定されているため、定員を受け付けません。",
+    );
   });
 
   it("申し込みURLが未設定のときは定員入力欄は入力できる", () => {
