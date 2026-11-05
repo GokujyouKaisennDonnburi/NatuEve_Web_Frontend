@@ -106,6 +106,8 @@ export function EventPostForm({
 
   // 申し込みURLが設定されている間は、申し込みを外部サイトで受けるため定員を扱わない
   const isExternalReception = Boolean(formState.applicationUrl.trim());
+  // 定員の無効化理由の説明文 id。入力欄と aria-describedby で関連付ける。
+  const capacityDescriptionId = `${getFieldId("capacity")}-description`;
 
   // 送信時、フォームの中で一番上にあるエラー項目へジャンプする。
   // プレビュー表示中の送信では、入力に戻ってフォームが表示されてからジャンプする。
@@ -230,6 +232,7 @@ export function EventPostForm({
                 ? "申し込みURLが設定されているため、定員を受け付けません。"
                 : undefined
             }
+            descriptionId={capacityDescriptionId}
             error={errors.capacity}
           >
             <UnitInput
@@ -247,6 +250,10 @@ export function EventPostForm({
               }
               // 申し込みURL設定時は定員を入力できない。入力済みの値は URL 入力時に自動クリアされる
               disabled={isExternalReception}
+              // 無効化の理由を説明文で伝える（スクリーンリーダー向け）
+              aria-describedby={
+                isExternalReception ? capacityDescriptionId : undefined
+              }
               placeholder="例: 30"
               aria-invalid={Boolean(errors.capacity)}
             />

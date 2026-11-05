@@ -11,6 +11,9 @@ type FormFieldProps = {
   label: string;
   required?: boolean;
   description?: string; // 入力欄の前に置く説明文
+  // description を入力欄と aria-describedby で関連付ける場合の id。
+  // 指定がなければ description に id を付けない（従来どおり）。
+  descriptionId?: string;
   hint?: string; // 入力欄の後に置く補足
   error?: string;
   children: ReactNode; // フォームフィールドの内容を指定するプロパティ
@@ -23,6 +26,7 @@ export function FormField({
   label,
   required = false,
   description,
+  descriptionId,
   hint,
   error,
   children,
@@ -41,7 +45,9 @@ export function FormField({
         </Label>
         {required ? <RequiredBadge /> : null}
       </div>
-      {description ? <FieldNote>{description}</FieldNote> : null}
+      {description ? (
+        <FieldNote id={descriptionId}>{description}</FieldNote>
+      ) : null}
       {children}
       {hint ? <FieldNote>{hint}</FieldNote> : null}
       {error ? <FieldNote tone="error">{error}</FieldNote> : null}

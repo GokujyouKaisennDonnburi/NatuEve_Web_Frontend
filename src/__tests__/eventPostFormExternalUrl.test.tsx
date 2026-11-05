@@ -221,4 +221,23 @@ describe("EventPostForm の定員入力欄の無効化", () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it("無効化の理由の説明文が入力欄と aria-describedby で関連付く", () => {
+    render(
+      <EventPostForm
+        formState={buildFormState({
+          applicationUrl: "https://example.com/apply",
+        })}
+        errors={{}}
+        setField={() => {}}
+      />,
+    );
+
+    const input = screen.getByLabelText(/定員数/);
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy as string)).toHaveTextContent(
+      "申し込みURLが設定されているため、定員を受け付けません。",
+    );
+  });
 });
