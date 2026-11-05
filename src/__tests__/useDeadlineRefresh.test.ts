@@ -188,6 +188,19 @@ describe("useDeadlineRefresh", () => {
     expect(result.current).toBe(NOW.getTime());
   });
 
+  it("initialNow が更新された場合は新しい基準時刻へ追従する", () => {
+    const first = NOW.getTime();
+    const second = first + 5 * SECOND;
+    const { result, rerender } = renderHook(
+      ({ initialNow }) => useDeadlineRefresh([], initialNow),
+      { initialProps: { initialNow: first } },
+    );
+
+    rerender({ initialNow: second });
+
+    expect(result.current).toBe(second);
+  });
+
   it("アンマウントするとタイマーを解除する", () => {
     const { unmount } = renderCounting([fromNow(HOUR)]);
 

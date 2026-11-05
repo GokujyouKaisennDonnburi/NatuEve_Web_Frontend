@@ -41,6 +41,9 @@ const buildEvent = (id: string): EventDetailType => ({
   updatedAt: "2026-01-01T00:00:00+09:00",
 });
 
+const renderEventDetail = (event: EventDetailType = buildEvent("initial")) =>
+  renderHook(() => useEventDetail(event));
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetReport.mockResolvedValue(null);
@@ -60,7 +63,7 @@ describe("useEventDetail", () => {
       return new Promise(() => {});
     });
 
-    const { result } = renderHook(() => useEventDetail(buildEvent("initial")));
+    const { result } = renderEventDetail();
 
     act(() => {
       void result.current.refetchEvent();
@@ -79,9 +82,7 @@ describe("useEventDetail", () => {
       return new Promise(() => {});
     });
 
-    const { result, unmount } = renderHook(() =>
-      useEventDetail(buildEvent("initial")),
-    );
+    const { result, unmount } = renderEventDetail();
 
     act(() => {
       void result.current.refetchEvent();
@@ -98,7 +99,7 @@ describe("useEventDetail", () => {
       return new Promise(() => {});
     });
 
-    const { unmount } = renderHook(() => useEventDetail(buildEvent("initial")));
+    const { unmount } = renderEventDetail();
     expect(mockGetReport).toHaveBeenCalled();
     unmount();
 
@@ -129,7 +130,7 @@ describe("useEventDetail", () => {
       Object.assign(new Error("aborted"), { name: "AbortError" }),
     );
 
-    renderHook(() => useEventDetail(buildEvent("initial")));
+    renderEventDetail();
 
     await waitFor(() => expect(mockGetReport).toHaveBeenCalled());
     await act(async () => {
@@ -137,6 +138,44 @@ describe("useEventDetail", () => {
     });
 
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it("initialEvent が更新されたら event state を同期する", async () => {
+    const initial = buildEvent("initial");
+    const { result, rerender } = renderHook(
+      ({ event }) => useEventDetail(event),
+      {
+        initialProps: { event: initial },
+      },
+    );
+    const updated = {
+      ...buildEvent("initial"),
+      participantCount: 5,
+      title: "更新後のイベント",
+    };
+
+    rerender({ event: updated });
+
+    await waitFor(() => expect(result.current.event).toEqual(updated));
+  });
+
+  it("initialEvent 更新時に実行中の再取得を abort する", () => {
+    let signal: AbortSignal | undefined;
+    mockGetEventDetail.mockImplementation((_eventId, requestSignal) => {
+      signal = requestSignal;
+      return new Promise(() => {});
+    });
+
+    const { result, rerender } = renderHook(
+      ({ event }) => useEventDetail(event),
+      { initialProps: { event: buildEvent("initial") } },
+    );
+    act(() => {
+      void result.current.refetchEvent();
+    });
+    rerender({ event: buildEvent("initial") });
+
+    expect(signal?.aborted).toBe(true);
   });
 
   it("古いレスポンスは新しい状態を上書きしない", async () => {
@@ -150,7 +189,7 @@ describe("useEventDetail", () => {
     });
     mockGetEventDetail.mockReturnValueOnce(first).mockReturnValueOnce(second);
 
-    const { result } = renderHook(() => useEventDetail(buildEvent("initial")));
+    const { result } = renderEventDetail();
 
     let firstRefetch: Promise<void> = Promise.resolve();
     let secondRefetch: Promise<void> = Promise.resolve();
@@ -178,7 +217,7 @@ describe("useEventDetail", () => {
       Object.assign(new Error("aborted"), { name: "AbortError" }),
     );
 
-    const { result } = renderHook(() => useEventDetail(buildEvent("initial")));
+    const { result } = renderEventDetail();
 
     await act(async () => {
       await result.current.refetchEvent();
@@ -196,7 +235,7 @@ describe("useEventDetail", () => {
     });
     mockGetEventDetail.mockResolvedValue(buildEvent("latest"));
 
-    renderHook(() => useEventDetail(buildEvent("initial")));
+    renderEventDetail();
 
     expect(mockGetEventDetail).not.toHaveBeenCalled();
 

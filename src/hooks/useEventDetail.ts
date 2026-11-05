@@ -48,6 +48,15 @@ export function useEventDetail(
     };
   }, []);
 
+  // 同じイベント ID のまま RSC が更新された場合も、サーバーの最新データへ同期する。
+  // 同期前に実行中の再取得があれば中断し、古いレスポンスで上書きされないようにする。
+  useEffect(() => {
+    controllerRef.current?.abort();
+    requestIdRef.current += 1;
+    lastFetchedAtRef.current = Date.now();
+    setEvent(initialEvent);
+  }, [initialEvent]);
+
   const refetchEvent = useCallback(async () => {
     controllerRef.current?.abort();
     const controller = new AbortController();
