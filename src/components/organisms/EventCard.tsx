@@ -131,6 +131,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </div>
           <Link
             href={`${ROUTES.USERS}/${event.profileId}`}
+            prefetch={false}
             className="relative z-20 flex min-w-0 cursor-pointer items-center border-none bg-transparent p-0 transition-opacity hover:opacity-70 sm:absolute sm:left-[180px]"
             aria-label={`${event.hostName} のプロフィールへ移動`}
           >
