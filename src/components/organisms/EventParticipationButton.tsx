@@ -406,6 +406,10 @@ export function EventParticipationButton({
     </Button>
   );
 
+  // 外部受付リンクの無効条件。a 要素には disabled を使えないため、
+  // aria-disabled とクリックガード（preventDefault）で扱う。
+  const isExternalApplyBlocked = isControlDisabled || receptionClosed;
+
   // 外部URLありのイベントは定員表示がなくボタンだけのため、ピルをボタン幅にフィットさせて余白を減らす。
   const isButtonOnly = Boolean(externalHref) && !participating;
 
@@ -461,8 +465,34 @@ export function EventParticipationButton({
             </Button>
           </>
         ) : externalHref ? (
-          // 外部URLあり：申し込みは外部サイトで行うため、定員表示なしでボタンだけを出す
-          renderApplyButton("")
+          // 外部URLあり：申し込みは外部サイトで行うため、定員表示なしでリンクだけを出す。
+          // 支援技術に「リンク」と伝わり、URLのコピー・中クリックなどの標準操作も使えるように
+          // Button（button 要素）ではなく a 要素として描画する。
+          <Button
+            type="button"
+            asChild
+            aria-disabled={isExternalApplyBlocked || undefined}
+            className={cn(
+              "h-10 w-[118px] rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] sm:h-11 sm:w-[142px] sm:text-sm",
+              isExternalApplyBlocked &&
+                "bg-[#C5D9A3] text-[#173315] hover:bg-[#C5D9A3]",
+            )}
+          >
+            <a
+              href={externalHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(event) => {
+                if (isExternalApplyBlocked) event.preventDefault();
+              }}
+            >
+              {buttonLabel}
+              {/* 新しいタブで開くことを、ラベルだけでは分からない支援技術向けに補足する */}
+              <span className="sr-only">
+                （外部サイト・新しいタブで開きます）
+              </span>
+            </a>
+          </Button>
         ) : (
           // 未参加：定員・プログレスバー・残り人数 + 参加申込ボタン
           <>

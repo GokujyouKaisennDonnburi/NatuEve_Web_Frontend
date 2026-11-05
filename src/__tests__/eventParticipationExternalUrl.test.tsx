@@ -1,10 +1,9 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { MockInstance } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EventParticipationButton } from "@/components/organisms/EventParticipationButton";
 
-// 参加申し込みボタンが externalUrl の値に応じて「外部URLへの遷移」と
+// 参加申し込みボタンが externalUrl の値に応じて「外部URLへの遷移（リンク）」と
 // 「モーダル表示」を分岐できることを確かめるテスト。
 
 // AuthProvider（Supabase セッション）に依存するため、待ち時間ゼロの状態へ差し替える。
@@ -45,6 +44,7 @@ const renderButton = (
     externalUrl?: string | null;
     capacity?: number;
     participantCount?: number;
+    receptionClosed?: boolean;
   } = {},
 ) => {
   render(
@@ -57,6 +57,7 @@ const renderButton = (
       costs={[]}
       capacity={props.capacity}
       participantCount={props.participantCount}
+      receptionClosed={props.receptionClosed}
       {...props}
     />,
   );
@@ -66,29 +67,59 @@ const clickApply = () => {
   fireEvent.click(screen.getByRole("button", { name: "参加を申し込む" }));
 };
 
+// cancelable な click イベントを発行し、preventDefault が呼ばれたかを観測する。
+// リンクのクリックガード（無効時に遷移を止める）を検証するため。
+const dispatchClick = (element: Element) => {
+  const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+  const preventDefaultSpy = vi.spyOn(event, "preventDefault");
+  element.dispatchEvent(event);
+  return preventDefaultSpy;
+};
+
 describe("EventParticipationButton の externalUrl 分岐", () => {
-  let openSpy: MockInstance<typeof window.open>;
-
-  beforeEach(() => {
-    // jsdom には window.open の実装が無いため、呼び出し引数を記録するスパイに差し替える。
-    openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-  });
-
   afterEach(() => {
-    openSpy.mockRestore();
     cleanup();
   });
 
-  it("externalUrl が設定されている場合はモーダルを開かず外部URLへ新規タブ遷移する", () => {
+  it("externalUrl が設定されている場合はモーダルを開かず外部URLへのリンクを表示する", () => {
     renderButton({ externalUrl: " https://example.com/event " });
 
-    clickApply();
+    // 外部受付はリンクとして描画され、前後の空白を除いたURLへ遷移する
+    const link = screen.getByRole("link", { name: /参加を申し込む/ });
+    expect(link).toHaveAttribute("href", "https://example.com/event");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    // 無効条件がないため aria-disabled は付かない
+    expect(link).not.toHaveAttribute("aria-disabled");
+    expect(screen.queryByTestId("participation-modal")).not.toBeInTheDocument();
+  });
 
-    expect(openSpy).toHaveBeenCalledWith(
-      "https://example.com/event",
-      "_blank",
-      "noopener,noreferrer",
-    );
+  it("定員が満員でも externalUrl があれば外部URLへの遷移ができる", () => {
+    // externalUrl と capacity が併存するイベントでも、満員は外部受付と無関係
+    renderButton({
+      externalUrl: "https://example.com/event",
+      capacity: 30,
+      participantCount: 30,
+    });
+
+    const link = screen.getByRole("link", { name: /参加を申し込む/ });
+    // 「現在満員です」にならず、遷移できる状態のまま
+    expect(link).toHaveTextContent("参加を申し込む");
+    expect(link).not.toHaveAttribute("aria-disabled");
+    expect(screen.queryByTestId("participation-modal")).not.toBeInTheDocument();
+  });
+
+  it("受付終了の externalUrl イベントではリンクが無効化され、クリックしても遷移しない", () => {
+    renderButton({
+      externalUrl: "https://example.com/event",
+      receptionClosed: true,
+    });
+
+    const link = screen.getByRole("link", { name: /受付終了/ });
+    expect(link).toHaveAttribute("aria-disabled", "true");
+
+    // クリックガードが preventDefault で遷移を止める
+    expect(dispatchClick(link)).toHaveBeenCalled();
     expect(screen.queryByTestId("participation-modal")).not.toBeInTheDocument();
   });
 
@@ -97,7 +128,6 @@ describe("EventParticipationButton の externalUrl 分岐", () => {
 
     clickApply();
 
-    expect(openSpy).not.toHaveBeenCalled();
     expect(screen.getByTestId("participation-modal")).toBeInTheDocument();
   });
 
@@ -107,11 +137,9 @@ describe("EventParticipationButton の externalUrl 分岐", () => {
     expect(screen.getByTestId("participation-modal")).toBeInTheDocument();
 
     cleanup();
-    openSpy.mockClear();
 
     renderButton({ externalUrl: "   " });
     clickApply();
-    expect(openSpy).not.toHaveBeenCalled();
     expect(screen.getByTestId("participation-modal")).toBeInTheDocument();
   });
 
@@ -120,7 +148,6 @@ describe("EventParticipationButton の externalUrl 分岐", () => {
 
     expect(() => clickApply()).not.toThrow();
 
-    expect(openSpy).not.toHaveBeenCalled();
     expect(screen.getByTestId("participation-modal")).toBeInTheDocument();
   });
 
@@ -129,7 +156,6 @@ describe("EventParticipationButton の externalUrl 分岐", () => {
 
     clickApply();
 
-    expect(openSpy).not.toHaveBeenCalled();
     expect(screen.getByTestId("participation-modal")).toBeInTheDocument();
   });
 });
@@ -139,11 +165,11 @@ describe("EventParticipationButton の externalUrl 表示", () => {
     cleanup();
   });
 
-  it("externalUrl が設定されている場合は定員・残り人数・プログレスバーを出さずボタンだけを出す", () => {
+  it("externalUrl が設定されている場合は定員・残り人数・プログレスバーを出さずリンクだけを出す", () => {
     renderButton({ externalUrl: "https://example.com/event" });
 
     expect(
-      screen.getByRole("button", { name: "参加を申し込む" }),
+      screen.getByRole("link", { name: /参加を申し込む/ }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/定員\d+名/)).not.toBeInTheDocument();
     expect(screen.queryByText(/残り\d+名/)).not.toBeInTheDocument();
