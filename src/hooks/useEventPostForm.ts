@@ -15,6 +15,7 @@ import {
 } from "@/constants/config";
 import { ROUTES } from "@/constants/routes";
 import { createEvent } from "@/services/event";
+import { isMockAuthEnabled } from "@/services/mockAuth";
 import { uploadFile, uploadFiles } from "@/services/upload";
 import type { CreateEventRequest } from "@/types/event";
 import type { TagItem } from "@/types/tag";
@@ -372,6 +373,14 @@ export function useEventPostForm() {
       await createEvent(payload);
 
       showCompletionToast("イベントを投稿しました");
+      if (isMockAuthEnabled()) {
+        // ブラウザ用 MSW と Node.js 用 MSW は状態を共有しないため、
+        // 作成直後の詳細画面はサーバー描画時に 404 になる。
+        toast.info(
+          "MSW モードで作成したイベントは、一覧から詳細を開くと 404 になります。実 API モードで確認してください。",
+          { duration: 8000 },
+        );
+      }
       router.push(ROUTES.EVENT_LIST);
     } catch (error) {
       console.error("イベント情報の登録に失敗しました。", error);
