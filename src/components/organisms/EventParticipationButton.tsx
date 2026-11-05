@@ -254,6 +254,17 @@ export function EventParticipationButton({
   // コントロールの無効状態を判定
   const isControlDisabled = disabled || isSessionLoading;
 
+  // 外部受付リンクの無効条件。
+  // 外部サイトでの申し込みにログイン状態は不要なため isSessionLoading は含めない。
+  // 受付期限（receptionClosed）は外部URLイベントでも尊重する（外部URLでも受付期限で閉じる）。
+  const isExternalApplyBlocked = disabled || receptionClosed;
+
+  // ピル全体の薄見え判定。外部リンク表示時はリンク自体の無効条件に揃える。
+  // セッションロード中でも外部サイトへの遷移は可能なため、押せるのに無効に見えないようにする。
+  const isControlVisuallyDisabled = externalHref
+    ? isExternalApplyBlocked
+    : isControlDisabled;
+
   // 「内容の確認・取り消し」ボタンのクリックハンドラ。
   // 取り消しの前に、何を申し込んだのかと取り消し期限を確認できるようにする。
   const handleCancelClick = () => {
@@ -402,11 +413,6 @@ export function EventParticipationButton({
     </Button>
   );
 
-  // 外部受付リンクの無効条件。
-  // 外部サイトでの申し込みにログイン状態は不要なため isSessionLoading は含めない。
-  // 受付期限（receptionClosed）は外部URLイベントでも尊重する（外部URLでも受付期限で閉じる）。
-  const isExternalApplyBlocked = disabled || receptionClosed;
-
   // 外部URLありのイベントは定員表示がなくボタンだけのため、ピルをボタン幅にフィットさせて余白を減らす。
   const isButtonOnly = Boolean(externalHref) && !participating;
 
@@ -423,7 +429,7 @@ export function EventParticipationButton({
             (hasCapacityDisplay || participating
               ? "max-w-[480px]"
               : "max-w-[340px]"),
-          isControlDisabled && !participating && "opacity-70",
+          isControlVisuallyDisabled && !participating && "opacity-70",
         )}
       >
         {participating ? (
