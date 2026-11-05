@@ -7,7 +7,9 @@
 #
 # prepare で使う環境変数:
 #   GH_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, HEAD_SHA, BASE_SHA, HEAD_REF, GITHUB_OUTPUT
-#   RUNNER_TEMP（任意）, MAX_DIFF_BYTES（任意、既定 120000）
+#   MAX_DIFF_BYTES（任意、既定 120000）
+#
+# 差分はワークツリー直下の .ai-review.diff に書き出し、.git/info/exclude で無視する。
 #
 # save で使う環境変数:
 #   GH_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, GITHUB_RUN_ID（任意）
@@ -64,8 +66,8 @@ write_output() {
 prepare() {
   local head_sha base_sha last_sha
   local state_output state_status state_line state_comment_id state_body payload
-  local mode base_for_review diff_file diff_truncated
-  local status max_bytes tmp
+  local mode base_for_review diff_file diff_output_path diff_truncated
+  local repo_root exclude_file status max_bytes tmp
 
   case "$PR_NUMBER" in
     *[!0-9]*|'')
@@ -117,6 +119,7 @@ prepare() {
   mode='full'
   base_for_review="$base_sha"
   diff_file=''
+  diff_output_path=''
   diff_truncated='false'
 
   if [ -n "$last_sha" ]; then
@@ -141,7 +144,15 @@ prepare() {
       base_for_review="$base_sha"
       diff_file=''
     elif [ "$status" -eq 1 ]; then
-      diff_file="${RUNNER_TEMP:-/tmp}/ai-review.diff"
+      repo_root="$(git rev-parse --show-toplevel)"
+      diff_file="${repo_root}/.ai-review.diff"
+      diff_output_path='.ai-review.diff'
+      exclude_file="$(git rev-parse --git-path info/exclude)"
+      mkdir -p "$(dirname "$exclude_file")"
+      if ! grep -qxF '.ai-review.diff*' "$exclude_file" 2>/dev/null; then
+        printf '\n.ai-review.diff*\n' >> "$exclude_file"
+      fi
+
       if ! {
         printf '## Diff stat\n' &&
           git diff --no-color --stat "${base_for_review}..${head_sha}" -- . ':(exclude)bun.lock' &&
@@ -152,6 +163,7 @@ prepare() {
         mode='full'
         base_for_review="$base_sha"
         diff_file=''
+        diff_output_path=''
       fi
 
       if [ "$mode" = 'incremental' ]; then
@@ -172,6 +184,7 @@ prepare() {
             mode='full'
             base_for_review="$base_sha"
             diff_file=''
+            diff_output_path=''
             rm -f "$tmp" 2>/dev/null || true
           else
             diff_truncated='true'
@@ -190,7 +203,7 @@ prepare() {
   write_output base_sha "$base_for_review"
   write_output head_sha "$head_sha"
   write_output state_comment_id "$state_comment_id"
-  write_output diff_file "$diff_file"
+  write_output diff_file "$diff_output_path"
   write_output diff_truncated "$diff_truncated"
 }
 

@@ -7,7 +7,9 @@
 
 - 前回レビュー済みコミット: `<review_range>` の `base`
 - 今回のコミット: `<review_range>` の `head`
-- `<review_range>` 内の差分がレビュー対象です。
+- 差分は `.ai-review.diff` に保存されています。`read` ツールで読み込んでください。
+- 差分ファイルが長い場合は、`read` ツールの offset / limit を使って最後まで読んでください。
+- ファイル末尾に truncate の注記がある場合は、残りは head の working tree を読んで確認してください。
 
 ## 進め方
 

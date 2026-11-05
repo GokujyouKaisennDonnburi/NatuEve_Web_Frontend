@@ -48,7 +48,8 @@ jobs:
         # SHA 固定（サプライチェーン攻撃対策）。checkout v4.4.0
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          # 前回レビュー済みSHAからの差分を生成するため、履歴を取得する。
+          # 前回レビュー済みSHAが履歴のどこにあってもdiffできるよう、全履歴を取得する。
+          # リポジトリが大きくなった場合は、必要なSHAだけをfetchする最適化を検討する。
           fetch-depth: 0
           persist-credentials: false
 
@@ -61,7 +62,6 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          MAX_DIFF_BYTES: "120000"
         run: bash .github/scripts/ai-review-state.sh prepare
 
       - name: Load review prompt
@@ -86,16 +86,11 @@ jobs:
               cat .ai/prompts/code-review-incremental.md
               echo ""
               echo "<review_range base=\"$BASE_SHA\" head=\"$HEAD_SHA\">"
+              echo "差分は \`${DIFF_FILE:-.ai-review.diff}\` に保存されています。read ツールで読んでください。"
+              echo "長い場合は offset/limit を使って最後まで読んでください。"
               if [ "$DIFF_TRUNCATED" = "true" ]; then
-                echo "NOTE: 差分が長いため一部を省略しています。残りは head の working tree を読んで確認してください。"
-                echo ""
+                echo "NOTE: 差分は上限で truncate されています。ファイル末尾の注記を確認し、残りは head の working tree を読んでください。"
               fi
-              if [ -n "$DIFF_FILE" ] && [ -f "$DIFF_FILE" ]; then
-                cat "$DIFF_FILE"
-              else
-                echo "(差分ファイルが見つかりませんでした)"
-              fi
-              echo ""
               echo "</review_range>"
             else
               echo ""
@@ -153,6 +148,7 @@ jobs:
           MODE: ${{ steps.prepare.outputs.mode }}
           BASE_SHA: ${{ steps.prepare.outputs.base_sha }}
           HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
+          DIFF_FILE: ${{ steps.prepare.outputs.diff_file }}
           DIFF_TRUNCATED: ${{ steps.prepare.outputs.diff_truncated }}
         run: |
           {
@@ -160,5 +156,6 @@ jobs:
             echo ""
             echo "- mode: \`${MODE:-unknown}\`"
             echo "- range: \`${BASE_SHA:-?}...${HEAD_SHA:-?}\`"
+            echo "- diff file: \`${DIFF_FILE:-none}\`"
             echo "- diff truncated: \`${DIFF_TRUNCATED:-false}\`"
           } >> "$GITHUB_STEP_SUMMARY"
