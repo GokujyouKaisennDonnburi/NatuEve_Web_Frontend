@@ -19,7 +19,7 @@ const fromNow = (ms: number): string =>
   new Date(NOW.getTime() + ms).toISOString();
 
 // 再描画の回数を数えながらフックを描画する。
-// フックは戻り値を持たないため、描画のたびにコールバックが呼ばれる回数で再描画を観測する。
+// 戻り値は使わず、描画のたびにコールバックが呼ばれる回数で再描画を観測する。
 function renderCounting(deadlines: readonly (string | null | undefined)[]) {
   let renders = 0;
   const view = renderHook(() => {
