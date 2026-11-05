@@ -7,9 +7,16 @@ import {
   loadEventDetailOrNotFound,
 } from "./eventDetailMetadata";
 
-// イベント詳細の初期 HTML をキャッシュしつつ、更新は1分以内に反映する。
+// 初回アクセス時に生成して ISR キャッシュする。更新は1分以内に反映する。
 // 参加人数など変わりやすい値は、タブ復帰時・参加操作後にクライアント側で再取得する。
+// 実際のキャッシュ永続化は実行環境の incremental cache に依存する。
 export const revalidate = 60;
+
+// 動的ルートを ISR 対象にするため、空配列でも generateStaticParams を export する。
+// 空配列の場合、パスはビルド時ではなく初回アクセス時に生成される。
+export async function generateStaticParams() {
+  return [];
+}
 
 type EventDetailPageProps = {
   params: Promise<{ id: string }>;

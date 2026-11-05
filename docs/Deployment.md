@@ -561,7 +561,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - API が 404 を返した場合は `notFound()` で HTTP 404 を返す。
 - サーバー側の API 取得は `NEXT_PUBLIC_API_BASE_URL` を使う。送信元は Cloudflare の IP に見えるため、API 側の許可設定を確認する。
 - `global_fetch_strictly_public` により同一ゾーンの API へは公開経路で fetch する。検証環境でサーバー側から取得できることを確認する。
-- キャッシュは `revalidate = 60`。OpenNext は現状 dummy incremental cache のため、Cloudflare 上での実キャッシュ効果は限定的。
+- キャッシュは `revalidate = 60`。動的ルートを ISR 対象にするため、`generateStaticParams` は空配列を返す（初回アクセス時に生成）。OpenNext は現状 dummy incremental cache のため、Cloudflare 上での実キャッシュ効果は限定的。
 - 参加人数など変わりやすい値はクライアント側でも再取得する。
 - OGP タグは未対応。追加する場合は、認証なしで呼べる API が返す項目だけを使う。
 
