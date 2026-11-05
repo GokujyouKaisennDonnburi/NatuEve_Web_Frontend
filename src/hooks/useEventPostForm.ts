@@ -116,10 +116,17 @@ export function useEventPostForm() {
 
     // 定員のクリアに合わせて、表示中の定員エラーも消す（URL設定時に定員のエラーを出さないため）。
     // クリアと同じ非空条件で消すことで、URL を消しただけではエラー表示が実際の検証状態とずれない。
+    // undefined を代入するとキーが残り、Object.keys でエラー有無を見る
+    // useJumpToFirstError / useEditPreviewMode が誤判定するため、キーごと削除する。
     if (hasApplicationUrl) {
-      setErrors((current) =>
-        current.capacity ? { ...current, capacity: undefined } : current,
-      );
+      setErrors((current) => {
+        if (!current.capacity) {
+          return current;
+        }
+        const next = { ...current };
+        delete next.capacity;
+        return next;
+      });
     }
   };
 

@@ -86,7 +86,47 @@ describe("useEventPostForm の申し込みURL × 定員の連動", () => {
     });
 
     expect(result.current.formState.capacity).toBe("");
-    expect(result.current.errors.capacity).toBeUndefined();
+    // undefined を代入せず、キーそのものが消えていることまで検証する
+    expect(result.current.errors).not.toHaveProperty("capacity");
+  });
+
+  it("定員エラーがある状態で申し込みURLを入力しても、他項目のエラーは消えない", async () => {
+    const { result } = renderHook(() => useEventPostForm());
+
+    act(() => {
+      result.current.setField("capacity", "abc");
+    });
+    await act(async () => {
+      await result.current.handleSubmit(submitEvent);
+    });
+
+    act(() => {
+      result.current.setField("applicationUrl", "https://example.com/apply");
+    });
+
+    // capacity のキーだけが消え、他項目のエラーはそのまま残る
+    expect(result.current.errors).not.toHaveProperty("capacity");
+    expect(result.current.errors.eventName).toBe(
+      "イベントタイトルは必須です。",
+    );
+  });
+
+  it("他項目のエラーがある状態で申し込みURLを入力しても errors オブジェクトは更新されず、ジャンプが再発しない", async () => {
+    const { result } = renderHook(() => useEventPostForm());
+
+    // 定員は未入力（エラーなし）のまま送信し、他項目のエラーだけを出す
+    await act(async () => {
+      await result.current.handleSubmit(submitEvent);
+    });
+    const errorsBefore = result.current.errors;
+    expect(Object.keys(errorsBefore).length).toBeGreaterThan(0);
+
+    act(() => {
+      result.current.setField("applicationUrl", "https://example.com/apply");
+    });
+
+    // errors の参照が変わらないため、useJumpToFirstError は再ジャンプしない
+    expect(result.current.errors).toBe(errorsBefore);
   });
 
   it("申し込みURL設定時は定員が不正値でもエラーにならず送信できる", async () => {
