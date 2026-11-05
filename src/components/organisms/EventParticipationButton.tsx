@@ -225,20 +225,26 @@ export function EventParticipationButton({
     !isFull &&
     remaining <= Math.min(effectiveCapacity * 0.2, 10);
 
+  // externalUrl の有効判定は表示とクリックで共通して使うため、ここで一度だけ解決する。
+  // 不正値は null に潰れ、未設定と同じ扱い（従来表示・モーダル）になる。
+  const externalHref = resolveSafeExternalUrl(externalUrl);
+  // 外部URLがあるイベントは外部サイトで定員を管理するため、定員由来の満員判定を無効化する。
+  // 定員と externalUrl が併存する既存イベントでも、満員状態で外部URLへ遷移できるようにする。
+  const isExternalReception = Boolean(externalHref);
+  const isCapacityFull = !isExternalReception && isFull;
+
   // 未参加ボタンの文言。受付終了が最優先で、次に満員を優先する。
   // 申込期限を過ぎたイベントは満員かどうかに関係なく申し込めないため、先に「受付終了」を出す。
   const buttonLabel = receptionClosed
     ? "受付終了"
-    : isFull
+    : isCapacityFull
       ? "現在満員です"
       : "参加を申し込む";
 
-  // externalUrl の有効判定は表示とクリックで共通して使うため、ここで一度だけ解決する。
-  // 不正値は null に潰れ、未設定と同じ扱い（従来表示・モーダル）になる。
-  const externalHref = resolveSafeExternalUrl(externalUrl);
   // 定員・残り人数の表示は、申し込みをなちゅいべ内で受けるイベントのみ。
   // 外部URLがあるイベントは外部サイトで定員を管理するため、ボタンだけを出す。
-  const showCapacityBar = !externalHref && hasCapacity;
+  // 幅判定と表示分岐の両方でこの値を使い、外部URLと定員表示の条件を一元化する。
+  const hasCapacityDisplay = !externalHref && hasCapacity;
 
   // コントロールの無効状態を判定
   const isControlDisabled = disabled || isSessionLoading;
@@ -256,7 +262,8 @@ export function EventParticipationButton({
   // モーダルは開かず新規タブで外部URLへ遷移する（target="_blank" + noopener/noreferrer 相当）。
   // 不正なURLは null に潰れるため、従来どおりモーダルを開く（クラッシュしない）。
   const handleButtonClick = () => {
-    if (disabled || isSessionLoading || isFull || receptionClosed) return;
+    if (disabled || isSessionLoading || isCapacityFull || receptionClosed)
+      return;
 
     if (externalHref) {
       window.open(externalHref, "_blank", "noopener,noreferrer");
@@ -388,7 +395,7 @@ export function EventParticipationButton({
   const renderApplyButton = (positionClassName: string) => (
     <Button
       type="button"
-      disabled={isControlDisabled || isFull || receptionClosed}
+      disabled={isControlDisabled || isCapacityFull || receptionClosed}
       onClick={handleButtonClick}
       className={cn(
         "h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm",
@@ -412,7 +419,7 @@ export function EventParticipationButton({
               "w-fit px-4 sm:px-5"
             : "w-full justify-between gap-2 px-4 sm:gap-3 sm:px-5",
           !isButtonOnly &&
-            (showCapacityBar || participating
+            (hasCapacityDisplay || participating
               ? "max-w-[480px]"
               : "max-w-[340px]"),
           isControlDisabled && !participating && "opacity-70",
@@ -459,7 +466,7 @@ export function EventParticipationButton({
         ) : (
           // 未参加：定員・プログレスバー・残り人数 + 参加申込ボタン
           <>
-            {hasCapacity ? (
+            {hasCapacityDisplay ? (
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold text-[#838C7D] sm:text-sm">
