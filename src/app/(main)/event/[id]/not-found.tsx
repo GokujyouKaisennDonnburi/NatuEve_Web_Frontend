@@ -5,10 +5,12 @@ import Link from "next/link";
 export default function EventDetailNotFound() {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16">
-      <p className="text-slate-500">イベントが見つかりません。</p>
+      <h1 className="text-lg font-bold text-slate-800">
+        イベントが見つかりません。
+      </h1>
       <Link
         href={ROUTES.EVENT_LIST}
-        className="text-sm text-emerald-600 hover:underline"
+        className="text-sm text-emerald-700 underline transition hover:opacity-80"
       >
         イベント一覧へ
       </Link>

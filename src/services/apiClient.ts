@@ -1,4 +1,4 @@
-import { MOCK_SERVER_ORIGIN } from "@/mocks/constants";
+import { MOCK_SERVER_ORIGIN } from "@/constants/api";
 import { getSupabase } from "@/lib/supabase";
 import {
   getMockAuthSession,
@@ -37,6 +37,14 @@ const resolveUrl = (input: RequestInfo | URL): RequestInfo | URL => {
   // インターセプトできる固定オリジンへ変換する
   if (mockEnabled && process.env.NODE_ENV === "development") {
     return new URL(input, MOCK_SERVER_ORIGIN).toString();
+  }
+
+  // サーバー側の実 API 呼び出しでは、相対 URL を Node.js の fetch が解決できないため
+  // ベース URL の設定不備を明示する
+  if (typeof window === "undefined" && !API_BASE_URL) {
+    throw new Error(
+      "サーバー側から API を呼び出す場合は NEXT_PUBLIC_API_BASE_URL を設定してください。",
+    );
   }
 
   // 実 API 時は NEXT_PUBLIC_API_BASE_URL を前置

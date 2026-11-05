@@ -12,8 +12,10 @@ export function buildEventDescription(description: string): string | undefined {
     return undefined;
   }
 
-  return normalized.length > DESCRIPTION_MAX_LENGTH
-    ? `${normalized.slice(0, DESCRIPTION_MAX_LENGTH)}…`
+  const characters = Array.from(normalized);
+
+  return characters.length > DESCRIPTION_MAX_LENGTH
+    ? `${characters.slice(0, DESCRIPTION_MAX_LENGTH - 1).join("")}…`
     : normalized;
 }
 

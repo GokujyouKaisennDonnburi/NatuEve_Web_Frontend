@@ -4,7 +4,7 @@ import type { EventDetailType } from "@/components/molecules/event-detail/types"
 import { getEventDetail } from "@/services/event";
 import { getReport } from "@/services/report";
 import type { ReportDetail } from "@/types/report";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type UseEventDetailResult = {
   // 表示するイベント詳細。SSR 時は initialEvent、再取得後は最新データ。
@@ -16,8 +16,8 @@ export type UseEventDetailResult = {
 };
 
 // イベント詳細ページのクライアント側状態を管理するフック。
-// 初期 HTML はサーバーで描画済みのため、初回マウント時はローディングを出さずに
-// 参加人数などの変わりやすい値を静かに最新化する。
+// 初期 HTML はサーバーで描画済みのため、マウント時には再取得しない。
+// フォーカス時と参加申し込み / キャンセル後の操作後にのみ最新化する。
 export function useEventDetail(
   initialEvent: EventDetailType,
 ): UseEventDetailResult {
@@ -25,18 +25,47 @@ export function useEventDetail(
   const [report, setReport] = useState<ReportDetail | null>(null);
   const eventId = initialEvent.id;
 
+  // アンマウント後の setState を避ける。refetch は effect の外からも呼ばれるため、
+  // effect ローカルのフラグではなく ref でコンポーネントの寿命を持つ。
+  const isMountedRef = useRef(true);
+  // 取得の世代。フォーカス時の再取得と参加操作後の再取得が競合したとき、
+  // 先に始まって後から返ってきた結果で最新を上書きしないようにする。
+  const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const refetchEvent = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    const isLatest = () =>
+      isMountedRef.current && requestId === requestIdRef.current;
+
     try {
       const data = await getEventDetail(eventId);
-      setEvent(data);
+      if (isLatest()) {
+        setEvent(data);
+      }
     } catch (err) {
-      console.error("イベント詳細再取得エラー", err);
+      if (isLatest()) {
+        console.error("イベント詳細再取得エラー", err);
+      }
     }
   }, [eventId]);
 
-  // 初回マウント時にクライアント側で最新化する（ローディング表示は出さない）。
+  // フォーカスが戻ったときに参加人数などを静かに最新化する。
   useEffect(() => {
-    void refetchEvent();
+    const refetchOnFocus = () => {
+      void refetchEvent();
+    };
+
+    window.addEventListener("focus", refetchOnFocus);
+    return () => {
+      window.removeEventListener("focus", refetchOnFocus);
+    };
   }, [refetchEvent]);
 
   // レポートは初期 HTML に必須ではないため、従来どおりクライアントで取得する。

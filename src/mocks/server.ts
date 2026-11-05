@@ -1,4 +1,4 @@
-import { MOCK_SERVER_ORIGIN } from "@/mocks/constants";
+import { MOCK_SERVER_ORIGIN } from "@/constants/api";
 import { setupServer } from "msw/node";
 import { handlers } from "./handlers";
 

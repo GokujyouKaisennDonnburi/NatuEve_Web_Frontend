@@ -26,13 +26,13 @@ describe("buildEventMetadata", () => {
     expect(first.description).not.toBe(second.description);
   });
 
-  it("説明文が長い場合は120文字に切り詰めて省略記号を付ける", () => {
+  it("説明文が長い場合は省略記号込みで120文字に切り詰める", () => {
     const metadata = buildEventMetadata({
       title: "タイトル",
       description: "あ".repeat(130),
     });
 
-    expect(metadata.description).toBe(`${"あ".repeat(120)}…`);
+    expect(metadata.description).toBe(`${"あ".repeat(119)}…`);
   });
 
   it("説明文が空の場合は description を設定しない", () => {
@@ -48,5 +48,11 @@ describe("buildEventMetadata", () => {
 describe("buildEventDescription", () => {
   it("改行・連続空白を1つの空白に正規化する", () => {
     expect(buildEventDescription("  1行目\n\n2行目  ")).toBe("1行目 2行目");
+  });
+
+  it("絵文字などの surrogate pair を分割しない", () => {
+    const result = buildEventDescription("😀".repeat(130));
+
+    expect(result).toBe(`${"😀".repeat(119)}…`);
   });
 });

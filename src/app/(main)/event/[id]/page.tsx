@@ -8,7 +8,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 // イベント詳細の初期 HTML をキャッシュしつつ、更新は1分以内に反映する。
-// 参加人数など変わりやすい値はクライアント側でも再取得する。
+// 参加人数など変わりやすい値は、フォーカス時・参加操作後にクライアント側で再取得する。
 export const revalidate = 60;
 
 type EventDetailPageProps = {
