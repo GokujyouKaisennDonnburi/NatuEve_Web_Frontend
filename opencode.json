@@ -23,7 +23,9 @@
       "prompt": "{file:./.ai/prompts/code-review.md}",
       "permission": {
         "edit": "deny",
-        "bash": "deny"
+        "bash": "deny",
+        "webfetch": "deny",
+        "external_directory": "deny"
       }
     }
   }
