@@ -1,5 +1,11 @@
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import { ROUTES } from "@/constants/routes";
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: PAGE_TITLES.EVENT_DETAIL_NOT_FOUND,
+};
 
 // 存在しないイベント ID が指定されたときの 404 表示。
 export default function EventDetailNotFound() {

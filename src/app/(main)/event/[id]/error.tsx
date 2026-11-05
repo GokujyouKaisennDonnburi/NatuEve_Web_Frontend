@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/constants/config";
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import { useEffect } from "react";
 
 type EventDetailErrorPageProps = {
@@ -18,6 +20,7 @@ export default function EventDetailErrorPage({
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16">
+      <title>{`${PAGE_TITLES.EVENT_DETAIL_ERROR} | ${APP_NAME}`}</title>
       <h1 className="text-lg font-bold text-slate-800">
         イベントを読み込めませんでした。
       </h1>
