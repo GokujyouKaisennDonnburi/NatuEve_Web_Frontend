@@ -2,11 +2,13 @@
 
 import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { FilterTag } from "@/components/atoms/FilterTag";
+import { Loading } from "@/components/atoms/Loading";
 import { ROUTES } from "@/constants/routes";
 import type { TagItem } from "@/types/tag";
 import type { ResolvedEventStatus } from "@/utils/eventStatus";
 import { MapPin } from "lucide-react";
 import Image from "next/image";
+import Link, { useLinkStatus } from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -26,6 +28,19 @@ export type EventItem = {
 type EventCardProps = {
   event: EventItem;
 };
+
+// イベント詳細へのクライアント遷移中に、カード上へ読み込み表示を重ねる。
+function EventCardPendingIndicator() {
+  const { pending } = useLinkStatus();
+
+  if (!pending) return null;
+
+  return (
+    <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/75">
+      <Loading label="イベントを読み込み中..." />
+    </span>
+  );
+}
 
 export function EventCard({ event }: Readonly<EventCardProps>) {
   const [isMounted, setIsMounted] = useState(false);
@@ -71,19 +86,9 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       : event.location;
 
   return (
-    <a
+    <Link
       href={`/event/${event.id}`}
       aria-label={`${event.title} の詳細へ移動`}
-      onClick={(e) => {
-        e.preventDefault();
-        router.push(`/event/${event.id}`);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          router.push(`/event/${event.id}`);
-        }
-      }}
       className="group relative flex min-h-[200px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E3E8DF] bg-white p-4 no-underline shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md sm:h-[132px] sm:min-h-0 sm:flex-row sm:p-0"
     >
       {/* Left column: Date + Status */}
@@ -161,6 +166,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
           </button>
         </div>
       </div>
-    </a>
+      <EventCardPendingIndicator />
+    </Link>
   );
 }
