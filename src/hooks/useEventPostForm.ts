@@ -18,6 +18,7 @@ import { createEvent } from "@/services/event";
 import { uploadFile, uploadFiles } from "@/services/upload";
 import type { CreateEventRequest } from "@/types/event";
 import type { TagItem } from "@/types/tag";
+import { getExternalUrlError } from "@/utils/validation";
 import { UploadValidationError } from "@/utils/upload";
 import { buildLocation } from "@/utils/regionSearch";
 
@@ -255,24 +256,19 @@ export function useEventPostForm() {
       }
     }
 
-    // 申し込みURLの検証（入力があるときだけ形式を確認する）
+    // 申し込みURLの検証（入力があるときだけ形式を確認する）。
+    // URL形式の判定は getExternalUrlError に寄せ、外部遷移ボタンと受け入れ条件を揃える。
     const trimmedApplicationUrl = formState.applicationUrl.trim();
     if (trimmedApplicationUrl) {
       if (trimmedApplicationUrl.length > MAX_TEXT_LENGTH) {
         nextErrors.applicationUrl =
           "申し込みURLは255文字以内で入力してください。";
       } else {
-        try {
-          const parsedUrl = new URL(trimmedApplicationUrl);
-          if (
-            parsedUrl.protocol !== "http:" &&
-            parsedUrl.protocol !== "https:"
-          ) {
-            nextErrors.applicationUrl =
-              "申し込みURLは http か https で始めてください。";
-          }
-        } catch {
-          // URLオブジェクトの生成に失敗した場合、エラーとして設定
+        const externalUrlError = getExternalUrlError(trimmedApplicationUrl);
+        if (externalUrlError === "scheme") {
+          nextErrors.applicationUrl =
+            "申し込みURLは http か https で始めてください。";
+        } else if (externalUrlError === "format") {
           nextErrors.applicationUrl = "正しいURL形式で入力してください。";
         }
       }
