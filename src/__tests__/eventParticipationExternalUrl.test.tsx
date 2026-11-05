@@ -67,15 +67,6 @@ const clickApply = () => {
   fireEvent.click(screen.getByRole("button", { name: "参加を申し込む" }));
 };
 
-// cancelable な click イベントを発行し、preventDefault が呼ばれたかを観測する。
-// リンクのクリックガード（無効時に遷移を止める）を検証するため。
-const dispatchClick = (element: Element) => {
-  const event = new MouseEvent("click", { bubbles: true, cancelable: true });
-  const preventDefaultSpy = vi.spyOn(event, "preventDefault");
-  element.dispatchEvent(event);
-  return preventDefaultSpy;
-};
-
 describe("EventParticipationButton の externalUrl 分岐", () => {
   afterEach(() => {
     cleanup();
@@ -109,17 +100,17 @@ describe("EventParticipationButton の externalUrl 分岐", () => {
     expect(screen.queryByTestId("participation-modal")).not.toBeInTheDocument();
   });
 
-  it("受付終了の externalUrl イベントではリンクが無効化され、クリックしても遷移しない", () => {
+  it("受付終了の externalUrl イベントではリンクを表示せず、href を持たない無効なボタンになる", () => {
     renderButton({
       externalUrl: "https://example.com/event",
       receptionClosed: true,
     });
 
-    const link = screen.getByRole("link", { name: /受付終了/ });
-    expect(link).toHaveAttribute("aria-disabled", "true");
-
-    // クリックガードが preventDefault で遷移を止める
-    expect(dispatchClick(link)).toHaveBeenCalled();
+    // href 付きの a 要素のままでは中クリック等で遷移できてしまうため、リンクは出さない
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "受付終了" });
+    expect(button).toBeDisabled();
+    expect(button).not.toHaveAttribute("href");
     expect(screen.queryByTestId("participation-modal")).not.toBeInTheDocument();
   });
 

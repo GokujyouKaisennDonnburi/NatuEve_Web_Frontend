@@ -24,6 +24,11 @@ import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+// 未参加の申し込み導線（ボタン・外部リンク共通）のスタイル。
+// button 要素と a 要素（asChild）の両方で同じ見た目を保つため、クラスを一元化する。
+const APPLY_BUTTON_CLASS =
+  "h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm";
+
 // 申し込み内容モーダルに表示する、このユーザー自身の申し込み内容。
 // 申込内容 API（GET /api/v1/events/{id}/members/me）から取得した値をそのまま渡す。
 export type ParticipationDetail = {
@@ -258,17 +263,11 @@ export function EventParticipationButton({
   };
 
   // 参加申し込みボタンのクリックハンドラ。ピル右側のボタンからモーダルを開く。
-  // externalUrl が有効なイベントは外部サイトでの申し込みのため、
-  // モーダルは開かず新規タブで外部URLへ遷移する（target="_blank" + noopener/noreferrer 相当）。
-  // 不正なURLは null に潰れるため、従来どおりモーダルを開く（クラッシュしない）。
+  // externalUrl が有効なイベントは外部サイトへのリンク（a 要素）を描画するため、
+  // このハンドラはなちゅいべ内で受付するイベントのみでモーダルを開く。
   const handleButtonClick = () => {
     if (disabled || isSessionLoading || isCapacityFull || receptionClosed)
       return;
-
-    if (externalHref) {
-      window.open(externalHref, "_blank", "noopener,noreferrer");
-      return;
-    }
 
     setIsModalOpen(true);
   };
@@ -397,18 +396,16 @@ export function EventParticipationButton({
       type="button"
       disabled={isControlDisabled || isCapacityFull || receptionClosed}
       onClick={handleButtonClick}
-      className={cn(
-        "h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm",
-        positionClassName,
-      )}
+      className={cn(APPLY_BUTTON_CLASS, positionClassName)}
     >
       {buttonLabel}
     </Button>
   );
 
-  // 外部受付リンクの無効条件。a 要素には disabled を使えないため、
-  // aria-disabled とクリックガード（preventDefault）で扱う。
-  const isExternalApplyBlocked = isControlDisabled || receptionClosed;
+  // 外部受付リンクの無効条件。
+  // 外部サイトでの申し込みにログイン状態は不要なため isSessionLoading は含めない。
+  // 受付期限（receptionClosed）は外部URLイベントでも尊重する（外部URLでも受付期限で閉じる）。
+  const isExternalApplyBlocked = disabled || receptionClosed;
 
   // 外部URLありのイベントは定員表示がなくボタンだけのため、ピルをボタン幅にフィットさせて余白を減らす。
   const isButtonOnly = Boolean(externalHref) && !participating;
@@ -466,33 +463,26 @@ export function EventParticipationButton({
           </>
         ) : externalHref ? (
           // 外部URLあり：申し込みは外部サイトで行うため、定員表示なしでリンクだけを出す。
-          // 支援技術に「リンク」と伝わり、URLのコピー・中クリックなどの標準操作も使えるように
-          // Button（button 要素）ではなく a 要素として描画する。
-          <Button
-            type="button"
-            asChild
-            aria-disabled={isExternalApplyBlocked || undefined}
-            className={cn(
-              "h-10 w-[118px] rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] sm:h-11 sm:w-[142px] sm:text-sm",
-              isExternalApplyBlocked &&
-                "bg-[#C5D9A3] text-[#173315] hover:bg-[#C5D9A3]",
-            )}
-          >
-            <a
-              href={externalHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(event) => {
-                if (isExternalApplyBlocked) event.preventDefault();
-              }}
-            >
+          isExternalApplyBlocked ? (
+            // 受付終了など無効のときは href を持たないボタンで描画する。
+            // href 付きの a 要素のままでは中クリックやコンテキストメニューで遷移できてしまうため。
+            <Button type="button" disabled className={APPLY_BUTTON_CLASS}>
               {buttonLabel}
-              {/* 新しいタブで開くことを、ラベルだけでは分からない支援技術向けに補足する */}
-              <span className="sr-only">
-                （外部サイト・新しいタブで開きます）
-              </span>
-            </a>
-          </Button>
+            </Button>
+          ) : (
+            // 支援技術に「リンク」と伝わり、URLのコピー・中クリックなどの標準操作も
+            // 使えるように、Button（button 要素）ではなく a 要素として描画する。
+            // asChild のため type は渡さない（a 要素の type は MIME タイプ用のため）。
+            <Button asChild className={APPLY_BUTTON_CLASS}>
+              <a href={externalHref} target="_blank" rel="noopener noreferrer">
+                {buttonLabel}
+                {/* 新しいタブで開くことを、ラベルだけでは分からない支援技術向けに補足する */}
+                <span className="sr-only">
+                  （外部サイト・新しいタブで開きます）
+                </span>
+              </a>
+            </Button>
+          )
         ) : (
           // 未参加：定員・プログレスバー・残り人数 + 参加申込ボタン
           <>

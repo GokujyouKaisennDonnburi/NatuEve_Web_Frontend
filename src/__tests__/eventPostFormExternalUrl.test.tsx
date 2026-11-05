@@ -120,9 +120,8 @@ describe("useEventPostForm の申し込みURL × 定員の連動", () => {
     });
 
     const payload = mockCreateEvent.mock.calls[0][0];
-    expect(
-      "capacity" in payload ? payload.capacity : undefined,
-    ).toBeUndefined();
+    // capacity プロパティそのものが存在しないことまで検証する
+    expect(payload).not.toHaveProperty("capacity");
     expect(payload.externalUrl).toBe("https://example.com/apply");
   });
 

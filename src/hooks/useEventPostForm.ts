@@ -99,23 +99,24 @@ export function useEventPostForm() {
     key: K,
     value: EventPostFormState[K],
   ) => {
+    // 申し込みURLが設定されている（空白のみでない入力がある）間は、
+    // 申し込みを外部サイトで受けるため定員を受け付けない。
+    // URL の入力が始まった時点で入力済みの定員を自動でクリアする。
+    const hasApplicationUrl =
+      key === "applicationUrl" &&
+      typeof value === "string" &&
+      value.trim() !== "";
+
     setFormState((current) => {
-      const next = { ...current, [key]: value };
-      // 申し込みURLが設定されている間は、申し込みを外部サイトで受けるため定員を受け付けない。
-      // URL の入力が始まった時点で入力済みの定員を自動でクリアする。
-      if (
-        key === "applicationUrl" &&
-        typeof value === "string" &&
-        value.trim() &&
-        next.capacity
-      ) {
-        next.capacity = "";
+      if (hasApplicationUrl && current.capacity) {
+        return { ...current, [key]: value, capacity: "" };
       }
-      return next;
+      return { ...current, [key]: value };
     });
 
     // 定員のクリアに合わせて、表示中の定員エラーも消す（URL設定時に定員のエラーを出さないため）。
-    if (key === "applicationUrl") {
+    // クリアと同じ非空条件で消すことで、URL を消しただけではエラー表示が実際の検証状態とずれない。
+    if (hasApplicationUrl) {
       setErrors((current) =>
         current.capacity ? { ...current, capacity: undefined } : current,
       );
