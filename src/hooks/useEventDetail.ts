@@ -37,26 +37,36 @@ export function useEventDetail(
   // 最後に再取得を開始した時刻。初回はマウント時刻として扱い、
   // 表示直後のタブ復帰で不要なリクエストを送らないようにする。
   const lastFetchedAtRef = useRef(Date.now());
+  // 実行中のイベント詳細取得。再取得時とアンマウント時に中断する。
+  const controllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      controllerRef.current?.abort();
     };
   }, []);
 
   const refetchEvent = useCallback(async () => {
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
     const requestId = ++requestIdRef.current;
     lastFetchedAtRef.current = Date.now();
     const isLatest = () =>
       isMountedRef.current && requestId === requestIdRef.current;
 
     try {
-      const data = await getEventDetail(eventId);
+      const data = await getEventDetail(eventId, controller.signal);
       if (isLatest()) {
         setEvent(data);
       }
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
       if (isLatest()) {
         console.error("イベント詳細再取得エラー", err);
       }

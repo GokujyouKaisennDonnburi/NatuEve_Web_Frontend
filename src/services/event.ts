@@ -21,10 +21,11 @@ import type {
 // 失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
 export async function getEventDetail(
   eventId: string,
+  signal?: AbortSignal,
 ): Promise<EventDetailResponse> {
   const response = await apiFetch(
     `/api/v1/events/${encodeURIComponent(eventId)}`,
-    { auth: false },
+    { auth: false, signal },
   );
 
   if (!response.ok) {
