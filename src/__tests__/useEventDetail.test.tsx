@@ -93,12 +93,9 @@ describe("useEventDetail", () => {
     });
 
     const now = Date.now();
-    const { rerender } = renderHook(
-      ({ event }) => useEventDetail(event, now),
-      {
-        initialProps: { event: buildEvent("first") },
-      },
-    );
+    const { rerender } = renderHook(({ event }) => useEventDetail(event, now), {
+      initialProps: { event: buildEvent("first") },
+    });
     act(() => {
       rerender({ event: buildEvent("second") });
     });
