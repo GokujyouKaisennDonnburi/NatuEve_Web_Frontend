@@ -114,20 +114,11 @@ export function useEventPostForm() {
       return { ...current, [key]: value };
     });
 
-    // 定員のクリアに合わせて、表示中の定員エラーも消す（URL設定時に定員のエラーを出さないため）。
-    // クリアと同じ非空条件で消すことで、URL を消しただけではエラー表示が実際の検証状態とずれない。
-    // undefined を代入するとキーが残り、Object.keys でエラー有無を見る
-    // useJumpToFirstError / useEditPreviewMode が誤判定するため、キーごと削除する。
-    if (hasApplicationUrl) {
-      setErrors((current) => {
-        if (!current.capacity) {
-          return current;
-        }
-        const next = { ...current };
-        delete next.capacity;
-        return next;
-      });
-    }
+    // 定員のクリアに合わせて、表示中の定員エラーも消したくなるが、ここでは errors を更新しない。
+    // errors は「送信のたびに新しいオブジェクトへ更新する」契約で、useJumpToFirstError や
+    // useEditPreviewMode がこの前提に依存している。入力中に errors を作り直すと
+    // URL 入力のたびに先頭のエラー項目へジャンプしてしまうため、送信時の validate 結果に一本化する。
+    // 定員のエラーは、定員入力欄が非表示の間は見えず、次回送信時に再検証されて消える。
   };
 
   // 画像を presign → R2 直 PUT し、イベント作成に渡す objectKey を返す。

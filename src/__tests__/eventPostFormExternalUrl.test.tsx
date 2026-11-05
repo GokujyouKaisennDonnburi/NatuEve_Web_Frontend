@@ -86,28 +86,9 @@ describe("useEventPostForm の申し込みURL × 定員の連動", () => {
     });
 
     expect(result.current.formState.capacity).toBe("");
-    // undefined を代入せず、キーそのものが消えていることまで検証する
-    expect(result.current.errors).not.toHaveProperty("capacity");
-  });
-
-  it("定員エラーがある状態で申し込みURLを入力しても、他項目のエラーは消えない", async () => {
-    const { result } = renderHook(() => useEventPostForm());
-
-    act(() => {
-      result.current.setField("capacity", "abc");
-    });
-    await act(async () => {
-      await result.current.handleSubmit(submitEvent);
-    });
-
-    act(() => {
-      result.current.setField("applicationUrl", "https://example.com/apply");
-    });
-
-    // capacity のキーだけが消え、他項目のエラーはそのまま残る
-    expect(result.current.errors).not.toHaveProperty("capacity");
-    expect(result.current.errors.eventName).toBe(
-      "イベントタイトルは必須です。",
+    // errors は入力中に更新しない（送信時の validate 結果に一本化するため）
+    expect(result.current.errors.capacity).toBe(
+      "定員数は0以上の整数で入力してください。",
     );
   });
 
@@ -127,6 +108,40 @@ describe("useEventPostForm の申し込みURL × 定員の連動", () => {
 
     // errors の参照が変わらないため、useJumpToFirstError は再ジャンプしない
     expect(result.current.errors).toBe(errorsBefore);
+  });
+
+  it("定員エラーと他項目エラーが併存する状態で申し込みURLを入力しても errors は更新されず、再送信で定員エラーだけ消える", async () => {
+    const { result } = renderHook(() => useEventPostForm());
+
+    // 定員エラー（不正値）と他項目エラー（タイトル未入力）を併存させる
+    act(() => {
+      result.current.setField("capacity", "abc");
+    });
+    await act(async () => {
+      await result.current.handleSubmit(submitEvent);
+    });
+    expect(result.current.errors.capacity).toBe(
+      "定員数は0以上の整数で入力してください。",
+    );
+    expect(result.current.errors.eventName).toBe(
+      "イベントタイトルは必須です。",
+    );
+
+    const errorsBefore = result.current.errors;
+    act(() => {
+      result.current.setField("applicationUrl", "https://example.com/apply");
+    });
+
+    // errors の参照が変わらないため、useJumpToFirstError は再ジャンプしない
+    expect(result.current.errors).toBe(errorsBefore);
+
+    // 再送信（他の必須項目も入力して送信）すると、URL 設定時は定員が検証されずエラーだけ消える
+    fillBaseFields(result.current.setField);
+    await act(async () => {
+      await result.current.handleSubmit(submitEvent);
+    });
+    expect(result.current.errors).not.toHaveProperty("capacity");
+    expect(mockCreateEvent).toHaveBeenCalledTimes(1);
   });
 
   it("申し込みURL設定時は定員が不正値でもエラーにならず送信できる", async () => {
