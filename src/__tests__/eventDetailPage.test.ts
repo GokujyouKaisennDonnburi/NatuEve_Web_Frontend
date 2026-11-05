@@ -3,6 +3,7 @@ import {
   loadEventDetailOrNotFound,
 } from "@/app/(main)/event/[id]/eventDetailMetadata";
 import { buildEventDetail } from "@/__tests__/fixtures/event";
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import { notFound } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -31,13 +32,13 @@ describe("getEventDetailMetadata", () => {
     expect(mockNotFound).not.toHaveBeenCalled();
   });
 
-  it("イベントが存在しない場合は notFound() を呼ぶ", async () => {
+  it("イベントが存在しない場合は404用タイトルを返す", async () => {
     const loadEvent = vi.fn(async () => null);
 
-    await expect(getEventDetailMetadata("missing", loadEvent)).rejects.toThrow(
-      "NEXT_NOT_FOUND",
+    await expect(getEventDetailMetadata("missing", loadEvent)).resolves.toEqual(
+      { title: PAGE_TITLES.EVENT_DETAIL_NOT_FOUND },
     );
-    expect(mockNotFound).toHaveBeenCalledTimes(1);
+    expect(mockNotFound).not.toHaveBeenCalled();
   });
 });
 
@@ -50,5 +51,14 @@ describe("loadEventDetailOrNotFound", () => {
       loadEventDetailOrNotFound(event.id, loadEvent),
     ).resolves.toEqual(event);
     expect(mockNotFound).not.toHaveBeenCalled();
+  });
+
+  it("イベントが存在しない場合は notFound() を呼ぶ", async () => {
+    const loadEvent = vi.fn(async () => null);
+
+    await expect(
+      loadEventDetailOrNotFound("missing", loadEvent),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(mockNotFound).toHaveBeenCalledTimes(1);
   });
 });

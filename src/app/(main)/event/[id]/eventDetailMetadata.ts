@@ -1,3 +1,4 @@
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import type { EventDetailResponse } from "@/types/event";
 import { buildEventMetadata } from "@/utils/seo";
 import type { Metadata } from "next";
@@ -21,10 +22,17 @@ export async function loadEventDetailOrNotFound(
 }
 
 // イベント詳細ページの metadata を組み立てる。
+// ネストした not-found の metadata は Next.js に反映されないため、
+// 404 時もここでタイトルを返し、ページ本体の notFound() で 404 を維持する。
 export async function getEventDetailMetadata(
   eventId: string,
   loadEvent: LoadEventDetail,
 ): Promise<Metadata> {
-  const event = await loadEventDetailOrNotFound(eventId, loadEvent);
+  const event = await loadEvent(eventId);
+
+  if (!event) {
+    return { title: PAGE_TITLES.EVENT_DETAIL_NOT_FOUND };
+  }
+
   return buildEventMetadata(event);
 }
