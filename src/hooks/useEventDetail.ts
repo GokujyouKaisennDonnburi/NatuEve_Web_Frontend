@@ -78,6 +78,8 @@ export function useEventDetail(
         return;
       }
       if (isLatest()) {
+        // 失敗を「取得済み」として扱わず、次のタブ復帰で再試行できるようにする。
+        lastFetchedAtRef.current = 0;
         console.error("イベント詳細再取得エラー", err);
       }
     }

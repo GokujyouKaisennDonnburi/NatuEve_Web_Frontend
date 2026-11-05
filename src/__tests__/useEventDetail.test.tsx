@@ -208,6 +208,59 @@ describe("useEventDetail", () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
+  it("再取得に失敗した場合は次のタブ復帰で再試行する", async () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-09-03T12:00:00+09:00").getTime();
+    vi.setSystemTime(now);
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGetEventDetail
+      .mockRejectedValueOnce(new Error("failed"))
+      .mockResolvedValueOnce(buildEvent("latest"));
+
+    const { result } = renderEventDetail(buildEvent("initial"), now);
+
+    await act(async () => {
+      await result.current.refetchEvent();
+    });
+    expect(mockGetEventDetail).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      await Promise.resolve();
+    });
+    expect(mockGetEventDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it("AbortError では再取得時刻をリセットしない", async () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-09-03T12:00:00+09:00").getTime();
+    vi.setSystemTime(now);
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGetEventDetail.mockRejectedValue(
+      Object.assign(new Error("aborted"), { name: "AbortError" }),
+    );
+
+    const { result } = renderEventDetail(buildEvent("initial"), now);
+
+    await act(async () => {
+      await result.current.refetchEvent();
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      await Promise.resolve();
+    });
+
+    expect(mockGetEventDetail).toHaveBeenCalledTimes(1);
+  });
+
   it("タブ復帰時は30秒以内の再取得をスキップする", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-03T12:00:00+09:00"));
