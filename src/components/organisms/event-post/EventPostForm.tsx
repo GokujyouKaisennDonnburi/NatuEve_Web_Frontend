@@ -104,6 +104,13 @@ export function EventPostForm({
 
   const getFieldId = (suffix: string) => `${formId}-${suffix}`;
 
+  // 申し込みURLが設定されている間は、申し込みを外部サイトで受けるため定員を扱わない
+  const isExternalReception = Boolean(formState.applicationUrl.trim());
+  // 定員を受け付けない旨の注意書きの id。入力欄が無いため、ラベルと注意書きを
+  // role="group" の aria-labelledby / aria-describedby で関連付ける。
+  const capacityGroupId = `${formId}-capacity-group`;
+  const capacityNoteId = `${formId}-capacity-note`;
+
   // 送信時、フォームの中で一番上にあるエラー項目へジャンプする。
   // プレビュー表示中の送信では、入力に戻ってフォームが表示されてからジャンプする。
   useJumpToFirstError(containerRef, errors, hidden);
@@ -218,28 +225,50 @@ export function EventPostForm({
           title="受付設定"
           description="申し込みの受け付け方を設定します。"
         >
-          <FormField
-            id={getFieldId("capacity")}
-            label="定員数"
-            error={errors.capacity}
-          >
-            <UnitInput
+          {/* 申し込みURLが設定されている間は定員を受け付けない（外部サイトで管理するため）。
+              入力欄だけを外し、ラベルと注意書きは role="group" として関連付けて残す。
+              入力済みの定員は URL 入力時に自動クリアされる（useEventPostForm の setField）。 */}
+          {isExternalReception ? (
+            // fieldset は暗黙で group ロールを持つ
+            <fieldset
+              aria-labelledby={capacityGroupId}
+              aria-describedby={capacityNoteId}
+              className="space-y-2"
+            >
+              <span
+                id={capacityGroupId}
+                className="text-sm font-semibold text-slate-800"
+              >
+                定員数
+              </span>
+              <p id={capacityNoteId} className="text-sm text-slate-500">
+                申し込みURLが設定されているため、定員を受け付けません。
+              </p>
+            </fieldset>
+          ) : (
+            <FormField
               id={getFieldId("capacity")}
-              unit="名"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={formState.capacity}
-              onChange={(event) =>
-                setField(
-                  "capacity",
-                  normalizeHalfWidthDigits(event.target.value),
-                )
-              }
-              placeholder="例: 30"
-              aria-invalid={Boolean(errors.capacity)}
-            />
-          </FormField>
+              label="定員数"
+              error={errors.capacity}
+            >
+              <UnitInput
+                id={getFieldId("capacity")}
+                unit="名"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={formState.capacity}
+                onChange={(event) =>
+                  setField(
+                    "capacity",
+                    normalizeHalfWidthDigits(event.target.value),
+                  )
+                }
+                placeholder="例: 30"
+                aria-invalid={Boolean(errors.capacity)}
+              />
+            </FormField>
+          )}
 
           <FormField
             id={getFieldId("applicationDeadline")}

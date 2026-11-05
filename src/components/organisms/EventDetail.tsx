@@ -381,6 +381,9 @@ export function EventDetail({
             participating={participating}
             participationDetail={participationDetail}
             partySize={myApplication?.partySize}
+            // externalUrl が設定されたイベントは、申し込みボタンで
+            // モーダルの代わりに外部サイト（設定URL）を新規タブで開く。
+            externalUrl={event.externalUrl}
             receptionClosed={receptionClosed}
             onParticipateSuccess={() => {
               refetchParticipation();

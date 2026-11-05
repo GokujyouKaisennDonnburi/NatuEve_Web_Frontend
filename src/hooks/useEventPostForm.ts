@@ -18,6 +18,7 @@ import { createEvent } from "@/services/event";
 import { uploadFile, uploadFiles } from "@/services/upload";
 import type { CreateEventRequest } from "@/types/event";
 import type { TagItem } from "@/types/tag";
+import { getExternalUrlError } from "@/utils/validation";
 import { UploadValidationError } from "@/utils/upload";
 import { buildLocation } from "@/utils/regionSearch";
 
@@ -98,10 +99,26 @@ export function useEventPostForm() {
     key: K,
     value: EventPostFormState[K],
   ) => {
-    setFormState((current) => ({
-      ...current,
-      [key]: value,
-    }));
+    // 申し込みURLが設定されている（空白のみでない入力がある）間は、
+    // 申し込みを外部サイトで受けるため定員を受け付けない。
+    // URL の入力が始まった時点で入力済みの定員を自動でクリアする。
+    const hasApplicationUrl =
+      key === "applicationUrl" &&
+      typeof value === "string" &&
+      value.trim() !== "";
+
+    setFormState((current) => {
+      if (hasApplicationUrl && current.capacity) {
+        return { ...current, [key]: value, capacity: "" };
+      }
+      return { ...current, [key]: value };
+    });
+
+    // 定員のクリアに合わせて、表示中の定員エラーも消したくなるが、ここでは errors を更新しない。
+    // errors は「送信のたびに新しいオブジェクトへ更新する」契約で、useJumpToFirstError や
+    // useEditPreviewMode がこの前提に依存している。入力中に errors を作り直すと
+    // URL 入力のたびに先頭のエラー項目へジャンプしてしまうため、送信時の validate 結果に一本化する。
+    // 定員のエラーは、定員入力欄が非表示の間は見えず、次回送信時に再検証されて消える。
   };
 
   // 画像を presign → R2 直 PUT し、イベント作成に渡す objectKey を返す。
@@ -209,8 +226,12 @@ export function useEventPostForm() {
       nextErrors.requiredItems = requiredItemErrors;
     }
 
-    // 定員数の検証（0以上の整数であるか）
+    // 定員数の検証（0以上の整数であるか）。
+    // 申し込みURLが設定されたイベントは外部サイトで受付するため定員を扱わない。
+    // URL設定時は定員の入力・エラーともにクリア済みだが、ここでも検証をスキップし
+    // URL設定時に定員のエラーで送信できなくならないことを保証する。
     if (
+      !formState.applicationUrl.trim() &&
       formState.capacity.trim() &&
       (!/^\d+$/.test(formState.capacity.trim()) ||
         Number(formState.capacity) < 0)
@@ -234,24 +255,19 @@ export function useEventPostForm() {
       }
     }
 
-    // 申し込みURLの検証（入力があるときだけ形式を確認する）
+    // 申し込みURLの検証（入力があるときだけ形式を確認する）。
+    // URL形式の判定は getExternalUrlError に寄せ、外部遷移ボタンと受け入れ条件を揃える。
     const trimmedApplicationUrl = formState.applicationUrl.trim();
     if (trimmedApplicationUrl) {
       if (trimmedApplicationUrl.length > MAX_TEXT_LENGTH) {
         nextErrors.applicationUrl =
           "申し込みURLは255文字以内で入力してください。";
       } else {
-        try {
-          const parsedUrl = new URL(trimmedApplicationUrl);
-          if (
-            parsedUrl.protocol !== "http:" &&
-            parsedUrl.protocol !== "https:"
-          ) {
-            nextErrors.applicationUrl =
-              "申し込みURLは http か https で始めてください。";
-          }
-        } catch {
-          // URLオブジェクトの生成に失敗した場合、エラーとして設定
+        const externalUrlError = getExternalUrlError(trimmedApplicationUrl);
+        if (externalUrlError === "scheme") {
+          nextErrors.applicationUrl =
+            "申し込みURLは http か https で始めてください。";
+        } else if (externalUrlError === "format") {
           nextErrors.applicationUrl = "正しいURL形式で入力してください。";
         }
       }
@@ -316,6 +332,10 @@ export function useEventPostForm() {
       // 任意項目（capacity / applicationDeadline / externalUrl / items / objectKeys）は
       // 値があるときだけ付与する。
       const trimmedCapacity = formState.capacity.trim();
+      // 申し込みURLが設定されたイベントは定員を受け付けないため、capacity を payload に含めない
+      const hasExternalApplicationUrl = Boolean(
+        formState.applicationUrl.trim(),
+      );
 
       const payload: CreateEventRequest = {
         title: formState.eventName.trim(),
@@ -333,7 +353,7 @@ export function useEventPostForm() {
         })),
       };
 
-      if (trimmedCapacity) {
+      if (trimmedCapacity && !hasExternalApplicationUrl) {
         payload.capacity = Number(trimmedCapacity);
       }
 

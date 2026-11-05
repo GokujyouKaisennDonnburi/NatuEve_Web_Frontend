@@ -189,7 +189,10 @@ export const eventCreateHandler = http.post(
       organizerName: newEvent.profile.displayName,
       organizerAvatarUrl: newEvent.profile.avatarUrl,
       description: body.description as string,
-      capacity: typeof body.capacity === "number" ? body.capacity : undefined,
+      // externalUrl だけを設定したイベントは capacity を送らないため、0（定員なし）に正規化する。
+      // EventDetailResponse.capacity は number が契約で、undefined のまま返すと
+      // EventInfoTable が「undefined名」と表示してしまう。
+      capacity: typeof body.capacity === "number" ? body.capacity : 0,
       externalUrl:
         typeof body.externalUrl === "string" && body.externalUrl.length > 0
           ? body.externalUrl

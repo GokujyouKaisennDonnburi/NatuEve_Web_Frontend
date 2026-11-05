@@ -158,7 +158,8 @@ export type EventDetailResponse = {
   // 終了日時(RFC3339)。作成時に省略されてもサーバー側で eventDate と同値が補完されるため、
   // 詳細レスポンスでは常に存在する。
   endDate: string;
-  externalUrl?: string;
+  // 関連URL（任意・http/https）。未設定時は null が返る。
+  externalUrl?: string | null;
   id: string;
   imageObjectKeys: string[];
   imageFilenames: string[];

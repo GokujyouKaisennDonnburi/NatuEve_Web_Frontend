@@ -22,6 +22,7 @@ import { createReport } from "@/services/report";
 import { uploadFile } from "@/services/upload";
 import type { CreateReportRequest } from "@/types/report";
 import { findUploadValidationError } from "@/utils/upload";
+import { getExternalUrlError } from "@/utils/validation";
 
 export default function ReportPostPage() {
   // useSearchParams() を静的プリレンダリング可能にするため
@@ -123,15 +124,12 @@ function ReportPostPageContent() {
       } else if (url.length > 255) {
         errors.externalUrl = "URLは255文字以内である必要があります";
       } else {
-        try {
-          const parsed = new URL(url);
-          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-            errors.externalUrl =
-              "http:// または https:// のURLを入力してください";
-          } else if (!parsed.hostname) {
-            errors.externalUrl = "正しいURL形式で入力してください";
-          }
-        } catch {
+        // URL形式の判定は getExternalUrlError に寄せ、外部遷移ボタンと受け入れ条件を揃える。
+        const externalUrlError = getExternalUrlError(url);
+        if (externalUrlError === "scheme") {
+          errors.externalUrl =
+            "http:// または https:// のURLを入力してください";
+        } else if (externalUrlError === "format") {
           errors.externalUrl = "正しいURL形式で入力してください";
         }
       }

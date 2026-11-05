@@ -170,7 +170,11 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                     定員
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
-                    {event.capacity === 0 ? "定員なし" : `${event.capacity}名`}
+                    {/* capacity は契約上 number だが、未設定（null/undefined）のデータが届いても
+                        「undefined名」と表示しないよう、0 と合わせて定員なしとして扱う */}
+                    {event.capacity == null || event.capacity === 0
+                      ? "定員なし"
+                      : `${event.capacity}名`}
                   </td>
                 </tr>
               </tbody>
