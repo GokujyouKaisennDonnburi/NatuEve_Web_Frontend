@@ -240,11 +240,14 @@ export function EventParticipationButton({
 
   // 未参加ボタンの文言。受付終了が最優先で、次に満員を優先する。
   // 申込期限を過ぎたイベントは満員かどうかに関係なく申し込めないため、先に「受付終了」を出す。
+  // 外部URLがあるイベントは申し込み先が外部サイトであることを伝える。
   const buttonLabel = receptionClosed
     ? "受付終了"
     : isCapacityFull
       ? "現在満員です"
-      : "参加を申し込む";
+      : isExternalReception
+        ? "外部サイトから申し込む"
+        : "参加を申し込む";
 
   // 定員・残り人数の表示は、申し込みをなちゅいべ内で受けるイベントのみ。
   // 外部URLがあるイベントは外部サイトで定員を管理するため、ボタンだけを出す。
@@ -479,7 +482,11 @@ export function EventParticipationButton({
             // 支援技術に「リンク」と伝わり、URLのコピー・中クリックなどの標準操作も
             // 使えるように、Button（button 要素）ではなく a 要素として描画する。
             // asChild のため type は渡さない（a 要素の type は MIME タイプ用のため）。
-            <Button asChild className={APPLY_BUTTON_CLASS}>
+            // 文言が長いため、共通クラスより幅を広げる（cn は tailwind-merge で後勝ち）。
+            <Button
+              asChild
+              className={cn(APPLY_BUTTON_CLASS, "w-[140px] sm:w-[164px]")}
+            >
               <a href={externalHref} target="_blank" rel="noopener noreferrer">
                 {buttonLabel}
                 {/* 新しいタブで開くことを、ラベルだけでは分からない支援技術向けに補足する */}

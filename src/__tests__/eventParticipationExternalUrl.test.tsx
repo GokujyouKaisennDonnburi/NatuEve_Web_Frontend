@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+﻿import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EventParticipationButton } from "@/components/organisms/EventParticipationButton";
@@ -76,7 +76,7 @@ describe("EventParticipationButton の externalUrl 分岐", () => {
     renderButton({ externalUrl: " https://example.com/event " });
 
     // 外部受付はリンクとして描画され、前後の空白を除いたURLへ遷移する
-    const link = screen.getByRole("link", { name: /参加を申し込む/ });
+    const link = screen.getByRole("link", { name: /外部サイトから申し込む/ });
     expect(link).toHaveAttribute("href", "https://example.com/event");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
@@ -93,9 +93,9 @@ describe("EventParticipationButton の externalUrl 分岐", () => {
       participantCount: 30,
     });
 
-    const link = screen.getByRole("link", { name: /参加を申し込む/ });
+    const link = screen.getByRole("link", { name: /外部サイトから申し込む/ });
     // 「現在満員です」にならず、遷移できる状態のまま
-    expect(link).toHaveTextContent("参加を申し込む");
+    expect(link).toHaveTextContent("外部サイトから申し込む");
     expect(link).not.toHaveAttribute("aria-disabled");
     expect(screen.queryByTestId("participation-modal")).not.toBeInTheDocument();
   });
@@ -160,7 +160,7 @@ describe("EventParticipationButton の externalUrl 表示", () => {
     renderButton({ externalUrl: "https://example.com/event" });
 
     expect(
-      screen.getByRole("link", { name: /参加を申し込む/ }),
+      screen.getByRole("link", { name: /外部サイトから申し込む/ }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/定員\d+名/)).not.toBeInTheDocument();
     expect(screen.queryByText(/残り\d+名/)).not.toBeInTheDocument();
