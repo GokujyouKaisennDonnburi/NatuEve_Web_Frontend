@@ -1,33 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { buildEventDetail } from "@/__tests__/fixtures/event";
 import { EventDetailError } from "@/lib/errors";
 import { getEventDetail, getEventDetailOrNull } from "@/services/event";
-import type { EventDetailResponse } from "@/types/event";
-
-const buildEvent = (): EventDetailResponse => ({
-  capacity: 10,
-  costs: [],
-  createdAt: "2026-01-01T00:00:00+09:00",
-  participantCount: 1,
-  description: "イベントの説明",
-  eventDate: "2026-08-01T10:00:00+09:00",
-  endDate: "2026-08-01T12:00:00+09:00",
-  id: "00000000-0000-4000-8000-000000000001",
-  imageObjectKeys: [],
-  imageFilenames: [],
-  imageUrls: [],
-  items: [],
-  location: "東京都新宿区",
-  pdfObjectKeys: [],
-  pdfFilenames: [],
-  pdfUrls: [],
-  profile: {
-    id: "profile-1",
-    displayName: "主催者",
-    avatarUrl: "",
-  },
-  title: "イベントタイトル",
-  updatedAt: "2026-01-01T00:00:00+09:00",
-});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -55,7 +29,7 @@ describe("getEventDetail", () => {
   });
 
   it("200 の場合はイベント詳細を返す", async () => {
-    const event = buildEvent();
+    const event = buildEventDetail();
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -69,7 +43,7 @@ describe("getEventDetail", () => {
   });
 
   it("指定した signal を fetch に渡す", async () => {
-    const event = buildEvent();
+    const event = buildEventDetail();
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -87,7 +61,7 @@ describe("getEventDetail", () => {
   });
 
   it("signal 未指定時はタイムアウト用の signal を fetch に渡す", async () => {
-    const event = buildEvent();
+    const event = buildEventDetail();
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -134,7 +108,7 @@ describe("getEventDetailOrNull", () => {
   });
 
   it("200 の場合はイベント詳細を返す", async () => {
-    const event = buildEvent();
+    const event = buildEventDetail();
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
