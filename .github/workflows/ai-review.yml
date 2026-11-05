@@ -126,7 +126,8 @@ jobs:
           # OpenCode Go / OpenCode Zen は OPENCODE_API_KEY を使用。
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           # 現行 Action/CLI は AGENT 入力を参照しない場合があるため、default_agent でも code-reviewer を指定する。
-          OPENCODE_CONFIG_CONTENT: '{"default_agent":"code-reviewer"}'
+          # agent prompt は user prompt と重複しないよう、CI では短い指示に差し替える。
+          OPENCODE_CONFIG_CONTENT: '{"default_agent":"code-reviewer","agent":{"code-reviewer":{"prompt":"You are a code reviewer. Follow the user prompt exactly. Always output the requested review verdict and findings."}}}'
         with:
           # agent 入力に対応している Action/CLI では code-reviewer の権限（edit/bash deny）を適用する。
           agent: code-reviewer
@@ -137,8 +138,58 @@ jobs:
           model: ${{ steps.model.outputs.model }}
           prompt: ${{ steps.prompt.outputs.body }}
 
-      - name: Save review state
+      - name: Validate AI review output
+        id: validate
         if: "success() && steps.prepare.outputs.mode != 'skip' && steps.prepare.outputs.mode != ''"
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MODE: ${{ steps.prepare.outputs.mode }}
+        run: |
+          valid='true'
+
+          if [ "$MODE" = "incremental" ]; then
+            valid='false'
+            comments="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              --jq '.[] | select(.user.login == "opencode-agent[bot]") | [.id, .body] | @tsv' \
+              2>/dev/null)" || {
+                echo "::error::AIレビューコメントの取得に失敗しました。"
+                exit 1
+              }
+            latest="$(printf '%s\n' "$comments" | tail -n 1)"
+            comment_id=''
+            body=''
+            if [ -n "$latest" ]; then
+              IFS=$'\t' read -r comment_id body <<< "$latest"
+              if printf '%s\n' "$body" | grep -Eq '判定[:：][[:space:]]*(\*\*)?[[:space:]]*(指摘あり|指摘なし)'; then
+                valid='true'
+              fi
+            fi
+
+            if [ "$valid" != 'true' ]; then
+              warning="$(printf '%s\n%s\n%s' \
+                'AIレビューの判定を取得できませんでした。' \
+                'レビュー出力に `判定: 指摘あり` / `判定: 指摘なし` が含まれていないため、状態を更新していません。' \
+                '再実行してください。')"
+              if [ -n "$comment_id" ]; then
+                if ! jq -cn --arg body "$warning" '{body:$body}' | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" --input - >/dev/null; then
+                  jq -cn --arg body "$warning" '{body:$body}' | gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --input - >/dev/null || true
+                fi
+              else
+                jq -cn --arg body "$warning" '{body:$body}' | gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --input - >/dev/null || true
+              fi
+            fi
+          fi
+
+          echo "valid=$valid" >> "$GITHUB_OUTPUT"
+          if [ "$valid" != 'true' ]; then
+            echo "::error::AIレビューの出力に判定行がありません。"
+            exit 1
+          fi
+
+      - name: Save review state
+        if: "success() && steps.prepare.outputs.mode != 'skip' && steps.prepare.outputs.mode != '' && steps.validate.outputs.valid == 'true'"
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -158,6 +209,7 @@ jobs:
           HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
           DIFF_FILE: ${{ steps.prepare.outputs.diff_file }}
           DIFF_TRUNCATED: ${{ steps.prepare.outputs.diff_truncated }}
+          VALID: ${{ steps.validate.outputs.valid }}
         run: |
           {
             echo "### AI Review"
@@ -166,4 +218,5 @@ jobs:
             echo "- range: \`${BASE_SHA:-?}...${HEAD_SHA:-?}\`"
             echo "- diff file: \`${DIFF_FILE:-none}\`"
             echo "- diff truncated: \`${DIFF_TRUNCATED:-false}\`"
+            echo "- review output valid: \`${VALID:-unknown}\`"
           } >> "$GITHUB_STEP_SUMMARY"
