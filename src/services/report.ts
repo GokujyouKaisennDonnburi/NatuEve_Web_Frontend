@@ -47,12 +47,16 @@ export async function createReport(
 // 1 イベントにつき 1 レポート。レポート未投稿時は 404 となるため、
 // 404 の場合は null を返して「レポート無し」として扱う。
 // それ以外のエラー（500 等）は例外を送出する。
-export async function getReport(eventId: string): Promise<ReportDetail | null> {
+export async function getReport(
+  eventId: string,
+  signal?: AbortSignal,
+): Promise<ReportDetail | null> {
   const response = await apiFetch(
     `/api/v1/events/${encodeURIComponent(eventId)}/report`,
     {
       method: "GET",
       auth: false,
+      signal,
     },
   );
 

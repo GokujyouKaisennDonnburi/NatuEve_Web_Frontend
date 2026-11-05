@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { useEventDetail } from "@/hooks/useEventDetail";
@@ -89,6 +89,54 @@ describe("useEventDetail", () => {
     unmount();
 
     expect(signal?.aborted).toBe(true);
+  });
+
+  it("アンマウント時に実行中のレポート取得を abort する", () => {
+    let signal: AbortSignal | undefined;
+    mockGetReport.mockImplementation((_eventId, requestSignal) => {
+      signal = requestSignal;
+      return new Promise(() => {});
+    });
+
+    const { unmount } = renderHook(() => useEventDetail(buildEvent("initial")));
+    expect(mockGetReport).toHaveBeenCalled();
+    unmount();
+
+    expect(signal?.aborted).toBe(true);
+  });
+
+  it("eventId が変わると前回のレポート取得を abort する", () => {
+    const signals: AbortSignal[] = [];
+    mockGetReport.mockImplementation((_eventId, requestSignal) => {
+      signals.push(requestSignal as AbortSignal);
+      return new Promise(() => {});
+    });
+
+    const { rerender } = renderHook(({ event }) => useEventDetail(event), {
+      initialProps: { event: buildEvent("first") },
+    });
+    act(() => {
+      rerender({ event: buildEvent("second") });
+    });
+
+    expect(signals).toHaveLength(2);
+    expect(signals[0]?.aborted).toBe(true);
+  });
+
+  it("レポート取得のAbortErrorはエラーログに出力しない", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGetReport.mockRejectedValue(
+      Object.assign(new Error("aborted"), { name: "AbortError" }),
+    );
+
+    renderHook(() => useEventDetail(buildEvent("initial")));
+
+    await waitFor(() => expect(mockGetReport).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   it("古いレスポンスは新しい状態を上書きしない", async () => {

@@ -99,20 +99,27 @@ export function useEventDetail(
     // id 変更時に前回のレポートをクリアして表示の取り違えを防ぐ
     setReport(null);
     let cancelled = false;
+    const controller = new AbortController();
 
     const fetchReport = async (): Promise<void> => {
       try {
-        const data = await getReport(eventId);
+        const data = await getReport(eventId, controller.signal);
         if (!cancelled) setReport(data);
       } catch (err) {
-        // レポート取得失敗はイベント表示を妨げない
-        console.error("レポート取得エラー", err);
+        if (
+          !cancelled &&
+          !(err instanceof Error && err.name === "AbortError")
+        ) {
+          // レポート取得失敗はイベント表示を妨げない
+          console.error("レポート取得エラー", err);
+        }
       }
     };
 
     void fetchReport();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [eventId]);
 
