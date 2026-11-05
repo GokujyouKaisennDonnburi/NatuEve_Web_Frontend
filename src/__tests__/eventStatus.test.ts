@@ -193,6 +193,27 @@ describe("resolveEventStatus", () => {
     ).toBe("open");
   });
 
+  it("now を指定した場合はその時刻を基準に判定する", () => {
+    const source = {
+      eventDate: "2026-09-03T09:00:00+09:00",
+      endDate: "2026-09-03T12:00:00+09:00",
+      applicationDeadline: "2026-09-03T11:00:00+09:00",
+    };
+
+    expect(
+      resolveEventStatus({
+        ...source,
+        now: Date.parse("2026-09-03T10:00:00+09:00"),
+      }),
+    ).toBe("few_left");
+    expect(
+      resolveEventStatus({
+        ...source,
+        now: Date.parse("2026-09-03T12:00:01+09:00"),
+      }),
+    ).toBe("closed");
+  });
+
   it("終了日時が省略された場合は開催日時を終了日時として扱う", () => {
     expect(resolveEventStatus({ eventDate: "2026-09-01T09:00:00+09:00" })).toBe(
       "closed",

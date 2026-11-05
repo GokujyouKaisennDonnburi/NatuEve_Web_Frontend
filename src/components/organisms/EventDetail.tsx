@@ -56,11 +56,14 @@ export function EventDetail({
   event,
   report,
   onEventRefetch,
+  initialNow,
 }: {
   event: EventDetailType;
   report?: ReportDetail | null;
   // イベント詳細を再取得するコールバック。参加/キャンセル後に最新の定員情報を反映する。
   onEventRefetch?: () => void;
+  // SSR 時の描画時刻(epoch ms)。サーバー HTML とハイドレーション時の表示を揃える。
+  initialNow: number;
 }) {
   const images = event.imageUrls?.length
     ? event.imageUrls
@@ -101,27 +104,25 @@ export function EventDetail({
   // 開催状況は共通ルールで判定する。詳細 API は endDate を必ず返すため、
   // 開催中（開始済み・未終了）のイベントは「開催終了」にならない。
   // 「期限間近」は申込期限の1週間前から申込期限までに表示される。
+  // 判定の基準時刻は useDeadlineRefresh が返す now を使い、SSR と初回描画を揃える。
+  // 申込期限・開始日時・終了日時を跨いだ時点で再描画し、表示と操作可否を実際の時刻に追随させる。
+  // 申込期限切れのイベントは開始日時を境に「受付終了」から「開催中」へ切り替わるため、
+  // 開始日時も再描画の境目に含める。
+  const now = useDeadlineRefresh(
+    [event.applicationDeadline, event.eventDate, event.endDate],
+    initialNow,
+  );
   const status = resolveEventStatus({
     eventDate: event.eventDate,
     endDate: event.endDate,
     applicationDeadline: event.applicationDeadline,
+    now,
   });
 
   // 参加申し込みを締め切るかどうかは、ステータスバッジと同じ判定結果から isReceptionClosed で導く。
   // 取り消し・欠席連絡の期限（cancelDeadline を優先する participationDeadline）とは別の判定。
   // 開催中はバッジが「開催中」、申し込みボタンは「受付終了」になる。
   const receptionClosed = isReceptionClosed(status);
-
-  // 上の判定は現在時刻に依存するため、ページを開いたままでは期限を過ぎても
-  // 「参加を申し込む」が押せるまま残ってしまう。申込期限・開始日時・終了日時を跨いだ時点で
-  // 再描画し、表示と操作可否を実際の時刻に追随させる。
-  // 申込期限切れのイベントは開始日時を境に「受付終了」から「開催中」へ切り替わるため、
-  // 開始日時も再描画の境目に含める。
-  useDeadlineRefresh([
-    event.applicationDeadline,
-    event.eventDate,
-    event.endDate,
-  ]);
 
   // サインイン中のユーザーが当該イベントの投稿者（主催者）かどうか
   const isOrganizer = Boolean(

@@ -181,6 +181,13 @@ describe("useDeadlineRefresh", () => {
     expect(far.renders()).toBe(1);
   });
 
+  it("initialNow を基準時刻として返し、古い場合はマウント後に実時刻へ更新する", () => {
+    const initialNow = NOW.getTime() - 10 * SECOND;
+    const { result } = renderHook(() => useDeadlineRefresh([], initialNow));
+
+    expect(result.current).toBe(NOW.getTime());
+  });
+
   it("アンマウントするとタイマーを解除する", () => {
     const { unmount } = renderCounting([fromNow(HOUR)]);
 

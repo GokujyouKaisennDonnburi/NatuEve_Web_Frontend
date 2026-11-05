@@ -53,9 +53,16 @@ export default async function EventDetailPage({
     notFound();
   }
 
+  // SSR とハイドレーションでステータス表示がずれないよう、描画時刻を渡す。
+  const initialNow = Date.now();
+
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <EventDetailContent key={event.id} initialEvent={event} />
+      <EventDetailContent
+        key={event.id}
+        initialEvent={event}
+        initialNow={initialNow}
+      />
     </div>
   );
 }
