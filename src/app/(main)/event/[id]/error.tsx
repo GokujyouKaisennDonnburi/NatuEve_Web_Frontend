@@ -1,0 +1,36 @@
+"use client";
+
+import { APP_NAME } from "@/constants/config";
+import { PAGE_TITLES } from "@/constants/pageTitles";
+import { useEffect } from "react";
+
+type EventDetailErrorPageProps = {
+  error: unknown;
+  retry: () => void;
+};
+
+// イベント詳細の SSR やクライアント処理で、404 以外の予期しないエラーが起きたときの表示。
+export default function EventDetailErrorPage({
+  error,
+  retry,
+}: Readonly<EventDetailErrorPageProps>) {
+  useEffect(() => {
+    console.error("イベント詳細の表示に失敗しました", error);
+  }, [error]);
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 py-16">
+      <title>{`${PAGE_TITLES.EVENT_DETAIL_ERROR} | ${APP_NAME}`}</title>
+      <h1 className="text-lg font-bold text-slate-800">
+        イベントを読み込めませんでした。
+      </h1>
+      <button
+        type="button"
+        onClick={retry}
+        className="text-sm text-emerald-700 underline transition hover:opacity-80"
+      >
+        再読み込み
+      </button>
+    </div>
+  );
+}

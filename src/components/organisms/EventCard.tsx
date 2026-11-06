@@ -2,12 +2,13 @@
 
 import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { FilterTag } from "@/components/atoms/FilterTag";
+import { Loading } from "@/components/atoms/Loading";
 import { ROUTES } from "@/constants/routes";
 import type { TagItem } from "@/types/tag";
 import type { ResolvedEventStatus } from "@/utils/eventStatus";
 import { MapPin } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link, { useLinkStatus } from "next/link";
 import { useEffect, useState } from "react";
 
 export type EventItem = {
@@ -27,12 +28,32 @@ type EventCardProps = {
   event: EventItem;
 };
 
+// イベント詳細へのクライアント遷移中に、カード上へ読み込み表示を重ねる。
+function EventCardPendingIndicator() {
+  const { pending } = useLinkStatus();
+
+  return (
+    <>
+      <span className="sr-only" role="status" aria-live="polite">
+        {pending ? "イベントを読み込み中..." : null}
+      </span>
+      {pending ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/75"
+        >
+          <Loading label="イベントを読み込み中..." />
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export function EventCard({ event }: Readonly<EventCardProps>) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
   }, []);
-  const router = useRouter();
 
   if (!isMounted) {
     return (
@@ -51,41 +72,16 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
     timeZone: "Asia/Tokyo",
   });
 
-  const handleOrganizerClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    router.push(`${ROUTES.USERS}/${event.profileId}`);
-  };
-
-  const handleOrganizerKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  };
-
   const MAX_LOCATION_LENGTH = 12;
   const displayLocation =
     event.location.length > MAX_LOCATION_LENGTH
       ? `${event.location.slice(0, MAX_LOCATION_LENGTH)}......`
       : event.location;
 
+  // ISR 対象の詳細ページを prefetch すると、一覧枚数分のサーバー描画と
+  // API 呼び出しがユーザー操作前に走るため、遷移時に取得する。
   return (
-    <a
-      href={`/event/${event.id}`}
-      aria-label={`${event.title} の詳細へ移動`}
-      onClick={(e) => {
-        e.preventDefault();
-        router.push(`/event/${event.id}`);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          router.push(`/event/${event.id}`);
-        }
-      }}
-      className="group relative flex min-h-[200px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E3E8DF] bg-white p-4 no-underline shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md sm:h-[132px] sm:min-h-0 sm:flex-row sm:p-0"
-    >
+    <div className="group relative flex min-h-[200px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#E3E8DF] bg-white p-4 no-underline shadow-[0px_1px_2px_rgba(39,46,36,0.05),0px_4px_12px_rgba(39,46,36,0.06)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md sm:h-[132px] sm:min-h-0 sm:flex-row sm:p-0">
       {/* Left column: Date + Status */}
       <div className="flex w-full shrink-0 items-center gap-3 sm:w-[129px] sm:flex-col sm:gap-0">
         {/* Date box: "8/11" + "火" */}
@@ -133,11 +129,10 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
               {displayLocation}
             </span>
           </div>
-          <button
-            type="button"
-            className="flex min-w-0 cursor-pointer items-center border-none bg-transparent p-0 transition-opacity hover:opacity-70 sm:absolute sm:left-[180px]"
-            onClick={handleOrganizerClick}
-            onKeyDown={handleOrganizerKeyDown}
+          <Link
+            href={`${ROUTES.USERS}/${event.profileId}`}
+            prefetch={false}
+            className="relative z-20 flex min-w-0 cursor-pointer items-center border-none bg-transparent p-0 transition-opacity hover:opacity-70 sm:absolute sm:left-[180px]"
             aria-label={`${event.hostName} のプロフィールへ移動`}
           >
             {event.hostAvatarUrl ? (
@@ -158,9 +153,17 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
             <span className="ml-1 max-w-[160px] truncate text-[13px] leading-[19px] text-[#667061]">
               {event.hostName}
             </span>
-          </button>
+          </Link>
         </div>
       </div>
-    </a>
+      <Link
+        href={`/event/${event.id}`}
+        prefetch={false}
+        aria-label={`${event.title} の詳細へ移動`}
+        className="absolute inset-0 z-10 rounded-2xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-inset focus-visible:outline-none"
+      >
+        <EventCardPendingIndicator />
+      </Link>
+    </div>
   );
 }

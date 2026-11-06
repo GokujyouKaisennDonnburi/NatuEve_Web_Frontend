@@ -48,7 +48,7 @@ const formatCost = ({
   category,
   cost,
 }: EventDetailType["costs"][number]): string => {
-  const amount = cost === 0 ? "無料" : `${cost.toLocaleString()}円`;
+  const amount = cost === 0 ? "無料" : `${cost.toLocaleString("ja-JP")}円`;
   const label = category.trim();
   return label ? `${label}：${amount}` : amount;
 };

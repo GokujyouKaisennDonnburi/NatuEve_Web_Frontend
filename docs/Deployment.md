@@ -554,12 +554,16 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 デプロイ前に、この設定が無効のままであることを再確認する。有効化する場合は `remotePatterns` では制御できない変換経路ができるため、AC 2 の対象として扱い、許可取得元の制限や費用・可用性への影響を別途検討する。
 
-## SNS シェア（OGP）を追加するとき
+## イベント詳細の SSR / メタデータ
 
-- `event/[id]/page.tsx` は `"use client"` のため、そのままでは `generateMetadata` を書けない（Client Component では使えない）。
-  「`generateMetadata` を書くサーバー側のページ」と「今の中身を移したブラウザ側の部品」に分ける。
-- `generateMetadata` は SSR 時に API からイベント詳細を取得する。API からは、送信元が Cloudflare の IP に見える。
-- OGP に載せるのは、認証なしで呼べる API が返す項目だけにする。
+- `event/[id]/page.tsx` は Server Component で、`generateMetadata` とページ本体が同じ API 結果を使う（React `cache`）。
+- `generateMetadata` は SSR 時に `GET /api/v1/events/{id}` を呼び、イベント名を `title`、説明文の冒頭を `description` に出力する。
+- API が 404 を返した場合は `notFound()` で HTTP 404 を返す。
+- サーバー側の API 取得は `NEXT_PUBLIC_API_BASE_URL` を使う。送信元は Cloudflare の IP に見えるため、API 側の許可設定を確認する。
+- `global_fetch_strictly_public` により同一ゾーンの API へは公開経路で fetch する。検証環境でサーバー側から取得できることを確認する。
+- キャッシュは `revalidate = 60`。動的ルートを ISR 対象にするため、`generateStaticParams` は空配列を返す（初回アクセス時に生成）。イベント詳細 API はイベントID単位で60秒の Data Cache（`unstable_cache`）に載せ、`generateMetadata` とページ本体で共有する。OpenNext は現状 dummy incremental cache のため、Cloudflare 上での実キャッシュ効果は限定的。
+- 参加人数など変わりやすい値はクライアント側でも再取得する。
+- OGP タグは未対応。追加する場合は、認証なしで呼べる API が返す項目だけを使う。
 
 ## 月額の試算
 

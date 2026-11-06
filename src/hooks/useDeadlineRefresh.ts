@@ -20,10 +20,22 @@ const BOUNDARY_MARGIN_MS = 1_000;
 // 未来の境目が1つもない場合はタイマーを張らないため、期限のないイベントでは何もしない。
 export function useDeadlineRefresh(
   deadlines: readonly (string | null | undefined)[],
-): void {
-  const [now, setNow] = useState(() => Date.now());
+  initialNow?: number,
+): number {
+  const [now, setNow] = useState(() => initialNow ?? Date.now());
 
-  // 依存配列の要素数を固定するため、日時の並びを1つの文字列にまとめる。
+  // SSR 済みのキャッシュ HTML では initialNow が実時刻より古い場合がある。
+  // ハイドレーション後の初回描画までは initialNow を使い、その後で実時刻へ追従する。
+  // RSC 更新で initialNow が変わった場合も、より新しい基準時刻へ合わせる。
+  useEffect(() => {
+    setNow((current) => {
+      const actual = Date.now();
+      const next = Math.max(current, initialNow ?? actual, actual);
+      return next > current ? next : current;
+    });
+  }, [initialNow]);
+
+  // 依存配列の要素を固定するため、期限の並びを1つの文字列にまとめる。
   // 配列をそのまま展開すると、要素数が変わったときに useEffect が壊れる。
   // RFC3339 の日時に "|" は現れないため、区切り文字として使える。
   const deadlineKey = deadlines.join("|");
@@ -45,4 +57,6 @@ export function useDeadlineRefresh(
 
     return () => clearTimeout(timer);
   }, [now, deadlineKey]);
+
+  return now;
 }

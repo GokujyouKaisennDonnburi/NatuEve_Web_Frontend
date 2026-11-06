@@ -19,7 +19,7 @@ const fromNow = (ms: number): string =>
   new Date(NOW.getTime() + ms).toISOString();
 
 // 再描画の回数を数えながらフックを描画する。
-// フックは戻り値を持たないため、描画のたびにコールバックが呼ばれる回数で再描画を観測する。
+// 戻り値は使わず、描画のたびにコールバックが呼ばれる回数で再描画を観測する。
 function renderCounting(deadlines: readonly (string | null | undefined)[]) {
   let renders = 0;
   const view = renderHook(() => {
@@ -179,6 +179,26 @@ describe("useDeadlineRefresh", () => {
 
     advance(MAX_TIMEOUT_DELAY);
     expect(far.renders()).toBe(1);
+  });
+
+  it("initialNow を基準時刻として返し、古い場合はマウント後に実時刻へ更新する", () => {
+    const initialNow = NOW.getTime() - 10 * SECOND;
+    const { result } = renderHook(() => useDeadlineRefresh([], initialNow));
+
+    expect(result.current).toBe(NOW.getTime());
+  });
+
+  it("initialNow が更新された場合は新しい基準時刻へ追従する", () => {
+    const first = NOW.getTime();
+    const second = first + 5 * SECOND;
+    const { result, rerender } = renderHook(
+      ({ initialNow }) => useDeadlineRefresh([], initialNow),
+      { initialProps: { initialNow: first } },
+    );
+
+    rerender({ initialNow: second });
+
+    expect(result.current).toBe(second);
   });
 
   it("アンマウントするとタイマーを解除する", () => {

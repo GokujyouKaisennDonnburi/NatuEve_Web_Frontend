@@ -1,3 +1,4 @@
+import { EventDetailError } from "@/lib/errors";
 import { apiFetch } from "@/services/apiClient";
 import type {
   CancelEventRequest,
@@ -15,24 +16,48 @@ import type {
   ProfileEventType,
 } from "@/types/event";
 
+// SSR 時に API が応答しないままページ描画がブロックされ続けないよう、
+// signal 未指定時のイベント詳細取得にはタイムアウトを設ける。
+const EVENT_DETAIL_TIMEOUT_MS = 10_000;
+
 // イベント詳細取得 API（GET /api/v1/events/{id}）を呼ぶ（認証不要）。
 //
 // 失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
 export async function getEventDetail(
   eventId: string,
+  signal?: AbortSignal,
 ): Promise<EventDetailResponse> {
+  const requestSignal = signal ?? AbortSignal.timeout(EVENT_DETAIL_TIMEOUT_MS);
   const response = await apiFetch(
     `/api/v1/events/${encodeURIComponent(eventId)}`,
-    { auth: false },
+    { auth: false, signal: requestSignal },
   );
 
   if (!response.ok) {
-    throw new Error(
-      `イベント詳細の取得に失敗しました (Status: ${response.status})`,
+    throw new EventDetailError(
+      response.status === 404
+        ? "イベントが見つかりません"
+        : `イベント詳細の取得に失敗しました (Status: ${response.status})`,
+      response.status,
     );
   }
 
   return (await response.json()) as EventDetailResponse;
+}
+
+// ページ用のイベント詳細取得ローダー。
+// 404 は「イベント不存在」として null を返し、それ以外のエラーはそのまま送出する。
+export async function getEventDetailOrNull(
+  eventId: string,
+): Promise<EventDetailResponse | null> {
+  try {
+    return await getEventDetail(eventId);
+  } catch (error) {
+    if (error instanceof EventDetailError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 // URLSearchParams に変換するヘルパー。
