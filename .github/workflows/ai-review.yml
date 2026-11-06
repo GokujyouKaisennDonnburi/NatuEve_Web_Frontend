@@ -8,7 +8,8 @@ name: AI Review
 # AI実行基盤・モデルの変更箇所（将来 Copilot / Claude / Gemini に切替する場合）:
 #   1. `uses:` の Action          -> 各サービスの GitHub Action に差し替え
 #   2. `env:` の APIキー            -> 切替先プロバイダのAPIキー Secret に変更（OpenCode Go / Zen は OPENCODE_API_KEY）
-#   3. opencode.json              -> provider / agent.code-reviewer.model を更新（CI の with.model は jq で自動取得）
+#   3. opencode.json              -> provider / agent.code-reviewer.model を更新（CI の with.model は jq で自動取得）。
+#                                    `with.variant` は切替先のモデルが持つ値に変更する
 #   4. .ai/prompts/code-review.md -> `<pull_request>` など OpenCode Action の入力に依存する「レビュー範囲」を見直す
 #   ※ Branch Protection の必須 status check には含めないこと
 
@@ -63,7 +64,7 @@ jobs:
           OPENCODE_CONFIG_CONTENT: '{"default_agent":"code-reviewer"}'
         with:
           # モデルは opencode.json の agent.code-reviewer.model を単一正とし、jq で解決して渡す。
-          # モデル変更時は opencode.json のみを更新する（CI / ローカルが常に同期）。
+          # モデル変更時は opencode.json を更新する（CI / ローカルが常に同期）。variant はモデルごとに値が違うため、ここも合わせて更新する。
           # 現在: OpenCode Go GLM-5.3 Flash。
           model: ${{ steps.model.outputs.model }}
           variant: max
