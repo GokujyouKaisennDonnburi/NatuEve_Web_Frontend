@@ -2,7 +2,7 @@
   "$schema": "https://opencode.ai/config.json",
   "_comment_provider": "AIプロバイダ変更時はこの provider ブロックを差し替え（例: opencode-go / anthropic / openai / google）",
   "_comment_model": "モデル変更時は agent.code-reviewer.model を変更（例: anthropic/claude-sonnet-4-20250514 / openai/gpt-5 / opencode-go/glm-5.3-flash）",
-  "_comment_permission": "bash はレビュー範囲の特定に使う git だけ許可する。規則は最後に一致したものが勝つため、'*' を先頭に置く。--output はファイルの書き込み、--no-index はリポジトリ外の読み取りになるので deny にする。external_directory の既定は ask で、CI では応答待ちのまま止まるため、許可するパス以外は deny にする",
+  "_comment_permission": "bash はレビュー範囲の特定に使う git だけ許可する。規則は最後に一致したものが勝つため、'*' を先頭に置く。--output と > はファイルの書き込み、--no-index はリポジトリ外の読み取りになるので deny にする（リダイレクトはコマンド文字列に含めて判定される）。external_directory の既定は ask で、CI では応答待ちのまま止まるため、許可するパス以外は deny にする",
   "provider": {
     "opencode-go": {
       "options": {}
@@ -28,7 +28,8 @@
           "git log *": "allow",
           "git show *": "allow",
           "git *--output*": "deny",
-          "git *--no-index*": "deny"
+          "git *--no-index*": "deny",
+          "git *>*": "deny"
         },
         "webfetch": "deny",
         "websearch": "deny",

@@ -70,6 +70,8 @@ Pull Request をレビューし、結果を日本語でコメントしてくだ�
 - opencode GitHub Action で `use_github_token: true` の場合、OIDC トークン交換はスキップされるため `id-token: write` 権限は不要である（出典: action.yml の use_github_token 説明 "When true, skips OIDC and uses the GITHUB_TOKEN env var." https://github.com/anomalyco/opencode/blob/dev/github/action.yml 、2026-11-06 確認）
 - `opencode-go/glm-5.3-flash` は opencode Go の正式なモデル ID であり、variant は `low` / `high` / `max` の 3 つである（出典: https://opencode.ai/docs/go/ 、`opencode models opencode-go --verbose` の出力、2026-10-18 確認）
 - opencode GitHub Action には推論強度を指定する `variant` 入力がある（出典: action.yml の variant 説明 "Model variant for provider-specific reasoning effort (e.g., high, max, minimal)" https://github.com/anomalyco/opencode/blob/dev/github/action.yml 、2026-11-06 確認）
+- opencode GitHub Action は同じリポジトリの PR で head ブランチを fetch して checkout するため、エージェントの `HEAD` は `refs/pull/N/merge` ではなく PR の head になる。`actions/checkout` に `ref` の指定は要らない（出典: github.handler.ts の checkoutLocalBranch https://github.com/anomalyco/opencode/blob/e3c4eb242585dcd77be1a867391b7c25fd47ce52/packages/opencode/src/cli/cmd/github.handler.ts 、2026-11-06 確認）
+- opencode の bash の権限判定は、tree-sitter でコマンドごとに分解して行う。`;` `&&` `|` `$(...)` の先のコマンドも個別に判定されるので、これらで許可リストを迂回できない（出典: shell.ts の commands() / collect() https://github.com/anomalyco/opencode/blob/e3c4eb242585dcd77be1a867391b7c25fd47ce52/packages/opencode/src/tool/shell.ts 、2026-11-06 確認）
 
 ## 変更した場所ごとの確認項目
 
