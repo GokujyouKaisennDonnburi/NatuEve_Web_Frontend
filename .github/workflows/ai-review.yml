@@ -153,16 +153,16 @@ jobs:
         run: |
           valid='false'
           comments="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-            --jq '.[] | select(.user.login == "opencode-agent[bot]") | [.id, .body] | @tsv' \
-            2>/dev/null)" || {
+            --jq '.[] | select(.user.login == "opencode-agent[bot]") | {id, created_at, body}')" || {
               echo "::error::AIレビューコメントの取得に失敗しました。"
               exit 1
             }
-          latest="$(printf '%s\n' "$comments" | tail -n 1)"
+          latest="$(printf '%s\n' "$comments" | jq -s 'sort_by(.created_at) | last' 2>/dev/null || true)"
           comment_id=''
           body=''
-          if [ -n "$latest" ]; then
-            IFS=$'\t' read -r comment_id body <<< "$latest"
+          if [ -n "$latest" ] && [ "$latest" != 'null' ]; then
+            comment_id="$(printf '%s' "$latest" | jq -r '.id // empty' 2>/dev/null || true)"
+            body="$(printf '%s' "$latest" | jq -r '.body // empty' 2>/dev/null || true)"
             if printf '%s\n' "$body" | grep -Eq '判定[:：][[:space:]]*(\*\*)?[[:space:]]*(指摘あり|指摘なし)'; then
               valid='true'
             fi

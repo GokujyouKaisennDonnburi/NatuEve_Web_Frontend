@@ -37,6 +37,7 @@ require_env() {
 
 normalize_sha() {
   local value="${1:-}"
+  value="$(printf '%s' "$value" | tr 'A-F' 'a-f')"
   case "$value" in
     *[!0-9a-f]*|'')
       printf ''
@@ -65,7 +66,7 @@ write_output() {
 
 prepare() {
   local head_sha base_sha last_sha
-  local state_output state_status state_line state_comment_id state_body payload raw_last_sha
+  local state_output state_status state_comment_id state_body payload raw_last_sha latest_state
   local state_read_failed attempt
   local mode base_for_review diff_file diff_output_path diff_truncated
   local repo_root exclude_file status max_bytes tmp
@@ -80,6 +81,10 @@ prepare() {
   [ -n "$head_sha" ] || die "HEAD_SHA is invalid: ${HEAD_SHA:-}"
   base_sha="$(normalize_sha "${BASE_SHA:-}")"
   [ -n "$base_sha" ] || die "BASE_SHA is invalid: ${BASE_SHA:-}"
+
+  if ! git check-ref-format "refs/heads/${HEAD_REF}" >/dev/null 2>&1; then
+    die "HEAD_REF is invalid: ${HEAD_REF}"
+  fi
 
   # イベント時点の head をレビュー対象にするため、ローカルブランチをその SHA に固定する。
   # これにより、prepare と Action の間に branch tip が進んでも、レビュー対象と差分の基準がずれない。
@@ -98,7 +103,7 @@ prepare() {
   while [ "$attempt" -le 2 ]; do
     state_status=0
     state_output="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-      --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- ai-review-state:")) | [.id, .updated_at, .body] | @tsv')" || state_status=$?
+      --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- ai-review-state:")) | {id, updated_at, body}')" || state_status=$?
     if [ "$state_status" -eq 0 ]; then
       break
     fi
@@ -112,25 +117,42 @@ prepare() {
     state_read_failed='true'
     state_output=''
   fi
-  state_line="$(printf '%s\n' "$state_output" | sort -t $'\t' -k2,2 | tail -n 1)"
 
   state_comment_id=''
+  state_body=''
   last_sha=''
-  if [ -n "$state_line" ]; then
-    IFS=$'\t' read -r state_comment_id state_body <<< "$state_line"
-    payload="${state_body#*ai-review-state:}"
-    payload="${payload%% -->*}"
-    last_sha="$(printf '%s' "$payload" | jq -r '.last_reviewed_sha // empty' 2>/dev/null || true)"
-    case "$state_comment_id" in
-      *[!0-9]*|'')
-        state_comment_id=''
-        ;;
-    esac
-    if [ -z "$state_comment_id" ] || [ -z "$last_sha" ]; then
+  if [ -n "$state_output" ]; then
+    latest_state="$(printf '%s\n' "$state_output" | jq -s 'sort_by(.updated_at) | last' 2>/dev/null || true)"
+    if [ -n "$latest_state" ] && [ "$latest_state" != 'null' ]; then
+      state_comment_id="$(printf '%s' "$latest_state" | jq -r '.id // empty' 2>/dev/null || true)"
+      state_body="$(printf '%s' "$latest_state" | jq -r '.body // empty' 2>/dev/null || true)"
+    fi
+    if [ -z "$state_comment_id" ] || [ -z "$state_body" ]; then
       echo "::error::状態コメントの内容を解析できませんでした。full レビューにフォールバックし、状態保存は行いません。"
       state_read_failed='true'
     fi
   fi
+
+  if [ -n "$state_body" ]; then
+    payload="${state_body#*ai-review-state:}"
+    payload="${payload%% -->*}"
+    last_sha="$(printf '%s' "$payload" | jq -r '.last_reviewed_sha // empty' 2>/dev/null || true)"
+    if [ -z "$last_sha" ]; then
+      echo "::error::状態コメントのSHAを解析できませんでした。full レビューにフォールバックし、状態保存は行いません。"
+      state_read_failed='true'
+    fi
+  fi
+
+  case "$state_comment_id" in
+    *[!0-9]*|'')
+      if [ -n "$state_comment_id" ]; then
+        echo "::error::状態コメントのIDが不正です。full レビューにフォールバックし、状態保存は行いません。"
+        state_read_failed='true'
+      fi
+      state_comment_id=''
+      ;;
+  esac
+
   raw_last_sha="$last_sha"
   last_sha="$(normalize_sha "$last_sha")"
   if [ -n "$raw_last_sha" ] && [ -z "$last_sha" ]; then
@@ -166,7 +188,6 @@ prepare() {
     git diff --quiet "${base_for_review}..${head_sha}" -- . ':(exclude)bun.lock' || status=$?
     if [ "$status" -eq 0 ]; then
       mode='skip'
-      base_for_review="$base_sha"
       diff_file=''
     elif [ "$status" -eq 1 ]; then
       repo_root="$(git rev-parse --show-toplevel)"
@@ -178,9 +199,13 @@ prepare() {
         printf '\n.ai-review.diff*\n' >> "$exclude_file"
       fi
 
+      # bun.lock は生成物で差分が大きいため、詳細diffからは除外する。
+      # 依存関係の変更は package.json と CI で確認する。
       if ! {
         printf '## Diff stat\n' &&
           git diff --no-color --stat "${base_for_review}..${head_sha}" -- . ':(exclude)bun.lock' &&
+          printf '\n## Lockfile changes (excluded from diff)\n' &&
+          git diff --no-color --stat "${base_for_review}..${head_sha}" -- bun.lock &&
           printf '\n## Diff\n' &&
           git diff --no-color --unified=3 "${base_for_review}..${head_sha}" -- . ':(exclude)bun.lock'
       } > "$diff_file"; then
