@@ -35,6 +35,7 @@ jobs:
     timeout-minutes: 30
 
     # 状態コメントの読み取り・作成・更新に `issues: write` を使う。
+    # PRコメントAPIの権限差分を考慮し、`pull-requests: write` も付与する。
     # AIレビューコメントは OpenCode GitHub App のインストールトークンで投稿されるため、
     # この write 権限を AI レビューの投稿には使わない。
     # 注意: permissions は job 単位で付与される。GH_TOKEN を AI ステップの env に渡さなくても、
@@ -43,7 +44,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: write
 
     steps:
@@ -192,7 +193,7 @@ jobs:
           fi
 
       - name: Save review state
-        if: "success() && steps.prepare.outputs.mode != 'skip' && steps.prepare.outputs.mode != '' && steps.validate.outputs.valid == 'true'"
+        if: "success() && steps.prepare.outputs.mode != 'skip' && steps.prepare.outputs.mode != '' && steps.prepare.outputs.state_read_failed != 'true' && steps.validate.outputs.valid == 'true'"
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -202,6 +203,13 @@ jobs:
           EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           bash .github/scripts/ai-review-state.sh save "$EVENT_HEAD_SHA" "$MODE" "$STATE_COMMENT_ID"
+
+      - name: Check review state
+        if: "always() && steps.prepare.outputs.state_read_failed == 'true'"
+        shell: bash
+        run: |
+          echo "::error::状態コメントの取得に失敗したため、レビュー状態を保存していません。Actions の Workflow permissions（issues: write / pull-requests: write）を確認してください。"
+          exit 1
 
       - name: Review mode
         if: always()
@@ -213,6 +221,7 @@ jobs:
           DIFF_FILE: ${{ steps.prepare.outputs.diff_file }}
           DIFF_TRUNCATED: ${{ steps.prepare.outputs.diff_truncated }}
           VALID: ${{ steps.validate.outputs.valid }}
+          STATE_READ_FAILED: ${{ steps.prepare.outputs.state_read_failed }}
         run: |
           {
             echo "### AI Review"
@@ -222,4 +231,5 @@ jobs:
             echo "- diff file: \`${DIFF_FILE:-none}\`"
             echo "- diff truncated: \`${DIFF_TRUNCATED:-false}\`"
             echo "- review output valid: \`${VALID:-unknown}\`"
+            echo "- state read failed: \`${STATE_READ_FAILED:-unknown}\`"
           } >> "$GITHUB_STEP_SUMMARY"

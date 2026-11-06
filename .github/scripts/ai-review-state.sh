@@ -65,7 +65,8 @@ write_output() {
 
 prepare() {
   local head_sha base_sha last_sha
-  local state_output state_status state_line state_comment_id state_body payload
+  local state_output state_status state_line state_comment_id state_body payload raw_last_sha
+  local state_read_failed attempt
   local mode base_for_review diff_file diff_output_path diff_truncated
   local repo_root exclude_file status max_bytes tmp
 
@@ -90,13 +91,25 @@ prepare() {
     git config "branch.${HEAD_REF}.merge" "refs/heads/${HEAD_REF}" >/dev/null 2>&1 || true
   fi
 
+  state_read_failed='false'
   state_output=''
-  state_status=0
-  state_output="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-    --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- ai-review-state:")) | [.id, .updated_at, .body] | @tsv' \
-    2>/dev/null)" || state_status=$?
+  state_status=1
+  attempt=1
+  while [ "$attempt" -le 2 ]; do
+    state_status=0
+    state_output="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+      --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- ai-review-state:")) | [.id, .updated_at, .body] | @tsv')" || state_status=$?
+    if [ "$state_status" -eq 0 ]; then
+      break
+    fi
+    if [ "$attempt" -lt 2 ]; then
+      sleep 2
+    fi
+    attempt=$((attempt + 1))
+  done
   if [ "$state_status" -ne 0 ]; then
-    warn "状態コメントを取得できませんでした。full レビューにフォールバックします。"
+    echo "::error::状態コメントを取得できませんでした。full レビューにフォールバックし、状態保存は行いません。"
+    state_read_failed='true'
     state_output=''
   fi
   state_line="$(printf '%s\n' "$state_output" | sort -t $'\t' -k2,2 | tail -n 1)"
@@ -113,8 +126,20 @@ prepare() {
         state_comment_id=''
         ;;
     esac
+    if [ -z "$state_comment_id" ] || [ -z "$last_sha" ]; then
+      echo "::error::状態コメントの内容を解析できませんでした。full レビューにフォールバックし、状態保存は行いません。"
+      state_read_failed='true'
+    fi
   fi
+  raw_last_sha="$last_sha"
   last_sha="$(normalize_sha "$last_sha")"
+  if [ -n "$raw_last_sha" ] && [ -z "$last_sha" ]; then
+    echo "::error::状態コメントのSHAが不正です。full レビューにフォールバックし、状態保存は行いません。"
+    state_read_failed='true'
+  fi
+  if [ "$state_read_failed" = 'true' ]; then
+    last_sha=''
+  fi
 
   mode='full'
   base_for_review="$base_sha"
@@ -203,6 +228,7 @@ prepare() {
   write_output base_sha "$base_for_review"
   write_output head_sha "$head_sha"
   write_output state_comment_id "$state_comment_id"
+  write_output state_read_failed "$state_read_failed"
   write_output diff_file "$diff_output_path"
   write_output diff_truncated "$diff_truncated"
 }
@@ -244,13 +270,13 @@ AIレビューの状態管理用コメントです（自動更新）。最終レ
 
   if [ -n "$comment_id" ]; then
     if ! printf '%s\n' "$json_payload" | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" --input - >/dev/null; then
-      warn "状態コメントの更新に失敗しました。次回のレビューに任せます。"
+      die "状態コメントの更新に失敗しました。Actions の Workflow permissions（issues: write / pull-requests: write）を確認してください。"
     fi
     return 0
   fi
 
   if ! printf '%s\n' "$json_payload" | gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --input - >/dev/null; then
-    warn "状態コメントの作成に失敗しました。次回は full レビューになります。"
+    die "状態コメントの作成に失敗しました。Actions の Workflow permissions（issues: write / pull-requests: write）を確認してください。"
   fi
 }
 
