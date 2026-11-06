@@ -32,7 +32,7 @@ jobs:
     # botユーザーはcollaborator権限として解決されず（permission: none）、実行が失敗するため。
     if: "github.event.pull_request.head.repo.full_name == github.repository && !endsWith(github.actor, '[bot]')"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     # 状態コメントの読み取り・作成・更新に `issues: write` を使う。
     # AIレビューコメントは OpenCode GitHub App のインストールトークンで投稿されるため、
@@ -120,6 +120,7 @@ jobs:
 
       - name: Run OpenCode review
         if: "success() && steps.prepare.outputs.mode != 'skip' && steps.prepare.outputs.mode != ''"
+        timeout-minutes: 25
         uses: anomalyco/opencode/github@a105350812f05f914c768e468559dbd6bd508d8e
         env:
           # AIプロバイダ変更時はここを差し替え（例: ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY）。
