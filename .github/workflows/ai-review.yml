@@ -99,8 +99,9 @@ jobs:
             else
               echo ""
               echo "## 今回のレビュー範囲"
-              echo "今回のレビュー範囲: PR全体（base \`$BASE_SHA\` ... head \`$HEAD_SHA\`）"
-              echo "レビュー本文の先頭に、この範囲を1行で記載してください。"
+              echo "レビュー本文の先頭に次の2行を記載してください。"
+              echo "1行目: 今回のレビュー範囲: PR全体（base \`$BASE_SHA\` ... head \`$HEAD_SHA\`）"
+              echo "2行目: 判定: 指摘あり または 判定: 指摘なし"
               echo "ファイルは変更しないでください（読み取りのみ）。"
               echo "サブエージェント（task）は使用しないでください。"
               echo "変更ファイルは Action がプロンプトに含めています。git diff で全体差分を取り直す必要はありません。"
@@ -149,40 +150,35 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          MODE: ${{ steps.prepare.outputs.mode }}
         run: |
-          valid='true'
-
-          if [ "$MODE" = "incremental" ]; then
-            valid='false'
-            comments="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-              --jq '.[] | select(.user.login == "opencode-agent[bot]") | [.id, .body] | @tsv' \
-              2>/dev/null)" || {
-                echo "::error::AIレビューコメントの取得に失敗しました。"
-                exit 1
-              }
-            latest="$(printf '%s\n' "$comments" | tail -n 1)"
-            comment_id=''
-            body=''
-            if [ -n "$latest" ]; then
-              IFS=$'\t' read -r comment_id body <<< "$latest"
-              if printf '%s\n' "$body" | grep -Eq '判定[:：][[:space:]]*(\*\*)?[[:space:]]*(指摘あり|指摘なし)'; then
-                valid='true'
-              fi
+          valid='false'
+          comments="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.user.login == "opencode-agent[bot]") | [.id, .body] | @tsv' \
+            2>/dev/null)" || {
+              echo "::error::AIレビューコメントの取得に失敗しました。"
+              exit 1
+            }
+          latest="$(printf '%s\n' "$comments" | tail -n 1)"
+          comment_id=''
+          body=''
+          if [ -n "$latest" ]; then
+            IFS=$'\t' read -r comment_id body <<< "$latest"
+            if printf '%s\n' "$body" | grep -Eq '判定[:：][[:space:]]*(\*\*)?[[:space:]]*(指摘あり|指摘なし)'; then
+              valid='true'
             fi
+          fi
 
-            if [ "$valid" != 'true' ]; then
-              warning="$(printf '%s\n%s\n%s' \
-                'AIレビューの判定を取得できませんでした。' \
-                'レビュー出力に `判定: 指摘あり` / `判定: 指摘なし` が含まれていないため、状態を更新していません。' \
-                '再実行してください。')"
-              if [ -n "$comment_id" ]; then
-                if ! jq -cn --arg body "$warning" '{body:$body}' | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" --input - >/dev/null; then
-                  jq -cn --arg body "$warning" '{body:$body}' | gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --input - >/dev/null || true
-                fi
-              else
+          if [ "$valid" != 'true' ]; then
+            warning="$(printf '%s\n%s\n%s' \
+              'AIレビューの判定を取得できませんでした。' \
+              'レビュー出力に `判定: 指摘あり` / `判定: 指摘なし` が含まれていないため、状態を更新していません。' \
+              '再実行してください。')"
+            if [ -n "$comment_id" ]; then
+              if ! jq -cn --arg body "$warning" '{body:$body}' | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" --input - >/dev/null; then
                 jq -cn --arg body "$warning" '{body:$body}' | gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --input - >/dev/null || true
               fi
+            else
+              jq -cn --arg body "$warning" '{body:$body}' | gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --input - >/dev/null || true
             fi
           fi
 
