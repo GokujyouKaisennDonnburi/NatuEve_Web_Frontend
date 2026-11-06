@@ -14,11 +14,15 @@ import type {
   NotifyEventParticipantsResponse,
   ProfileEventListResponse,
   ProfileEventType,
+  SitemapEventsResponse,
 } from "@/types/event";
 
 // SSR 時に API が応答しないままページ描画がブロックされ続けないよう、
 // signal 未指定時のイベント詳細取得にはタイムアウトを設ける。
 const EVENT_DETAIL_TIMEOUT_MS = 10_000;
+
+// sitemap 生成時に API が応答しないままリクエストがブロックされ続けないためのタイムアウト。
+const SITEMAP_EVENTS_TIMEOUT_MS = 10_000;
 
 // イベント詳細取得 API（GET /api/v1/events/{id}）を呼ぶ（認証不要）。
 //
@@ -58,6 +62,24 @@ export async function getEventDetailOrNull(
     }
     throw error;
   }
+}
+
+// sitemap 用イベント一覧 API（GET /api/v1/sitemap/events）を呼ぶ（認証不要）。
+//
+// 429 / 5xx を含む失敗時は例外を送出する。部分的な sitemap を返さないため、握りつぶさない。
+export async function getSitemapEvents(): Promise<SitemapEventsResponse> {
+  const response = await apiFetch("/api/v1/sitemap/events", {
+    auth: false,
+    signal: AbortSignal.timeout(SITEMAP_EVENTS_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `sitemap 用イベント一覧の取得に失敗しました (Status: ${response.status})`,
+    );
+  }
+
+  return (await response.json()) as SitemapEventsResponse;
 }
 
 // URLSearchParams に変換するヘルパー。
