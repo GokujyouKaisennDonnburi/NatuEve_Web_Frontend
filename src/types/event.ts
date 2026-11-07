@@ -141,6 +141,16 @@ export type EventListRequest = {
   locations?: string[];
 };
 
+// sitemap 用イベント一覧 API（GET /api/v1/sitemap/events）のレスポンス要素。
+// updatedAt の降順で返る。
+export type SitemapEvent = {
+  id: string;
+  // 更新日時(RFC3339)。
+  updatedAt: string;
+};
+
+export type SitemapEventsResponse = SitemapEvent[];
+
 // イベント詳細取得 API のレスポンス DTO。
 export type EventDetailResponse = {
   capacity: number;

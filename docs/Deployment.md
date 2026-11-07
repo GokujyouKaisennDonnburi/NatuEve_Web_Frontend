@@ -565,6 +565,14 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - 参加人数など変わりやすい値はクライアント側でも再取得する。
 - OGP タグは未対応。追加する場合は、認証なしで呼べる API が返す項目だけを使う。
 
+## sitemap.xml
+
+- `src/app/sitemap.ts` は `dynamic = "force-dynamic"` で、リクエストごとに `GET /api/v1/sitemap/events` を呼ぶ。
+- `revalidate` は使わない。使うとビルド時にプリレンダリングされ、`NEXT_PUBLIC_API_BASE_URL` が空の PR の CI では `resolveUrl` が例外を投げてビルドが失敗する。OpenNext は現状 dummy incremental cache のためキャッシュも効かない。
+- API が失敗（429 / 5xx 等）した場合は例外を投げて `/sitemap.xml` を 500 にする。静的ページだけの部分的な sitemap は返さない。
+- API にはレート制限があり（同一 IP 平均 1 回/分・バースト 5 回、NatuEve_API ADR-0043）、短時間に連続して取得すると 500 になりうる。
+- 1 ファイルの上限は 50,000 URL。静的ページとの合計がこれを超えないよう、API が返す更新日時の降順の先頭から残し、古いイベントを切り詰める。超えるようになったら `generateSitemaps` で分割する。API も応答の上限が 50,000 件でページングがないため、分割には API 側の変更も要る。
+
 ## 月額の試算
 
 2026-10 時点の試算。
