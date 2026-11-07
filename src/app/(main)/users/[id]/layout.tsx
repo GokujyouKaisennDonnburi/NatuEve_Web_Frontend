@@ -10,6 +10,8 @@ export async function generateMetadata({
   const { id } = await params;
   return {
     title: PAGE_TITLES.USER_PROFILE,
+    // 個人のページのため検索に載せない。主催者名はイベント詳細ページの本文から検索される。
+    robots: { index: false },
     ...canonicalMetadata(`${ROUTES.USERS}/${encodeURIComponent(id)}`),
   };
 }

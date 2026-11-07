@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: PAGE_TITLES.MYPAGE,
+  robots: { index: false },
 };
 
 export default function MyPageLayout({

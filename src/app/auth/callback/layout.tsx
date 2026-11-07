@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: PAGE_TITLES.AUTH_CALLBACK,
+  robots: { index: false },
 };
 
 export default function AuthCallbackLayout({
