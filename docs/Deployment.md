@@ -564,7 +564,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - キャッシュは `revalidate = 60`。動的ルートを ISR 対象にするため、`generateStaticParams` は空配列を返す（初回アクセス時に生成）。イベント詳細 API はイベントID単位で60秒の Data Cache（`unstable_cache`）に載せ、`generateMetadata` とページ本体で共有する。OpenNext は現状 dummy incremental cache のため、Cloudflare 上での実キャッシュ効果は限定的。
 - 参加人数など変わりやすい値はクライアント側でも再取得する。
 - OGP はイベント名・説明文の冒頭・先頭の画像を出力する（#380）。画像がなければ既定の OGP 画像を使う。認証なしで呼べる API が返す項目だけを使う。
-- 存在しないイベント ID ではイベント固有の OGP を出さず、サイト共通の OGP のまま 404 を返す。
+- 存在しないイベント ID ではイベント名・説明文・画像を出さず、サイト共通の説明文と既定の OGP 画像のまま 404 を返す。canonical と `og:url` は layout の値のまま（404 は検索に載らないため問題ない）。
 
 ## sitemap.xml
 
