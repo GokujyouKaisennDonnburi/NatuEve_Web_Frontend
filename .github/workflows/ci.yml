@@ -82,6 +82,7 @@ jobs:
           # next.config.ts の分岐を検証環境のビルドに揃える。
           NEXT_PUBLIC_USE_MSW: "false"
           USE_DEV_ASSETS: "true"
+          SITE_NOINDEX: "true"
           # 接続先の NEXT_PUBLIC_*（NEXT_PUBLIC_API_BASE_URL・NEXT_PUBLIC_SUPABASE_*）は空文字で明示する（リポジトリの Variables は使わない。docs/Deployment.md「環境変数」）。
           # `.env.production` は .gitignore の外（コミットされうる）ため、そこに接続先を書かれてもビルドに使えないようにする（#362 のレビュー）。
           # getSupabase() は遅延初期化のため、プリレンダリングで呼ばれない限りビルドに要らない。呼ばれるようになったら、値が空のためこのビルドが失敗して気づける。
@@ -165,6 +166,8 @@ jobs:
           NEXT_PUBLIC_USE_MSW: "false"
           # 検証環境は開発用の R2（assets-dev.natuportal.org）の画像を表示する（#353）。
           USE_DEV_ASSETS: "true"
+          # 検証環境は検索に載せない（#372）。
+          SITE_NOINDEX: "true"
 
       # 実行の待機中に main が進んでいたら、古いコミットで上書きしないよう止める（ADR-0003 決定 3）。
       - name: Check this run is the latest main
@@ -259,6 +262,8 @@ jobs:
           # USE_DEV_ASSETS は立てない（本番の許可リストに開発用の R2 を入れない。#353）。
           # .env.production は .gitignore の外（コミットされうる）ため、未設定に頼らず "false" と明示する（#362 のレビュー）。
           USE_DEV_ASSETS: "false"
+          # 本番を検索から消さないよう、未設定に頼らず "false" と明示する（#372）。
+          SITE_NOINDEX: "false"
 
       # 承認待ちの間に main が進んでいたら、古いコミットで本番を巻き戻さないよう止める（ADR-0003 決定 3）。
       - name: Check this run is the latest main
