@@ -106,6 +106,7 @@ describe("検証環境の X-Robots-Tag", () => {
   it.each([
     ["未設定", undefined],
     ["false", "false"],
+    ["TRUE", "TRUE"],
     ["空文字", ""],
   ])("SITE_NOINDEX が%sのときは付けない", async (_, value) => {
     await expect(loadHeaders(value)).resolves.toEqual([]);
