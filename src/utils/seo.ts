@@ -37,7 +37,7 @@ export function buildEventMetadata(
   >,
 ): Metadata {
   const description = buildEventDescription(event.description);
-  const { openGraph } = canonicalMetadata(
+  const { alternates, openGraph } = canonicalMetadata(
     `/event/${encodeURIComponent(event.id)}`,
   );
   const descriptionMetadata = description ? { description } : {};
@@ -46,12 +46,16 @@ export function buildEventMetadata(
   return {
     title: event.title,
     ...descriptionMetadata,
+    // 非正規の URL で開かれても、canonical と og:url を API の ID にそろえる。
+    alternates,
     openGraph: {
       ...openGraph,
       title: event.title,
       ...descriptionMetadata,
       // 画像がないイベントは openGraph の既定の OGP 画像のままにする。
-      ...(firstImageUrl ? { images: [firstImageUrl] } : {}),
+      ...(firstImageUrl
+        ? { images: [{ url: firstImageUrl, alt: event.title }] }
+        : {}),
     },
   };
 }

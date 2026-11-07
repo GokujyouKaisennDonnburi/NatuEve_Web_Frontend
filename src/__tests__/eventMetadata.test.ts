@@ -72,7 +72,10 @@ describe("buildEventMetadata の OGP", () => {
     expect(openGraph?.title).toBe("森と水の生き物観察ハイク");
     expect(openGraph?.description).toBe("自然観察を 楽しみましょう。");
     expect(openGraph?.images).toEqual([
-      "https://assets.natuportal.org/natueve/events/images/first.jpg",
+      {
+        url: "https://assets.natuportal.org/natueve/events/images/first.jpg",
+        alt: "森と水の生き物観察ハイク",
+      },
     ]);
   });
 
@@ -88,6 +91,16 @@ describe("buildEventMetadata の OGP", () => {
     });
   });
 
+  it("canonical と og:url を API の ID にそろえる", () => {
+    const { alternates, openGraph } = buildEventMetadata({
+      ...baseEvent,
+      id: "a/b",
+    });
+
+    expect(alternates?.canonical).toBe("/event/a%2Fb");
+    expect(openGraph?.url).toBe(alternates?.canonical);
+  });
+
   it("画像がない場合は既定の OGP 画像を出力する", () => {
     const { openGraph } = buildEventMetadata(baseEvent);
 
@@ -96,6 +109,7 @@ describe("buildEventMetadata の OGP", () => {
     ]);
   });
 
+  // 型上は必須だが、API の契約が崩れてもページ全体を 500 にしない。
   it("API が imageUrls を返さない場合も既定の OGP 画像を出力する", () => {
     const { openGraph } = buildEventMetadata({
       ...baseEvent,
@@ -107,13 +121,19 @@ describe("buildEventMetadata の OGP", () => {
     ]);
   });
 
-  it("説明文が空の場合は og:description を設定しない", () => {
+  // HTML では Next.js がサイト共通の説明文で補う。
+  it("説明文が空の場合は戻り値に og:description を含めない", () => {
     const { openGraph } = buildEventMetadata({
       ...baseEvent,
       description: "   ",
     });
 
     expect(openGraph).not.toHaveProperty("description");
+  });
+
+  // 公開ページのため、layout の設定を上書きして noindex にしない（#372）。
+  it("robots を設定しない", () => {
+    expect(buildEventMetadata(baseEvent)).not.toHaveProperty("robots");
   });
 });
 
