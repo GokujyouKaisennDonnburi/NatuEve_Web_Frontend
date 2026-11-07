@@ -154,7 +154,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
 
       # トークンを渡さずにビルドする（ビルドは依存パッケージのコードも動かすため。ADR-0003 決定 3）。
-      # NEXT_PUBLIC_* と USE_DEV_ASSETS はビルド時に埋め込まれる・反映される。
+      # NEXT_PUBLIC_*・USE_DEV_ASSETS・SITE_NOINDEX はビルド時に埋め込まれる・反映される。
       - name: Build (OpenNext)
         # bunx は手元にないパッケージを npm から取って動かすため、node_modules の bin を直接呼ぶ。
         run: ./node_modules/.bin/opennextjs-cloudflare build --env staging

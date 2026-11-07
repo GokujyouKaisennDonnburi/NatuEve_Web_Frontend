@@ -84,7 +84,8 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // metadata ではなくレスポンスヘッダーで付け、HTML 以外や 404 も含めて登録対象から外す。
+  // metadata の設定に左右されないよう、レスポンスヘッダーで付ける。
+  // Workers では静的アセットと /_next/image は headers() を通らないため付かない。
   // robots.txt の Disallow にはしない（クロールされないと noindex が読まれないため）。
   async headers() {
     if (!isSiteNoindex) {

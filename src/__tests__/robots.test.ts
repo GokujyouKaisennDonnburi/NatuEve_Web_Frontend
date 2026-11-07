@@ -94,7 +94,7 @@ describe("検証環境の X-Robots-Tag", () => {
     }
   });
 
-  it("SITE_NOINDEX=true のとき全パスに noindex を付ける", async () => {
+  it("SITE_NOINDEX=true のとき全ページに noindex を付ける", async () => {
     await expect(loadHeaders("true")).resolves.toEqual([
       {
         source: "/:path*",
