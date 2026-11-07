@@ -241,8 +241,10 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 |---|---|---|---|
 | `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。ワークフローの `env:` に `"false"` を固定する（#330） |
 | `USE_DEV_ASSETS` | 未設定（または `false`） | `true` | `true` のときだけ、`next.config.ts` の `remotePatterns` にローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）を、本番と同じ `pathname`・`search`・`port` の制限付きで加える（#353・#351）。未設定・`false` では許可しない。ジョブごとにワークフローの `env:` に固定する（検証ジョブは `true`、本番ジョブは立てない。#330）。本番のビルドで立てると、本番の画像最適化が開発用バケットの画像も変換するようになる |
+| `SITE_NOINDEX` | `false` | `true` | `true` のときだけ、`next.config.ts` の `headers()` で全パスに `X-Robots-Tag: noindex` を付ける（#372）。未設定・`false` では付けない。本番を検索から消さないよう、本番ジョブでも `"false"` と明示する |
 
 - 値を変えたら再ビルドが必要。`USE_DEV_ASSETS` は `next.config.ts` の `images.remotePatterns` へビルド時に反映され、実行時には変えられない。
+- `SITE_NOINDEX` も `next.config.ts` の `headers()` へビルド時に反映され、実行時には変えられない。
 - ローカル開発は従来どおり `.env.local` を使う。Workers のランタイムで確認する場合は `.dev.vars`（`NEXTJS_ENV=development`）を使う。
   どちらもコミットしない。
   - ローカル開発・`bun run preview` では、`.env.local` に `USE_DEV_ASSETS=true` を設定する（`.env.example` の既定）。
@@ -572,6 +574,14 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - API が失敗（429 / 5xx 等）した場合は例外を投げて `/sitemap.xml` を 500 にする。静的ページだけの部分的な sitemap は返さない。
 - API にはレート制限があり（同一 IP 平均 1 回/分・バースト 5 回、NatuEve_API ADR-0043）、短時間に連続して取得すると 500 になりうる。
 - 1 ファイルの上限は 50,000 URL。静的ページとの合計がこれを超えないよう、API が返す更新日時の降順の先頭から残し、古いイベントを切り詰める。超えるようになったら `generateSitemaps` で分割する。API も応答の上限が 50,000 件でページングがないため、分割には API 側の変更も要る。
+
+## robots.txt / noindex
+
+- `src/app/robots.ts` は全環境で同じ内容（全体を許可し、本番の `sitemap.xml` を記載）。
+- 検索に載せないページは `Disallow` にせず、`noindex` で制御する。`Disallow` するとクロールされず、`noindex` が読まれなくなる。
+- ログインが要るページなどは、各 `layout.tsx` の `metadata` に `robots: { index: false }` を設定する（`/mypage`、`/event-post`、`/report-post`、`/signin`、`/auth/callback`、`/coming-soon`、`/users/[id]`）。
+- `/users/[id]` は個人のページのため検索に載せない。主催者名はイベント詳細ページの本文に出るため、そちらが検索対象になる。
+- 検証環境は `SITE_NOINDEX=true` でビルドし、全パスに `X-Robots-Tag: noindex` を付ける。metadata ではなくヘッダーにするのは、HTML 以外や 404 にも効かせるため。
 
 ## 月額の試算
 
