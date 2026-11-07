@@ -1,4 +1,5 @@
 import type { EventDetailResponse } from "@/types/event";
+import { canonicalMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
 
 const DESCRIPTION_MAX_LENGTH = 120;
@@ -26,14 +27,37 @@ export function buildEventDescription(description: string): string | undefined {
     : normalized;
 }
 
-// イベントごとの title / description を組み立てる。
-export function buildEventMetadata(
-  event: Pick<EventDetailResponse, "title" | "description">,
-): Metadata {
+// API の契約が崩れてもページ全体を 500 にしないよう、imageUrls は省略可能として受ける。
+type EventMetadataSource = Pick<
+  EventDetailResponse,
+  "id" | "title" | "description"
+> &
+  Partial<Pick<EventDetailResponse, "imageUrls">>;
+
+// イベントごとの title / description と OGP を組み立てる。
+// 子の openGraph は親を置き換えるため、canonicalMetadata のサイト共通の値と og:url も含める。
+// X カードの title・description・画像は openGraph から引き継がれる。
+export function buildEventMetadata(event: EventMetadataSource): Metadata {
   const description = buildEventDescription(event.description);
+  const { alternates, openGraph } = canonicalMetadata(
+    `/event/${encodeURIComponent(event.id)}`,
+  );
+  const descriptionMetadata = description ? { description } : {};
+  const firstImageUrl = event.imageUrls?.[0];
 
   return {
     title: event.title,
-    ...(description ? { description } : {}),
+    ...descriptionMetadata,
+    // 非正規の URL で開かれても、canonical と og:url を API の ID にそろえる。
+    alternates,
+    openGraph: {
+      ...openGraph,
+      title: event.title,
+      ...descriptionMetadata,
+      // 画像がないイベントは openGraph の既定の OGP 画像のままにする。
+      ...(firstImageUrl
+        ? { images: [{ url: firstImageUrl, alt: event.title }] }
+        : {}),
+    },
   };
 }
