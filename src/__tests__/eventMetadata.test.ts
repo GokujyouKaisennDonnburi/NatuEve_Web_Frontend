@@ -109,11 +109,11 @@ describe("buildEventMetadata の OGP", () => {
     ]);
   });
 
-  // 型上は必須だが、API の契約が崩れてもページ全体を 500 にしない。
+  // API の契約が崩れてもページ全体を 500 にしない。
   it("API が imageUrls を返さない場合も既定の OGP 画像を出力する", () => {
     const { openGraph } = buildEventMetadata({
       ...baseEvent,
-      imageUrls: undefined as unknown as string[],
+      imageUrls: undefined,
     });
 
     expect(openGraph?.images).toEqual([
