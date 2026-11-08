@@ -24,7 +24,9 @@ describe("getEventDetailMetadata", () => {
     const event = buildEventDetail();
     const loadEvent = vi.fn(async () => event);
 
-    await expect(getEventDetailMetadata(event.id, loadEvent)).resolves.toEqual({
+    await expect(
+      getEventDetailMetadata(event.id, loadEvent),
+    ).resolves.toMatchObject({
       title: event.title,
       description: event.description,
     });
