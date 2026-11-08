@@ -57,6 +57,10 @@ const isMswEnabled = process.env.NEXT_PUBLIC_USE_MSW === "true";
 // `true` 以外（未設定・`false` を含む）では含めない（安全側のデフォルト）。
 const isDevAssetsEnabled = process.env.USE_DEV_ASSETS === "true";
 
+// 検証環境のビルドでのみ、全ページを検索エンジンの登録対象から外す（#372）。
+// `true` 以外（未設定・`false` を含む）では付けない（本番が検索から消えるのを防ぐ）。
+const isSiteNoindex = process.env.SITE_NOINDEX === "true";
+
 // Next.jsの設定ファイル
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -76,6 +80,22 @@ const nextConfig: NextConfig = {
       {
         source: "/api/:path*",
         destination: "http://localhost:8085/api/:path*",
+      },
+    ];
+  },
+
+  // metadata の設定に左右されないよう、レスポンスヘッダーで付ける。
+  // Workers では静的アセットと /_next/image は headers() を通らないため付かない。
+  // robots.txt の Disallow にはしない（クロールされないと noindex が読まれないため）。
+  async headers() {
+    if (!isSiteNoindex) {
+      return [];
+    }
+
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
       },
     ];
   },
