@@ -1,6 +1,9 @@
 export const APP_NAME = "なちゅいべ";
-export const APP_DESCRIPTION =
-  "なちゅいべは、生き物観察会や自然観察、生態系の保全活動など、自然や生物に関わるイベントを「探したい人」と「開催したい人」をつなぐイベントサイトです。";
+// 検索されやすい語を含めた説明文の共通部分（#398）。APP_DESCRIPTION とイベント一覧の description で共有する。
+export const EVENT_SEARCH_DESCRIPTION =
+  "生き物観察会や自然観察、生態系の保全活動など、自然や生物に関わるイベント";
+
+export const APP_DESCRIPTION = `なちゅいべは、${EVENT_SEARCH_DESCRIPTION}を「探したい人」と「開催したい人」をつなぐイベントサイトです。`;
 
 // サイトの公開 URL。metadataBase に使う。
 // 検証環境でも本番の URL を出す（canonical を本番に寄せるため）。
