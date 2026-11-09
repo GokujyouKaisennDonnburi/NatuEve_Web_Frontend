@@ -3,7 +3,8 @@ import { APP_NAME } from "@/constants/config";
 // Next.js の metadata.title 専用。変更理由が異なる画面内の文言とは混用しない。
 export const PAGE_TITLES = {
   // イベント関連
-  EVENT_LIST: "イベントを探す",
+  // トップページを兼ねるため、検索されやすい語を含める（#398）。
+  EVENT_LIST: "生き物・自然・生態系のイベントを探す",
   EVENT_DETAIL: "イベント詳細",
   EVENT_DETAIL_NOT_FOUND: "イベントが見つかりません",
   EVENT_DETAIL_ERROR: "イベントを読み込めませんでした",
