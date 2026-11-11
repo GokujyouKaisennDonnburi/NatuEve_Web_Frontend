@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthContext } from "@/components/layouts/AuthProvider";
+import { MAX_PARTICIPATION_PARTY_SIZE } from "@/constants/config";
 import { MOCK_AUTH_SESSION, isMockAuthEnabled } from "@/services/mockAuth";
 import { participateEvent } from "@/services/participate";
 import type { EventDetailCost } from "@/types/event";
@@ -68,6 +69,12 @@ const notifyParticipateError = (error: unknown) => {
     switch (error.code) {
       case ParticipateErrorCode.AlreadyJoined:
         toast.error(error.message || "既に参加しています。");
+        return;
+      case ParticipateErrorCode.PartySizeExceeded:
+        toast.error(
+          error.message ||
+            `一度に申し込める人数は${MAX_PARTICIPATION_PARTY_SIZE}人までです。`,
+        );
         return;
       case ParticipateErrorCode.CapacityFull:
         toast.error(error.message || "定員に達しています。");
