@@ -7,6 +7,7 @@ import { DirectInputHint } from "@/components/atoms/participation/DirectInputHin
 import { PaymentAlertNote } from "@/components/atoms/event-post/PaymentAlertNote";
 import { ParticipantCounterRow } from "@/components/molecules/participation/ParticipantCounterRow";
 import { ParticipationCostSummary } from "@/components/molecules/participation/ParticipationCostSummary";
+import { MAX_PARTICIPATION_PARTY_SIZE } from "@/constants/config";
 import type { EventDetailCost } from "@/types/event";
 import type {
   ParticipantCounts,
@@ -62,6 +63,13 @@ export function ParticipationCountStep({
     <div className="space-y-5">
       {maxCount !== null ? (
         <CapacityBar selectedCount={summary.totalCount} capacity={maxCount} />
+      ) : null}
+
+      {/* 1回の申し込み上限は API 側で判定する。ここでは送信前に上限を知らせるだけに留める */}
+      {maxCount === null || maxCount > MAX_PARTICIPATION_PARTY_SIZE ? (
+        <FieldNote>
+          一度に申し込めるのは{MAX_PARTICIPATION_PARTY_SIZE}人までです
+        </FieldNote>
       ) : null}
 
       <div className="space-y-3">
