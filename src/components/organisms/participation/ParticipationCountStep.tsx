@@ -65,7 +65,8 @@ export function ParticipationCountStep({
         <CapacityBar selectedCount={summary.totalCount} capacity={maxCount} />
       ) : null}
 
-      {/* 1回の申し込み上限は API 側で判定する。ここでは送信前に上限を知らせるだけに留める */}
+      {/* 1回の申し込み上限は API 側で判定する。ここでは送信前に上限を知らせるだけに留める。
+          残り枠が上限以下のときは CapacityBar が実効上限を示すため、この案内は重複させない */}
       {maxCount === null || maxCount > MAX_PARTICIPATION_PARTY_SIZE ? (
         <FieldNote>
           一度に申し込めるのは{MAX_PARTICIPATION_PARTY_SIZE}人までです
