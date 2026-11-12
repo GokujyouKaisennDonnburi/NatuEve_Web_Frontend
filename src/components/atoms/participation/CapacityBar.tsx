@@ -2,7 +2,7 @@
 type CapacityBarProps = {
   // 現在選択中の合計人数
   selectedCount: number;
-  // 申し込める上限人数（残り枠）
+  // 申し込める上限人数（残り枠と1回あたり上限の小さい方）
   capacity: number;
 };
 
