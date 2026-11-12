@@ -1,4 +1,5 @@
 import type { UploadKind } from "@/types/upload";
+import { MAX_IMAGE_PIXELS, readImagePixelSize } from "@/utils/imageSize";
 
 // 画像の最大サイズ（10MB）。クライアント検証は UX 補助で、最終判断はサーバー側。
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -42,11 +43,25 @@ export const resolveContentType = (file: File): string => {
   return EXTENSION_CONTENT_TYPES[getExtension(file.name)] ?? "";
 };
 
-// 1 ファイルの拡張子・Content-Type・サイズを検証する。問題なければ null。
-export const validateUploadFile = (
+// 画像の縦横ピクセル数が上限を超えていないか検証する。問題なければ null。
+// ヘッダ解析だけで判定するため、画像全体をデコード（読み込み）する前に確かめられる。
+const validateImagePixelSize = async (file: File): Promise<string | null> => {
+  const size = await readImagePixelSize(file);
+  if (!size) {
+    return null;
+  }
+  if (size.width > MAX_IMAGE_PIXELS || size.height > MAX_IMAGE_PIXELS) {
+    return `${file.name} は画像が大きすぎます。縦横${MAX_IMAGE_PIXELS}px 以下の画像を選択してください。`;
+  }
+  return null;
+};
+
+// 1 ファイルの拡張子・Content-Type・サイズ・（画像なら）縦横ピクセル数を検証する。
+// 寸法判定はファイルを読み込むため非同期。問題なければ null。
+export const validateUploadFile = async (
   file: File,
   kind: UploadKind,
-): string | null => {
+): Promise<string | null> => {
   const contentType = resolveContentType(file);
 
   if (!contentType) {
@@ -67,15 +82,22 @@ export const validateUploadFile = (
     return `${file.name} はサイズが上限（${maxMb}MB）を超えています。`;
   }
 
+  if (kind === "image") {
+    const pixelError = await validateImagePixelSize(file);
+    if (pixelError) {
+      return pixelError;
+    }
+  }
+
   return null;
 };
 
 // 複数ファイルをまとめて検証し、最初に見つかったエラーメッセージを返す（無ければ null）。
-export const findUploadValidationError = (
+export const findUploadValidationError = async (
   entries: ReadonlyArray<{ file: File; kind: UploadKind }>,
-): string | null => {
+): Promise<string | null> => {
   for (const { file, kind } of entries) {
-    const error = validateUploadFile(file, kind);
+    const error = await validateUploadFile(file, kind);
     if (error) {
       return error;
     }
