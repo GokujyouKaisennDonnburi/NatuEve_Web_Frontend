@@ -24,8 +24,9 @@ type FileDropZoneProps = {
   maxFiles?: number;
   disabled?: boolean;
   className?: string;
-  // 選択されたファイルを検証する。エラーメッセージを返すと、そのファイルは追加されない
-  validate?: (file: File) => string | null;
+  // 選択されたファイルを検証する。エラーメッセージを返すと、そのファイルは追加されない。
+  // 寸法チェックのようにファイルを読み込む検証に備えて Promise をも許す。
+  validate?: (file: File) => string | null | Promise<string | null>;
 };
 
 // プレビュー用の Blob URL は File 単位で作り直すと無駄なため、
@@ -53,6 +54,8 @@ export function FileDropZone({
   const isImage = accept.startsWith("image/");
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  // 非同期の検証中に次の選択を受け付けると、古い files を使った追加で競合するため抑止する
+  const [isValidating, setIsValidating] = useState(false);
   const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
   const entriesRef = useRef<FileEntry[]>([]);
   const errorId = useId();
@@ -99,55 +102,62 @@ export function FileDropZone({
   }, []);
 
   const canAddMore = files.length < maxFiles;
+  // 検証中も実質的な入力は受け付けない。disabled と同じ扱いにして見た目と挙動を揃える
+  const isBusy = disabled || isValidating;
 
   // 上限が複数のときは、あと何件入れられるかを常に見せて超過を起きにくくする
   const remainingHint =
     maxFiles > 1 ? `あと${maxFiles - files.length}つ追加できます` : null;
   const hintText = [hint, remainingHint].filter(Boolean).join("・");
 
-  const addFiles = (incoming: File[]) => {
-    if (disabled || incoming.length === 0) {
+  const addFiles = async (incoming: File[]) => {
+    if (disabled || isValidating || incoming.length === 0) {
       return;
     }
 
     // 選択された時点で検証し、通らないものはフォームへ渡さない。
     // 理由は領域の下に赤字で出し、最初の1件だけを表示する。
-    const accepted: File[] = [];
-    let message: string | null = null;
-    for (const file of incoming) {
-      const validationError = validate?.(file) ?? null;
-      if (validationError) {
-        message ??= validationError;
-        continue;
+    setIsValidating(true);
+    try {
+      const accepted: File[] = [];
+      let message: string | null = null;
+      for (const file of incoming) {
+        const validationError = validate ? await validate(file) : null;
+        if (validationError) {
+          message ??= validationError;
+          continue;
+        }
+        accepted.push(file);
       }
-      accepted.push(file);
+
+      // 1件しか持てない場合は「選び直し」として扱い、複数の場合は空き枠のぶんだけ追加する
+      const capacity = maxFiles === 1 ? 1 : maxFiles - files.length;
+      const added = accepted.slice(0, capacity);
+      const overflowed = accepted.slice(capacity);
+
+      // 入りきらなかったぶんは黙って落とさず、どれが入らなかったかを名前で伝える
+      if (!message && overflowed.length > 0) {
+        const limitText =
+          maxFiles === 1 ? "1つだけ選べます" : `最大${maxFiles}個までです`;
+        message = `${limitText}。${formatFileNames(overflowed)}は追加していません。`;
+      }
+
+      setRejectionMessage(message);
+
+      // 1件も追加できないときは親へ通知しない。maxFiles が 1 のときに
+      // 空配列を渡すと、選択済みの正しいファイルまで消えてしまうため。
+      if (added.length === 0) {
+        return;
+      }
+
+      onFilesChange(maxFiles === 1 ? added : [...files, ...added]);
+    } finally {
+      setIsValidating(false);
     }
-
-    // 1件しか持てない場合は「選び直し」として扱い、複数の場合は空き枠のぶんだけ追加する
-    const capacity = maxFiles === 1 ? 1 : maxFiles - files.length;
-    const added = accepted.slice(0, capacity);
-    const overflowed = accepted.slice(capacity);
-
-    // 入りきらなかったぶんは黙って落とさず、どれが入らなかったかを名前で伝える
-    if (!message && overflowed.length > 0) {
-      const limitText =
-        maxFiles === 1 ? "1つだけ選べます" : `最大${maxFiles}個までです`;
-      message = `${limitText}。${formatFileNames(overflowed)}は追加していません。`;
-    }
-
-    setRejectionMessage(message);
-
-    // 1件も追加できないときは親へ通知しない。maxFiles が 1 のときに
-    // 空配列を渡すと、選択済みの正しいファイルまで消えてしまうため。
-    if (added.length === 0) {
-      return;
-    }
-
-    onFilesChange(maxFiles === 1 ? added : [...files, ...added]);
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    addFiles(Array.from(event.target.files ?? []));
+    void addFiles(Array.from(event.target.files ?? []));
     // 同じファイルを選び直せるように入力値をリセットする
     event.target.value = "";
   };
@@ -155,7 +165,7 @@ export function FileDropZone({
   const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
     setIsDragging(false);
-    addFiles(Array.from(event.dataTransfer.files));
+    void addFiles(Array.from(event.dataTransfer.files));
   };
 
   const handleRemove = (targetId: string) => {
@@ -175,7 +185,7 @@ export function FileDropZone({
         type="file"
         accept={accept}
         multiple={maxFiles > 1}
-        disabled={disabled || !canAddMore}
+        disabled={isBusy || !canAddMore}
         onChange={handleInputChange}
         className="peer sr-only"
         aria-invalid={Boolean(rejectionMessage)}
@@ -187,7 +197,7 @@ export function FileDropZone({
           htmlFor={id}
           onDragOver={(event) => {
             event.preventDefault();
-            if (!disabled) {
+            if (!isBusy) {
               setIsDragging(true);
             }
           }}
@@ -196,10 +206,10 @@ export function FileDropZone({
           className={cn(
             "flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-4 py-8 text-center transition sm:px-6 sm:py-10",
             "peer-focus-visible:border-(--brand-green) peer-focus-visible:ring-2 peer-focus-visible:ring-(--brand-green)/40",
-            disabled
+            isBusy
               ? "cursor-not-allowed border-slate-200 bg-slate-50"
               : "cursor-pointer border-slate-300 bg-white hover:border-(--brand-green) hover:bg-(--brand-green-soft)",
-            isDragging && !disabled
+            isDragging && !isBusy
               ? "border-(--brand-green) bg-(--brand-green-soft)"
               : "",
           )}
@@ -251,7 +261,7 @@ export function FileDropZone({
               <DeleteIconButton
                 onClick={() => handleRemove(entry.id)}
                 label={`${entry.file.name} を削除`}
-                disabled={disabled}
+                disabled={isBusy}
               />
             </li>
           ))}
