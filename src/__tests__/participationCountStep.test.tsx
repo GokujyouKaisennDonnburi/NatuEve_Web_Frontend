@@ -34,7 +34,7 @@ function renderStep({
       effectiveMaxCount={effectiveMaxCount}
       isSubmitting={false}
       canSubmit
-      canIncrement={() => false}
+      canIncrement={() => true}
       canDecrement={() => true}
       canGoBack={false}
       onIncrement={vi.fn()}

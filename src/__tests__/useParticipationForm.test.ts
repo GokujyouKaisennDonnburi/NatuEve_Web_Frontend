@@ -34,6 +34,9 @@ describe("useParticipationForm の申し込み人数の上限", () => {
   it("残り枠が上限より多くても、合計10人で増加が止まる", () => {
     const { result } = renderForm({ capacity: 100 });
 
+    expect(result.current.maxCount).toBe(100);
+    expect(result.current.effectiveMaxCount).toBe(MAX_PARTICIPATION_PARTY_SIZE);
+
     act(() => {
       for (let i = 0; i < 20; i++) {
         result.current.increment(0);
@@ -52,6 +55,16 @@ describe("useParticipationForm の申し込み人数の上限", () => {
 
     act(() => {
       result.current.setCount(0, "11");
+    });
+
+    expect(result.current.counts[0]).toBe(MAX_PARTICIPATION_PARTY_SIZE);
+  });
+
+  it("全角数字で入力しても上限に切り詰める", () => {
+    const { result } = renderForm({ capacity: 100 });
+
+    act(() => {
+      result.current.setCount(0, "１１");
     });
 
     expect(result.current.counts[0]).toBe(MAX_PARTICIPATION_PARTY_SIZE);
