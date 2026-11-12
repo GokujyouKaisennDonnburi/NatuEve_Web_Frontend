@@ -24,10 +24,10 @@ type ParticipationCountStepProps = {
   costs: EventDetailCost[];
   counts: ParticipantCounts;
   summary: ParticipationSummary;
-  // 申し込める上限人数。null のときは上限なしとして人数バーを出さない。
+  // 申し込める上限人数（残り枠）。null のときは残り枠なしとして人数バーを出さない。
   maxCount: number | null;
-  // 上限まで選択済みかどうか。
-  isAtCapacity: boolean;
+  // 1回の申し込みで選べる人数の実効上限（残り枠と上限人数の小さい方）。
+  effectiveMaxCount: number;
   isSubmitting: boolean;
   canSubmit: boolean;
   canIncrement: () => boolean;
@@ -47,7 +47,7 @@ export function ParticipationCountStep({
   counts,
   summary,
   maxCount,
-  isAtCapacity,
+  effectiveMaxCount,
   isSubmitting,
   canSubmit,
   canIncrement,
@@ -59,16 +59,22 @@ export function ParticipationCountStep({
   onBack,
   onSubmit,
 }: Readonly<ParticipationCountStepProps>) {
+  // 10人の上限に達したか。残り枠が上限より小さい場合は CapacityBar 側で示す。
+  const isAtPartySizeLimit = summary.totalCount >= MAX_PARTICIPATION_PARTY_SIZE;
+
   return (
     <div className="space-y-5">
       {maxCount !== null ? (
-        <CapacityBar selectedCount={summary.totalCount} capacity={maxCount} />
+        <CapacityBar
+          selectedCount={summary.totalCount}
+          capacity={effectiveMaxCount}
+        />
       ) : null}
 
-      {/* 1回の申し込み上限は API 側で判定する。ここでは送信前に上限を知らせるだけに留める。
+      {/* 1回の申し込みで選べるのは10人まで。達したら赤字にして注意を促す。
           残り枠が上限以下のときは CapacityBar が実効上限を示すため、この案内は重複させない */}
       {maxCount === null || maxCount > MAX_PARTICIPATION_PARTY_SIZE ? (
-        <FieldNote>
+        <FieldNote tone={isAtPartySizeLimit ? "error" : "default"}>
           一度に申し込めるのは{MAX_PARTICIPATION_PARTY_SIZE}人までです
         </FieldNote>
       ) : null}
@@ -101,8 +107,9 @@ export function ParticipationCountStep({
           ))}
         </div>
 
-        {/* 人数は直上の CapacityBar が「◯/◯名」で示すため、文言では繰り返さない */}
-        {isAtCapacity ? (
+        {/* 人数は直上の CapacityBar が「◯/◯名」で示すため、文言では繰り返さない。
+            10人の上限到達は上部の案内が担うため、ここは残り枠を使い切った場合だけ出す */}
+        {maxCount !== null && summary.totalCount >= maxCount ? (
           <FieldNote tone="error">
             申し込みできる人数をすべて選択しています
           </FieldNote>

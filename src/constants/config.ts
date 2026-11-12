@@ -31,7 +31,7 @@ export const MAX_TEXT_LENGTH = 255;
 export const MAX_EVENT_PDF_COUNT = 3;
 
 // 1回の参加申し込みで入力できる合計人数の上限。
-// バックエンド(MSW)のサーバー側バリデーションと一致させる。
+// モーダルの入力制限・バックエンド(MSW)・API側のバリデーションで共通に使う。
 export const MAX_PARTICIPATION_PARTY_SIZE = 10;
 
 // 「期限間近」と判定する申込期限までの残り日数（判定は applicationDeadline 基準）。

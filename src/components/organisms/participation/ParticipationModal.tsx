@@ -56,7 +56,7 @@ export function ParticipationModal({
     counts,
     summary,
     maxCount,
-    isAtCapacity,
+    effectiveMaxCount,
     username,
     mailAddress,
     errors,
@@ -219,7 +219,7 @@ export function ParticipationModal({
                 counts={counts}
                 summary={summary}
                 maxCount={maxCount}
-                isAtCapacity={isAtCapacity}
+                effectiveMaxCount={effectiveMaxCount}
                 isSubmitting={isSubmitting}
                 canSubmit={canSubmit}
                 canIncrement={canIncrement}
