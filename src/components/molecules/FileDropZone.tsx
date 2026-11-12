@@ -189,6 +189,7 @@ export function FileDropZone({
         onChange={handleInputChange}
         className="peer sr-only"
         aria-invalid={Boolean(rejectionMessage)}
+        aria-busy={isValidating || undefined}
         aria-describedby={rejectionMessage ? errorId : undefined}
       />
 
@@ -222,6 +223,12 @@ export function FileDropZone({
           </span>
           {hintText ? (
             <span className="text-xs text-slate-400">{hintText}</span>
+          ) : null}
+          {isValidating ? (
+            // 検証中は入力が無反応になるため、壊れているのではなく確認中だと伝える
+            <span className="text-xs text-slate-400">
+              ファイルを確認しています...
+            </span>
           ) : null}
         </label>
       ) : (

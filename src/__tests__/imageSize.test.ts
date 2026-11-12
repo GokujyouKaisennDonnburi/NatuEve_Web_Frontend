@@ -50,4 +50,16 @@ describe("readImagePixelSize", () => {
     const file = new File([bytes], "short.png", { type: "image/png" });
     expect(await readImagePixelSize(file)).toBeNull();
   });
+
+  it("SOF が先頭 64KB 以内に無い JPEG は null を返す（サーバー側判定に委ねる）", async () => {
+    const payload = new Uint8Array(70 * 1024).fill(0x41); // 64KB 超の APP1 セグメント
+    const length = payload.length + 2;
+    const segments = new Uint8Array(6 + payload.length);
+    segments.set([0xff, 0xd8, 0xff, 0xe1], 0);
+    segments[4] = (length >> 8) & 0xff;
+    segments[5] = length & 0xff;
+    segments.set(payload, 6);
+    const file = new File([segments], "late-sof.jpg", { type: "image/jpeg" });
+    expect(await readImagePixelSize(file)).toBeNull();
+  });
 });

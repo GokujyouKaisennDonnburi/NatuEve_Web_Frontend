@@ -53,8 +53,8 @@ const readPngSize = (bytes: Uint8Array): ImagePixelSize | null => {
 // JPEG の SOF（フレームヘッダ）マーカーから寸法を読む。
 // 画像全体は復元せず、マーカーを順に辿るだけなのでデコードに比べて軽い。
 const readJpegSize = (bytes: Uint8Array): ImagePixelSize | null => {
-  // 寸法はセグメント長で辿れば分かるため、全体を一括で読む必要があるのは
-  // SOF がファイル後方に置かれる稀なケースのみ。サイズ上限（10MB）以内なら負担は小さい。
+  // 読み込むのは先頭 64KB のみ。SOF がそれ以降にある稀なケースは null となり、
+  // サーバー側判定に委ねる。末尾で切れても fail-open で動く。
   let offset = 2;
   while (offset + 4 <= bytes.length) {
     if (bytes[offset] !== 0xff) {
@@ -100,7 +100,9 @@ const readFileBytes = (file: File): Promise<Uint8Array | null> =>
     const reader = new FileReader();
     reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
     reader.onerror = () => resolve(null);
-    reader.readAsArrayBuffer(file);
+    // ヘッダ解析は先頭部分で足りる（PNG は 24 バイト、JPEG の SOF は通常数十 KB 以内）。
+    // SOF がそれ以降にある稀なケースは null となり、サーバー側判定に委ねる。
+    reader.readAsArrayBuffer(file.slice(0, 64 * 1024));
   });
 
 // 画像ファイルの縦横ピクセル数を、デコードせずヘッダ解析だけで読む。

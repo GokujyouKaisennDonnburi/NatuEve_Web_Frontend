@@ -182,13 +182,18 @@ function ReportPostPageContent() {
 
   // フォーム送信処理
   const handleSubmit = async () => {
-    if (!(await validateForm()) || !eventId) {
+    // 連打による重複投稿を防ぐ。validateForm が画像の寸法判定で時間を要する間も
+    // isSubmitting を立てておき、ボタンを disabled に保つ
+    if (isSubmitting) {
       return;
     }
-
     setIsSubmitting(true);
 
     try {
+      if (!(await validateForm()) || !eventId) {
+        return;
+      }
+
       const imageObjectKeys: string[] = [];
       const imageFilenames: string[] = [];
       const pdfObjectKeys: string[] = [];
