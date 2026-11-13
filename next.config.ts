@@ -57,6 +57,13 @@ const isMswEnabled = process.env.NEXT_PUBLIC_USE_MSW === "true";
 // `true` 以外（未設定・`false` を含む）では含めない（安全側のデフォルト）。
 const isDevAssetsEnabled = process.env.USE_DEV_ASSETS === "true";
 
+// 画像最適化で許可する取得元。CSP の img-src も同じ一覧から組み立て、両者がずれないようにする。
+const imageRemotePatterns: ImageRemotePattern[] = [
+  ...productionImageHosts,
+  ...(isDevAssetsEnabled ? developmentImageHosts : []),
+  ...(isMswEnabled ? mockImageHosts : []),
+];
+
 // 検証環境のビルドでのみ、全ページを検索エンジンの登録対象から外す（#372）。
 // `true` 以外（未設定・`false` を含む）では付けない（本番が検索から消えるのを防ぐ）。
 const isSiteNoindex = process.env.SITE_NOINDEX === "true";
@@ -78,11 +85,13 @@ const toOrigins = (name: string, value: string | undefined): string[] => {
   return [url.origin];
 };
 
-const toImageSources = (patterns: ImageRemotePattern[]): string[] => [
-  ...new Set(
-    patterns.map(({ protocol, hostname }) => `${protocol}://${hostname}`),
-  ),
-];
+// remotePatterns の取得元を CSP のホストソースにする。
+// protocol が未設定なら、CSP でもスキームを省く（ページと同じスキームだけに一致する）。
+// port は値があれば付け、"" と未設定では付けない（既定のポートだけに一致する）。未設定の remotePatterns は
+// どのポートも許すが、CSP では広げない。img-src が効くのは直接読み込む画像だけで、画像最適化は 'self' で通るため。
+// hostname のワイルドカード（** など）は CSP と書き方が違うため、使うときはここも直す。
+const toImageSource = ({ protocol, hostname, port }: ImageRemotePattern) =>
+  `${protocol ? `${protocol}://` : ""}${hostname}${port ? `:${port}` : ""}`;
 
 // 本番ビルドで付ける CSP（#335）。
 // Next.js はページにインラインスクリプトを埋め込むため script-src に 'unsafe-inline' が要る。
@@ -95,11 +104,8 @@ const buildContentSecurityPolicy = (): string => {
     "'self'",
     // アップロード前のプレビュー（URL.createObjectURL）。
     "blob:",
-    ...toImageSources([
-      ...productionImageHosts,
-      ...(isDevAssetsEnabled ? developmentImageHosts : []),
-      ...(isMswEnabled ? mockImageHosts : []),
-    ]),
+    // 本番用の events・reports のように、ホストが同じ取得元は 1 つにまとめる。
+    ...new Set(imageRemotePatterns.map(toImageSource)),
     // アバター（Supabase の user_metadata の Google のプロフィール画像。画像最適化を通さない）。
     "https://lh3.googleusercontent.com",
   ];
@@ -201,11 +207,7 @@ const nextConfig: NextConfig = {
 
   // 画像のリモートパターン設定
   images: {
-    remotePatterns: [
-      ...productionImageHosts,
-      ...(isDevAssetsEnabled ? developmentImageHosts : []),
-      ...(isMswEnabled ? mockImageHosts : []),
-    ],
+    remotePatterns: imageRemotePatterns,
   },
 };
 

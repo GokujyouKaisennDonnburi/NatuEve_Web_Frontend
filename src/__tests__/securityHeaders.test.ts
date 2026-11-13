@@ -191,6 +191,18 @@ describe("next.config.ts の CSP", () => {
     expect(csp["connect-src"]).toContain("https://mock.storage.test");
   });
 
+  // 画像最適化で許可した取得元を、直接読み込むときにも CSP が止めない。
+  it("img-src に remotePatterns のホストをすべて含める", async () => {
+    const csp = await loadCsp({ useMsw: "true", useDevAssets: "true" });
+    const { default: nextConfig } = await import("../../next.config");
+    const hosts = (nextConfig.images?.remotePatterns ?? []).map(
+      ({ protocol, hostname }) => `${protocol}://${hostname}`,
+    );
+
+    expect(hosts.length).toBeGreaterThan(0);
+    expect(csp["img-src"]).toEqual(expect.arrayContaining(hosts));
+  });
+
   it("フラグが true 以外なら開発用・モックの取得元を許可しない", async () => {
     const csp = await loadCsp({ useMsw: "TRUE", useDevAssets: "false" });
     const policy = Object.values(csp).flat();
