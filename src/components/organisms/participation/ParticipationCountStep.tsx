@@ -24,7 +24,7 @@ type ParticipationCountStepProps = {
   costs: EventDetailCost[];
   counts: ParticipantCounts;
   summary: ParticipationSummary;
-  // 申し込める上限人数（残り枠）。null のときは残り枠なしとして人数バーを出さない。
+  // 申し込める上限人数（残り枠）。null のとき、または capacity が未設定のときは人数バーを出さない。
   maxCount: number | null;
   // イベントの定員（全体の参加可能人数）。人数バーの分母に使う。
   capacity?: number;
