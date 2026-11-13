@@ -57,9 +57,97 @@ const isMswEnabled = process.env.NEXT_PUBLIC_USE_MSW === "true";
 // `true` 以外（未設定・`false` を含む）では含めない（安全側のデフォルト）。
 const isDevAssetsEnabled = process.env.USE_DEV_ASSETS === "true";
 
+// 画像最適化で許可する取得元。CSP の img-src も同じ一覧から組み立て、両者がずれないようにする。
+const imageRemotePatterns: ImageRemotePattern[] = [
+  ...productionImageHosts,
+  ...(isDevAssetsEnabled ? developmentImageHosts : []),
+  ...(isMswEnabled ? mockImageHosts : []),
+];
+
 // 検証環境のビルドでのみ、全ページを検索エンジンの登録対象から外す（#372）。
 // `true` 以外（未設定・`false` を含む）では付けない（本番が検索から消えるのを防ぐ）。
 const isSiteNoindex = process.env.SITE_NOINDEX === "true";
+
+// 環境変数の URL からオリジンを取り出す。未設定・空文字なら何も返さない
+// （CI の品質チェックのビルドは接続先を空で渡す）。値が http(s) の URL でなければビルドを止める。
+const toOrigins = (name: string, value: string | undefined): string[] => {
+  if (!value) {
+    return [];
+  }
+
+  const url = URL.parse(value);
+
+  // "localhost:8085" のようにスキームが抜けた値も URL として解釈され、オリジンが "null" になるため弾く。
+  if (url?.protocol !== "https:" && url?.protocol !== "http:") {
+    throw new Error(`${name} が URL ではありません。`);
+  }
+
+  return [url.origin];
+};
+
+// remotePatterns の取得元を CSP のホストソースにする。
+// protocol が未設定なら、CSP でもスキームを省く（ページと同じスキームだけに一致する）。
+// port は値があれば付け、"" と未設定では付けない（既定のポートだけに一致する）。未設定の remotePatterns は
+// どのポートも許すが、CSP では広げない。img-src が効くのは直接読み込む画像だけで、画像最適化は 'self' で通るため。
+// hostname のワイルドカード（** など）は CSP と書き方が違うため、使うときはここも直す。
+const toImageSource = ({ protocol, hostname, port }: ImageRemotePattern) =>
+  `${protocol ? `${protocol}://` : ""}${hostname}${port ? `:${port}` : ""}`;
+
+// 本番ビルドで付ける CSP（#335）。
+// Next.js はページにインラインスクリプトを埋め込むため script-src に 'unsafe-inline' が要る。
+// nonce にすると全ページが毎回の動的レンダリングになり ISR・静的ページを使えないため、使わない。
+// next/image の style 属性・sonner が差し込む <style> などのインラインのスタイルがあるため、style-src にも 'unsafe-inline' を付ける。
+// 接続先は remotePatterns と同じくビルド時の環境変数から組み立てる（本番と検証環境で値が違う）。
+// 開発時（next dev）は 'unsafe-eval' と HMR が要るため付けない。
+const buildContentSecurityPolicy = (): string => {
+  const imageSources = [
+    "'self'",
+    // アップロード前のプレビュー（URL.createObjectURL）。
+    "blob:",
+    // 本番用の events・reports のように、ホストが同じ取得元は 1 つにまとめる。
+    ...new Set(imageRemotePatterns.map(toImageSource)),
+    // アバター（Supabase の user_metadata の Google のプロフィール画像。画像最適化を通さない）。
+    "https://lh3.googleusercontent.com",
+  ];
+
+  const connectSources = [
+    "'self'",
+    ...toOrigins(
+      "NEXT_PUBLIC_API_BASE_URL",
+      process.env.NEXT_PUBLIC_API_BASE_URL,
+    ),
+    ...toOrigins(
+      "NEXT_PUBLIC_SUPABASE_URL",
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+    ),
+    // 画像・PDF を presign の署名付き URL へ直接 PUT する（NatuEve_API の internal/storage/r2.go）。
+    // ホストはアカウント ID を含むが、ビルドに渡す変数を増やさないためワイルドカードにする。
+    "https://*.r2.cloudflarestorage.com",
+    // MSW のモックの署名付き URL（src/mocks/handlers/uploads.ts）。
+    ...(isMswEnabled ? ["https://mock.storage.test"] : []),
+  ];
+
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    `img-src ${imageSources.join(" ")}`,
+    "font-src 'self'",
+    `connect-src ${connectSources.join(" ")}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
+};
+
+// ページと静的ファイルの両方に付けるヘッダー（#335）。静的ファイルには public/_headers で同じ値を付ける。
+// X-Frame-Options は frame-ancestors を解さない古いブラウザ向け。
+const commonSecurityHeaders = [
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+];
 
 // Next.jsの設定ファイル
 const nextConfig: NextConfig = {
@@ -84,16 +172,25 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Workers では静的アセットと /_next/image は headers() を通らないため、どちらのヘッダーも付かない。
+  // Workers では静的アセットと /_next/image は headers() を通らないため付かない。
+  // 静的アセットのセキュリティヘッダーは public/_headers で補う。
   async headers() {
+    const securityHeaders = [
+      ...commonSecurityHeaders,
+      ...(process.env.NODE_ENV === "production"
+        ? [
+            {
+              key: "Content-Security-Policy",
+              value: buildContentSecurityPolicy(),
+            },
+          ]
+        : []),
+    ];
+
     return [
-      // 他サイトの iframe などへの埋め込みを拒否する（クリックジャッキング対策。#384）。
-      // 新しいブラウザは CSP の frame-ancestors 'none'（src/lib/csp.ts。#413）を優先し、
-      // X-Frame-Options は frame-ancestors 非対応のブラウザ向けに併用する。
-      // CSP を Report-Only にした環境（#416）でも、埋め込みはこのヘッダーで拒否される。
       {
         source: "/:path*",
-        headers: [{ key: "X-Frame-Options", value: "DENY" }],
+        headers: securityHeaders,
       },
       // metadata の設定に左右されないよう、レスポンスヘッダーで付ける。
       // robots.txt の Disallow にはしない（クロールされないと noindex が読まれないため）。
@@ -110,11 +207,7 @@ const nextConfig: NextConfig = {
 
   // 画像のリモートパターン設定
   images: {
-    remotePatterns: [
-      ...productionImageHosts,
-      ...(isDevAssetsEnabled ? developmentImageHosts : []),
-      ...(isMswEnabled ? mockImageHosts : []),
-    ],
+    remotePatterns: imageRemotePatterns,
   },
 };
 

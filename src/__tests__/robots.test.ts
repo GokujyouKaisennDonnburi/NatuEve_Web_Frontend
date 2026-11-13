@@ -16,10 +16,6 @@ import { metadata as authCallbackMetadata } from "@/app/auth/callback/layout";
 import robots from "@/app/robots";
 import { metadata as signInMetadata } from "@/app/signin/layout";
 import { SITE_URL } from "@/constants/config";
-import {
-  loadNextConfigHeaders,
-  restoreSiteNoindex,
-} from "./fixtures/nextConfigHeaders";
 
 vi.mock("@opennextjs/cloudflare", () => ({
   initOpenNextCloudflareForDev: vi.fn(),
@@ -75,15 +71,33 @@ describe("検索に載せるページ", () => {
 });
 
 describe("検証環境の X-Robots-Tag", () => {
+  const originalSiteNoindex = process.env.SITE_NOINDEX;
+
   const loadHeaders = async (siteNoindex: string | undefined) => {
-    const rules = await loadNextConfigHeaders(siteNoindex);
-    // X-Frame-Options（#384）など常に付くヘッダーは除き、X-Robots-Tag のルールだけを比べる。
-    return rules.filter((rule) =>
-      rule.headers.some((header) => header.key === "X-Robots-Tag"),
+    vi.resetModules();
+
+    if (siteNoindex === undefined) {
+      delete process.env.SITE_NOINDEX;
+    } else {
+      process.env.SITE_NOINDEX = siteNoindex;
+    }
+
+    const { default: nextConfig } = await import("../../next.config");
+    const rules = (await nextConfig.headers?.()) ?? [];
+
+    // セキュリティヘッダー（#335）は securityHeaders.test.ts で確かめる。
+    return rules.filter(({ headers }) =>
+      headers.some(({ key }) => key === "X-Robots-Tag"),
     );
   };
 
-  afterEach(restoreSiteNoindex);
+  afterEach(() => {
+    if (originalSiteNoindex === undefined) {
+      delete process.env.SITE_NOINDEX;
+    } else {
+      process.env.SITE_NOINDEX = originalSiteNoindex;
+    }
+  });
 
   it("SITE_NOINDEX=true のとき全ページに noindex を付ける", async () => {
     await expect(loadHeaders("true")).resolves.toEqual([
