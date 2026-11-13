@@ -2,34 +2,17 @@
 // next.config.ts のヘッダーの設定値だけを検証するため、DOM は使わない。
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  loadNextConfigHeaders as loadHeaders,
+  restoreSiteNoindex,
+} from "./fixtures/nextConfigHeaders";
 
 vi.mock("@opennextjs/cloudflare", () => ({
   initOpenNextCloudflareForDev: vi.fn(),
 }));
 
 describe("クリックジャッキング対策の X-Frame-Options", () => {
-  const originalSiteNoindex = process.env.SITE_NOINDEX;
-
-  const loadHeaders = async (siteNoindex: string | undefined) => {
-    vi.resetModules();
-
-    if (siteNoindex === undefined) {
-      delete process.env.SITE_NOINDEX;
-    } else {
-      process.env.SITE_NOINDEX = siteNoindex;
-    }
-
-    const { default: nextConfig } = await import("../../next.config");
-    return (await nextConfig.headers?.()) ?? [];
-  };
-
-  afterEach(() => {
-    if (originalSiteNoindex === undefined) {
-      delete process.env.SITE_NOINDEX;
-    } else {
-      process.env.SITE_NOINDEX = originalSiteNoindex;
-    }
-  });
+  afterEach(restoreSiteNoindex);
 
   // 本番（SITE_NOINDEX 未設定）と検証環境（true）のどちらでも付くことを確かめる。
   describe.each([
