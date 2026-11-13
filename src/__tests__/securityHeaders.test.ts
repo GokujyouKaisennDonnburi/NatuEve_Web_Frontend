@@ -1,0 +1,56 @@
+// @vitest-environment node
+// next.config.ts のヘッダーの設定値だけを検証するため、DOM は使わない。
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@opennextjs/cloudflare", () => ({
+  initOpenNextCloudflareForDev: vi.fn(),
+}));
+
+describe("クリックジャッキング対策の X-Frame-Options", () => {
+  const originalSiteNoindex = process.env.SITE_NOINDEX;
+
+  const loadHeaders = async (siteNoindex: string | undefined) => {
+    vi.resetModules();
+
+    if (siteNoindex === undefined) {
+      delete process.env.SITE_NOINDEX;
+    } else {
+      process.env.SITE_NOINDEX = siteNoindex;
+    }
+
+    const { default: nextConfig } = await import("../../next.config");
+    return (await nextConfig.headers?.()) ?? [];
+  };
+
+  afterEach(() => {
+    if (originalSiteNoindex === undefined) {
+      delete process.env.SITE_NOINDEX;
+    } else {
+      process.env.SITE_NOINDEX = originalSiteNoindex;
+    }
+  });
+
+  // 本番（SITE_NOINDEX 未設定）と検証環境（true）のどちらでも付くことを確かめる。
+  it.each([
+    ["未設定", undefined],
+    ["true", "true"],
+  ])("SITE_NOINDEX が%sのとき全ページに DENY を付ける", async (_, value) => {
+    const rules = await loadHeaders(value);
+
+    expect(rules).toContainEqual({
+      source: "/:path*",
+      headers: [{ key: "X-Frame-Options", value: "DENY" }],
+    });
+  });
+
+  // 値の異なる X-Frame-Options が重なると、ブラウザによっては無視される。
+  it("X-Frame-Options を 1 つだけ付ける", async () => {
+    const rules = await loadHeaders("true");
+
+    const frameOptions = rules.flatMap((rule) =>
+      rule.headers.filter((header) => header.key === "X-Frame-Options"),
+    );
+    expect(frameOptions).toHaveLength(1);
+  });
+});
