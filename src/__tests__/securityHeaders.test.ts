@@ -192,15 +192,21 @@ describe("next.config.ts の CSP", () => {
   });
 
   // 画像最適化で許可した取得元を、直接読み込むときにも CSP が止めない。
+  // スキーム・ポートの書き方は実装に任せ、ホスト名で突き合わせる（実装と同じ関数で期待値を作らない）。
   it("img-src に remotePatterns のホストをすべて含める", async () => {
     const csp = await loadCsp({ useMsw: "true", useDevAssets: "true" });
     const { default: nextConfig } = await import("../../next.config");
-    const hosts = (nextConfig.images?.remotePatterns ?? []).map(
-      ({ protocol, hostname }) => `${protocol}://${hostname}`,
+    const hostnames = (nextConfig.images?.remotePatterns ?? []).map(
+      ({ hostname }) => hostname,
+    );
+    const imageSourceHostnames = csp["img-src"].map(
+      (source) =>
+        URL.parse(source.includes("://") ? source : `https://${source}`)
+          ?.hostname,
     );
 
-    expect(hosts.length).toBeGreaterThan(0);
-    expect(csp["img-src"]).toEqual(expect.arrayContaining(hosts));
+    expect(hostnames.length).toBeGreaterThan(0);
+    expect(imageSourceHostnames).toEqual(expect.arrayContaining(hostnames));
   });
 
   it("フラグが true 以外なら開発用・モックの取得元を許可しない", async () => {
