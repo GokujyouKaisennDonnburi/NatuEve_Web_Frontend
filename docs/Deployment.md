@@ -199,7 +199,8 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 HTTP でのアクセスは、Cloudflare のエッジが HTTPS へ 301 でリダイレクトする（#382）。アプリ（Worker・`next.config.ts`）ではリダイレクトしない。
 
 - リダイレクトの応答は Cloudflare が返している（`Server: cloudflare`。リポジトリにはリダイレクトの処理も設定もない）。
-  ゾーンの「Always Use HTTPS」と Redirect Rule のどちらによるものかは、ダッシュボードで確かめていない。
+  設定元はゾーン（`natuportal.org`）の「Always Use HTTPS」（SSL/TLS → Edge Certificates）。管理者がダッシュボードで確かめた（2026-11-13）。
+  ゾーン全体に効くため、サブドメインを足しても個別の設定は要らない。
 - パスとクエリ（エンコードを含む）はそのまま引き継がれる。
 - 2026-11-13 に、次のホストすべてで `http://` が `https://` への 301 になることを確かめた。
   `natueve-web`・`natueve-web-stg`・`natueve-api`・`natueve-api-stg`・`assets`・`assets-dev`（いずれも `.natuportal.org`）。
