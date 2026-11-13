@@ -2,8 +2,11 @@
 // POST /api/v1/events/:id/join
 // 認証は任意。Authorization ヘッダなし → 匿名参加（profile = null）。
 // ヘッダありで有効な Bearer → プロフィールを記録してサインイン参加。
+// 1回の申込人数（partySize）が上限を超える場合は 400 party_size_exceeded、
 // 同一イベントへの重複参加は 409 already_joined、定員超過は 409 capacity_full で返す。
 import { HttpResponse, http } from "msw";
+
+import { MAX_PARTICIPATION_PARTY_SIZE } from "@/constants/config";
 
 import {
   TOKEN_TO_PROFILE,
@@ -145,6 +148,20 @@ export const eventJoinHandler = http.post(
       (sum, participant) => sum + participant.headCount,
       0,
     );
+
+    // 1回の申込人数の上限チェック。定員チェックより先に行うことで、
+    // 定員が大きいイベントでも capacity_full ではなく上限超過として返す。
+    if (partySize > MAX_PARTICIPATION_PARTY_SIZE) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "party_size_exceeded",
+            message: `一度に申し込める人数は${MAX_PARTICIPATION_PARTY_SIZE}人までです`,
+          },
+        },
+        { status: 400 },
+      );
+    }
 
     // 定員チェック：イベントの定員が設定されている場合は、
     // 現在の参加人数に今回の申込人数を加えた合計が定員を超える場合は 409 capacity_full を返す

@@ -15,7 +15,11 @@ import { PriceCategoryField } from "@/components/molecules/event-post/PriceCateg
 import { RequiredItemField } from "@/components/molecules/event-post/RequiredItemField";
 import { TagInputField } from "@/components/molecules/event-post/TagInputField";
 import { Button } from "@/components/ui/button";
-import { MAX_EVENT_PDF_COUNT, MAX_TEXT_LENGTH } from "@/constants/config";
+import {
+  MAX_EVENT_PDF_COUNT,
+  MAX_PARTICIPATION_PARTY_SIZE,
+  MAX_TEXT_LENGTH,
+} from "@/constants/config";
 import type {
   EventPostFormErrors,
   EventPostFormState,
@@ -250,6 +254,7 @@ export function EventPostForm({
             <FormField
               id={getFieldId("capacity")}
               label="定員数"
+              hint={`参加者の申し込みは一度に${MAX_PARTICIPATION_PARTY_SIZE}名までです`}
               error={errors.capacity}
             >
               <UnitInput

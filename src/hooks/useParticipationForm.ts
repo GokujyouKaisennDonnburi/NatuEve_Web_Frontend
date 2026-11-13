@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthContext } from "@/components/layouts/AuthProvider";
+import { MAX_PARTICIPATION_PARTY_SIZE } from "@/constants/config";
 import { MOCK_AUTH_SESSION, isMockAuthEnabled } from "@/services/mockAuth";
 import { participateEvent } from "@/services/participate";
 import type { EventDetailCost } from "@/types/event";
@@ -68,6 +69,12 @@ const notifyParticipateError = (error: unknown) => {
     switch (error.code) {
       case ParticipateErrorCode.AlreadyJoined:
         toast.error(error.message || "既に参加しています。");
+        return;
+      case ParticipateErrorCode.PartySizeExceeded:
+        toast.error(
+          error.message ||
+            `一度に申し込める人数は${MAX_PARTICIPATION_PARTY_SIZE}人までです。`,
+        );
         return;
       case ParticipateErrorCode.CapacityFull:
         toast.error(error.message || "定員に達しています。");
@@ -162,13 +169,20 @@ export function useParticipationForm({
     return Math.max(Math.floor(capacity) - Math.floor(current), 0);
   })();
 
+  // 1回の申し込みで選べる人数の実効上限。残り枠と申し込みあたりの上限の小さい方。
+  // API 側でも判定されるが、11人以上を入力・送信できないよう画面側でも制限する。
+  const effectiveMaxCount =
+    maxCount === null
+      ? MAX_PARTICIPATION_PARTY_SIZE
+      : Math.min(MAX_PARTICIPATION_PARTY_SIZE, maxCount);
+
   const summary = useMemo<ParticipationSummary>(
     () => buildParticipationSummary(resolvedCosts, counts),
     [resolvedCosts, counts],
   );
 
-  // 上限に達しているか。達している間は増やす操作を止める。
-  const isAtCapacity = maxCount !== null && summary.totalCount >= maxCount;
+  // 実効上限に達しているか。達している間は増やす操作を止める。
+  const isAtCapacity = summary.totalCount >= effectiveMaxCount;
 
   // 入力値の検証。信頼の境界は API 側なので、ここでは UX 補助に留める。
   const validationErrors = useMemo<ParticipationFieldErrors>(() => {
@@ -227,7 +241,7 @@ export function useParticipationForm({
       setCounts((prev) => {
         const total = prev.reduce((sum, count) => sum + count, 0);
 
-        if (maxCount !== null && total >= maxCount) return prev;
+        if (total >= effectiveMaxCount) return prev;
 
         const next = [...prev];
         next[index] = (next[index] ?? 0) + 1;
@@ -235,7 +249,7 @@ export function useParticipationForm({
         return next;
       });
     },
-    [maxCount],
+    [effectiveMaxCount],
   );
 
   // 人数を直接入力する。全角数字は半角へ寄せ、上限を超える入力は切り詰める。
@@ -246,26 +260,19 @@ export function useParticipationForm({
       const parsed = digits === "" ? 0 : Number(digits);
 
       setCounts((prev) => {
-        const next = [...prev];
-
-        if (maxCount === null) {
-          next[index] = parsed;
-
-          return next;
-        }
-
         // 他カテゴリで既に埋まっている分を除いた枠までしか入力できない
         const others = prev.reduce(
           (sum, count, i) => (i === index ? sum : sum + count),
           0,
         );
 
-        next[index] = Math.min(parsed, Math.max(0, maxCount - others));
+        const next = [...prev];
+        next[index] = Math.min(parsed, Math.max(0, effectiveMaxCount - others));
 
         return next;
       });
     },
-    [maxCount],
+    [effectiveMaxCount],
   );
 
   const decrement = useCallback((index: number) => {
@@ -411,7 +418,7 @@ export function useParticipationForm({
     counts,
     summary,
     maxCount,
-    isAtCapacity,
+    effectiveMaxCount,
     isAuthenticated,
     username,
     mailAddress,
