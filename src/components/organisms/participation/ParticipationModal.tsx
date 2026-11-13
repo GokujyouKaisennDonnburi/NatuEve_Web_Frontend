@@ -65,6 +65,7 @@ export function ParticipationModal({
     canSubmit,
     canIncrement,
     canDecrement,
+    isAuthenticated,
     setUsername,
     setMailAddress,
     touchUsername,
@@ -109,6 +110,11 @@ export function ParticipationModal({
   }, [steps, step]);
 
   const isComplete = step === ParticipationStepId.Complete;
+  // ゲスト申込は未確定（pending）で保存され、確認メールのリンクで確定する（ADR-0047）。
+  // そのため完了画面の見出しも「申し込み完了」ではなく確認メールの送信を伝える。
+  const completeTitle = isAuthenticated
+    ? "申し込み完了"
+    : "確認メールを送信しました";
 
   // 日時を取得できない場合は「〜」を付けず、整形結果をそのまま見せる。
   const formattedEventDate = formatMonthDayTime(eventDate);
@@ -184,7 +190,7 @@ export function ParticipationModal({
         <Card className="border-slate-200 bg-white shadow-xl">
           <CardContent className="space-y-6 px-8 py-2">
             <ParticipationModalHeader
-              title={isComplete ? "申し込み完了" : "参加を申し込む"}
+              title={isComplete ? completeTitle : "参加を申し込む"}
               titleId={titleId}
               eventTitle={eventTitle}
               eventDateLabel={eventDateLabel}
@@ -233,7 +239,9 @@ export function ParticipationModal({
               />
             ) : null}
 
-            {isComplete ? <ParticipationCompleteStep /> : null}
+            {isComplete ? (
+              <ParticipationCompleteStep isGuest={!isAuthenticated} />
+            ) : null}
           </CardContent>
         </Card>
       </div>
