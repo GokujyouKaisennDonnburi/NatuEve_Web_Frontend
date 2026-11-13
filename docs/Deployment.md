@@ -194,6 +194,24 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 - 割り当て後、本番と同じ 4 つ（トップページ・API の呼び出し・ログイン・画像の表示）を確かめた（2026-10-27）。
   画像の表示の確認は、#351 の実データでの確認を兼ねる（`assets-dev.natuportal.org` のキーの形式は本番と同じ）。
 
+### HTTPS へのリダイレクト
+
+HTTP でのアクセスは、Cloudflare のエッジが HTTPS へ 301 でリダイレクトする（#382）。アプリ（Worker・`next.config.ts`）ではリダイレクトしない。
+
+- リダイレクトの応答は Cloudflare が返している（`Server: cloudflare`。リポジトリにはリダイレクトの処理も設定もない）。
+  ゾーンの「Always Use HTTPS」と Redirect Rule のどちらによるものかは、ダッシュボードで確かめていない。
+- パスとクエリ（エンコードを含む）はそのまま引き継がれる。
+- 2026-11-13 に、次のホストすべてで `http://` が `https://` への 301 になることを確かめた。
+  `natueve-web`・`natueve-web-stg`・`natueve-api`・`natueve-api-stg`・`assets`・`assets-dev`（いずれも `.natuportal.org`）。
+- 証明書は Cloudflare が用意したもの（発行元は Google Trust Services。2026-11-13 時点の有効期限は 2027-01-25）。
+- HSTS（`Strict-Transport-Security`）は付けていない。付けるかどうかと範囲は #411 で扱う。
+
+確認するコマンド（`301` と、クエリを含む `https://` の `Location` が返ればよい）:
+
+```bash
+curl -sS -o /dev/null -D - "http://natueve-web.natuportal.org/event-list?page=1" | grep -i -E "^HTTP|^location"
+```
+
 ## 環境変数
 
 接続先の変数（`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY`）とデプロイ用のトークンは、
