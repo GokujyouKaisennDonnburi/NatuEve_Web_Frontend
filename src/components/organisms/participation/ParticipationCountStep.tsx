@@ -26,8 +26,10 @@ type ParticipationCountStepProps = {
   summary: ParticipationSummary;
   // 申し込める上限人数（残り枠）。null のときは残り枠なしとして人数バーを出さない。
   maxCount: number | null;
-  // 1回の申し込みで選べる人数の実効上限（残り枠と上限人数の小さい方）。
-  effectiveMaxCount: number;
+  // イベントの定員（全体の参加可能人数）。人数バーの分母に使う。
+  capacity?: number;
+  // 現在申込中の合計参加人数。人数バーの参加人数に選択中の人数を足して表示する。
+  participantCount?: number;
   isSubmitting: boolean;
   canSubmit: boolean;
   canIncrement: () => boolean;
@@ -47,7 +49,8 @@ export function ParticipationCountStep({
   counts,
   summary,
   maxCount,
-  effectiveMaxCount,
+  capacity,
+  participantCount,
   isSubmitting,
   canSubmit,
   canIncrement,
@@ -59,20 +62,20 @@ export function ParticipationCountStep({
   onBack,
   onSubmit,
 }: Readonly<ParticipationCountStepProps>) {
-  // 10人の上限に達したか。残り枠が上限より小さい場合は CapacityBar 側で示す。
+  // 10人の上限に達したか。達したら案内を赤字にして注意を促す。
   const isAtPartySizeLimit = summary.totalCount >= MAX_PARTICIPATION_PARTY_SIZE;
 
   return (
     <div className="space-y-5">
-      {maxCount !== null ? (
+      {maxCount !== null && capacity !== undefined ? (
         <CapacityBar
-          selectedCount={summary.totalCount}
-          capacity={effectiveMaxCount}
+          currentCount={(participantCount ?? 0) + summary.totalCount}
+          capacity={capacity}
         />
       ) : null}
 
       {/* 1回の申し込みで選べるのは10人まで。達したら赤字にして注意を促す。
-          残り枠が上限以下のときは CapacityBar が実効上限を示すため、この案内は重複させない */}
+          残り枠が上限以下のときは残り枠側の制約が先に効くため、この案内は出さない */}
       {maxCount === null || maxCount > MAX_PARTICIPATION_PARTY_SIZE ? (
         <FieldNote tone={isAtPartySizeLimit ? "error" : "default"}>
           一度に申し込めるのは{MAX_PARTICIPATION_PARTY_SIZE}人までです
@@ -107,7 +110,7 @@ export function ParticipationCountStep({
           ))}
         </div>
 
-        {/* 人数は直上の CapacityBar が「◯/◯名」で示すため、文言では繰り返さない。
+        {/* 人数は直上の CapacityBar と各カウンターが示すため、文言では繰り返さない。
             10人の上限到達は上部の案内が担うため、ここは残り枠を使い切った場合だけ出す */}
         {maxCount !== null && summary.totalCount >= maxCount ? (
           <FieldNote tone="error">

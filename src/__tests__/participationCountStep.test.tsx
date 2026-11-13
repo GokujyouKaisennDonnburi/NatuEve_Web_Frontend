@@ -17,21 +17,20 @@ const CAPACITY_FULL_NOTE = "申し込みできる人数をすべて選択して�
 type RenderStepOptions = {
   counts: ParticipantCounts;
   maxCount: number | null;
-  effectiveMaxCount: number;
+  participantCount?: number;
 };
 
-function renderStep({
-  counts,
-  maxCount,
-  effectiveMaxCount,
-}: RenderStepOptions) {
+function renderStep({ counts, maxCount, participantCount }: RenderStepOptions) {
   return render(
     <ParticipationCountStep
       costs={COSTS}
       counts={counts}
       summary={buildParticipationSummary(COSTS, counts)}
       maxCount={maxCount}
-      effectiveMaxCount={effectiveMaxCount}
+      capacity={
+        maxCount === null ? undefined : maxCount + (participantCount ?? 0)
+      }
+      participantCount={participantCount}
       isSubmitting={false}
       canSubmit
       canIncrement={() => true}
@@ -48,13 +47,13 @@ function renderStep({
 
 describe("ParticipationCountStep の人数上限の案内", () => {
   it("10人を選択すると上限の案内を赤で表示する", () => {
-    renderStep({ counts: [10], maxCount: 100, effectiveMaxCount: 10 });
+    renderStep({ counts: [10], maxCount: 100 });
 
     expect(screen.getByText(PARTY_SIZE_NOTE)).toHaveClass("text-rose-600");
   });
 
   it("10人未満では上限の案内を通常色で表示する", () => {
-    renderStep({ counts: [5], maxCount: 100, effectiveMaxCount: 10 });
+    renderStep({ counts: [5], maxCount: 100 });
 
     const note = screen.getByText(PARTY_SIZE_NOTE);
     expect(note).toHaveClass("text-slate-500");
@@ -62,21 +61,28 @@ describe("ParticipationCountStep の人数上限の案内", () => {
   });
 
   it("残り枠が上限より多いときは、すべて選択のメモを出さない", () => {
-    renderStep({ counts: [10], maxCount: 100, effectiveMaxCount: 10 });
+    renderStep({ counts: [10], maxCount: 100 });
 
     expect(screen.queryByText(CAPACITY_FULL_NOTE)).toBeNull();
   });
 
   it("残り枠が上限以下のときは、すべて選択のメモだけを表示する", () => {
-    renderStep({ counts: [5], maxCount: 5, effectiveMaxCount: 5 });
+    renderStep({ counts: [5], maxCount: 5 });
 
     expect(screen.queryByText(PARTY_SIZE_NOTE)).toBeNull();
     expect(screen.getByText(CAPACITY_FULL_NOTE)).toHaveClass("text-rose-600");
   });
 
-  it("人数バーは残り枠ではなく実効上限を表示する", () => {
-    renderStep({ counts: [2], maxCount: 100, effectiveMaxCount: 10 });
+  it("人数バーは現在の参加人数に選択中の人数を足した参加状況を表示する", () => {
+    renderStep({ counts: [3], maxCount: 8, participantCount: 12 });
 
-    expect(screen.getByText("2/10名")).toBeInTheDocument();
+    expect(screen.getByText("参加状況")).toBeInTheDocument();
+    expect(screen.getByText("15/20名")).toBeInTheDocument();
+  });
+
+  it("参加人数が未指定のときは選択中の人数だけで参加状況を表示する", () => {
+    renderStep({ counts: [3], maxCount: 20 });
+
+    expect(screen.getByText("3/20名")).toBeInTheDocument();
   });
 });
