@@ -84,7 +84,7 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Workers では静的アセットと /_next/image は headers() を通らないため付かない。
+  // Workers では静的アセットと /_next/image は headers() を通らないため、どちらのヘッダーも付かない。
   async headers() {
     return [
       // 他サイトの iframe などへの埋め込みを拒否する（クリックジャッキング対策。#384）。

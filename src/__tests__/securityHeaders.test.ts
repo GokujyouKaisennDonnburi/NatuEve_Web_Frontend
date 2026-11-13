@@ -32,25 +32,27 @@ describe("クリックジャッキング対策の X-Frame-Options", () => {
   });
 
   // 本番（SITE_NOINDEX 未設定）と検証環境（true）のどちらでも付くことを確かめる。
-  it.each([
+  describe.each([
     ["未設定", undefined],
     ["true", "true"],
-  ])("SITE_NOINDEX が%sのとき全ページに DENY を付ける", async (_, value) => {
-    const rules = await loadHeaders(value);
+  ])("SITE_NOINDEX が%sのとき", (_, value) => {
+    it("全ページに DENY を付ける", async () => {
+      const rules = await loadHeaders(value);
 
-    expect(rules).toContainEqual({
-      source: "/:path*",
-      headers: [{ key: "X-Frame-Options", value: "DENY" }],
+      expect(rules).toContainEqual({
+        source: "/:path*",
+        headers: [{ key: "X-Frame-Options", value: "DENY" }],
+      });
     });
-  });
 
-  // 値の異なる X-Frame-Options が重なると、ブラウザによっては無視される。
-  it("X-Frame-Options を 1 つだけ付ける", async () => {
-    const rules = await loadHeaders("true");
+    // 値の異なる X-Frame-Options が重なると、ブラウザによっては無視される。
+    it("X-Frame-Options を 1 つだけ付ける", async () => {
+      const rules = await loadHeaders(value);
 
-    const frameOptions = rules.flatMap((rule) =>
-      rule.headers.filter((header) => header.key === "X-Frame-Options"),
-    );
-    expect(frameOptions).toHaveLength(1);
+      const frameOptions = rules.flatMap((rule) =>
+        rule.headers.filter((header) => header.key === "X-Frame-Options"),
+      );
+      expect(frameOptions).toHaveLength(1);
+    });
   });
 });
