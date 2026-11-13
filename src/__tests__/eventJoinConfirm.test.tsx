@@ -56,10 +56,15 @@ describe("EventJoinConfirmContent", () => {
     ).toBeInTheDocument();
   });
 
-  it("確定に成功すると「申込が確定しました」と表示する", async () => {
+  it("確定に成功すると「申込が確定しました」と申込内容を表示する", async () => {
     mockConfirmEventJoin.mockResolvedValue({
       eventId: EVENT_ID,
       confirmedAt: "2026-11-13T00:00:00Z",
+      participants: [
+        { category: "大人", headCount: 2 },
+        { category: "子ども", headCount: 1 },
+      ],
+      partySize: 3,
     });
 
     renderContent();
@@ -69,6 +74,13 @@ describe("EventJoinConfirmContent", () => {
     );
 
     expect(await screen.findByText("申込が確定しました")).toBeInTheDocument();
+    expect(screen.getByText("申込内容")).toBeInTheDocument();
+    expect(screen.getByText("大人")).toBeInTheDocument();
+    expect(screen.getByText("2名")).toBeInTheDocument();
+    expect(screen.getByText("子ども")).toBeInTheDocument();
+    expect(screen.getByText("1名")).toBeInTheDocument();
+    expect(screen.getByText("合計")).toBeInTheDocument();
+    expect(screen.getByText("3名")).toBeInTheDocument();
     expect(mockConfirmEventJoin).toHaveBeenCalledWith(EVENT_ID, TOKEN);
   });
 

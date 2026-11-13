@@ -91,6 +91,10 @@ export type ConfirmJoinResponse = {
   eventId: string;
   // 申込を確定した日時(RFC3339)。
   confirmedAt: string;
+  // 確定した申込のカテゴリ別参加人数内訳（申込時の内容）。
+  participants: ParticipantEntry[];
+  // 確定した申込の合計参加人数。participants の headCount 合計。
+  partySize: number;
 };
 
 // 参加確定 API のエラーレスポンスボディ DTO。

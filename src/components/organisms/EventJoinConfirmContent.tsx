@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BACK_LINK_LABELS } from "@/constants/labels";
 import { useEventJoinConfirm } from "@/hooks/useEventJoinConfirm";
 import { getEventDetail } from "@/services/event";
+import type { ConfirmJoinResponse } from "@/types/participate";
 
 type EventJoinConfirmContentProps = {
   eventId: string;
@@ -26,7 +27,7 @@ export function EventJoinConfirmContent({
   eventId,
   token,
 }: Readonly<EventJoinConfirmContentProps>) {
-  const { status, errorMessage, confirm } = useEventJoinConfirm({
+  const { status, errorMessage, result, confirm } = useEventJoinConfirm({
     eventId,
     token,
   });
@@ -85,6 +86,8 @@ export function EventJoinConfirmContent({
                 <p className="text-center text-sm text-slate-600">
                   イベントへの参加が確定しました。当日のご参加をお待ちしています。
                 </p>
+
+                {result ? <ConfirmedJoinContent result={result} /> : null}
               </div>
             ) : status === "error" ? (
               <div className="flex flex-col items-center gap-4">
@@ -136,6 +139,33 @@ export function EventJoinConfirmContent({
         </Link>
       </div>
     </section>
+  );
+}
+
+// 確定した申込内容。カテゴリごとの人数と合計を表示する。
+function ConfirmedJoinContent({
+  result,
+}: Readonly<{ result: ConfirmJoinResponse }>) {
+  return (
+    <div className="w-full rounded-md border border-slate-200 bg-slate-50 p-4">
+      <p className="text-xs font-semibold text-slate-500">申込内容</p>
+
+      <ul className="mt-2 space-y-1 text-sm text-slate-700">
+        {result.participants.map((participant, index) => (
+          // 確定後に一度だけ描画する固定リストのため添字で一意にする。
+          // biome-ignore lint/suspicious/noArrayIndexKey: 並び順が変化しない固定リストのため添字で一意にする。
+          <li key={index} className="flex items-center justify-between gap-3">
+            <span className="break-words">{participant.category}</span>
+            <span className="shrink-0">{participant.headCount}名</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-2 flex items-center justify-between gap-3 border-t border-slate-200 pt-2 text-sm font-semibold text-slate-800">
+        <span>合計</span>
+        <span>{result.partySize}名</span>
+      </p>
+    </div>
   );
 }
 

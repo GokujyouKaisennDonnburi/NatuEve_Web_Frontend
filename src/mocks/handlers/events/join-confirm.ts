@@ -116,6 +116,14 @@ export const eventJoinConfirmHandler = http.post(
     });
     eventMembers.set(id, members);
 
-    return HttpResponse.json({ eventId: id, confirmedAt }, { status: 200 });
+    return HttpResponse.json(
+      {
+        eventId: id,
+        confirmedAt,
+        participants: found.pending.participants,
+        partySize: found.pending.partySize,
+      },
+      { status: 200 },
+    );
   },
 );

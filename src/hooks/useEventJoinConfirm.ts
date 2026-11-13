@@ -1,7 +1,11 @@
 "use client";
 
 import { confirmEventJoin } from "@/services/participate";
-import { ConfirmJoinError, ConfirmJoinErrorCode } from "@/types/participate";
+import {
+  ConfirmJoinError,
+  ConfirmJoinErrorCode,
+  type ConfirmJoinResponse,
+} from "@/types/participate";
 import { useCallback, useRef, useState } from "react";
 
 // 申込確認画面の状態。
@@ -62,6 +66,8 @@ export function useEventJoinConfirm({
       ? null
       : "確認リンクが正しくありません。メールに記載のリンクを開き直してください。",
   );
+  // 確定できた申込の内容。成功画面でカテゴリ別の人数を表示するために保持する。
+  const [result, setResult] = useState<ConfirmJoinResponse | null>(null);
 
   // 連打・二重実行を防ぐための実行中フラグ。
   // state は再描画まで反映されないため、同期的に判定できる ref を使う。
@@ -76,7 +82,8 @@ export function useEventJoinConfirm({
 
     void (async () => {
       try {
-        await confirmEventJoin(eventId, token);
+        const response = await confirmEventJoin(eventId, token);
+        setResult(response);
         setStatus("success");
       } catch (error) {
         setErrorMessage(resolveConfirmJoinErrorMessage(error));
@@ -90,6 +97,8 @@ export function useEventJoinConfirm({
   return {
     status,
     errorMessage,
+    // 確定成功時のみ申込内容が入る。
+    result,
     // 確定前・失敗後のみ押せる。確定中と確定済みは何もしない。
     confirm,
   };

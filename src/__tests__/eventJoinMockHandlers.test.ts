@@ -185,6 +185,8 @@ describe("モック: 参加申込の確定", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       eventId: EVENT_ID,
+      participants: [{ category: "大人", headCount: 2 }],
+      partySize: 2,
     });
     expect(eventMembers.get(EVENT_ID)).toHaveLength(1);
     expect(findPendingMemberByToken(EVENT_ID, "known-token")).toBeNull();
