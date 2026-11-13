@@ -203,6 +203,9 @@ HTTP でのアクセスは、Cloudflare のエッジが HTTPS へ 301 でリダ�
 - パスとクエリ（エンコードを含む）はそのまま引き継がれる。
 - 2026-11-13 に、次のホストすべてで `http://` が `https://` への 301 になることを確かめた。
   `natueve-web`・`natueve-web-stg`・`natueve-api`・`natueve-api-stg`・`assets`・`assets-dev`（いずれも `.natuportal.org`）。
+- 同じ日に、本番と検証環境の `http://…/event-list?page=1` を Safari・Chrome・Firefox・Edge（macOS）で開き、
+  証明書の警告と混在コンテンツの警告が出ず、`https://…/event-list?page=1` で表示されることを確かめた。
+  ブラウザには自分で HTTPS に切り替える機能（Chrome・Firefox の HTTPS-First など）があるため、ブラウザでの確認はサーバー側のリダイレクトの確認を兼ねない（リダイレクトは curl で確かめる）。
 - 証明書は Cloudflare が用意したもの（発行元は Google Trust Services。2026-11-13 時点の有効期限は 2027-01-25）。
 - HSTS（`Strict-Transport-Security`）は付けていない。付けるかどうかと範囲は #411 で扱う。
 
