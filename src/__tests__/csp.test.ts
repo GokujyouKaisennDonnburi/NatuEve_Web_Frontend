@@ -148,7 +148,19 @@ describe("buildCspHeader", () => {
 
     const connectSrc = directiveSources(csp, "connect-src");
     // R2 の直 PUT 先は env に依らないため常に載る。
-    expect(connectSrc).toEqual(["'self'", "https://assets.natuportal.org"]);
+    expect(connectSrc).toEqual([
+      "'self'",
+      "https://assets.natuportal.org",
+      "https://*.r2.cloudflarestorage.com",
+    ]);
+  });
+
+  it("connect-src には presign の署名付き PUT 先（R2 の S3 API エンドポイント）を含める", () => {
+    const csp = buildCspHeader({ nonce: NONCE, isDev: false });
+
+    expect(directiveSources(csp, "connect-src")).toContain(
+      "https://*.r2.cloudflarestorage.com",
+    );
   });
 
   it("connect-src には署名付き URL の直 PUT 先（R2 の公開ドメイン）も含める", () => {

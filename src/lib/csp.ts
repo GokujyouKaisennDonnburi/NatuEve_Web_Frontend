@@ -15,6 +15,10 @@ const GOOGLE_PROFILE_IMAGE_ORIGIN = "https://lh3.googleusercontent.com";
 // next.config.ts の mockImageHosts と同じ値のため、変更するときは同期する。
 const MOCK_IMAGE_ORIGINS = ["https://picsum.photos", "https://i.pravatar.cc"];
 
+// presign が返す署名付き PUT の宛先（R2 の S3 API エンドポイント）。
+// アカウント ID はフロントからは不明のため、ドメイン全体を許可する。
+const R2_STORAGE_ENDPOINT_SOURCE = "https://*.r2.cloudflarestorage.com";
+
 const isFlagEnabled = (value: string | undefined) => value === "true";
 
 // env の URL を CSP に書けるオリジンへ変換する。
@@ -64,9 +68,13 @@ export function buildCspHeader({ nonce, isDev }: CspBuildOptions): string {
   ];
 
   // API と Supabase（認証）はブラウザから直接 fetch する。
-  // HMR の WebSocket と MSW の Service Worker 登録は dev だけ必要になる。
+  // presign が返す署名付き PUT の宛先は R2 の S3 API エンドポイント
+  // （https://{アカウントID}.r2.cloudflarestorage.com。NatuEve_API internal/storage/r2.go）で、
+  // 公開ドメインとは異なる。フロントからはアカウント ID を組み立てられないため、
+  // R2 の API ドメインで許可する（services/upload.ts の putToR2 が直接 PUT する）。
   const connectOrigins = [
     ...r2Origins,
+    R2_STORAGE_ENDPOINT_SOURCE,
     toOrigin(process.env.NEXT_PUBLIC_API_BASE_URL),
     toOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL),
   ].filter((origin) => origin !== null);
