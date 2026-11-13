@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Check, MapPin, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -10,7 +10,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BACK_LINK_LABELS } from "@/constants/labels";
 import { useEventJoinConfirm } from "@/hooks/useEventJoinConfirm";
 import { getEventDetail } from "@/services/event";
-import { formatMonthDayTime } from "@/utils/date";
 
 type EventJoinConfirmContentProps = {
   eventId: string;
@@ -140,12 +139,8 @@ export function EventJoinConfirmContent({
   );
 }
 
-// 確定対象のイベント概要。タイトル・開催日時・場所だけを簡潔に出す。
+// 確定対象のイベント概要。申込先を取り違えないよう、タイトルだけを簡潔に出す。
 function EventSummary({ event }: Readonly<{ event: EventDetailType }>) {
-  const formattedEventDate = formatMonthDayTime(event.eventDate);
-  const eventDateLabel =
-    formattedEventDate === "—" ? formattedEventDate : `${formattedEventDate}〜`;
-
   return (
     <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-4">
       <p className="text-xs font-semibold text-slate-500">申込先のイベント</p>
@@ -153,20 +148,6 @@ function EventSummary({ event }: Readonly<{ event: EventDetailType }>) {
       <h2 className="break-words text-base font-bold text-slate-900">
         {event.title}
       </h2>
-
-      <div className="flex flex-col gap-1 text-sm text-slate-600">
-        <span className="flex items-center gap-1.5">
-          <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0" />
-          {eventDateLabel}
-        </span>
-
-        {event.location ? (
-          <span className="flex min-w-0 items-center gap-1.5">
-            <MapPin aria-hidden="true" className="h-4 w-4 shrink-0" />
-            <span className="break-words">{event.location}</span>
-          </span>
-        ) : null}
-      </div>
     </div>
   );
 }
