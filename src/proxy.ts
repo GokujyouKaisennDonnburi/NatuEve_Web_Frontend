@@ -8,7 +8,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // 検証環境での違反観察（#416）のため、env で Report-Only に切り替えられる。
-// request 側のヘッダー名も揃える。Next.js は Report-Only のヘッダーからも nonce を抽出する。
+// request 側のヘッダー名も揃える。Next.js の nonce 抽出は Report-Only のヘッダーも
+// 対象である（node_modules/next/dist/server/route-modules/app-page/parse-request-headers.js
+// の parseRequestHeaders が content-security-policy と content-security-policy-report-only
+// の両方を読む）ため、Report-Only 時でも script に nonce が付く。
 const getCspHeaderKey = () =>
   process.env.CSP_REPORT_ONLY === "true"
     ? "Content-Security-Policy-Report-Only"
@@ -37,11 +40,12 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      // ドキュメント以外（静的アセット・画像最適化・API・メタデータルート）には
-      // CSP が不要なため除外する。本番では静的アセットは Workers の assets レイヤが
-      // Worker をバイパスするため、そもそも proxy を通らない。
+      // ドキュメント以外（静的アセット・画像最適化・API・メタデータルート・
+      // MSW の Service Worker スクリプト）には CSP が不要なため除外する。
+      // 本番では静的アセットは Workers の assets レイヤが Worker をバイパスするため、
+      // そもそも proxy を通らない。
       source:
-        "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
+        "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|mockServiceWorker.js).*)",
       // next/link の prefetch 応答はドキュメントではないため除外する（docs の推奨）。
       missing: [
         { type: "header", key: "next-router-prefetch" },

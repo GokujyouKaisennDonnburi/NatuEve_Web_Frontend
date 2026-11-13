@@ -155,6 +155,17 @@ describe("buildCspHeader", () => {
     ]);
   });
 
+  it("非階層スキーム（data: など）は origin が null にならないよう除外する", () => {
+    setEnv("NEXT_PUBLIC_API_BASE_URL", "data:text/plain,x");
+    setEnv("NEXT_PUBLIC_SUPABASE_URL", "javascript:alert(1)");
+    const csp = buildCspHeader({ nonce: NONCE, isDev: false });
+
+    const connectSrc = directiveSources(csp, "connect-src");
+    expect(connectSrc).not.toContain("null");
+    expect(connectSrc).not.toContain("data:");
+    expect(connectSrc).not.toContain("javascript:");
+  });
+
   it("connect-src には presign の署名付き PUT 先（R2 の S3 API エンドポイント）を含める", () => {
     const csp = buildCspHeader({ nonce: NONCE, isDev: false });
 

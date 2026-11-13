@@ -24,15 +24,18 @@ const isFlagEnabled = (value: string | undefined) => value === "true";
 // env の URL を CSP に書けるオリジンへ変換する。
 // 未設定・壊れた値は CSP に含めず無視する。その接続先は CSP でブロックされ、
 // 問題はブラウザの Console に現れる（無効な値で proxy を落とさないため）。
+// data: など非階層スキームは例外にならないため、origin の文字列 "null" も除外する。
 const toOrigin = (value: string | undefined): string | null => {
   if (!value) {
     return null;
   }
+  let origin: string;
   try {
-    return new URL(value).origin;
+    origin = new URL(value).origin;
   } catch {
     return null;
   }
+  return origin === "null" ? null : origin;
 };
 
 export type CspBuildOptions = {
@@ -48,6 +51,12 @@ export type CspBuildOptions = {
 // style-src の 'unsafe-inline' は Next.js が生成する style 要素と React の style 属性の
 // ため必要で、禁止しているのは script-src だけである。
 export function buildCspHeader({ nonce, isDev }: CspBuildOptions): string {
+  // USE_DEV_ASSETS・NEXT_PUBLIC_USE_MSW・NEXT_PUBLIC_API_BASE_URL などはビルド時フラグだが、
+  // OpenNext Cloudflare がビルド時の .env の値を .open-next/cloudflare/next-env.mjs に焼き、
+  // ランタイムの populateProcessEnv が process.env に供給する（Worker の vars が優先）。
+  // そのため検証環境（USE_DEV_ASSETS=true でビルド）でもランタイムに値が届く。
+  // 検証環境へのデプロイ後の最終確認は #416 で行う。
+  //
   // R2 の公開ドメイン。画像の表示元であり、presign で発行した署名付き URL への
   // 直 PUT（画像/PDF の投稿）の宛先でもある。
   const r2Origins = [
