@@ -95,7 +95,7 @@ const toImageSource = ({ protocol, hostname, port }: ImageRemotePattern) =>
 
 // 本番ビルドで付ける CSP（#335）。
 // Next.js はページにインラインスクリプトを埋め込むため script-src に 'unsafe-inline' が要る。
-// nonce の CSP は ADR-0005 で採用を決めた。#412 で proxy（src/proxy.ts）の CSP に切り替えるまでは、この CSP を使う。
+// nonce の CSP は ADR-0005 で採用を決めた。#412 で proxy（#413 で追加する src/proxy.ts）の CSP に切り替えるまでは、この CSP を使う。
 // next/image の style 属性・sonner が差し込む <style> などのインラインのスタイルがあるため、style-src にも 'unsafe-inline' を付ける。
 // 接続先は remotePatterns と同じくビルド時の環境変数から組み立てる（本番と検証環境で値が違う）。
 // 開発時（next dev）は 'unsafe-eval' と HMR が要るため付けない。
