@@ -609,6 +609,25 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - 検証環境は `SITE_NOINDEX=true` でビルドし、全ページ（404・`robots.txt`・`sitemap.xml` を含む）に `X-Robots-Tag: noindex` を付ける。metadata ではなくヘッダーにするのは、ページごとの `metadata` の設定に左右されないため。
 - Workers では、静的アセット（`/images/*`・`/_next/static/*` など）と `/_next/image` は `headers()` を通らないため付かない。ページは `noindex` なので許容する（確認: `wrangler dev`。#372）。
 
+## クリックジャッキング対策
+
+他サイトの `<iframe>`・`<object>` などに自サイトのページを埋め込むと、ブラウザが表示を拒否するようにする（#384）。自サイト内でも埋め込みは使っていないため、同じオリジンからの埋め込みも拒否する。
+
+- `X-Frame-Options: DENY` を `next.config.ts` の `headers()` で全パス（`/:path*`）に付ける。本番・検証環境とも同じ。
+- CSP の `frame-ancestors 'none'` は、`src/proxy.ts` が付ける CSP（`src/lib/csp.ts`。#413）に含める。
+  新しいブラウザは `frame-ancestors` を優先し、`X-Frame-Options` は `frame-ancestors` に対応していないブラウザ向けに併用する。
+- CSP を Report-Only にした環境（#416）では `frame-ancestors` で拒否されないため、埋め込みは `X-Frame-Options` で拒否される。
+- proxy の対象外のパス（`robots.txt`・`sitemap.xml` など）には CSP が付かず、`X-Frame-Options` だけが付く。
+- 静的アセット（`/images/*`・`/_next/static/*` など）と `/_next/image` は `headers()` を通らないため、どちらも付かない。ページ（HTML）ではないため許容する。
+- 2026-11-13 に、`bun run preview` に #413 を合わせた状態で、`/`・`/event-list`・`/signin`・`/about`・404 の応答に
+  `X-Frame-Options: DENY` と `frame-ancestors 'none'` の両方が付くこと、`robots.txt` に `X-Frame-Options` が付くことを確かめた。
+
+確認するコマンド（`x-frame-options: DENY` と、`frame-ancestors 'none'` を含む `content-security-policy` が返ればよい）:
+
+```bash
+curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | grep -i -E "^x-frame-options|^content-security-policy"
+```
+
 ## 月額の試算
 
 2026-10 時点の試算。
