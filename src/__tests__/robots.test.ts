@@ -83,7 +83,11 @@ describe("検証環境の X-Robots-Tag", () => {
     }
 
     const { default: nextConfig } = await import("../../next.config");
-    return nextConfig.headers?.();
+    const rules = (await nextConfig.headers?.()) ?? [];
+    // X-Frame-Options（#384）など常に付くヘッダーは除き、X-Robots-Tag のルールだけを比べる。
+    return rules.filter((rule) =>
+      rule.headers.some((header) => header.key === "X-Robots-Tag"),
+    );
   };
 
   afterEach(() => {

@@ -84,19 +84,27 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // metadata の設定に左右されないよう、レスポンスヘッダーで付ける。
   // Workers では静的アセットと /_next/image は headers() を通らないため付かない。
-  // robots.txt の Disallow にはしない（クロールされないと noindex が読まれないため）。
   async headers() {
-    if (!isSiteNoindex) {
-      return [];
-    }
-
     return [
+      // 他サイトの iframe などへの埋め込みを拒否する（クリックジャッキング対策。#384）。
+      // 新しいブラウザは CSP の frame-ancestors 'none'（src/lib/csp.ts。#413）を優先し、
+      // X-Frame-Options は frame-ancestors 非対応のブラウザ向けに併用する。
+      // CSP を Report-Only にした環境（#416）でも、埋め込みはこのヘッダーで拒否される。
       {
         source: "/:path*",
-        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+        headers: [{ key: "X-Frame-Options", value: "DENY" }],
       },
+      // metadata の設定に左右されないよう、レスポンスヘッダーで付ける。
+      // robots.txt の Disallow にはしない（クロールされないと noindex が読まれないため）。
+      ...(isSiteNoindex
+        ? [
+            {
+              source: "/:path*",
+              headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+            },
+          ]
+        : []),
     ];
   },
 
