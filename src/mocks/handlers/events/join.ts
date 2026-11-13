@@ -1,9 +1,10 @@
 // このファイルは、イベント参加モックエンドポイントを定義する。
 // POST /api/v1/events/:id/join
-// 認証は任意。Authorization ヘッダなし → 匿名参加（profile = null）。
-// ヘッダありで有効な Bearer → プロフィールを記録してサインイン参加。
+// 認証は任意。Authorization ヘッダなし → ゲスト参加（未確定 pending・確認メール送信）。
+// ヘッダありで有効な Bearer → プロフィールを記録してログイン参加（即時確定）。
+// ゲストの申込済みメールアドレスからの再申込も 409 を返さず、新規と同じ 201 で応答する（ADR-0047）。
 // 1回の申込人数（partySize）が上限を超える場合は 400 party_size_exceeded、
-// 同一イベントへの重複参加は 409 already_joined、定員超過は 409 capacity_full で返す。
+// ログイン中の重複参加は 409 already_joined、定員超過は 409 capacity_full で返す。
 import { HttpResponse, http } from "msw";
 
 import { MAX_PARTICIPATION_PARTY_SIZE } from "@/constants/config";
@@ -19,7 +20,10 @@ import type { MockParticipationLog } from "./participation";
 import {
   eventMembers,
   eventParticipants,
+  findConfirmedMemberByMail,
+  findPendingMemberByMail,
   participationLogs,
+  seedPendingJoin,
 } from "./participation";
 
 export const eventJoinHandler = http.post(
@@ -164,7 +168,8 @@ export const eventJoinHandler = http.post(
     }
 
     // 定員チェック：イベントの定員が設定されている場合は、
-    // 現在の参加人数に今回の申込人数を加えた合計が定員を超える場合は 409 capacity_full を返す
+    // 現在の確定済み参加人数に今回の申込人数を加えた合計が定員を超える場合は 409 capacity_full を返す
+    // （未確定の申込は定員を消費しない・ADR-0047）。
     const totalCurrent = (eventMembers.get(id) ?? []).reduce(
       (sum, member) => sum + member.partySize,
       0,
@@ -186,8 +191,8 @@ export const eventJoinHandler = http.post(
     }
 
     // 認証ヘッダの有無で参加者のプロフィールを決定する。
-    // ヘッダなし → 匿名参加（profile = null）
-    // ヘッダあり（Bearer） → 既知トークンならそのプロフィールでサインイン参加
+    // ヘッダなし → ゲスト参加（未確定 pending）
+    // ヘッダあり（Bearer） → 既知トークンならそのプロフィールでログイン参加（即時確定）
     const authorizationHeader = request.headers.get("authorization");
     const hasBearer = hasBearerToken(authorizationHeader);
     const token = hasBearer ? getBearerToken(authorizationHeader) : "";
@@ -201,12 +206,66 @@ export const eventJoinHandler = http.post(
       return unauthorizedResponse();
     }
 
-    const profileId = profile?.id ?? null;
+    // 申込日時を1回だけ生成し、参加者一覧と受領レスポンスの両方に使い回す。
+    // id が廃止され createdAt が識別・表示の重要情報になったため、同一申込で
+    // タイムスタンプがズレないよう単一の値で整合性を保つ。
+    const createdAt = new Date().toISOString();
 
-    // 重複参加チェック：サインイン時は token、匿名時は mailAddress で識別
-    const participantKey = hasBearer ? token : `anon:${mailAddress}`;
+    if (!hasBearer) {
+      // ゲスト参加: 未確定（pending）として保存し、確認トークンで確定させる。
+      // 確定するまで参加者一覧・参加人数・定員判定には含めない。
+      // 申込済みのメールアドレスでも 409 を返さず、新規と同じ 201 と本文で応答し、
+      // 既存申込の内容（名前・人数など）は返さない（ADR-0047）。
+      const existingMember =
+        findConfirmedMemberByMail(id, mailAddress) ??
+        findPendingMemberByMail(id, mailAddress);
+
+      if (!existingMember) {
+        // 実 API は crypto/rand の 32 バイトを base64url 化したトークンを発行する。
+        // モックは確認画面との往復を再現できる一意な値で代用する。
+        const pending = seedPendingJoin(id, {
+          token: `mock-confirm-${crypto.randomUUID()}`,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          username,
+          mailAddress,
+          partySize,
+          participants: participantEntries,
+        });
+
+        // モックは確認メールを送らないため、開発中は確認画面を開ける URL をコンソールへ出す。
+        if (process.env.NEXT_PUBLIC_USE_MSW === "true") {
+          const origin = typeof location !== "undefined" ? location.origin : "";
+          console.info(
+            `[MSW] 確認メールのリンク: ${origin}/events/${id}/join/confirm?token=${encodeURIComponent(pending.token)}`,
+          );
+        }
+      }
+
+      // 応答は送信内容から組み立て、既存申込の有無を判別できないようにする。
+      return HttpResponse.json(
+        {
+          eventId: id,
+          mailAddress,
+          username,
+          participants: participantEntries,
+          partySize,
+          profileId: null,
+          createdAt,
+        },
+        { status: 201 },
+      );
+    }
+
+    // ログイン参加: 従来どおり即時確定する。
+    // 同一プロフィールまたは同一メールアドレスの申込が既にある場合は 409 already_joined。
+    // 同一メールの pending 行がある場合も 409 とし、pending 行は削除しない（ADR-0047）。
+    const participantKey = token;
     const participants = eventParticipants.get(id) ?? new Set<string>();
-    if (participants.has(participantKey)) {
+    if (
+      participants.has(participantKey) ||
+      findConfirmedMemberByMail(id, mailAddress) ||
+      findPendingMemberByMail(id, mailAddress)
+    ) {
       return HttpResponse.json(
         {
           error: {
@@ -219,11 +278,6 @@ export const eventJoinHandler = http.post(
     }
     participants.add(participantKey);
     eventParticipants.set(id, participants);
-
-    // 申込日時を1回だけ生成し、参加者一覧と受領レスポンスの両方に使い回す。
-    // id が廃止され createdAt が識別・表示の重要情報になったため、同一申込で
-    // タイムスタンプがズレないよう単一の値で整合性を保つ。
-    const createdAt = new Date().toISOString();
 
     // participation-logs エンドポイントが返す参加履歴を記録する。
     const logs =
@@ -259,7 +313,7 @@ export const eventJoinHandler = http.post(
         username,
         participants: participantEntries,
         partySize,
-        profileId,
+        profileId: profile?.id ?? null,
         createdAt,
       },
       { status: 201 },

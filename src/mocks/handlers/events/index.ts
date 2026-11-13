@@ -4,6 +4,7 @@ import { eventCancelHandler } from "./cancel";
 import { eventCreateHandler } from "./create";
 import { eventDetailHandler } from "./detail";
 import { eventJoinHandler } from "./join";
+import { eventJoinConfirmHandler } from "./join-confirm";
 import { eventLeaveHandler } from "./leave";
 import { eventListHandler } from "./list";
 import { eventMembersHandler } from "./members";
@@ -21,6 +22,7 @@ export const eventHandlers = [
   eventNotificationHandler,
   eventCreateHandler,
   eventJoinHandler,
+  eventJoinConfirmHandler,
   eventMembersHandler,
   eventMyApplicationHandler,
   eventParticipationLogsHandler,
