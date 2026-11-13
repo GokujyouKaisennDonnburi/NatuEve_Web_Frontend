@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useJumpToFirstError } from "@/hooks/useJumpToFirstError";
 import { preventImplicitSubmit } from "@/utils/form";
+import { MAX_IMAGE_PIXELS } from "@/utils/imageSize";
 import { validateUploadFile } from "@/utils/upload";
 import type React from "react";
 import { useRef } from "react";
@@ -152,7 +153,7 @@ export function ReportPostForm({
               }
               maxFiles={10}
               promptLabel="クリックまたはドラッグで画像をアップロード"
-              hint="JPG / PNG ・ 1ファイル 10MB まで"
+              hint={`JPG / PNG ・ 1ファイル 10MB・縦横${MAX_IMAGE_PIXELS}px まで`}
               validate={(file) => validateUploadFile(file, "image")}
             />
           </FormCard>

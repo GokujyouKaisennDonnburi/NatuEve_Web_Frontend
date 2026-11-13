@@ -29,6 +29,7 @@ import {
 } from "@/utils/upload";
 import { Plus } from "lucide-react";
 
+import { MAX_IMAGE_PIXELS } from "@/utils/imageSize";
 import {
   EVENT_DOCUMENTS_CARD_ID,
   EVENT_IMAGE_CARD_ID,
@@ -395,7 +396,7 @@ export function EventPostForm({
                 setField("eventImage", files[0] ?? null)
               }
               promptLabel="クリックまたはドラッグで画像をアップロード"
-              hint={`1ファイル ${toMegabytes(MAX_IMAGE_BYTES)}MB まで`}
+              hint={`1ファイル ${toMegabytes(MAX_IMAGE_BYTES)}MB・縦横${MAX_IMAGE_PIXELS}px まで`}
               validate={(file) => validateUploadFile(file, "image")}
             />
           </FormCard>

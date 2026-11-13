@@ -111,8 +111,8 @@ function ReportPostPageContent() {
     };
   }, [eventId]);
 
-  // バリデーション
-  const validateForm = (): boolean => {
+  // バリデーション。画像は寸法判定のためにファイルを読むため非同期。
+  const validateForm = async (): Promise<boolean> => {
     const errors: Record<string, string> = {};
 
     if (formState.externalUrlEnabled) {
@@ -151,7 +151,9 @@ function ReportPostPageContent() {
           file,
           kind: "image" as const,
         }));
-        const imageError = findUploadValidationError(imageValidationEntries);
+        const imageError = await findUploadValidationError(
+          imageValidationEntries,
+        );
         if (imageError) {
           errors.reportImages = imageError;
         }
@@ -165,7 +167,8 @@ function ReportPostPageContent() {
             file,
             kind: "pdf" as const,
           }));
-          const pdfError = findUploadValidationError(pdfValidationEntries);
+          const pdfError =
+            await findUploadValidationError(pdfValidationEntries);
           if (pdfError) {
             errors.reportPdfs = pdfError;
           }
@@ -179,13 +182,18 @@ function ReportPostPageContent() {
 
   // フォーム送信処理
   const handleSubmit = async () => {
-    if (!validateForm() || !eventId) {
+    // 連打による重複投稿を防ぐ。validateForm が画像の寸法判定で時間を要する間も
+    // isSubmitting を立てておき、ボタンを disabled に保つ
+    if (isSubmitting) {
       return;
     }
-
     setIsSubmitting(true);
 
     try {
+      if (!(await validateForm()) || !eventId) {
+        return;
+      }
+
       const imageObjectKeys: string[] = [];
       const imageFilenames: string[] = [];
       const pdfObjectKeys: string[] = [];
