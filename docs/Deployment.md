@@ -633,7 +633,7 @@ CSP の内容:
 | 項目 | 値 | 理由 |
 |---|---|---|
 | `default-src` | `'self'` | 下に書かない種類（`frame-src`・`worker-src` など）は自サイトだけ |
-| `script-src` | `'self' 'unsafe-inline'` | Next.js はページにインラインスクリプトを埋め込む。nonce は下の「見送ったこと」 |
+| `script-src` | `'self' 'unsafe-inline'` | Next.js はページにインラインスクリプトを埋め込む。nonce への切り替えは下の「nonce を使う CSP への切り替え」 |
 | `style-src` | `'self' 'unsafe-inline'` | `next/image` の `style` 属性・sonner が差し込む `<style>` など、インラインのスタイルがある |
 | `img-src` | `'self' blob:` と画像の取得元 | `blob:` はアップロード前のプレビュー。取得元は `remotePatterns` と同じホスト（`USE_DEV_ASSETS`・`NEXT_PUBLIC_USE_MSW` で増える）と、アバターの `lh3.googleusercontent.com` |
 | `font-src` | `'self'` | `next/font/google` はビルド時にフォントを取り込み、自サイトから配る |
@@ -646,16 +646,20 @@ CSP の内容:
 - 接続先はビルド時の環境変数から組み立てる。本番と検証環境で値が違うため、環境ごとにビルドする（上の「環境変数」）。
   値が空なら許可に加えず（CI の品質チェックのビルド）、URL でなければビルドを止める。
 - R2 のホストはアカウント ID を含むが、ワイルドカードにしている。指定するにはビルドに変数を足す必要があり、
-  `'unsafe-inline'` の下では絞っても XSS の持ち出し先が減る効果は小さいため。厳しい CSP に移るときに一緒に絞る。
+  `'unsafe-inline'` の下では絞っても XSS の持ち出し先が減る効果は小さいため。nonce の CSP に切り替えるとき（#412）に、絞るかを改めて決める。
 - 接続先・画像の取得元を足すとき（新しい外部 API、Google 以外のログイン方法のアバターなど）は、CSP にも足す。足さないとブラウザが止め、通信の失敗・画像が出ないといった症状になる。
 - 違反の報告先（`report-uri`・`report-to`）は指定していない。違反は利用者のブラウザのコンソールに出るだけで、こちらには届かない。
 
+nonce を使う CSP への切り替え（[ADR-0005](./adr/0005-csp-nonce-dynamic-rendering.md)）:
+
+- #335 では nonce を見送ったが、ADR-0005 で採用を決めた。nonce の CSP は `src/proxy.ts` が付ける（#413）。
+- #412 までは上の CSP を有効のまま使い、nonce の CSP は本番・検証環境とも `Content-Security-Policy-Report-Only` で並べて付ける（違反の観察は #416）。
+  #412 で nonce の CSP を有効にし、`next.config.ts` の CSP を外す。
+- 切り替えると全ページが毎回の動的レンダリングになり、HTML をキャッシュして配れなくなる。受け入れた費用と表示速度への影響は ADR-0005 に記録した。
+
 見送ったこと:
 
-- **nonce を使う CSP**: インラインスクリプトも止められるが、nonce は応答ごとに変える必要があり、全ページが毎回の動的レンダリングになる（ISR・静的ページを使えない）。
-  また応答ごとに nonce を付けるには middleware（Next.js 16 では `proxy.ts`）が要り、OpenNext は Node 用の middleware に対応していない（#335 の備考）。
-  利用者の書いた HTML を表示する機能や外部のスクリプトを足すときに見直す。
-- **`Content-Security-Policy-Report-Only` で様子を見る**: 報告の受け取り先がないため、本番に出しても情報が集まらない。
+- **上の CSP を `Content-Security-Policy-Report-Only` で様子を見る**: 報告の受け取り先がないため、本番に出しても情報が集まらない。
   接続先をコードからすべて洗い出せたため、検証環境で確かめてから有効のまま本番に出す。
 
 確認したこと（2026-11-13。`bun run preview`。ローカルの Workers ランタイム）:
