@@ -61,6 +61,88 @@ const isDevAssetsEnabled = process.env.USE_DEV_ASSETS === "true";
 // `true` 以外（未設定・`false` を含む）では付けない（本番が検索から消えるのを防ぐ）。
 const isSiteNoindex = process.env.SITE_NOINDEX === "true";
 
+// 環境変数の URL からオリジンを取り出す。未設定・空文字なら何も返さない
+// （CI の品質チェックのビルドは接続先を空で渡す）。値が http(s) の URL でなければビルドを止める。
+const toOrigins = (name: string, value: string | undefined): string[] => {
+  if (!value) {
+    return [];
+  }
+
+  const url = URL.parse(value);
+
+  // "localhost:8085" のようにスキームが抜けた値も URL として解釈され、オリジンが "null" になるため弾く。
+  if (url?.protocol !== "https:" && url?.protocol !== "http:") {
+    throw new Error(`${name} が URL ではありません。`);
+  }
+
+  return [url.origin];
+};
+
+const toImageSources = (patterns: ImageRemotePattern[]): string[] => [
+  ...new Set(
+    patterns.map(({ protocol, hostname }) => `${protocol}://${hostname}`),
+  ),
+];
+
+// 本番ビルドで付ける CSP（#335）。
+// Next.js はページにインラインスクリプトを埋め込むため script-src に 'unsafe-inline' が要る。
+// nonce にすると全ページが毎回の動的レンダリングになり ISR・静的ページを使えないため、使わない。
+// next/image の style 属性・sonner が差し込む <style> などのインラインのスタイルがあるため、style-src にも 'unsafe-inline' を付ける。
+// 接続先は remotePatterns と同じくビルド時の環境変数から組み立てる（本番と検証環境で値が違う）。
+// 開発時（next dev）は 'unsafe-eval' と HMR が要るため付けない。
+const buildContentSecurityPolicy = (): string => {
+  const imageSources = [
+    "'self'",
+    // アップロード前のプレビュー（URL.createObjectURL）。
+    "blob:",
+    ...toImageSources([
+      ...productionImageHosts,
+      ...(isDevAssetsEnabled ? developmentImageHosts : []),
+      ...(isMswEnabled ? mockImageHosts : []),
+    ]),
+    // アバター（Supabase の user_metadata の Google のプロフィール画像。画像最適化を通さない）。
+    "https://lh3.googleusercontent.com",
+  ];
+
+  const connectSources = [
+    "'self'",
+    ...toOrigins(
+      "NEXT_PUBLIC_API_BASE_URL",
+      process.env.NEXT_PUBLIC_API_BASE_URL,
+    ),
+    ...toOrigins(
+      "NEXT_PUBLIC_SUPABASE_URL",
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+    ),
+    // 画像・PDF を presign の署名付き URL へ直接 PUT する（NatuEve_API の internal/storage/r2.go）。
+    // ホストはアカウント ID を含むが、ビルドに渡す変数を増やさないためワイルドカードにする。
+    "https://*.r2.cloudflarestorage.com",
+    // MSW のモックの署名付き URL（src/mocks/handlers/uploads.ts）。
+    ...(isMswEnabled ? ["https://mock.storage.test"] : []),
+  ];
+
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    `img-src ${imageSources.join(" ")}`,
+    "font-src 'self'",
+    `connect-src ${connectSources.join(" ")}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
+};
+
+// ページと静的ファイルの両方に付けるヘッダー（#335）。静的ファイルには public/_headers で同じ値を付ける。
+// X-Frame-Options は frame-ancestors を解さない古いブラウザ向け。
+const commonSecurityHeaders = [
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+];
+
 // Next.jsの設定ファイル
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -84,19 +166,36 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // metadata の設定に左右されないよう、レスポンスヘッダーで付ける。
   // Workers では静的アセットと /_next/image は headers() を通らないため付かない。
-  // robots.txt の Disallow にはしない（クロールされないと noindex が読まれないため）。
+  // 静的アセットのセキュリティヘッダーは public/_headers で補う。
   async headers() {
-    if (!isSiteNoindex) {
-      return [];
-    }
+    const securityHeaders = [
+      ...commonSecurityHeaders,
+      ...(process.env.NODE_ENV === "production"
+        ? [
+            {
+              key: "Content-Security-Policy",
+              value: buildContentSecurityPolicy(),
+            },
+          ]
+        : []),
+    ];
 
     return [
       {
         source: "/:path*",
-        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+        headers: securityHeaders,
       },
+      // metadata の設定に左右されないよう、レスポンスヘッダーで付ける。
+      // robots.txt の Disallow にはしない（クロールされないと noindex が読まれないため）。
+      ...(isSiteNoindex
+        ? [
+            {
+              source: "/:path*",
+              headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+            },
+          ]
+        : []),
     ];
   },
 
