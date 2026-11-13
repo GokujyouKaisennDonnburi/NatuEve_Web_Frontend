@@ -52,6 +52,12 @@ const parseCsp = (policy: string): Record<string, string[]> =>
     }),
   );
 
+// CSP のソースからホスト名を取り出す。スキームを省いたホストソース（例: "assets.natuportal.org"）は
+// そのままでは URL として読めないため、仮に https:// を付けて読む。
+// 'self'・blob: なども仮のホスト名になるが、remotePatterns の実在のホスト名とは一致しないため、突き合わせに影響しない。
+const toSourceHostname = (source: string): string | undefined =>
+  URL.parse(source.includes("://") ? source : `https://${source}`)?.hostname;
+
 const loadCsp = async (env: HeaderEnv = {}) => {
   const headers = await loadSecurityHeaders(env);
   return parseCsp(headers["Content-Security-Policy"]);
@@ -199,11 +205,7 @@ describe("next.config.ts の CSP", () => {
     const hostnames = (nextConfig.images?.remotePatterns ?? []).map(
       ({ hostname }) => hostname,
     );
-    const imageSourceHostnames = csp["img-src"].map(
-      (source) =>
-        URL.parse(source.includes("://") ? source : `https://${source}`)
-          ?.hostname,
-    );
+    const imageSourceHostnames = csp["img-src"].map(toSourceHostname);
 
     expect(hostnames.length).toBeGreaterThan(0);
     expect(imageSourceHostnames).toEqual(expect.arrayContaining(hostnames));
