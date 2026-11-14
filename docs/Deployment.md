@@ -653,8 +653,9 @@ CSP の内容:
 nonce を使う CSP への切り替え（[ADR-0005](./adr/0005-csp-nonce-dynamic-rendering.md)）:
 
 - #335 では nonce を見送ったが、ADR-0005 で採用を決めた。nonce の CSP は `src/proxy.ts` が付ける（#413）。
-- #412 までは上の CSP を有効のまま使い、nonce の CSP は本番・検証環境とも `Content-Security-Policy-Report-Only` で並べて付ける（違反の観察は #416）。
-  #412 で nonce の CSP を有効にし、`next.config.ts` の CSP を外す。
+- #412 までは上の CSP を有効のまま使い、nonce の CSP は本番・検証環境とも `Content-Security-Policy-Report-Only` で並べて付ける。
+  本番も Report-Only にするのは、違反の解消（#416）が終わる前に本番でスクリプトを止めないため。下の「見送ったこと」の様子見とは目的が違い、
+  違反は検証環境の DevTools で確かめる（#416）。#412 で nonce の CSP を有効にし、`next.config.ts` の CSP を外す。
 - 全ページの動的レンダリングは、#412 の切り替えを待たず #413 を出した時点から始まり、HTML をキャッシュして配れなくなる。受け入れた費用と表示速度への影響は ADR-0005 に記録した。
 - #413・#412 のマージ時に、この節・上の表・「イベント詳細の SSR / メタデータ」のキャッシュの記述・開発時に CSP を付けないとした記述を直す。
 
