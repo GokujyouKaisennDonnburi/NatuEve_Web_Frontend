@@ -2,7 +2,11 @@
 // 共有するメモリ内状態と、その生成・操作ロジックを定義する。
 // MSW はプロセス内状態のためリロードでリセットされる前提。
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
-import type { AbsenceReason, EventMemberProfile } from "@/types/participate";
+import type {
+  AbsenceReason,
+  EventMemberProfile,
+  ParticipantEntry,
+} from "@/types/participate";
 
 import { TOKEN_TO_PROFILE } from "./auth";
 
@@ -48,11 +52,11 @@ export type MockPendingEventMember = {
   username: string;
   mailAddress: string;
   partySize: number;
-  participants: Array<{ category: string; headCount: number }>;
+  participants: ParticipantEntry[];
   createdAt: string;
 };
 
-// メモリ内参加者管理：eventId ごとに参加者キー（サインイン時は token、匿名時は anon:mailAddress）を保持
+// メモリ内参加者管理：eventId ごとにログイン参加者のキー（raw token）を保持
 // 重複参加チェック（409 Conflict）のために使用
 export const eventParticipants = new Map<string, Set<string>>();
 
@@ -212,10 +216,6 @@ export const seedEventMembers = (
     },
   ];
   eventMembers.set(eventId, members);
-
-  const participants = eventParticipants.get(eventId) ?? new Set<string>();
-  participants.add(`anon:seed-${eventId}`);
-  eventParticipants.set(eventId, participants);
 };
 
 // サインイン中のモックユーザー自身の申し込みをシードする。

@@ -124,10 +124,11 @@ function ConfirmedJoinContent({
       <p className="text-xs font-semibold text-slate-500">申込内容</p>
 
       <ul className="mt-2 space-y-1 text-sm text-slate-700">
-        {result.participants.map((participant, index) => (
-          // 確定後に一度だけ描画する固定リストのため添字で一意にする。
-          // biome-ignore lint/suspicious/noArrayIndexKey: 並び順が変化しない固定リストのため添字で一意にする。
-          <li key={index} className="flex items-center justify-between gap-3">
+        {result.participants.map((participant) => (
+          <li
+            key={participant.category}
+            className="flex items-center justify-between gap-3"
+          >
             <span className="break-words">{participant.category}</span>
             <span className="shrink-0">{participant.headCount}名</span>
           </li>
