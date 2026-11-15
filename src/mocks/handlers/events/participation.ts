@@ -93,11 +93,18 @@ export const findConfirmedMemberByMail = (
   ) ?? null;
 
 // 未確定の申込をメールアドレスで探す。
+// 有効期限を過ぎた申込は無効として扱い、再申込や重複判定の対象にしない
+// （レコード自体は確定時の遅延削除に任せる）。
 export const findPendingMemberByMail = (
   eventId: string,
   mailAddress: string,
-): MockPendingEventMember | null =>
-  pendingEventMembers.get(eventId)?.get(toMailKey(mailAddress)) ?? null;
+): MockPendingEventMember | null => {
+  const pending =
+    pendingEventMembers.get(eventId)?.get(toMailKey(mailAddress)) ?? null;
+  if (!pending) return null;
+
+  return new Date(pending.expiresAt).getTime() > Date.now() ? pending : null;
+};
 
 // 未確定の申込を確認トークンで探す。確認画面のモックが使う。
 export const findPendingMemberByToken = (

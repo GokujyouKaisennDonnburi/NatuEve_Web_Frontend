@@ -116,6 +116,27 @@ describe("モック: ゲスト参加申込", () => {
     expect(pending?.username).toBe(guestJoinBody.username);
     expect(pending?.partySize).toBe(2);
   });
+
+  it("期限切れの未確定申込は再申込をブロックせず、新しい未確定申込を作る", async () => {
+    seedPendingJoin(EVENT_ID, {
+      token: "expired-token",
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+      username: "期限切れ",
+      mailAddress: guestJoinBody.mailAddress,
+      partySize: 1,
+      participants: [{ category: "大人", headCount: 1 }],
+    });
+
+    const response = await postJoin(guestJoinBody);
+
+    expect(response.status).toBe(201);
+    const pendings = pendingEventMembers.get(EVENT_ID);
+    expect(pendings?.size).toBe(1);
+    const pending = pendings?.values().next().value;
+    expect(pending?.token).not.toBe("expired-token");
+    expect(pending?.username).toBe(guestJoinBody.username);
+    expect(findPendingMemberByToken(EVENT_ID, "expired-token")).toBeNull();
+  });
 });
 
 describe("モック: ログイン参加申込", () => {
@@ -163,6 +184,21 @@ describe("モック: ログイン参加申込", () => {
 
     expect(response.status).toBe(409);
     expect(pendingEventMembers.get(EVENT_ID)?.size).toBe(1);
+  });
+
+  it("期限切れの未確定申込はログイン参加の重複判定に含めない", async () => {
+    seedPendingJoin(EVENT_ID, {
+      token: "expired-token",
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+      username: "期限切れ",
+      mailAddress: memberBody.mailAddress,
+      partySize: 1,
+      participants: [{ category: "大人", headCount: 1 }],
+    });
+
+    const response = await postJoin(memberBody, authHeaders);
+
+    expect(response.status).toBe(201);
   });
 });
 
