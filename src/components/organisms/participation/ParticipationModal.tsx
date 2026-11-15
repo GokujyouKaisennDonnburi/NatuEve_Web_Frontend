@@ -110,7 +110,7 @@ export function ParticipationModal({
   }, [steps, step]);
 
   const isComplete = step === ParticipationStepId.Complete;
-  // ゲスト申込は未確定（pending）で保存され、確認メールのリンクで確定する（ADR-0047）。
+  // ゲスト申込は未確定（pending）で保存され、確認メールのリンクで確定する（ADR-0049）。
   // そのため完了画面の見出しも「申し込み完了」ではなく確認メールの送信を伝える。
   const completeTitle = isAuthenticated
     ? "申し込み完了"

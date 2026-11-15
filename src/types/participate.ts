@@ -76,7 +76,7 @@ export class ParticipateError extends Error {
 }
 
 // イベント参加確定 API（POST /api/v1/events/{id}/join/confirm）の DTO 群。
-// 確認メールのリンクから呼ぶ。認証は不要（ADR-0047）。
+// 確認メールのリンクから呼ぶ。認証は不要（ADR-0049）。
 // ゲスト申込（pending）を確認トークンで確定する。トークンは24時間有効・単回使用。
 
 // 参加確定エンドポイントへのリクエストボディ DTO。

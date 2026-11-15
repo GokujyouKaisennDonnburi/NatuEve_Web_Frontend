@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 
 type ParticipationCompleteStepProps = {
   // ゲスト申込かどうか。ゲストは未確定（pending）で保存されるため、
-  // 完了ではなく確認メールの送信を伝える（ADR-0047）。
+  // 完了ではなく確認メールの送信を伝える（ADR-0049）。
   isGuest: boolean;
 };
 

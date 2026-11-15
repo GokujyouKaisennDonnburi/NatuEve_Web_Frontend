@@ -42,7 +42,7 @@ export type MockEventMember = {
 };
 
 // 未確定（pending）のゲスト申込1件分の型。
-// 確認トークンで確定するまで eventMembers には載せない（ADR-0047）。
+// 確認トークンで確定するまで eventMembers には載せない（ADR-0049）。
 // 参加者一覧・参加人数・定員判定から除外される状態を再現するために使う。
 export type MockPendingEventMember = {
   // 確認メールのリンクに含まれる確認トークン（モックでは平文で保持）。

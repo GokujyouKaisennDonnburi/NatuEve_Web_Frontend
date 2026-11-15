@@ -15,7 +15,7 @@ import {
 } from "@/mocks/handlers/events/participation";
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 
-// ADR-0047（ゲスト参加申込の確認メール確定方式）を再現したモックの挙動を検証する。
+// ADR-0049（ゲスト参加申込の確認メール確定方式）を再現したモックの挙動を検証する。
 // join と confirm のハンドラーを実際に HTTP で往復させ、画面が依存する契約を確認する。
 
 const server = setupServer(eventJoinHandler, eventJoinConfirmHandler);

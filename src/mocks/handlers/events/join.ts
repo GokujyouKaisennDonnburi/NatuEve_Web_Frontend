@@ -2,7 +2,7 @@
 // POST /api/v1/events/:id/join
 // 認証は任意。Authorization ヘッダなし → ゲスト参加（未確定 pending・確認メール送信）。
 // ヘッダありで有効な Bearer → プロフィールを記録してログイン参加（即時確定）。
-// ゲストの申込済みメールアドレスからの再申込も 409 を返さず、新規と同じ 201 で応答する（ADR-0047）。
+// ゲストの申込済みメールアドレスからの再申込も 409 を返さず、新規と同じ 201 で応答する（ADR-0049）。
 // 1回の申込人数（partySize）が上限を超える場合は 400 party_size_exceeded、
 // ログイン中の重複参加は 409 already_joined、定員超過は 409 capacity_full で返す。
 import { HttpResponse, http } from "msw";
@@ -169,7 +169,7 @@ export const eventJoinHandler = http.post(
 
     // 定員チェック：イベントの定員が設定されている場合は、
     // 現在の確定済み参加人数に今回の申込人数を加えた合計が定員を超える場合は 409 capacity_full を返す
-    // （未確定の申込は定員を消費しない・ADR-0047）。
+    // （未確定の申込は定員を消費しない・ADR-0049）。
     const totalCurrent = (eventMembers.get(id) ?? []).reduce(
       (sum, member) => sum + member.partySize,
       0,
@@ -215,7 +215,7 @@ export const eventJoinHandler = http.post(
       // ゲスト参加: 未確定（pending）として保存し、確認トークンで確定させる。
       // 確定するまで参加者一覧・参加人数・定員判定には含めない。
       // 申込済みのメールアドレスでも 409 を返さず、新規と同じ 201 と本文で応答し、
-      // 既存申込の内容（名前・人数など）は返さない（ADR-0047）。
+      // 既存申込の内容（名前・人数など）は返さない（ADR-0049）。
       const existingMember =
         findConfirmedMemberByMail(id, mailAddress) ??
         findPendingMemberByMail(id, mailAddress);
@@ -258,7 +258,7 @@ export const eventJoinHandler = http.post(
 
     // ログイン参加: 従来どおり即時確定する。
     // 同一プロフィールまたは同一メールアドレスの申込が既にある場合は 409 already_joined。
-    // 同一メールの pending 行がある場合も 409 とし、pending 行は削除しない（ADR-0047）。
+    // 同一メールの pending 行がある場合も 409 とし、pending 行は削除しない（ADR-0049）。
     const participantKey = token;
     const participants = eventParticipants.get(id) ?? new Set<string>();
     if (

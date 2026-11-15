@@ -1,5 +1,5 @@
 // このファイルは、イベント参加申込の確定モックエンドポイントを定義する。
-// POST /api/v1/events/:id/join/confirm（認証不要・ADR-0047）。
+// POST /api/v1/events/:id/join/confirm（認証不要・ADR-0049）。
 // 確認メールのリンクから呼ばれ、未確定（pending）のゲスト申込をトークンで確定する。
 // トークンは24時間有効・単回使用。不正・期限切れ・使用済みは 400 invalid_request、
 // イベント不存在は 404、定員超過・終了・取消は 409 を返す。
@@ -70,7 +70,7 @@ export const eventJoinConfirmHandler = http.post(
       return invalidTokenResponse();
     }
 
-    // 期限切れの pending は遅延削除して確定させない（ADR-0047）。
+    // 期限切れの pending は遅延削除して確定させない（ADR-0049）。
     if (new Date(found.pending.expiresAt).getTime() <= Date.now()) {
       removePendingMember(id, found.mailKey);
       return invalidTokenResponse();
