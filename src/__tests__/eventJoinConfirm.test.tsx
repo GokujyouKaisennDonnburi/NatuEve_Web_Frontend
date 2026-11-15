@@ -1,9 +1,17 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildEventDetail } from "@/__tests__/fixtures/event";
 import { EventJoinConfirmContent } from "@/components/organisms/EventJoinConfirmContent";
+import { useEventJoinConfirm } from "@/hooks/useEventJoinConfirm";
 import { getEventDetail } from "@/services/event";
 import { confirmEventJoin } from "@/services/participate";
 import { ConfirmJoinError, ConfirmJoinErrorCode } from "@/types/participate";
@@ -152,5 +160,34 @@ describe("EventJoinConfirmContent", () => {
       screen.queryByRole("button", { name: "申込を確定する" }),
     ).not.toBeInTheDocument();
     expect(mockConfirmEventJoin).not.toHaveBeenCalled();
+  });
+});
+
+describe("useEventJoinConfirm", () => {
+  it("確定成功後にconfirmを呼んでも確定APIは再実行しない", async () => {
+    mockConfirmEventJoin.mockResolvedValue({
+      eventId: EVENT_ID,
+      confirmedAt: "2026-11-13T00:00:00Z",
+      participants: [{ category: "大人", headCount: 1 }],
+      partySize: 1,
+    });
+
+    const { result } = renderHook(() =>
+      useEventJoinConfirm({ eventId: EVENT_ID, token: TOKEN }),
+    );
+
+    await act(async () => {
+      result.current.confirm();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    act(() => {
+      result.current.confirm();
+    });
+
+    expect(mockConfirmEventJoin).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe("success");
   });
 });

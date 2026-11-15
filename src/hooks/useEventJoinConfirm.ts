@@ -108,15 +108,21 @@ export function useEventJoinConfirm({
     setErrorMessage(null);
 
     void (async () => {
+      let succeeded = false;
+
       try {
         const response = await confirmEventJoin(eventId, token);
         setResult(response);
         setStatus("success");
+        succeeded = true;
       } catch (error) {
         setErrorMessage(resolveConfirmJoinErrorMessage(error));
         setStatus("error");
       } finally {
-        isSubmittingRef.current = false;
+        // 成功時はトークン消費済みとして扱い、以降の confirm 呼び出しを無効化する。
+        if (!succeeded) {
+          isSubmittingRef.current = false;
+        }
       }
     })();
   }, [eventId, token]);
