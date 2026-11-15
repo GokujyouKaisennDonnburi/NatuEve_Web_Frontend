@@ -16,6 +16,16 @@ type EventJoinConfirmContentProps = {
   token: string;
 };
 
+// 確定操作のCTA。申し込みボタン（EventParticipationButton の APPLY_BUTTON_CLASS）と
+// 同じ緑塗りpillの系統に揃える。高さは既存CTAと同じ h-10 sm:h-11。
+const CONFIRM_BUTTON_CLASS =
+  "h-10 w-full rounded-full bg-[#9ABD5A] font-bold text-[#173315] hover:bg-[#A5C869] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11";
+
+// 再試行ボタン。確定ボタンより落ち着いた深みのある緑にして、
+// 補助的な再試行操作であることを区別する。
+const RETRY_BUTTON_CLASS =
+  "h-10 w-full rounded-full bg-[#315E26] font-bold text-white hover:bg-[#3D6E31] sm:h-11";
+
 // 申込確認画面のクライアント側エントリーポイント。
 //
 // 確認メールのリンクから開かれ、トークンでゲスト申込（pending）を確定する。
@@ -83,7 +93,11 @@ export function EventJoinConfirmContent({
                 ) : null}
 
                 {canRetry ? (
-                  <Button type="button" className="w-full" onClick={confirm}>
+                  <Button
+                    type="button"
+                    className={RETRY_BUTTON_CLASS}
+                    onClick={confirm}
+                  >
                     もう一度確定する
                   </Button>
                 ) : null}
@@ -96,7 +110,7 @@ export function EventJoinConfirmContent({
 
                 <Button
                   type="button"
-                  className="w-full"
+                  className={CONFIRM_BUTTON_CLASS}
                   disabled={status === "submitting"}
                   onClick={confirm}
                 >
