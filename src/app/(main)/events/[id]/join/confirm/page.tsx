@@ -13,7 +13,9 @@ export default async function EventJoinConfirmPage({
   searchParams,
 }: Readonly<EventJoinConfirmPageProps>) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const token = typeof query.token === "string" ? query.token.trim() : "";
+  // 同じクエリが複数付いた場合は先頭を採用する。
+  const rawToken = Array.isArray(query.token) ? query.token[0] : query.token;
+  const token = rawToken?.trim() ?? "";
 
   return <EventJoinConfirmContent eventId={id} token={token} />;
 }
