@@ -7,7 +7,9 @@ import type { EventDetailType } from "@/components/molecules/event-detail/types"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BACK_LINK_LABELS } from "@/constants/labels";
+import { BRAND_PILL_CTA_CLASS } from "@/constants/styles";
 import { useEventJoinConfirm } from "@/hooks/useEventJoinConfirm";
+import { cn } from "@/lib/utils";
 import type { ConfirmJoinResponse } from "@/types/participate";
 
 type EventJoinConfirmContentProps = {
@@ -16,10 +18,9 @@ type EventJoinConfirmContentProps = {
   token: string;
 };
 
-// 確定操作のCTA。申し込みボタン（EventParticipationButton の APPLY_BUTTON_CLASS）と
-// 同じ緑塗りpillの系統に揃える。高さは既存CTAと同じ h-10 sm:h-11。
-const CONFIRM_BUTTON_CLASS =
-  "h-10 w-full rounded-full bg-[#9ABD5A] font-bold text-[#173315] hover:bg-[#A5C869] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11";
+// 確定操作のCTA。申し込みボタンと共通の BRAND_PILL_CTA_CLASS を使い、
+// 高さだけ既存CTAと同じ h-10 sm:h-11 に揃える。
+const CONFIRM_BUTTON_CLASS = cn("h-10 w-full sm:h-11", BRAND_PILL_CTA_CLASS);
 
 // 再試行ボタン。確定ボタンより落ち着いた深みのある緑にして、
 // 補助的な再試行操作であることを区別する。
