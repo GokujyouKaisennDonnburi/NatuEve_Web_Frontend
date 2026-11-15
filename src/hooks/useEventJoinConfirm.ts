@@ -45,6 +45,25 @@ export function resolveConfirmJoinErrorMessage(error: unknown): string {
   return "申込を確定できませんでした。時間をおいて再度お試しください。";
 }
 
+// 確定を再試行できるエラーかどうか。
+// トークンは単回使用のため、無効・期限切れ・使用済みやイベント終了・取りやめ済みでは
+// 再試行しても成功しない。時間をおけば成功しうるエラーのみ再試行を許可する。
+export function isRetryableConfirmJoinError(error: unknown): boolean {
+  if (!(error instanceof ConfirmJoinError)) {
+    // 通信エラーなどは同じトークンで再試行できる。
+    return true;
+  }
+
+  switch (error.code) {
+    case ConfirmJoinErrorCode.CapacityFull:
+    case ConfirmJoinErrorCode.RateLimited:
+    case ConfirmJoinErrorCode.InternalError:
+      return true;
+    default:
+      return false;
+  }
+}
+
 type UseEventJoinConfirmParams = {
   eventId: string;
   // URL の ?token= から取得した確認トークン。空の場合は確定できない。
@@ -70,6 +89,9 @@ export function useEventJoinConfirm({
   );
   // 確定できた申込の内容。成功画面でカテゴリ別の人数を表示するために保持する。
   const [result, setResult] = useState<ConfirmJoinResponse | null>(null);
+  // 確定失敗時に再試行ボタンを表示するかどうか。
+  // トークン消費後は再試行できないため、確定前・確定成功時は常に false。
+  const [canRetry, setCanRetry] = useState(false);
   // 確定前に何のイベントへ申し込むのかを確認できるよう、イベント情報を取得する。
   // 取得に失敗しても確定操作自体は妨げないため、エラー表示にはしない。
   const [event, setEvent] = useState<EventDetailType | null>(null);
@@ -117,6 +139,7 @@ export function useEventJoinConfirm({
         succeeded = true;
       } catch (error) {
         setErrorMessage(resolveConfirmJoinErrorMessage(error));
+        setCanRetry(isRetryableConfirmJoinError(error));
         setStatus("error");
       } finally {
         // 成功時はトークン消費済みとして扱い、以降の confirm 呼び出しを無効化する。
@@ -136,5 +159,7 @@ export function useEventJoinConfirm({
     event,
     // 確定前・失敗後のみ押せる。確定中と確定済みは何もしない。
     confirm,
+    // 再試行が意味のあるエラーで確定に失敗した場合のみ true。
+    canRetry,
   };
 }

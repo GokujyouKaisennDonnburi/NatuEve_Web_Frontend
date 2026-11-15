@@ -148,6 +148,73 @@ describe("EventJoinConfirmContent", () => {
     expect(screen.getByText(/定員に達しているため/)).toBeInTheDocument();
   });
 
+  it("再試行できるエラーでは「もう一度確定する」で再実行できる", async () => {
+    mockConfirmEventJoin
+      .mockRejectedValueOnce(
+        new ConfirmJoinError(
+          ConfirmJoinErrorCode.CapacityFull,
+          "定員に達しています",
+          409,
+        ),
+      )
+      .mockResolvedValueOnce({
+        eventId: EVENT_ID,
+        confirmedAt: "2026-11-13T00:00:00Z",
+        participants: [{ category: "大人", headCount: 1 }],
+        partySize: 1,
+      });
+
+    renderContent();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "申込を確定する" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "もう一度確定する" }),
+    );
+
+    expect(await screen.findByText("申込が確定しました")).toBeInTheDocument();
+    expect(mockConfirmEventJoin).toHaveBeenCalledTimes(2);
+    expect(mockConfirmEventJoin).toHaveBeenLastCalledWith(EVENT_ID, TOKEN);
+  });
+
+  it("通信エラーでも再試行ボタンを表示する", async () => {
+    mockConfirmEventJoin.mockRejectedValue(new Error("network error"));
+
+    renderContent();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "申込を確定する" }),
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "もう一度確定する" }),
+    ).toBeInTheDocument();
+  });
+
+  it("無効・期限切れのトークンでは再試行ボタンを表示しない", async () => {
+    mockConfirmEventJoin.mockRejectedValue(
+      new ConfirmJoinError(
+        ConfirmJoinErrorCode.InvalidRequest,
+        "確認リンクが無効か、有効期限が切れています",
+        400,
+      ),
+    );
+
+    renderContent();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "申込を確定する" }),
+    );
+
+    expect(
+      await screen.findByText("申込を確定できませんでした"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "もう一度確定する" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("トークンが無い場合はAPIを呼ばずにエラー表示にする", async () => {
     renderContent("");
 

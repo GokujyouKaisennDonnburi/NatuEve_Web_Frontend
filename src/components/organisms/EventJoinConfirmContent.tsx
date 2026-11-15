@@ -25,10 +25,11 @@ export function EventJoinConfirmContent({
   eventId,
   token,
 }: Readonly<EventJoinConfirmContentProps>) {
-  const { status, errorMessage, result, event, confirm } = useEventJoinConfirm({
-    eventId,
-    token,
-  });
+  const { status, errorMessage, result, event, confirm, canRetry } =
+    useEventJoinConfirm({
+      eventId,
+      token,
+    });
 
   const eventDetailPath = `/event/${encodeURIComponent(eventId)}`;
 
@@ -79,6 +80,12 @@ export function EventJoinConfirmContent({
                   <p className="text-center text-sm leading-relaxed text-slate-600">
                     {errorMessage}
                   </p>
+                ) : null}
+
+                {canRetry ? (
+                  <Button type="button" className="w-full" onClick={confirm}>
+                    もう一度確定する
+                  </Button>
                 ) : null}
               </div>
             ) : (
