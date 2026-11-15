@@ -44,13 +44,13 @@ export function EventJoinConfirmContent({
   const eventDetailPath = `/event/${encodeURIComponent(eventId)}`;
 
   return (
-    <section className="mx-auto flex w-full max-w-xl flex-col gap-5 py-8">
-      <h1 className="text-center text-xl font-bold text-slate-900">
+    <section className="mx-auto flex w-full max-w-xl flex-col gap-5 py-6 sm:py-8">
+      <h1 className="text-center text-lg font-bold text-slate-900 sm:text-xl">
         参加申込の確認
       </h1>
 
       <Card className="border-slate-200 bg-white shadow-sm">
-        <CardContent className="space-y-6 px-6 py-8">
+        <CardContent className="space-y-5 px-4 py-6 sm:space-y-6 sm:px-6 sm:py-8">
           {event ? <EventSummary event={event} /> : null}
 
           <div aria-live="polite">
@@ -58,12 +58,12 @@ export function EventJoinConfirmContent({
               <div className="flex flex-col items-center gap-4">
                 <span
                   aria-hidden="true"
-                  className="flex h-16 w-16 items-center justify-center rounded-full bg-(--brand-green) text-white"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-(--brand-green) text-white sm:h-16 sm:w-16"
                 >
-                  <Check className="h-8 w-8" strokeWidth={3} />
+                  <Check className="h-6 w-6 sm:h-8 sm:w-8" strokeWidth={3} />
                 </span>
 
-                <p className="text-xl font-bold text-slate-900">
+                <p className="text-lg font-bold text-slate-900 sm:text-xl">
                   申込が確定しました
                 </p>
 
@@ -77,12 +77,12 @@ export function EventJoinConfirmContent({
               <div className="flex flex-col items-center gap-4">
                 <span
                   aria-hidden="true"
-                  className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 sm:h-16 sm:w-16"
                 >
-                  <X className="h-8 w-8" strokeWidth={3} />
+                  <X className="h-6 w-6 sm:h-8 sm:w-8" strokeWidth={3} />
                 </span>
 
-                <p className="text-xl font-bold text-slate-900">
+                <p className="text-lg font-bold text-slate-900 sm:text-xl">
                   申込を確定できませんでした
                 </p>
 
@@ -141,7 +141,7 @@ function ConfirmedJoinContent({
   result,
 }: Readonly<{ result: ConfirmJoinResponse }>) {
   return (
-    <div className="w-full rounded-md border border-slate-200 bg-slate-50 p-4">
+    <div className="w-full rounded-md border border-slate-200 bg-slate-50 p-3 sm:p-4">
       <p className="text-xs font-semibold text-slate-500">申込内容</p>
 
       <ul className="mt-2 space-y-1 text-sm text-slate-700">
@@ -167,7 +167,7 @@ function ConfirmedJoinContent({
 // 確定対象のイベント概要。申込先を取り違えないよう、タイトルだけを簡潔に出す。
 function EventSummary({ event }: Readonly<{ event: EventDetailType }>) {
   return (
-    <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-4">
+    <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3 sm:p-4">
       <p className="text-xs font-semibold text-slate-500">申込先のイベント</p>
 
       <h2 className="break-words text-base font-bold text-slate-900">
