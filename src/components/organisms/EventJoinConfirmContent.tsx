@@ -2,14 +2,12 @@
 
 import { Check, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BACK_LINK_LABELS } from "@/constants/labels";
 import { useEventJoinConfirm } from "@/hooks/useEventJoinConfirm";
-import { getEventDetail } from "@/services/event";
 import type { ConfirmJoinResponse } from "@/types/participate";
 
 type EventJoinConfirmContentProps = {
@@ -27,35 +25,10 @@ export function EventJoinConfirmContent({
   eventId,
   token,
 }: Readonly<EventJoinConfirmContentProps>) {
-  const { status, errorMessage, result, confirm } = useEventJoinConfirm({
+  const { status, errorMessage, result, event, confirm } = useEventJoinConfirm({
     eventId,
     token,
   });
-  const [event, setEvent] = useState<EventDetailType | null>(null);
-
-  // 確定前に何のイベントへ申し込むのかを確認できるよう、イベント情報を取得する。
-  // 取得に失敗しても確定操作自体は妨げないため、エラー表示にはしない。
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchEvent = async (): Promise<void> => {
-      try {
-        const detail = await getEventDetail(eventId);
-        if (!cancelled) {
-          setEvent(detail);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.error("イベント情報の取得に失敗しました", error);
-        }
-      }
-    };
-
-    void fetchEvent();
-    return () => {
-      cancelled = true;
-    };
-  }, [eventId]);
 
   const eventDetailPath = `/event/${encodeURIComponent(eventId)}`;
 

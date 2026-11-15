@@ -1,12 +1,14 @@
 "use client";
 
+import type { EventDetailType } from "@/components/molecules/event-detail/types";
+import { getEventDetail } from "@/services/event";
 import { confirmEventJoin } from "@/services/participate";
 import {
   ConfirmJoinError,
   ConfirmJoinErrorCode,
   type ConfirmJoinResponse,
 } from "@/types/participate";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // 申込確認画面の状態。
 // idle: 確定前 / submitting: 確定中 / success: 確定済み / error: 確定失敗。
@@ -68,6 +70,31 @@ export function useEventJoinConfirm({
   );
   // 確定できた申込の内容。成功画面でカテゴリ別の人数を表示するために保持する。
   const [result, setResult] = useState<ConfirmJoinResponse | null>(null);
+  // 確定前に何のイベントへ申し込むのかを確認できるよう、イベント情報を取得する。
+  // 取得に失敗しても確定操作自体は妨げないため、エラー表示にはしない。
+  const [event, setEvent] = useState<EventDetailType | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchEvent = async (): Promise<void> => {
+      try {
+        const detail = await getEventDetail(eventId);
+        if (!cancelled) {
+          setEvent(detail);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("イベント情報の取得に失敗しました", error);
+        }
+      }
+    };
+
+    void fetchEvent();
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
 
   // 連打・二重実行を防ぐための実行中フラグ。
   // state は再描画まで反映されないため、同期的に判定できる ref を使う。
@@ -99,6 +126,8 @@ export function useEventJoinConfirm({
     errorMessage,
     // 確定成功時のみ申込内容が入る。
     result,
+    // 申込先のイベント概要。取得できていない間は null。
+    event,
     // 確定前・失敗後のみ押せる。確定中と確定済みは何もしない。
     confirm,
   };
