@@ -18,6 +18,7 @@ import {
 import { mockEventDetails } from "./data";
 import type { MockParticipationLog } from "./participation";
 import {
+  CONFIRM_TOKEN_TTL_MS,
   eventMembers,
   eventParticipants,
   findConfirmedMemberByMail,
@@ -225,7 +226,7 @@ export const eventJoinHandler = http.post(
         // モックは確認画面との往復を再現できる一意な値で代用する。
         const pending = seedPendingJoin(id, {
           token: `mock-confirm-${crypto.randomUUID()}`,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(Date.now() + CONFIRM_TOKEN_TTL_MS).toISOString(),
           username,
           mailAddress,
           partySize,

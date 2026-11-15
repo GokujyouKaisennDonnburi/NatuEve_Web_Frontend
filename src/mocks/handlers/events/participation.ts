@@ -56,6 +56,10 @@ export type MockPendingEventMember = {
   createdAt: string;
 };
 
+// 確認トークンの有効期間。ADR-0049 の契約値（24時間）。
+// モックのトークン発行とテストの期限計算で共有する。
+export const CONFIRM_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+
 // メモリ内参加者管理：eventId ごとにログイン参加者のキー（raw token）を保持
 // 重複参加チェック（409 Conflict）のために使用
 export const eventParticipants = new Map<string, Set<string>>();

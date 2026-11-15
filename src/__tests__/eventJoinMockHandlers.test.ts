@@ -5,6 +5,7 @@ import { eventJoinHandler } from "@/mocks/handlers/events/join";
 import { eventJoinConfirmHandler } from "@/mocks/handlers/events/join-confirm";
 import {
   cancelledEventIds,
+  CONFIRM_TOKEN_TTL_MS,
   eventMembers,
   eventParticipants,
   findPendingMemberByToken,
@@ -55,7 +56,7 @@ const postConfirm = (token: string, eventId: string = EVENT_ID) =>
   });
 
 const futureDate = () =>
-  new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  new Date(Date.now() + CONFIRM_TOKEN_TTL_MS).toISOString();
 
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });
