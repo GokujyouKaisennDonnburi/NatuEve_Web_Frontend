@@ -20,16 +20,9 @@ export function ParticipationCompleteStep({
       </span>
 
       {isGuest ? (
-        <div className="space-y-2 text-center">
-          <p className="text-xl font-bold text-slate-900">
-            確認メールを送信しました
-          </p>
-          <p className="text-sm leading-relaxed text-slate-600">
-            ご入力いただいたメールアドレスに確認メールを送りました。
-            <br />
-            メール内のリンクから参加申込を確定してください。
-          </p>
-        </div>
+        <p className="text-center text-sm leading-relaxed text-slate-600">
+          メール内のリンクから参加申込を確定してください。
+        </p>
       ) : (
         <p className="text-xl font-bold text-slate-900">
           申し込みが完了しました

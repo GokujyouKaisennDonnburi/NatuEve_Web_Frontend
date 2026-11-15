@@ -4,13 +4,15 @@ import { describe, expect, it } from "vitest";
 import { ParticipationCompleteStep } from "@/components/organisms/participation/ParticipationCompleteStep";
 
 describe("ParticipationCompleteStep", () => {
-  it("ゲスト申込では確認メールの送信を伝える", () => {
+  it("ゲスト申込では確認メールのリンクから確定する案内を表示する", () => {
     render(<ParticipationCompleteStep isGuest />);
 
-    expect(screen.getByText("確認メールを送信しました")).toBeInTheDocument();
     expect(
       screen.getByText(/メール内のリンクから参加申込を確定してください/),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText("確認メールを送信しました"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText("申し込みが完了しました"),
     ).not.toBeInTheDocument();
