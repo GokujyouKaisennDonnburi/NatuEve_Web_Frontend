@@ -257,4 +257,43 @@ describe("useEventJoinConfirm", () => {
     expect(mockConfirmEventJoin).toHaveBeenCalledTimes(1);
     expect(result.current.status).toBe("success");
   });
+
+  it("確定失敗から再試行で成功すると再試行できない状態に戻る", async () => {
+    mockConfirmEventJoin
+      .mockRejectedValueOnce(
+        new ConfirmJoinError(
+          ConfirmJoinErrorCode.CapacityFull,
+          "定員に達しています",
+          409,
+        ),
+      )
+      .mockResolvedValueOnce({
+        eventId: EVENT_ID,
+        confirmedAt: "2026-11-13T00:00:00Z",
+        participants: [{ category: "大人", headCount: 1 }],
+        partySize: 1,
+      });
+
+    const { result } = renderHook(() =>
+      useEventJoinConfirm({ eventId: EVENT_ID, token: TOKEN }),
+    );
+
+    await act(async () => {
+      result.current.confirm();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("error");
+      expect(result.current.canRetry).toBe(true);
+    });
+
+    await act(async () => {
+      result.current.confirm();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(result.current.canRetry).toBe(false);
+  });
 });

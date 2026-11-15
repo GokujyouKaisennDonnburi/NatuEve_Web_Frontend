@@ -136,6 +136,8 @@ export function useEventJoinConfirm({
         const response = await confirmEventJoin(eventId, token);
         setResult(response);
         setStatus("success");
+        // 成功したため再試行は不要。エラー時の canRetry を引き継がない。
+        setCanRetry(false);
         succeeded = true;
       } catch (error) {
         setErrorMessage(resolveConfirmJoinErrorMessage(error));
