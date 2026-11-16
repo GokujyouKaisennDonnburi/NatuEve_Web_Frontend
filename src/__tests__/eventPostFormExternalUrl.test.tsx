@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FormEvent } from "react";
 
 import { EventPostForm } from "@/components/organisms/event-post/EventPostForm";
+import { MAX_PARTICIPATION_PARTY_SIZE } from "@/constants/config";
 import { useEventPostForm } from "@/hooks/useEventPostForm";
 import type { EventPostFormState } from "@/hooks/useEventPostForm";
 import { createEvent } from "@/services/event";
@@ -37,6 +38,8 @@ vi.mock("@/components/molecules/CompletionToast", () => ({
 }));
 
 const mockCreateEvent = vi.mocked(createEvent);
+
+const CAPACITY_HINT = `参加者の申し込みは一度に${MAX_PARTICIPATION_PARTY_SIZE}名までです`;
 
 const submitEvent = {
   preventDefault: () => {},
@@ -252,6 +255,20 @@ describe("EventPostForm の定員入力欄の非表示", () => {
     expect(group).toHaveAccessibleDescription(
       "申し込みURLが設定されているため、定員を受け付けません。",
     );
+    // 外部受付では参加人数の上限案内も出さない
+    expect(screen.queryByText(CAPACITY_HINT)).toBeNull();
+  });
+
+  it("定員欄には1回の申し込み人数の上限案内を表示する", () => {
+    render(
+      <EventPostForm
+        formState={buildFormState()}
+        errors={{}}
+        setField={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(CAPACITY_HINT)).toBeInTheDocument();
   });
 
   it("申し込みURLが未設定のときは定員入力欄は入力できる", () => {
