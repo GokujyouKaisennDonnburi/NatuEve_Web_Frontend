@@ -717,6 +717,7 @@ HTTPS の応答に `Strict-Transport-Security` を付け、ブラウザに「こ
 - hstspreload.org は 5 分 → 1 週間 → 1 か月と刻み、各段階の `max-age` が切れるまで待って進めることを勧めている。
   このサイトはすでにすべて HTTPS で（上の「HTTPS へのリダイレクト」）、影響もこのホストの中で収まるため、#386 では 5 分から 1 年への 2 段階にした。
 - 値を変えるときは `next.config.ts` の `strictTransportSecurityHeader` と `public/_headers` を両方変える（テストで一致を確かめる）。
+  テストの期待値（`src/__tests__/securityHeaders.test.ts`）も同じ値に変える。
 - 段階 1 で確かめること（検証環境、続いて本番）:
   - 応答に付いている（下のコマンド）。Workers の応答のヘッダーがエッジで消されないかは Cloudflare の文書で確かめられなかったため、実際の応答で確かめる。
   - Chrome で一度 `https://` のページを開いた後、`chrome://net-internals/#hsts` の「Query HSTS/PKP domain」でホスト名を照会すると、`dynamic_sts_domain` にホスト名が出る。
