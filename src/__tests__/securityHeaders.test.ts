@@ -105,11 +105,23 @@ describe("next.config.ts のセキュリティヘッダー", () => {
   // 検証環境では proxy の nonce の CSP だけにする（#416）。Workers では headers() の CSP が
   // リクエストヘッダーにも写り、Next.js が nonce を読めなくなるため。
   it("DISABLE_NEXT_CONFIG_CSP=true なら CSP だけを外す", async () => {
+    const { "Content-Security-Policy": _, ...defaultHeaders } =
+      await loadSecurityHeaders();
     const headers = await loadSecurityHeaders({ disableConfigCsp: "true" });
 
-    expect(headers).not.toHaveProperty("Content-Security-Policy");
-    expect(headers).toHaveProperty("Strict-Transport-Security");
-    expect(headers).toHaveProperty("X-Frame-Options");
+    expect(headers).toEqual(defaultHeaders);
+  });
+
+  // 検証環境のビルドの組み合わせ（SITE_NOINDEX=true も立つ）でも、どの規則にも CSP がない。
+  it("検証環境のビルドでは、X-Robots-Tag を残して CSP を付けない", async () => {
+    const rules = await loadHeaderRules({
+      siteNoindex: "true",
+      disableConfigCsp: "true",
+    });
+    const keys = rules.flatMap(({ headers }) => headers.map(({ key }) => key));
+
+    expect(keys).toContain("X-Robots-Tag");
+    expect(keys).not.toContain("Content-Security-Policy");
   });
 
   // 本番の enforce を誤って外さないよう、true 以外では外さない。
@@ -117,6 +129,7 @@ describe("next.config.ts のセキュリティヘッダー", () => {
     ["未設定", undefined],
     ["false", "false"],
     ["TRUE", "TRUE"],
+    ["空文字", ""],
   ])("DISABLE_NEXT_CONFIG_CSP が%sなら CSP を付ける", async (_, value) => {
     const headers = await loadSecurityHeaders({ disableConfigCsp: value });
 

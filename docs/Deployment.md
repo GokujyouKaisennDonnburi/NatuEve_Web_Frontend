@@ -381,11 +381,11 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
   （`opennextjs-cloudflare deploy` はビルドしない）。同じジョブのステップはファイルを共有するため、これはトークンの露出を減らすだけで、
   主な防御はトークンの権限の絞り込みである（「Cloudflare の API トークン」。ADR-0003 決定 3）。
 - **ローカルからは `bun run deploy` を実行しない。** Next.js は本番ビルドでも `.env.local` を読み込み
-  （読まないのは test のときだけ）、`NEXT_PUBLIC_*`・`USE_DEV_ASSETS`・`SITE_NOINDEX` はビルド時に反映されるため、
+  （読まないのは test のときだけ）、`NEXT_PUBLIC_*`・`USE_DEV_ASSETS`・`SITE_NOINDEX`・`DISABLE_NEXT_CONFIG_CSP` はビルド時に反映されるため、
   ローカルの値（例: `NEXT_PUBLIC_USE_MSW=true`、`USE_DEV_ASSETS=true`、ローカル API のオリジン）が本番ビルドに混入する。
   やむを得ずローカルから実行する場合は、本番の値を環境変数として明示的に渡す（`process.env` は `.env.local` より優先される）。
   その際、**`.env.local` にあるビルド時に効く値（`NEXT_PUBLIC_*`・`USE_DEV_ASSETS`・`SITE_NOINDEX`・`DISABLE_NEXT_CONFIG_CSP`）はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
-  特に `NEXT_PUBLIC_USE_MSW=false` と `USE_DEV_ASSETS=false` を渡し忘れると、モック認証や開発用画像の許可が本番で有効になるため注意。`.env.local` に `SITE_NOINDEX=true` があるときに `SITE_NOINDEX=false` を渡し忘れると、本番が検索から消える）。
+  特に `NEXT_PUBLIC_USE_MSW=false` と `USE_DEV_ASSETS=false` を渡し忘れると、モック認証や開発用画像の許可が本番で有効になるため注意。`.env.local` に `SITE_NOINDEX=true` があるときに `SITE_NOINDEX=false` を渡し忘れると、本番が検索から消える。`DISABLE_NEXT_CONFIG_CSP=true` があるときに `DISABLE_NEXT_CONFIG_CSP=false` を渡し忘れると、本番の enforce の CSP が消える）。
   検証環境・本番とも CI からデプロイする（検証環境 #330、本番 #362。後述の「CI/CD」）。
 - **本番の取得元（`assets.natuportal.org`）には `pathname`・`search`・`port` の制限を入れている（[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。** 値は[画像最適化](#画像最適化)を参照。
   開発用の `assets-dev.natuportal.org` にも同じ制限を付けている（キー形式は本番と同じ）。この制限を外したり広げたりしたまま本番へデプロイしない。
@@ -674,7 +674,7 @@ CSP の内容:
 | `frame-ancestors` | `'none'` | 他サイトの枠に埋め込ませない（クリックジャッキング対策） |
 
 - 接続先はビルド時の環境変数から組み立てる。本番と検証環境で値が違うため、環境ごとにビルドする（上の「環境変数」）。
-  値が空なら許可に加えず（CI の品質チェックのビルド）、URL でなければビルドを止める。
+  値が空なら許可に加えず（CI の品質チェックのビルド）、URL でなければビルドを止める（`DISABLE_NEXT_CONFIG_CSP=true` のビルドでは CSP を組み立てないため止めない。検証環境は CI の「Check connection variables」で期待値と比べる）。
 - R2 のホストはアカウント ID を含むが、ワイルドカードにしている。指定するにはビルドに変数を足す必要があり、
   `'unsafe-inline'` の下では絞っても XSS の持ち出し先が減る効果は小さいため。nonce の CSP に切り替えるとき（#412）に、絞るかを改めて決める。
 - 接続先・画像の取得元を足すとき（新しい外部 API、Google 以外のログイン方法のアバターなど）は、CSP にも足す。足さないとブラウザが止め、通信の失敗・画像が出ないといった症状になる。
@@ -690,11 +690,13 @@ nonce を使う CSP への切り替え（[ADR-0005](./adr/0005-csp-nonce-dynamic
   OpenNext は `headers()` と proxy の応答ヘッダーを、Next.js に渡すリクエストのヘッダーにも写す（`@opennextjs/aws` 4.1.12 の `core/requestHandler.js`）。
   Next.js は nonce を `Content-Security-Policy` から `-Report-Only` より先に探す（next 16.4.2 の `parse-request-headers.js`）ため、nonce のない上の CSP を読んで nonce なしで描画する。
   `next dev` では上の CSP を付けないため起きず、`bun run preview`（Workers のランタイム）では起きる。
-  そのため本番の Report-Only には #412 まで nonce が付かず、全スクリプトが違反として Console に出る（止まりはしない）。違反の観察は検証環境で行う。
+  本番の Report-Only にも #412 まで nonce が付かず、全スクリプトが違反として Console に出ると考えられる（止まりはしない。検証環境の結果からの推定で、本番に出した後に curl で確かめる）。違反の観察は検証環境で行う。
+- #412 まで検証環境には有効な CSP がない（差し込まれたスクリプトも止まらない。クリックジャッキングは `X-Frame-Options` で防ぐ）。
+  検証環境の Auth は開発用のプロジェクト（上の「環境変数」）で、影響はそこにとどまるため受け入れる。
 - 全ページの動的レンダリングは、#412 の切り替えを待たず #413 を出した時点から始まり、HTML をキャッシュして配れなくなる。受け入れた費用と表示速度への影響は ADR-0005 に記録した。
 - #413・#412 のマージ時に、この節・上の表・「イベント詳細の SSR / メタデータ」のキャッシュの記述・開発時に CSP を付けないとした記述を直す。
 
-確認したこと（#416。2026-11-16。`bun run preview`。検証環境と同じ値でビルド）:
+確認したこと（#416。2026-11-16。検証環境と同じ値でビルドした `bun run preview`。検証環境は curl だけ）:
 
 - 上の CSP を外す前は、ページの応答に `content-security-policy`（上の CSP）と `content-security-policy-report-only`（proxy）が付き、
   `/about` の `<script>` 15 個のどれにも nonce が付かなかった。検証環境の `/event-list` も、`<script>` 18 個のどれにも付いていなかった（curl）。
