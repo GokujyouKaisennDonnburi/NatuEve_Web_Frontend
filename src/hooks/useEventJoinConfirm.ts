@@ -2,11 +2,12 @@
 
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { getEventDetail } from "@/services/event";
-import { confirmEventJoin } from "@/services/participate";
+import { confirmEventJoin, getEventJoinPreview } from "@/services/participate";
 import {
   ConfirmJoinError,
   ConfirmJoinErrorCode,
   type ConfirmJoinResponse,
+  type EventJoinPreviewResponse,
 } from "@/types/participate";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -95,6 +96,9 @@ export function useEventJoinConfirm({
   // 確定前に何のイベントへ申し込むのかを確認できるよう、イベント情報を取得する。
   // 取得に失敗しても確定操作自体は妨げないため、エラー表示にはしない。
   const [event, setEvent] = useState<EventDetailType | null>(null);
+  // 確定前の申込内容（プレビューAPIで取得）。
+  // 取得できない場合は null のままにして申込内容の表示だけを省略する。
+  const [preview, setPreview] = useState<EventJoinPreviewResponse | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,11 +116,28 @@ export function useEventJoinConfirm({
       }
     };
 
+    // 確定ボタンを押す前に申込内容を表示するため、プレビューも取得する。
+    // トークン無効・期限切れ・API未実装などは表示を省略するだけなので、
+    // エラー表示やログ出力はしない（確定フローは妨げない）。
+    const fetchPreview = async (): Promise<void> => {
+      if (!token) return;
+
+      try {
+        const response = await getEventJoinPreview(eventId, token);
+        if (!cancelled) {
+          setPreview(response);
+        }
+      } catch {
+        // プレビューが取得できなくても確定操作は継続できる。
+      }
+    };
+
     void fetchEvent();
+    void fetchPreview();
     return () => {
       cancelled = true;
     };
-  }, [eventId]);
+  }, [eventId, token]);
 
   // 連打・二重実行を防ぐための実行中フラグ。
   // state は再描画まで反映されないため、同期的に判定できる ref を使う。
@@ -157,6 +178,8 @@ export function useEventJoinConfirm({
     errorMessage,
     // 確定成功時のみ申込内容が入る。
     result,
+    // 確定前の申込内容。取得できていない間は null。
+    preview,
     // 申込先のイベント概要。取得できていない間は null。
     event,
     // 確定前・失敗後のみ押せる。確定中と確定済みは何もしない。

@@ -13,7 +13,7 @@ import { buildEventDetail } from "@/__tests__/fixtures/event";
 import { EventJoinConfirmContent } from "@/components/organisms/EventJoinConfirmContent";
 import { useEventJoinConfirm } from "@/hooks/useEventJoinConfirm";
 import { getEventDetail } from "@/services/event";
-import { confirmEventJoin } from "@/services/participate";
+import { confirmEventJoin, getEventJoinPreview } from "@/services/participate";
 import { ConfirmJoinError, ConfirmJoinErrorCode } from "@/types/participate";
 
 vi.mock("@/services/event", () => ({
@@ -21,6 +21,7 @@ vi.mock("@/services/event", () => ({
 }));
 vi.mock("@/services/participate", () => ({
   confirmEventJoin: vi.fn(),
+  getEventJoinPreview: vi.fn(),
 }));
 vi.mock("next/link", () => ({
   default: ({
@@ -39,6 +40,7 @@ vi.mock("next/link", () => ({
 
 const mockGetEventDetail = vi.mocked(getEventDetail);
 const mockConfirmEventJoin = vi.mocked(confirmEventJoin);
+const mockGetEventJoinPreview = vi.mocked(getEventJoinPreview);
 
 const EVENT_ID = "00000000-0000-4000-8000-000000000002";
 const TOKEN = "confirm-token-1";
@@ -51,6 +53,13 @@ beforeEach(() => {
   mockGetEventDetail.mockResolvedValue(
     buildEventDetail({ id: EVENT_ID, title: "テストイベント" }),
   );
+  mockGetEventJoinPreview.mockResolvedValue({
+    participants: [
+      { category: "大人", headCount: 2 },
+      { category: "子ども", headCount: 1 },
+    ],
+    partySize: 3,
+  });
 });
 
 describe("EventJoinConfirmContent", () => {
@@ -62,6 +71,50 @@ describe("EventJoinConfirmContent", () => {
     expect(
       screen.getByRole("button", { name: "申込を確定する" }),
     ).toBeInTheDocument();
+  });
+
+  it("確定ボタンを押す前に申込内容を表示する", async () => {
+    renderContent();
+
+    expect(await screen.findByText("申込内容")).toBeInTheDocument();
+    expect(screen.getByText("大人")).toBeInTheDocument();
+    expect(screen.getByText("子ども")).toBeInTheDocument();
+    expect(screen.getByText("2名")).toBeInTheDocument();
+    expect(screen.getByText("1名")).toBeInTheDocument();
+    expect(screen.getByText("合計")).toBeInTheDocument();
+    expect(screen.getByText("3名")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "申込を確定する" }),
+    ).toBeInTheDocument();
+    expect(mockConfirmEventJoin).not.toHaveBeenCalled();
+  });
+
+  it("プレビューが取得できない場合は確定前に申込内容を表示しない", async () => {
+    mockGetEventJoinPreview.mockRejectedValue(
+      new ConfirmJoinError(
+        ConfirmJoinErrorCode.InvalidRequest,
+        "確認リンクが無効です",
+        400,
+      ),
+    );
+    mockConfirmEventJoin.mockResolvedValue({
+      eventId: EVENT_ID,
+      confirmedAt: "2026-11-13T00:00:00Z",
+      participants: [{ category: "大人", headCount: 2 }],
+      partySize: 2,
+    });
+
+    renderContent();
+
+    const button = await screen.findByRole("button", {
+      name: "申込を確定する",
+    });
+    expect(screen.queryByText("申込内容")).not.toBeInTheDocument();
+
+    fireEvent.click(button);
+
+    expect(await screen.findByText("申込が確定しました")).toBeInTheDocument();
+    expect(screen.getByText("申込内容")).toBeInTheDocument();
   });
 
   it("確定に成功すると「申込が確定しました」と申込内容を表示する", async () => {

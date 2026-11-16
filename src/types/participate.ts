@@ -97,6 +97,15 @@ export type ConfirmJoinResponse = {
   partySize: number;
 };
 
+// 申込内容プレビュー API（GET /api/v1/events/{id}/join/preview?token=...）のレスポンス DTO。
+// 確認画面で確定ボタンを押す前に申込内容を表示するために使う（認証不要・トークン非消費）。
+export type EventJoinPreviewResponse = {
+  // 申込時のカテゴリ別参加人数内訳。
+  participants: ParticipantEntry[];
+  // 申込の合計参加人数。participants の headCount 合計。
+  partySize: number;
+};
+
 // 参加確定 API のエラーレスポンスボディ DTO。
 export type ConfirmJoinErrorBody = ParticipateEventErrorBody;
 

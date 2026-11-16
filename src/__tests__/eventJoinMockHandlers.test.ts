@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { eventJoinHandler } from "@/mocks/handlers/events/join";
 import { eventJoinConfirmHandler } from "@/mocks/handlers/events/join-confirm";
+import { eventJoinPreviewHandler } from "@/mocks/handlers/events/join-preview";
 import {
   cancelledEventIds,
   CONFIRM_TOKEN_TTL_MS,
@@ -19,7 +20,11 @@ import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 // ADR-0049（ゲスト参加申込の確認メール確定方式）を再現したモックの挙動を検証する。
 // join と confirm のハンドラーを実際に HTTP で往復させ、画面が依存する契約を確認する。
 
-const server = setupServer(eventJoinHandler, eventJoinConfirmHandler);
+const server = setupServer(
+  eventJoinHandler,
+  eventJoinConfirmHandler,
+  eventJoinPreviewHandler,
+);
 
 // 追加のダミーイベント（index 1）。キャンセルされておらず、開催日も未来。
 const EVENT_ID = "00000000-0000-4000-8000-000000000002";
@@ -54,6 +59,11 @@ const postConfirm = (token: string, eventId: string = EVENT_ID) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token }),
   });
+
+const getPreview = (token: string, eventId: string = EVENT_ID) =>
+  fetch(
+    `${origin()}/api/v1/events/${eventId}/join/preview?token=${encodeURIComponent(token)}`,
+  );
 
 const futureDate = () =>
   new Date(Date.now() + CONFIRM_TOKEN_TTL_MS).toISOString();
@@ -303,6 +313,87 @@ describe("モック: 参加申込の確定", () => {
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toMatchObject({
       error: { code: "event_cancelled" },
+    });
+  });
+});
+
+describe("モック: 申込内容プレビュー", () => {
+  const seedPreviewPending = (token: string) =>
+    seedPendingJoin(EVENT_ID, {
+      token,
+      expiresAt: futureDate(),
+      username: "プレビューテスト",
+      mailAddress: "preview-test@example.com",
+      partySize: 3,
+      participants: [
+        { category: "大人", headCount: 2 },
+        { category: "子ども", headCount: 1 },
+      ],
+    });
+
+  it("有効なトークンで 200 となり、確定前の申込内容を返す", async () => {
+    seedPreviewPending("preview-token");
+
+    const response = await getPreview("preview-token");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      participants: [
+        { category: "大人", headCount: 2 },
+        { category: "子ども", headCount: 1 },
+      ],
+      partySize: 3,
+    });
+  });
+
+  it("プレビューはトークンを消費せず、その後も確定できる", async () => {
+    seedPreviewPending("preview-once-token");
+
+    const preview = await getPreview("preview-once-token");
+    expect(preview.status).toBe(200);
+
+    const confirm = await postConfirm("preview-once-token");
+    expect(confirm.status).toBe(200);
+  });
+
+  it("不正なトークンは 400", async () => {
+    const response = await getPreview("unknown-token");
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "invalid_request" },
+    });
+  });
+
+  it("期限切れのトークンは 400 となり、未確定の申込も削除される", async () => {
+    seedPendingJoin(EVENT_ID, {
+      token: "expired-preview-token",
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+      username: "期限切れ",
+      mailAddress: "expired-preview@example.com",
+      partySize: 1,
+      participants: [{ category: "大人", headCount: 1 }],
+    });
+
+    const response = await getPreview("expired-preview-token");
+
+    expect(response.status).toBe(400);
+    expect(
+      findPendingMemberByToken(EVENT_ID, "expired-preview-token"),
+    ).toBeNull();
+  });
+
+  it("イベントが存在しない場合は 404", async () => {
+    seedPreviewPending("preview-missing-event-token");
+
+    const response = await getPreview(
+      "preview-missing-event-token",
+      MISSING_EVENT_ID,
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "not_found" },
     });
   });
 });

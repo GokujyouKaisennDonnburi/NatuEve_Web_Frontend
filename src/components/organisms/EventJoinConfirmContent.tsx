@@ -10,7 +10,7 @@ import { BACK_LINK_LABELS } from "@/constants/labels";
 import { BRAND_PILL_CTA_CLASS } from "@/constants/styles";
 import { useEventJoinConfirm } from "@/hooks/useEventJoinConfirm";
 import { cn } from "@/lib/utils";
-import type { ConfirmJoinResponse } from "@/types/participate";
+import type { ParticipantEntry } from "@/types/participate";
 
 type EventJoinConfirmContentProps = {
   eventId: string;
@@ -36,13 +36,16 @@ export function EventJoinConfirmContent({
   eventId,
   token,
 }: Readonly<EventJoinConfirmContentProps>) {
-  const { status, errorMessage, result, event, confirm, canRetry } =
+  const { status, errorMessage, result, preview, event, confirm, canRetry } =
     useEventJoinConfirm({
       eventId,
       token,
     });
 
   const eventDetailPath = `/event/${encodeURIComponent(eventId)}`;
+  // 確定前はプレビューAPIの申込内容、確定後は確定結果の申込内容を表示する。
+  // どちらも取得できない場合は申込内容の枠だけを省略する。
+  const joinContent = result ?? preview;
 
   return (
     <section className="mx-auto flex w-full max-w-xl flex-col gap-5 py-6 sm:py-8">
@@ -53,6 +56,14 @@ export function EventJoinConfirmContent({
       <Card className="border-slate-200 bg-white shadow-sm">
         <CardContent className="space-y-5 px-4 py-6 sm:space-y-6 sm:px-6 sm:py-8">
           {event ? <EventSummary event={event} /> : null}
+
+          {/* 申込先のイベント枠とは別の枠で、確定前から申込内容を表示する。 */}
+          {joinContent ? (
+            <ConfirmedJoinContent
+              participants={joinContent.participants}
+              partySize={joinContent.partySize}
+            />
+          ) : null}
 
           <div aria-live="polite">
             {status === "success" ? (
@@ -71,8 +82,6 @@ export function EventJoinConfirmContent({
                 <p className="text-center text-sm text-slate-600">
                   イベントへの参加が確定しました。当日のご参加をお待ちしています。
                 </p>
-
-                {result ? <ConfirmedJoinContent result={result} /> : null}
               </div>
             ) : status === "error" ? (
               <div className="flex flex-col items-center gap-4">
@@ -137,16 +146,20 @@ export function EventJoinConfirmContent({
   );
 }
 
-// 確定した申込内容。カテゴリごとの人数と合計を表示する。
+// 申込内容。確定前のプレビューと確定後の結果の両方で、カテゴリごとの人数と合計を表示する。
 function ConfirmedJoinContent({
-  result,
-}: Readonly<{ result: ConfirmJoinResponse }>) {
+  participants,
+  partySize,
+}: Readonly<{
+  participants: ParticipantEntry[];
+  partySize: number;
+}>) {
   return (
     <div className="w-full rounded-md border border-slate-200 bg-slate-50 p-3 sm:p-4">
       <p className="text-xs font-semibold text-slate-500">申込内容</p>
 
       <ul className="mt-2 space-y-1 text-sm text-slate-700">
-        {result.participants.map((participant) => (
+        {participants.map((participant) => (
           <li
             key={participant.category}
             className="flex items-center justify-between gap-3"
@@ -159,7 +172,7 @@ function ConfirmedJoinContent({
 
       <p className="mt-2 flex items-center justify-between gap-3 border-t border-slate-200 pt-2 text-sm font-semibold text-slate-800">
         <span>合計</span>
-        <span>{result.partySize}名</span>
+        <span>{partySize}名</span>
       </p>
     </div>
   );

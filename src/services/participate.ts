@@ -6,6 +6,7 @@ import type {
   ConfirmJoinErrorBody,
   ConfirmJoinRequest,
   ConfirmJoinResponse,
+  EventJoinPreviewResponse,
   EventMembersResponse,
   GetEventMembersErrorBody,
   GetMyEventApplicationErrorBody,
@@ -121,6 +122,43 @@ export async function confirmEventJoin(
   }
 
   return (await response.json()) as ConfirmJoinResponse;
+}
+
+// 申込内容プレビュー API（GET /api/v1/events/{eventId}/join/preview?token=...）を呼ぶ（認証不要）。
+//
+// 確認画面で確定ボタンを押す前に申込内容を表示するために使う読み取り専用の呼び出しで、
+// 単回使用トークンは消費しない。不正・期限切れ・使用済みは 400、イベント不存在は 404 となり、
+// APIエラー・通信エラーは ConfirmJoinError を送出する。
+export async function getEventJoinPreview(
+  eventId: string,
+  token: string,
+): Promise<EventJoinPreviewResponse> {
+  const query = new URLSearchParams({ token });
+
+  const response = await apiFetch(
+    `/api/v1/events/${encodeURIComponent(eventId)}/join/preview?${query.toString()}`,
+    { auth: false },
+  );
+
+  if (!response.ok) {
+    let code = "internal_error";
+    let message: string | undefined;
+    try {
+      const body = (await response.json()) as ConfirmJoinErrorBody;
+      code = body?.error?.code ?? code;
+      message = body?.error?.message;
+    } catch {
+      // JSON 以外のボディは無視する
+    }
+
+    throw new ConfirmJoinError(
+      code,
+      message ?? `申込内容の取得に失敗しました (Status: ${response.status})`,
+      response.status,
+    );
+  }
+
+  return (await response.json()) as EventJoinPreviewResponse;
 }
 
 // イベント参加者一覧取得 API（GET /api/v1/events/{eventId}/members）を呼ぶ（要認証・主催者のみ）。
