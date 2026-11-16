@@ -4,6 +4,7 @@ import { createPngFile } from "./imageTestFiles";
 import { apiFetch } from "@/services/apiClient";
 import { uploadFile } from "@/services/upload";
 import type { PresignResponse } from "@/types/upload";
+import { UploadValidationError } from "@/utils/upload";
 
 vi.mock("@/services/apiClient", () => ({
   apiFetch: vi.fn(),
@@ -71,7 +72,7 @@ describe("uploadFile", () => {
     });
   });
 
-  it("R2 へは presign と同じ File と Content-Type を、認証ヘッダなしで PUT する", async () => {
+  it("R2 へは渡した File をそのまま、presign で送った大きさと Content-Type のまま、認証ヘッダなしで PUT する", async () => {
     const file = createPngFile(100, 100);
 
     const uploaded = await uploadFile(file, "image");
@@ -81,10 +82,21 @@ describe("uploadFile", () => {
     expect(url).toBe(presignResponse.uploadUrl);
     expect(init.method).toBe("PUT");
     expect(init.body).toBe(file);
-    expect(init.headers).toEqual({ "Content-Type": "image/png" });
+    expect((init.body as File).size).toBe(presignBody().size);
+    expect(init.headers).toEqual({ "Content-Type": presignBody().contentType });
     expect(uploaded).toEqual({
       objectKey: presignResponse.objectKey,
       filename: file.name,
     });
+  });
+
+  it("0 バイトのファイルは presign も PUT もせずに UploadValidationError を送出する", async () => {
+    const file = new File([], "empty.png", { type: "image/png" });
+
+    await expect(uploadFile(file, "image")).rejects.toBeInstanceOf(
+      UploadValidationError,
+    );
+    expect(mockApiFetch).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
