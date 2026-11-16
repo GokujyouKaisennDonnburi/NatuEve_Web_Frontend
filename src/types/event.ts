@@ -194,6 +194,7 @@ export type NotifyEventParticipantsRequest = {
   body: string;
 };
 
+// API の internal/model/event_notification.go の SendEventNotificationResponse に対応する。
 export type NotifyEventParticipantsResponse = {
   eventId: string;
   recipientCount: number;

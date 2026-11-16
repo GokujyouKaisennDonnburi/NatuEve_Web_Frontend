@@ -98,14 +98,22 @@ function NotificationModalHost({ eventId }: { eventId: string }) {
   );
 }
 
-function submitDraft() {
+function submitDraft(values = draft) {
   fireEvent.change(screen.getByLabelText("件名"), {
-    target: { value: draft.subject },
+    target: { value: values.subject },
   });
   fireEvent.change(screen.getByLabelText("連絡内容"), {
-    target: { value: draft.body },
+    target: { value: values.body },
   });
   fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+}
+
+function postNotification(eventId: string, payload = draft) {
+  return apiFetch(`/api/v1/events/${eventId}/notifications`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 }
 
 beforeEach(() => {
@@ -163,9 +171,7 @@ describe("全体連絡の送信上限", () => {
     for (let sent = 1; sent < 5; sent++) await send();
 
     now.mockReturnValue(start + 24 * hour - 1);
-    await expect(send()).rejects.toMatchObject({
-      name: "NotificationLimitExceededError",
-    });
+    await expect(send()).rejects.toBeInstanceOf(NotificationLimitExceededError);
     await notifyEventParticipants(otherId, draft);
     now.mockReturnValue(start + 24 * hour);
     await send();
@@ -175,9 +181,20 @@ describe("全体連絡の送信上限", () => {
   it("主催者以外は参加者がいても送信できない", async () => {
     setupMockNotificationApi();
     const id = createNotificationEvent("other-owner");
-    await expect(notifyEventParticipants(id, draft)).rejects.toThrow(
-      "このイベントを操作する権限がありません",
-    );
+    const response = await postNotification(id);
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      error: { code: "forbidden" },
+    });
+  });
+
+  it("存在しないイベントは主催者確認で400になる", async () => {
+    setupMockNotificationApi();
+    const response = await postNotification(crypto.randomUUID());
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: { code: "invalid_request" },
+    });
   });
 
   it("宛先が0件・101件の送信は枠を消費せず、100件なら5回まで送れる", async () => {
@@ -223,5 +240,64 @@ describe("全体連絡の送信上限", () => {
     }
     expect(toast.success).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+});
+
+describe.each([
+  { field: "subject", label: "件名", limit: 255 },
+  { field: "body", label: "連絡内容", limit: 10_000 },
+] as const)("全体連絡の文字数: $label", ({ field, label, limit }) => {
+  const atLimit = "🌱".repeat(limit);
+  const overLimit = `${atLimit}あ`;
+
+  it("画面では超過の理由を表示し、上限ちょうどに直すと送れる", async () => {
+    setupMockNotificationApi();
+    render(<NotificationModalHost eventId={createNotificationEvent()} />);
+    submitDraft({ ...draft, [field]: overLimit });
+
+    const input = screen.getByLabelText(label);
+    const send = screen.getByRole("button", { name: "送信する" });
+    expect(input).toHaveValue(overLimit);
+    expect(input).toHaveAccessibleDescription(
+      expect.stringContaining(`${limit}文字以内`),
+    );
+    expect(send).toBeDisabled();
+    expect(apiFetch).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: `　${atLimit}　` } });
+    expect(send).toBeEnabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    fireEvent.click(send);
+    await waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+    expect(apiFetch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        body: JSON.stringify({ ...draft, [field]: atLimit }),
+      }),
+    );
+  });
+
+  it("モックは超過を400で拒否し、残り1回の枠で上限ちょうどを受け付ける", async () => {
+    setupMockNotificationApi();
+    const id = createNotificationEvent();
+    for (let sent = 0; sent < 4; sent++)
+      await notifyEventParticipants(id, draft);
+    const rejected = await postNotification(id, {
+      ...draft,
+      [field]: overLimit,
+    });
+    expect(rejected.status).toBe(400);
+    expect(await rejected.json()).toMatchObject({
+      error: { code: "invalid_request" },
+    });
+    // U+0085 は Go の TrimSpace が取り除く空白。絵文字は rune 1個として数える。
+    const accepted = await postNotification(id, {
+      ...draft,
+      [field]: `\u0085${atLimit}　`,
+    });
+    expect(accepted.status).toBe(200);
+    await expect(notifyEventParticipants(id, draft)).rejects.toBeInstanceOf(
+      NotificationLimitExceededError,
+    );
   });
 });

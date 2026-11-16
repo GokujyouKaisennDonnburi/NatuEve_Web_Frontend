@@ -4,8 +4,12 @@ import { HttpResponse, http } from "msw";
 
 import {
   EVENT_NOTIFICATION_WINDOW_HOURS,
+  MAX_EVENT_NOTIFICATION_RECIPIENTS,
   MAX_EVENT_NOTIFICATION_SENDS,
+  MAX_NOTIFICATION_BODY_LENGTH,
+  MAX_NOTIFICATION_SUBJECT_LENGTH,
 } from "@/constants/config";
+import { validateNotificationText } from "@/utils/notificationText";
 import {
   NotificationLimitExceededError,
   type NotifyEventParticipantsResponse,
@@ -21,7 +25,6 @@ import {
 
 const sendTimesByEvent = new Map<string, number[]>();
 const sendWindowMs = EVENT_NOTIFICATION_WINDOW_HOURS * 60 * 60 * 1000;
-const maxRecipients = 100;
 
 const invalidRequest = (message: string) =>
   HttpResponse.json(
@@ -49,19 +52,35 @@ export const eventNotificationHandler = http.post(
       return unauthorizedResponse();
     }
 
-    const body = (await request.json().catch(() => ({}))) as {
+    const payload = (await request.json().catch(() => null)) as {
       subject?: unknown;
       body?: unknown;
-    };
+    } | null;
 
     if (
-      typeof body?.subject !== "string" ||
-      !body.subject.trim() ||
-      typeof body.body !== "string" ||
-      !body.body.trim()
+      typeof payload?.subject !== "string" ||
+      typeof payload.body !== "string"
     ) {
       return invalidRequest("リクエストボディが不正です");
     }
+    const subject = validateNotificationText(
+      payload.subject,
+      MAX_NOTIFICATION_SUBJECT_LENGTH,
+    );
+    if (!subject.value) return invalidRequest("件名は必須です");
+    if (subject.tooLong)
+      return invalidRequest(
+        `件名は${MAX_NOTIFICATION_SUBJECT_LENGTH}文字以内で入力してください`,
+      );
+    const body = validateNotificationText(
+      payload.body,
+      MAX_NOTIFICATION_BODY_LENGTH,
+    );
+    if (!body.value) return invalidRequest("本文は必須です");
+    if (body.tooLong)
+      return invalidRequest(
+        `本文は${MAX_NOTIFICATION_BODY_LENGTH}文字以内で入力してください`,
+      );
 
     const event = mockEventDetails.get(id);
     if (!event) return invalidRequest("指定されたイベントが存在しません");
@@ -80,9 +99,9 @@ export const eventNotificationHandler = http.post(
     // 宛先は参加人数ではなく申込ごとに1件。不正な送信は回数に含めない。
     const recipientCount = eventMembers.get(id)?.length ?? 0;
     if (recipientCount === 0) return invalidRequest("送信先の参加者がいません");
-    if (recipientCount > maxRecipients) {
+    if (recipientCount > MAX_EVENT_NOTIFICATION_RECIPIENTS) {
       return invalidRequest(
-        `送信先の参加者が多すぎます（上限${maxRecipients}件）`,
+        `送信先の参加者が多すぎます（上限${MAX_EVENT_NOTIFICATION_RECIPIENTS}件）`,
       );
     }
 

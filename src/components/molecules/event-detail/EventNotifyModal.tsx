@@ -12,7 +12,12 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { MESSAGES } from "@/constants/messages";
+import {
+  MAX_NOTIFICATION_BODY_LENGTH,
+  MAX_NOTIFICATION_SUBJECT_LENGTH,
+} from "@/constants/config";
 import { NotificationLimitExceededError } from "@/types/event";
+import { validateNotificationText } from "@/utils/notificationText";
 
 // 全体連絡モーダルのプロパティ
 type EventNotifyModalProps = {
@@ -38,9 +43,19 @@ export function EventNotifyModal({
   const [limitExceeded, setLimitExceeded] = useState(false);
 
   // 送信可能かどうかの判定
+  const subject = validateNotificationText(
+    notifySubject,
+    MAX_NOTIFICATION_SUBJECT_LENGTH,
+  );
+  const body = validateNotificationText(
+    notifyBody,
+    MAX_NOTIFICATION_BODY_LENGTH,
+  );
   const canSend =
-    notifySubject.trim().length > 0 &&
-    notifyBody.trim().length > 0 &&
+    !!subject.value &&
+    !!body.value &&
+    !subject.tooLong &&
+    !body.tooLong &&
     !isSending;
 
   // モーダルを閉じる処理
@@ -64,8 +79,8 @@ export function EventNotifyModal({
     void (async () => {
       try {
         await notifyEventParticipants(eventId, {
-          subject: notifySubject.trim(),
-          body: notifyBody.trim(),
+          subject: subject.value,
+          body: body.value,
         });
 
         toast.success("参加者へ全体連絡を送信しました。");
@@ -175,10 +190,25 @@ export function EventNotifyModal({
                   value={notifySubject}
                   onChange={(e) => setNotifySubject(e.target.value)}
                   disabled={isSending}
-                  maxLength={255}
+                  aria-invalid={subject.tooLong}
+                  aria-describedby={
+                    subject.tooLong
+                      ? `notify-subject-error-${eventId}`
+                      : undefined
+                  }
                   placeholder="例:【当日連絡】集合場所のご案内"
                   className="h-11 rounded-xl border-slate-300"
                 />
+                {subject.tooLong && (
+                  <p
+                    id={`notify-subject-error-${eventId}`}
+                    role="alert"
+                    className="text-sm text-red-700"
+                  >
+                    件名は{MAX_NOTIFICATION_SUBJECT_LENGTH}
+                    文字以内で入力してください。
+                  </p>
+                )}
               </div>
 
               {/* 連絡内容 */}
@@ -199,10 +229,24 @@ export function EventNotifyModal({
                   value={notifyBody}
                   onChange={(e) => setNotifyBody(e.target.value)}
                   disabled={isSending}
+                  aria-invalid={body.tooLong}
+                  aria-describedby={
+                    body.tooLong ? `notify-body-error-${eventId}` : undefined
+                  }
                   rows={7}
                   placeholder="参加者へのメッセージを入力してください"
                   className="field-sizing-fixed h-40 resize-none rounded-xl border-slate-300"
                 />
+                {body.tooLong && (
+                  <p
+                    id={`notify-body-error-${eventId}`}
+                    role="alert"
+                    className="text-sm text-red-700"
+                  >
+                    本文は{MAX_NOTIFICATION_BODY_LENGTH}
+                    文字以内で入力してください。
+                  </p>
+                )}
               </div>
             </div>
 
