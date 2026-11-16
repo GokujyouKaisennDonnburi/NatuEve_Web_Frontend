@@ -15,8 +15,9 @@ import {
 async function presignUpload(
   kind: UploadKind,
   contentType: string,
+  size: number,
 ): Promise<PresignResponse> {
-  const body: PresignRequest = { kind, contentType };
+  const body: PresignRequest = { kind, contentType, size };
 
   const response = await apiFetch("/api/v1/uploads/presign", {
     method: "POST",
@@ -37,6 +38,7 @@ async function presignUpload(
 
 // 署名付き URL を使って R2 へ直接 PUT する。
 // 認証ヘッダは付けず（apiFetch を使わない）、presign 時と同じ Content-Type を厳格に一致させる。
+// Content-Length は fetch が本体から付けるので手で付けない。presign で送った size と一致する必要がある。
 async function putToR2(
   uploadUrl: string,
   file: File,
@@ -71,8 +73,13 @@ export async function uploadFile(
     throw new UploadValidationError(validationError);
   }
 
+  // 署名には Content-Type と大きさが含まれるため、presign と PUT には同じ File をそのまま使う（間で圧縮・変換しない）。
   const contentType = resolveContentType(file);
-  const { uploadUrl, objectKey } = await presignUpload(kind, contentType);
+  const { uploadUrl, objectKey } = await presignUpload(
+    kind,
+    contentType,
+    file.size,
+  );
   await putToR2(uploadUrl, file, contentType);
 
   return { objectKey, filename: file.name };
