@@ -60,10 +60,12 @@ const postConfirm = (token: string, eventId: string = EVENT_ID) =>
     body: JSON.stringify({ token }),
   });
 
-const getPreview = (token: string, eventId: string = EVENT_ID) =>
-  fetch(
-    `${origin()}/api/v1/events/${eventId}/join/preview?token=${encodeURIComponent(token)}`,
-  );
+const postPreview = (token: string, eventId: string = EVENT_ID) =>
+  fetch(`${origin()}/api/v1/events/${eventId}/join/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
 
 const futureDate = () =>
   new Date(Date.now() + CONFIRM_TOKEN_TTL_MS).toISOString();
@@ -334,7 +336,7 @@ describe("モック: 申込内容プレビュー", () => {
   it("有効なトークンで 200 となり、確定前の申込内容を返す", async () => {
     seedPreviewPending("preview-token");
 
-    const response = await getPreview("preview-token");
+    const response = await postPreview("preview-token");
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -349,7 +351,7 @@ describe("モック: 申込内容プレビュー", () => {
   it("プレビューはトークンを消費せず、その後も確定できる", async () => {
     seedPreviewPending("preview-once-token");
 
-    const preview = await getPreview("preview-once-token");
+    const preview = await postPreview("preview-once-token");
     expect(preview.status).toBe(200);
 
     const confirm = await postConfirm("preview-once-token");
@@ -357,7 +359,26 @@ describe("モック: 申込内容プレビュー", () => {
   });
 
   it("不正なトークンは 400", async () => {
-    const response = await getPreview("unknown-token");
+    const response = await postPreview("unknown-token");
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "invalid_request" },
+    });
+  });
+
+  it("トークンはリクエストボディで受け取り、クエリパラメータは読まない", async () => {
+    seedPreviewPending("body-only-token");
+
+    // クエリにだけトークンを付けても、ボディが無いため無効として扱われる。
+    const response = await fetch(
+      `${origin()}/api/v1/events/${EVENT_ID}/join/preview?token=body-only-token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      },
+    );
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
@@ -375,7 +396,7 @@ describe("モック: 申込内容プレビュー", () => {
       participants: [{ category: "大人", headCount: 1 }],
     });
 
-    const response = await getPreview("expired-preview-token");
+    const response = await postPreview("expired-preview-token");
 
     expect(response.status).toBe(400);
     expect(
@@ -386,7 +407,7 @@ describe("モック: 申込内容プレビュー", () => {
   it("イベントが存在しない場合は 404", async () => {
     seedPreviewPending("preview-missing-event-token");
 
-    const response = await getPreview(
+    const response = await postPreview(
       "preview-missing-event-token",
       MISSING_EVENT_ID,
     );

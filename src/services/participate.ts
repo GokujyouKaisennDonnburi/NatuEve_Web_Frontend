@@ -124,20 +124,27 @@ export async function confirmEventJoin(
   return (await response.json()) as ConfirmJoinResponse;
 }
 
-// 申込内容プレビュー API（GET /api/v1/events/{eventId}/join/preview?token=...）を呼ぶ（認証不要）。
+// 申込内容プレビュー API（POST /api/v1/events/{eventId}/join/preview）を呼ぶ（認証不要）。
 //
 // 確認画面で確定ボタンを押す前に申込内容を表示するために使う読み取り専用の呼び出しで、
-// 単回使用トークンは消費しない。不正・期限切れ・使用済みは 400、イベント不存在は 404 となり、
+// 単回使用トークンは消費しない。トークンはリクエストボディで送信し、URL には載せない
+// （アクセスログ等への平文流出を防ぐため・ADR-0049 決定12）。
+// 不正・期限切れ・使用済みは 400、イベント不存在は 404 となり、
 // APIエラー・通信エラーは ConfirmJoinError を送出する。
 export async function getEventJoinPreview(
   eventId: string,
   token: string,
 ): Promise<EventJoinPreviewResponse> {
-  const query = new URLSearchParams({ token });
-
   const response = await apiFetch(
-    `/api/v1/events/${encodeURIComponent(eventId)}/join/preview?${query.toString()}`,
-    { auth: false },
+    `/api/v1/events/${encodeURIComponent(eventId)}/join/preview`,
+    {
+      method: "POST",
+      auth: false,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token }),
+    },
   );
 
   if (!response.ok) {
