@@ -75,12 +75,15 @@ describe("next.config.ts のセキュリティヘッダー", () => {
       "X-Frame-Options": "DENY",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "strict-origin-when-cross-origin",
+      // 5 分で確かめてから 1 年に延ばす（#386）。preload は付けない。
+      "Strict-Transport-Security": "max-age=300; includeSubDomains",
     });
     expect(headers).toHaveProperty("Content-Security-Policy");
   });
 
   // next dev は 'unsafe-eval' と HMR が要るため、CSP を付けない。
-  it("開発時は CSP を付けず、ほかのヘッダーは付ける", async () => {
+  // HSTS は localhost を HTTPS に固定しないよう付けない。
+  it("開発時は CSP と HSTS を付けず、ほかのヘッダーは付ける", async () => {
     const headers = await loadSecurityHeaders({ nodeEnv: "development" });
 
     expect(Object.keys(headers).sort()).toEqual(
@@ -88,9 +91,11 @@ describe("next.config.ts のセキュリティヘッダー", () => {
     );
   });
 
-  // _headers の /* の規則（次の空行まで）が、ページの CSP 以外のヘッダーと過不足なく一致する。
+  // _headers の /* の規則（次の空行まで）が、本番のページの CSP 以外のヘッダーと過不足なく一致する。
+  // _headers は Workers（本番ビルド）でだけ使うため、本番のヘッダーと比べる。
   it("public/_headers で静的ファイルにも同じ値を付ける", async () => {
-    const headers = await loadSecurityHeaders({ nodeEnv: "development" });
+    const { "Content-Security-Policy": _, ...headers } =
+      await loadSecurityHeaders();
     const staticHeaders = readFileSync(
       new URL("../../public/_headers", import.meta.url),
       "utf8",
