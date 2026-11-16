@@ -721,15 +721,20 @@ Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-renderi
   1. ページ間の移動や先読みで読み込むチャンクを `document.createElement("script")` の `src` に文字列で代入する
      （`.open-next/assets/_next/static/chunks/turbopack-*.js`。ポリシーは作らない）。
   2. クライアントコンポーネントのチャンク参照が RSC ペイロードの `<script src async>` に入り、React がマウント時に
-     `setAttribute("src", ...)` する。
-  どちらもビルド出力で確認済み（2026-11-16。上流 issue にも報告あり）。Report-Only の間は違反が報告されるだけで止まらないため動くが、
+     `setAttribute("src", ...)` する（マウント時の代入は上流 issue の報告による）。
+  1 はビルド出力（`.open-next/assets/_next/static/chunks/turbopack-*.js`）で、2 は検証環境の HTML（curl）の
+  RSC ペイロードに `<script src async>` が入っていることで確認済み（2026-11-16。上流 issue にも報告あり）。
+  Report-Only の間は違反が報告されるだけで止まらないため動くが、
   強制するとチャンクの読み込みが止まり、ページ間の移動・先読みが壊れる。**ポリシー名の許可リストでは解消できない**
   （ランタイム自身がポリシーを使わないため）。修正 PR は未確認（2026-11-16 時点。issue で着手の表明はある）。
   webpack ビルドでは、ランタイムが `output.trustedTypes = 'nextjs#bundler'` でポリシーを作り、チャンクの URL をそのポリシーで通す
   （`node_modules/next/dist/build/webpack-config.js`。生成コードは `trustedTypes.createPolicy("nextjs#bundler", ...)`。
   `node_modules/next/dist/compiled/webpack/bundle5.js` で確認）。ただしポリシー名は完全一致のため
   **`trusted-types nextjs` では `nextjs#bundler` の作成が許可されない**。webpack への退避を検討するときは、
-  許可リストに `nextjs#bundler` を足す必要がある（許可が足りないときは、ランタイムはポリシーの作成に失敗した旨を Console に出す）。
+  許可リストに `nextjs#bundler` を足す必要がある。足し忘れると、enforce の下ではポリシーの作成が TypeError で失敗し、
+  チャンクの読み込みが止まる（Next.js は `output.trustedTypes` を文字列で設定するため、webpack の
+  `onPolicyCreationFailure` は既定の `stop` になる。`continue` を指定したときだけ `try`/`catch` で包まれ、
+  Console に警告が出る。`node_modules/next/dist/compiled/webpack/bundle5.js` で確認）。
 
 確認したこと（#416。2026-11-16。検証環境と同じ値でビルドした `bun run preview`。検証環境は curl だけ）:
 
@@ -765,8 +770,9 @@ Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-renderi
   nonce の CSP と `require-trusted-types-for 'script'; trusted-types nextjs` がカンマ区切りで連結されて届く
   （同名ヘッダーの連結。ポリシーは両方とも評価される。上の「Trusted Types」節）。
 
-確認するコマンド（4 つが返ればよい。`content-security-policy-report-only` には nonce の CSP と
-Trusted Types がカンマ区切りで載る。#412 までは `Content-Security-Policy` に加えてこれが返る）:
+確認するコマンド（4 つが返ればよい。`content-security-policy-report-only` には、#412 までは nonce の CSP と
+Trusted Types がカンマ区切りで載り、#412 の後は Trusted Types だけが載る（Trusted Types は常に Report-Only）。
+#412 までは `Content-Security-Policy` に加えてこれが返る）:
 
 ```bash
 curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | grep -i -E "^content-security-policy|^x-frame-options|^x-content-type-options|^referrer-policy"
