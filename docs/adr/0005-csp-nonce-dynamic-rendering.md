@@ -52,6 +52,15 @@ nonce は応答ごとに変える必要があるため、使うと全ページ�
    - proxy が実行時に読む値（`CSP_REPORT_ONLY`・`USE_DEV_ASSETS`）は、上の前提のとおり CI の `env:` では届かない。
      `NEXT_PUBLIC_*`（`NEXT_PUBLIC_USE_MSW` など）はビルド時に埋め込まれるため届く。
      #413 で実行時に渡す経路（`wrangler.jsonc` の `vars` など）を決める。届かないと `CSP_REPORT_ONLY` は未設定として読まれ、#418 の既定の enforce になる。
+   - （#416 で追記。2026-11-16）検証環境では #335 の CSP を外し、nonce の CSP（Report-Only）だけを付ける（ビルド時の `DISABLE_NEXT_CONFIG_CSP=true`）。
+     Workers では OpenNext が `next.config.ts` の `headers()` と proxy の応答ヘッダーを、Next.js に渡すリクエストのヘッダーにも写す
+     （`@opennextjs/aws` 4.1.12 の `core/requestHandler.js`）。Next.js は nonce を `Content-Security-Policy` から先に探す
+     （next 16.4.2 の `parse-request-headers.js`）ため、nonce のない #335 の CSP が残ると `<script>` に nonce が付かず、全スクリプトが Report-Only の違反になる。
+     #418 を出した後の検証環境と、検証環境と同じ値でビルドしたローカルの `preview` で、`<script>` に nonce が 1 つも付かないことを確かめた（2026-11-16）。
+     上の前提の確認（2026-11-13）で nonce が付いたのは、proxy の CSP が enforce で #335 の CSP と同じヘッダー名だったためと考えられる（決定 3 の「置き換えた」。推定）。
+     #412 まで検証環境には有効な CSP がなくなる（クリックジャッキングは `X-Frame-Options` で防ぐ）。検証環境の Auth は開発用のプロジェクト（NatuEve_API ADR-0041）で、影響はそこにとどまるため受け入れる。
+     本番は #412 まで #335 の CSP を enforce で残すため、この間の本番の Report-Only にも nonce が付かず、違反の観察には使えないと考えられる（検証環境の結果からの推定。本番に出した後に curl で確かめる）。
+     #418 を戻すときは、`DISABLE_NEXT_CONFIG_CSP` も一緒に戻す（残すと検証環境に CSP が 1 つもなくなる）。
    - 本番に出す前に、検証環境で `curl -I` を取り、ページの応答のヘッダー名が `content-security-policy-report-only` であることと、
      検証環境の CSP に `https://assets-dev.natuportal.org` が入っていることを確かめる。
 3. #412 で nonce の CSP を enforce に切り替え、`next.config.ts` の CSP を外す。以後、CSP を付けるのは proxy だけにする。
