@@ -14,6 +14,7 @@ type HeaderEnv = {
   supabaseUrl?: string;
   useMsw?: string;
   useDevAssets?: string;
+  disableConfigCsp?: string;
 };
 
 // headers() の規則をそのまま返す。検証環境（SITE_NOINDEX=true）では X-Robots-Tag の規則が増える。
@@ -23,6 +24,7 @@ const loadHeaderRules = async ({
   supabaseUrl = "https://example.supabase.co",
   useMsw,
   useDevAssets,
+  disableConfigCsp,
   siteNoindex,
 }: HeaderEnv & { siteNoindex?: string } = {}) => {
   vi.resetModules();
@@ -33,6 +35,7 @@ const loadHeaderRules = async ({
   vi.stubEnv("NEXT_PUBLIC_USE_MSW", useMsw);
   vi.stubEnv("USE_DEV_ASSETS", useDevAssets);
   vi.stubEnv("SITE_NOINDEX", siteNoindex);
+  vi.stubEnv("DISABLE_NEXT_CONFIG_CSP", disableConfigCsp);
 
   const { default: nextConfig } = await import("../../next.config");
   return (await nextConfig.headers?.()) ?? [];
@@ -97,6 +100,27 @@ describe("next.config.ts のセキュリティヘッダー", () => {
     expect(Object.keys(headers).sort()).toEqual(
       ["Referrer-Policy", "X-Content-Type-Options", "X-Frame-Options"].sort(),
     );
+  });
+
+  // 検証環境では proxy の nonce の CSP だけにする（#416）。Workers では headers() の CSP が
+  // リクエストヘッダーにも写り、Next.js が nonce を読めなくなるため。
+  it("DISABLE_NEXT_CONFIG_CSP=true なら CSP だけを外す", async () => {
+    const headers = await loadSecurityHeaders({ disableConfigCsp: "true" });
+
+    expect(headers).not.toHaveProperty("Content-Security-Policy");
+    expect(headers).toHaveProperty("Strict-Transport-Security");
+    expect(headers).toHaveProperty("X-Frame-Options");
+  });
+
+  // 本番の enforce を誤って外さないよう、true 以外では外さない。
+  it.each([
+    ["未設定", undefined],
+    ["false", "false"],
+    ["TRUE", "TRUE"],
+  ])("DISABLE_NEXT_CONFIG_CSP が%sなら CSP を付ける", async (_, value) => {
+    const headers = await loadSecurityHeaders({ disableConfigCsp: value });
+
+    expect(headers).toHaveProperty("Content-Security-Policy");
   });
 
   // _headers の /* の規則（次の空行まで）が、本番のページの CSP 以外のヘッダーと過不足なく一致する。

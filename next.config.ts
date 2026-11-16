@@ -33,6 +33,13 @@ const imageRemotePatterns: ImageRemotePattern[] = [
 // `true` 以外（未設定・`false` を含む）では付けない（本番が検索から消えるのを防ぐ）。
 const isSiteNoindex = process.env.SITE_NOINDEX === "true";
 
+// 検証環境のビルドでのみ、#335 の CSP を外す（#416）。
+// Workers では OpenNext が headers() の値をリクエストヘッダーにも写し、Next.js は nonce を
+// Content-Security-Policy から Report-Only より先に探す。この CSP には nonce がないため、
+// 残すと proxy の nonce が script に付かず、Report-Only で違反を観察できない。
+// `true` 以外（未設定・`false` を含む）では外さない（本番の enforce を誤って外さないため）。
+const isConfigCspDisabled = process.env.DISABLE_NEXT_CONFIG_CSP === "true";
+
 // 環境変数の URL からオリジンを取り出す。未設定・空文字なら何も返さない
 // （CI の品質チェックのビルドは接続先を空で渡す）。値が http(s) の URL でなければビルドを止める。
 const toOrigins = (name: string, value: string | undefined): string[] => {
@@ -155,10 +162,14 @@ const nextConfig: NextConfig = {
       ...(process.env.NODE_ENV === "production"
         ? [
             strictTransportSecurityHeader,
-            {
-              key: "Content-Security-Policy",
-              value: buildContentSecurityPolicy(),
-            },
+            ...(isConfigCspDisabled
+              ? []
+              : [
+                  {
+                    key: "Content-Security-Policy",
+                    value: buildContentSecurityPolicy(),
+                  },
+                ]),
           ]
         : []),
     ];
