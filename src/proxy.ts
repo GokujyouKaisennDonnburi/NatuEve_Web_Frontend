@@ -7,30 +7,32 @@ import { buildCspHeader } from "@/lib/csp";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Report-Only かどうか。request / response のヘッダー名と buildCspHeader に渡し、
+// Report-Only では無視される upgrade-insecure-requests を外すのに使う。
 // 検証環境での違反観察（#416）のため、env で Report-Only に切り替えられる。
-// request 側のヘッダー名も揃える。Next.js の nonce 抽出は Report-Only のヘッダーも
-// 対象である（node_modules/next/dist/server/route-modules/app-page/parse-request-headers.js
-// の parseRequestHeaders が content-security-policy と content-security-policy-report-only
-// の両方を読む）ため、Report-Only 時でも script に nonce が付く。
-const getCspHeaderKey = () =>
-  process.env.CSP_REPORT_ONLY === "true"
+// Next.js の nonce 抽出は Report-Only のヘッダーも対象である（node_modules/next/
+// dist/server/route-modules/app-page/parse-request-headers.js の
+// parseRequestHeaders が content-security-policy と
+// content-security-policy-report-only の両方を読む）ため、Report-Only 時でも
+// script に nonce が付く。
+const isReportOnly = () => process.env.CSP_REPORT_ONLY === "true";
+
+const getCspHeaderKey = (reportOnly: boolean) =>
+  reportOnly
     ? "Content-Security-Policy-Report-Only"
     : "Content-Security-Policy";
-
-// Report-Only かどうか。buildCspHeader に渡し、Report-Only では無視される
-// upgrade-insecure-requests を外すのに使う。
-const isReportOnly = () => process.env.CSP_REPORT_ONLY === "true";
 
 export function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV === "development";
   // uuid（16 進数とハイフン）を base64 に変換し、CSP の nonce 構文に合う文字列にする。
   const nonce = btoa(crypto.randomUUID());
+  const reportOnly = isReportOnly();
   const cspHeader = buildCspHeader({
     nonce,
     isDev,
-    isReportOnly: isReportOnly(),
+    isReportOnly: reportOnly,
   });
-  const headerKey = getCspHeaderKey();
+  const headerKey = getCspHeaderKey(reportOnly);
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(headerKey, cspHeader);
