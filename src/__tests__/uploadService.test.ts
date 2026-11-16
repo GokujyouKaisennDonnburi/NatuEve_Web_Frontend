@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPngFile } from "./imageTestFiles";
 import { apiFetch } from "@/services/apiClient";
 import { uploadFile } from "@/services/upload";
-import type { PresignResponse } from "@/types/upload";
+import type { PresignRequest, PresignResponse } from "@/types/upload";
 import { UploadValidationError } from "@/utils/upload";
 
 vi.mock("@/services/apiClient", () => ({
@@ -19,9 +19,12 @@ const presignResponse: PresignResponse = {
 };
 
 // presign の呼び出しで送ったボディを取り出す。
-const presignBody = () => {
-  const init = mockApiFetch.mock.calls[0][1];
-  return JSON.parse(init?.body as string);
+const presignBody = (): PresignRequest => {
+  const init = mockApiFetch.mock.calls[0]?.[1];
+  if (typeof init?.body !== "string") {
+    throw new Error("presign のボディが取得できません");
+  }
+  return JSON.parse(init.body) as PresignRequest;
 };
 
 describe("uploadFile", () => {
