@@ -205,8 +205,7 @@ export function EventNotifyModal({
                     role="alert"
                     className="text-sm text-red-700"
                   >
-                    件名は{MAX_NOTIFICATION_SUBJECT_LENGTH}
-                    文字以内で入力してください。
+                    {MESSAGES.NOTIFICATION_SUBJECT_LENGTH_EXCEEDED}
                   </p>
                 )}
               </div>
@@ -243,8 +242,7 @@ export function EventNotifyModal({
                     role="alert"
                     className="text-sm text-red-700"
                   >
-                    本文は{MAX_NOTIFICATION_BODY_LENGTH}
-                    文字以内で入力してください。
+                    {MESSAGES.NOTIFICATION_BODY_LENGTH_EXCEEDED}
                   </p>
                 )}
               </div>
