@@ -687,6 +687,33 @@ nonce を使う CSP への切り替え（[ADR-0005](./adr/0005-csp-nonce-dynamic
 - 全ページの動的レンダリングは、#412 の切り替えを待たず #413 を出した時点から始まり、HTML をキャッシュして配れなくなる。受け入れた費用と表示速度への影響は ADR-0005 に記録した。
 - #413・#412 のマージ時に、この節・上の表・「イベント詳細の SSR / メタデータ」のキャッシュの記述・開発時に CSP を付けないとした記述を直す。
 
+Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-rendering.md) の決定 6）:
+
+- Trusted Types は nonce の CSP に含めず、proxy が**別の `Content-Security-Policy-Report-Only` ヘッダー**として付ける
+  （`src/lib/csp.ts` の `buildTrustedTypesCspHeader`・`src/proxy.ts`）。中身は `require-trusted-types-for 'script'; trusted-types nextjs`。
+  dev（`next dev`）では付けない。React DevTools など開発ツールが DOM のシンクを使うため、違反で開発が止まらないようにする（#415 の AC）。
+- **enforce の CSP（#335 の CSP・#412 以降の nonce の CSP）には含めない**: Turbopack のランタイムが Trusted Types に対応していないため
+  （下の「既知の違反」）、含めると #412 の enforce 切替が上流の修正待ちで止まってしまう（#415 のコメントでの議論）。
+  Report-Only のヘッダーで観察を続け、上流が直った後に enforce の CSP へ統合するかを改めて決める。
+- `CSP_REPORT_ONLY=true` の間は nonce の CSP も同じヘッダー名で Report-Only になるため、同じ名前のヘッダーが 2 つ並ぶ。
+  proxy は `set` ではなく `append` で足す（上書きすると観察中の nonce の CSP を消してしまう）。
+  同じ名前のヘッダーが 2 つ返っても有効で、ブラウザは両方を Report-Only のポリシーとして評価する。
+- `trusted-types nextjs` は、作れる Trusted Types のポリシー名を、Next.js のランタイムが使う `nextjs`
+  （`node_modules/next/dist/client/trusted-types.js`）に限定する。現状のビルド出力に `createPolicy` はなく許可は使われていないが、
+  付けておいて害はない。ライブラリの内部でほかの名前のポリシーを作る違反が出たら、`src/lib/csp.ts` の許可リストに名前を足す。
+- `src/` 内に Trusted Types のシンク（`innerHTML`・`document.write` など）はない（#415 の時点）。
+- 既知の違反（Next.js の Turbopack ランタイム。上流の既知バグ
+  [vercel/next.js#101261](https://github.com/vercel/next.js/issues/101261)）:
+  1. ページ間の移動や先読みで読み込むチャンクを `document.createElement("script")` の `src` に文字列で代入する
+     （`.open-next/assets/_next/static/chunks/turbopack-*.js`。ポリシーは作らない）。
+  2. クライアントコンポーネントのチャンク参照が RSC ペイロードの `<script src async>` に入り、React がマウント時に
+     `setAttribute("src", ...)` する。
+  どちらもビルド出力で確認済み（2026-11-16。上流 issue にも報告あり）。Report-Only の間は違反が報告されるだけで止まらないため動くが、
+  強制するとチャンクの読み込みが止まり、ページ間の移動・先読みが壊れる。**ポリシー名の許可リストでは解消できない**
+  （ランタイム自身がポリシーを使わないため）。修正 PR は未確認（2026-11-16 時点。issue で着手の表明はある）。
+  webpack ビルドでは同じ CSP でも動く（webpack のランタイムが `output.trustedTypes = 'nextjs#bundler'` のポリシーを通す。
+  `node_modules/next/dist/build/webpack-config.js`）ため、上流の修正が先延ばしになる場合の手段として残す。
+
 見送ったこと:
 
 - **上の CSP を `Content-Security-Policy-Report-Only` で様子を見る**: 報告の受け取り先がないため、本番に出しても情報が集まらない。
