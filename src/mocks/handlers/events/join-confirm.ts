@@ -9,21 +9,11 @@ import { mockEventDetails } from "./data";
 import {
   cancelledEventIds,
   eventMembers,
+  eventNotFoundResponse,
   findPendingMemberByToken,
+  invalidTokenResponse,
   removePendingMember,
 } from "./participation";
-
-// 確認トークンが無効・期限切れ・使用済みの場合の共通レスポンス。
-const invalidTokenResponse = () =>
-  HttpResponse.json(
-    {
-      error: {
-        code: "invalid_request",
-        message: "確認リンクが無効か、有効期限が切れています",
-      },
-    },
-    { status: 400 },
-  );
 
 // 確定時の競合（定員・終了・取消）の共通レスポンス。
 const conflictResponse = (code: string, message: string) =>
@@ -45,15 +35,7 @@ export const eventJoinConfirmHandler = http.post(
 
     // イベントが存在しない場合は 404 を返す。
     if (!detail) {
-      return HttpResponse.json(
-        {
-          error: {
-            code: "not_found",
-            message: "イベントが見つかりません",
-          },
-        },
-        { status: 404 },
-      );
+      return eventNotFoundResponse();
     }
 
     const body = (await request.json().catch(() => null)) as {

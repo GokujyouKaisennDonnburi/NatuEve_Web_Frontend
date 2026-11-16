@@ -6,19 +6,12 @@
 import { HttpResponse, http } from "msw";
 
 import { mockEventDetails } from "./data";
-import { findPendingMemberByToken, removePendingMember } from "./participation";
-
-// 確認トークンが無効・期限切れ・使用済みの場合の共通レスポンス。
-const invalidTokenResponse = () =>
-  HttpResponse.json(
-    {
-      error: {
-        code: "invalid_request",
-        message: "確認リンクが無効か、有効期限が切れています",
-      },
-    },
-    { status: 400 },
-  );
+import {
+  eventNotFoundResponse,
+  findPendingMemberByToken,
+  invalidTokenResponse,
+  removePendingMember,
+} from "./participation";
 
 export const eventJoinPreviewHandler = http.get(
   "/api/v1/events/:id/join/preview",
@@ -28,15 +21,7 @@ export const eventJoinPreviewHandler = http.get(
 
     // イベントが存在しない場合は 404 を返す。
     if (!detail) {
-      return HttpResponse.json(
-        {
-          error: {
-            code: "not_found",
-            message: "イベントが見つかりません",
-          },
-        },
-        { status: 404 },
-      );
+      return eventNotFoundResponse();
     }
 
     const token = new URL(request.url).searchParams.get("token")?.trim() ?? "";

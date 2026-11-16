@@ -1,6 +1,8 @@
 // このファイルは、参加・キャンセル・参加者一覧周りのハンドラー間で
 // 共有するメモリ内状態と、その生成・操作ロジックを定義する。
 // MSW はプロセス内状態のためリロードでリセットされる前提。
+import { HttpResponse } from "msw";
+
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
 import type {
   AbsenceReason,
@@ -59,6 +61,31 @@ export type MockPendingEventMember = {
 // 確認トークンの有効期間。ADR-0049 の契約値（24時間）。
 // モックのトークン発行とテストの期限計算で共有する。
 export const CONFIRM_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+
+// 確認トークンが無効・期限切れ・使用済みの場合の共通レスポンス。
+// 確定（join-confirm）とプレビュー（join-preview）で同じ契約を返す。
+export const invalidTokenResponse = () =>
+  HttpResponse.json(
+    {
+      error: {
+        code: "invalid_request",
+        message: "確認リンクが無効か、有効期限が切れています",
+      },
+    },
+    { status: 400 },
+  );
+
+// イベントが存在しない場合の共通レスポンス（404 not_found）。
+export const eventNotFoundResponse = () =>
+  HttpResponse.json(
+    {
+      error: {
+        code: "not_found",
+        message: "イベントが見つかりません",
+      },
+    },
+    { status: 404 },
+  );
 
 // メモリ内参加者管理：eventId ごとにログイン参加者のキー（raw token）を保持
 // 重複参加チェック（409 Conflict）のために使用
