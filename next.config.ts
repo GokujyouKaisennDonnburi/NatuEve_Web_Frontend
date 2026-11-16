@@ -149,6 +149,16 @@ const commonSecurityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
 ];
 
+// HSTS（#386）。静的ファイルには public/_headers で同じ値を付ける。
+// includeSubDomains はこのホストの下位（*.natueve-web.natuportal.org）にだけ効き、natuportal.org のほかのサブドメインには効かない。
+// preload は付けない（登録は apex の natuportal.org で行うもので、NatuPortal の全サブドメインに効くため）。
+// ブラウザに覚えられると max-age が切れるまで取り消せないため、5 分で確かめてから 1 年に延ばす（docs/Deployment.md「HSTS」）。
+// 開発時（next dev）は付けない（localhost を HTTPS で開いたときに、ほかの開発中のサイトまで HTTPS に固定されないようにする）。
+const strictTransportSecurityHeader = {
+  key: "Strict-Transport-Security",
+  value: "max-age=300; includeSubDomains",
+};
+
 // Next.jsの設定ファイル
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -179,6 +189,7 @@ const nextConfig: NextConfig = {
       ...commonSecurityHeaders,
       ...(process.env.NODE_ENV === "production"
         ? [
+            strictTransportSecurityHeader,
             {
               key: "Content-Security-Policy",
               value: buildContentSecurityPolicy(),
