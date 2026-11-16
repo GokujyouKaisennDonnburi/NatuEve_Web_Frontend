@@ -16,13 +16,15 @@ type HeaderEnv = {
   useDevAssets?: string;
 };
 
-const loadSecurityHeaders = async ({
+// headers() の規則をそのまま返す。検証環境（SITE_NOINDEX=true）では X-Robots-Tag の規則が増える。
+const loadHeaderRules = async ({
   nodeEnv = "production",
   apiBaseUrl = "https://natueve-api.natuportal.org",
   supabaseUrl = "https://example.supabase.co",
   useMsw,
   useDevAssets,
-}: HeaderEnv = {}): Promise<Record<string, string>> => {
+  siteNoindex,
+}: HeaderEnv & { siteNoindex?: string } = {}) => {
   vi.resetModules();
 
   vi.stubEnv("NODE_ENV", nodeEnv);
@@ -30,10 +32,16 @@ const loadSecurityHeaders = async ({
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", supabaseUrl);
   vi.stubEnv("NEXT_PUBLIC_USE_MSW", useMsw);
   vi.stubEnv("USE_DEV_ASSETS", useDevAssets);
-  vi.stubEnv("SITE_NOINDEX", undefined);
+  vi.stubEnv("SITE_NOINDEX", siteNoindex);
 
   const { default: nextConfig } = await import("../../next.config");
-  const rules = (await nextConfig.headers?.()) ?? [];
+  return (await nextConfig.headers?.()) ?? [];
+};
+
+const loadSecurityHeaders = async (
+  env: HeaderEnv = {},
+): Promise<Record<string, string>> => {
+  const rules = await loadHeaderRules(env);
 
   expect(rules).toHaveLength(1);
   expect(rules[0].source).toBe("/:path*");
@@ -105,6 +113,24 @@ describe("next.config.ts のセキュリティヘッダー", () => {
     );
 
     expect(allPathsHeaders).toEqual(headers);
+  });
+});
+
+// クリックジャッキング対策（#384）。検証環境では規則が増えるため、規則をまたいで確かめる。
+describe("next.config.ts の X-Frame-Options", () => {
+  it.each([
+    ["本番（SITE_NOINDEX 未設定）", undefined],
+    ["検証環境（SITE_NOINDEX=true）", "true"],
+  ])("%sでも、全ページに DENY を 1 つだけ付ける", async (_, siteNoindex) => {
+    const rules = await loadHeaderRules({ siteNoindex });
+    const frameOptions = rules.flatMap(({ source, headers }) =>
+      headers
+        .filter(({ key }) => key.toLowerCase() === "x-frame-options")
+        .map(({ value }) => ({ source, value })),
+    );
+
+    // 値の異なる X-Frame-Options が重なると、ブラウザによっては無視される。
+    expect(frameOptions).toEqual([{ source: "/:path*", value: "DENY" }]);
   });
 });
 
