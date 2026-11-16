@@ -5,7 +5,7 @@
 // picomatch の makeRe（dot: true）で pathname を正規表現にして判定する形に置き換える。
 import { matchRemotePattern } from "next/dist/shared/lib/match-remote-pattern";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ImageRemotePattern } from "../../next.config";
+import type { ImageRemotePattern } from "../lib/imageOrigins";
 
 vi.mock("@opennextjs/cloudflare", () => ({
   initOpenNextCloudflareForDev: vi.fn(),

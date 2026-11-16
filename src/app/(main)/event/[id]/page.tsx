@@ -8,16 +8,11 @@ import {
   loadEventDetailOrNotFound,
 } from "./eventDetailMetadata";
 
-// 初回アクセス時に生成して ISR キャッシュする。更新は1分以内に反映する。
-// 参加人数など変わりやすい値は、タブ復帰時・参加操作後にクライアント側で再取得する。
-// 実際のキャッシュ永続化は実行環境の incremental cache に依存する。
-export const revalidate = 60;
-
-// 動的ルートを ISR 対象にするため、空配列でも generateStaticParams を export する。
-// 空配列の場合、パスはビルド時ではなく初回アクセス時に生成される。
-export async function generateStaticParams() {
-  return [];
-}
+// 全ページ動的レンダリング（layout の connection()）のため、ISR（revalidate・
+// generateStaticParams）は使わない。OpenNext の incremental cache は既定の dummy で
+// unstable_cache の revalidate: 60 は実際にはキャッシュせず、イベント詳細の API も
+// HTML も毎リクエストで取り直す（docs/Deployment.md「イベント詳細の SSR / メタデータ」）。
+// 鮮度はこれで担保され、変わりやすい値はクライアント側でも再取得する。
 
 type EventDetailPageProps = {
   params: Promise<{ id: string }>;

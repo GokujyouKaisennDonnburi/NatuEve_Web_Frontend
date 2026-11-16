@@ -18,6 +18,18 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // Worker の実行時変数。OpenNext の populateProcessEnv が文字列のバインディングを
+  // process.env に供給するため、src/lib/csp.ts がランタイムに読める。
+  // CI のワークフローの env: の値はビルド時にしか届かず、next-env.mjs に入るのは
+  // .env 系ファイルの値だけ（CI は .env を使わない）ため、実行時の値は vars で渡す。
+  // ローカルの preview（wrangler dev）では .dev.vars で上書きできる。
+  // vars は env に引き継がれないため、env.staging でも宣言し直す（wrangler 4.150.0）。
+  "vars": {
+    // nonce の CSP を Report-Only にする。#416 で違反を解消するまで本番・検証とも
+    // Report-Only にし、#335 の Content-Security-Policy（enforce）と併用する
+    // （ADR-0005 決定 2）。enforce への切替は #412 で行う。
+    "CSP_REPORT_ONLY": "true"
+  },
   "images": {
     // 画像最適化（Cloudflare Images）を有効化する。参考: https://opennext.js.org/cloudflare/howtos/image
     "binding": "IMAGES"
@@ -37,7 +49,16 @@
       "routes": [],
       "workers_dev": false,
       "preview_urls": false,
-      // images と services は env に引き継がれないため、宣言し直す。
+      // images・services・vars は env に引き継がれないため、宣言し直す。
+      "vars": {
+        // 本番と同じく Report-Only（#416 で違反を解消してから enforce への切替を検討）。
+        "CSP_REPORT_ONLY": "true",
+        // 検証環境は開発用の R2（assets-dev.natuportal.org）の画像を表示する（#353）。
+        // ビルド時の remotePatterns（next.config.ts）は CI のビルドステップの env: で
+        // USE_DEV_ASSETS=true にしてあり、この vars は実行時に CSP の img-src に
+        // 開発用の取得元を足すためのもの（src/lib/csp.ts）。
+        "USE_DEV_ASSETS": "true"
+      },
       "images": {
         "binding": "IMAGES"
       },
