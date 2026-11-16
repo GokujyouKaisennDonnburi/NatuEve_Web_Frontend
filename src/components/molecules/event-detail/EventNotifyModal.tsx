@@ -11,6 +11,13 @@ import { Send } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { MESSAGES } from "@/constants/messages";
+import {
+  MAX_NOTIFICATION_BODY_LENGTH,
+  MAX_NOTIFICATION_SUBJECT_LENGTH,
+} from "@/constants/config";
+import { NotificationLimitExceededError } from "@/types/event";
+import { validateNotificationText } from "@/utils/notificationText";
 
 // 全体連絡モーダルのプロパティ
 type EventNotifyModalProps = {
@@ -33,11 +40,22 @@ export function EventNotifyModal({
   const [isSending, setIsSending] = useState(false);
   const [notifySubject, setNotifySubject] = useState("");
   const [notifyBody, setNotifyBody] = useState("");
+  const [limitExceeded, setLimitExceeded] = useState(false);
 
-  // 送信可能かどうかの判定
+  // 超過分も入力欄に残し、前後の空白を除いた送信内容で文字数を判定する。
+  const subject = validateNotificationText(
+    notifySubject,
+    MAX_NOTIFICATION_SUBJECT_LENGTH,
+  );
+  const body = validateNotificationText(
+    notifyBody,
+    MAX_NOTIFICATION_BODY_LENGTH,
+  );
   const canSend =
-    notifySubject.trim().length > 0 &&
-    notifyBody.trim().length > 0 &&
+    !!subject.value &&
+    !!body.value &&
+    !subject.tooLong &&
+    !body.tooLong &&
     !isSending;
 
   // モーダルを閉じる処理
@@ -47,6 +65,7 @@ export function EventNotifyModal({
     onOpenChange(false);
     setNotifySubject("");
     setNotifyBody("");
+    setLimitExceeded(false);
   }, [isSending, onOpenChange]);
 
   // 全体連絡を送信する処理
@@ -55,18 +74,24 @@ export function EventNotifyModal({
     if (!canSend) return;
 
     setIsSending(true);
+    setLimitExceeded(false);
 
     void (async () => {
       try {
         await notifyEventParticipants(eventId, {
-          subject: notifySubject.trim(),
-          body: notifyBody.trim(),
+          subject: subject.value,
+          body: body.value,
         });
 
         toast.success("参加者へ全体連絡を送信しました。");
 
         handleClose();
       } catch (error) {
+        if (error instanceof NotificationLimitExceededError) {
+          // 今回は未送信なので、モーダルを閉じず、件名と本文を残して知らせる。
+          setLimitExceeded(true);
+          return;
+        }
         // 送信に失敗した場合はエラーメッセージを表示
         console.error("参加者への通知送信に失敗しました:", error);
 
@@ -125,7 +150,7 @@ export function EventNotifyModal({
         aria-modal="true"
         aria-labelledby={`event-notify-modal-title-${eventId}`}
       >
-        <Card className="border-slate-200 bg-white shadow-xl">
+        <Card className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-slate-200 bg-white shadow-xl">
           <CardContent className="space-y-6 px-8 py-2">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
@@ -166,10 +191,24 @@ export function EventNotifyModal({
                   value={notifySubject}
                   onChange={(e) => setNotifySubject(e.target.value)}
                   disabled={isSending}
-                  maxLength={255}
+                  aria-invalid={subject.tooLong}
+                  aria-describedby={
+                    subject.tooLong
+                      ? `notify-subject-error-${eventId}`
+                      : undefined
+                  }
                   placeholder="例:【当日連絡】集合場所のご案内"
                   className="h-11 rounded-xl border-slate-300"
                 />
+                {subject.tooLong && (
+                  <p
+                    id={`notify-subject-error-${eventId}`}
+                    role="alert"
+                    className="text-sm text-red-700"
+                  >
+                    {MESSAGES.NOTIFICATION_SUBJECT_LENGTH_EXCEEDED}
+                  </p>
+                )}
               </div>
 
               {/* 連絡内容 */}
@@ -190,12 +229,31 @@ export function EventNotifyModal({
                   value={notifyBody}
                   onChange={(e) => setNotifyBody(e.target.value)}
                   disabled={isSending}
+                  aria-invalid={body.tooLong}
+                  aria-describedby={
+                    body.tooLong ? `notify-body-error-${eventId}` : undefined
+                  }
                   rows={7}
                   placeholder="参加者へのメッセージを入力してください"
                   className="field-sizing-fixed h-40 resize-none rounded-xl border-slate-300"
                 />
+                {body.tooLong && (
+                  <p
+                    id={`notify-body-error-${eventId}`}
+                    role="alert"
+                    className="text-sm text-red-700"
+                  >
+                    {MESSAGES.NOTIFICATION_BODY_LENGTH_EXCEEDED}
+                  </p>
+                )}
               </div>
             </div>
+
+            {limitExceeded && (
+              <p role="alert" className="text-sm text-red-700">
+                {MESSAGES.NOTIFICATION_LIMIT_EXCEEDED}
+              </p>
+            )}
 
             {/* ボタン */}
             <div className="flex justify-end gap-3 pt-2">

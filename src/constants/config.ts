@@ -30,6 +30,16 @@ export const MAX_TEXT_LENGTH = 255;
 // 1イベントに添付できるPDFの上限。
 export const MAX_EVENT_PDF_COUNT = 3;
 
+// API の ADR-0051 に合わせる。実際の送信枠は端末ではなく API がイベント単位で管理する。
+export const MAX_EVENT_NOTIFICATION_SENDS = 5;
+export const EVENT_NOTIFICATION_WINDOW_HOURS = 24;
+
+// API の ADR-0051 が引き継ぐ ADR-0007 の宛先数上限。1申込を1宛先と数える。
+export const MAX_EVENT_NOTIFICATION_RECIPIENTS = 100;
+// API の validateNotificationContent と同じ、前後の空白を除いた文字数上限。
+export const MAX_NOTIFICATION_SUBJECT_LENGTH = 255;
+export const MAX_NOTIFICATION_BODY_LENGTH = 10_000;
+
 // 1回の参加申し込みで入力できる合計人数の上限。
 // モーダルの入力制限・バックエンド(MSW)・API側のバリデーションで共通に使う。
 export const MAX_PARTICIPATION_PARTY_SIZE = 10;

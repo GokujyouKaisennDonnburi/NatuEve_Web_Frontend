@@ -194,10 +194,22 @@ export type NotifyEventParticipantsRequest = {
   body: string;
 };
 
+// API の internal/model/event_notification.go の SendEventNotificationResponse に対応する。
 export type NotifyEventParticipantsResponse = {
-  // 実際に通知された参加者数（任意）
-  notifiedCount?: number;
+  eventId: string;
+  recipientCount: number;
+  sentCount: number;
+  failedCount: number;
 };
+
+export class NotificationLimitExceededError extends Error {
+  static readonly code = "notification_limit_exceeded";
+
+  constructor(message?: string) {
+    super(message);
+    this.name = "NotificationLimitExceededError";
+  }
+}
 
 // イベント取りやめ（キャンセル）API（POST /api/v1/events/{id}/cancel）の DTO 群。
 // 主催者のみ実行可能。参加者へ送る通知メールの件名・本文を任意で受け取り、

@@ -14,7 +14,9 @@ import type { NextRequest } from "next/server";
 // dist/server/route-modules/app-page/parse-request-headers.js の
 // parseRequestHeaders が content-security-policy と
 // content-security-policy-report-only の両方を読む）ため、Report-Only 時でも
-// script に nonce が付く。
+// script に nonce が付く。ただし content-security-policy を先に読むため、Workers で
+// nonce のない #335 の CSP と並べると nonce が付かない（OpenNext が応答ヘッダーを
+// リクエストにも写すため）。検証環境は #335 の CSP を外している（next.config.ts）。
 const isReportOnly = () => process.env.CSP_REPORT_ONLY === "true";
 
 const getCspHeaderKey = (reportOnly: boolean) =>

@@ -1,5 +1,6 @@
 import { EventDetailError } from "@/lib/errors";
 import { apiFetch } from "@/services/apiClient";
+import { NotificationLimitExceededError } from "@/types/event";
 import type {
   CancelEventRequest,
   CancelEventResponse,
@@ -235,11 +236,17 @@ export async function notifyEventParticipants(
   );
 
   if (!response.ok) {
-    const body: { error?: { message?: string } } = await response
-      .json()
-      .catch(() => ({}));
+    const body: { error?: { code?: string; message?: string } } | null =
+      await response.json().catch(() => null);
+    // 配信基盤の混雑 (rate_limited) も 429 なので、HTTPステータスだけでは送信回数の上限と区別できない。
+    if (
+      response.status === 429 &&
+      body?.error?.code === NotificationLimitExceededError.code
+    ) {
+      throw new NotificationLimitExceededError(body.error.message);
+    }
     throw new Error(
-      body.error?.message ??
+      body?.error?.message ??
         `通知の送信に失敗しました (Status: ${response.status})`,
     );
   }
