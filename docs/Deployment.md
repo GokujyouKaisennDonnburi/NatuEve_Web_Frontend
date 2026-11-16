@@ -78,6 +78,7 @@ OpenNext の手順に従って `wrangler.jsonc` を追加する。必須の項�
 
 - Workers Paid の 1 リクエストあたりの CPU 上限は既定 30 秒（最大 5 分）。無料プランは 10ms。
 - `public/_headers` で `/_next/static/*` に長期キャッシュ（`Cache-Control: public,max-age=31536000,immutable`）を付ける。
+  静的ファイル全体（`/*`）にはセキュリティヘッダーも付ける（下の「セキュリティヘッダー」）。
 
 ## 独自ドメイン
 
@@ -193,6 +194,29 @@ workers.dev の URL と Version URL での公開は、これとは別に `worker
 - 割り当てた後の CI のデプロイで、Custom Domain が外れずに応答することを確かめた（2026-10-27。#363 のマージ後の実行で `Deploy (staging)` が成功し、割り当ては生きたまま。下の「Cloudflare の API トークン」）。
 - 割り当て後、本番と同じ 4 つ（トップページ・API の呼び出し・ログイン・画像の表示）を確かめた（2026-10-27）。
   画像の表示の確認は、#351 の実データでの確認を兼ねる（`assets-dev.natuportal.org` のキーの形式は本番と同じ）。
+
+### HTTPS へのリダイレクト
+
+HTTP でのアクセスは、Cloudflare のエッジが HTTPS へ 301 でリダイレクトする（#382）。アプリ（Worker・`next.config.ts`）ではリダイレクトしない。
+
+- リダイレクトの応答は Cloudflare が返している（`Server: cloudflare`。リポジトリにはリダイレクトの処理も設定もない）。
+  設定元はゾーン（`natuportal.org`）の「Always Use HTTPS」（SSL/TLS → Edge Certificates）。管理者がダッシュボードで確かめた（2026-11-13）。
+  ゾーン全体に効くため、サブドメインを足しても個別の設定は要らない。
+- パスとクエリ（エンコードを含む）はそのまま引き継がれる。
+- 2026-11-13 に、次のホストすべてで `http://` が `https://` への 301 になることを確かめた。
+  `natueve-web`・`natueve-web-stg`・`natueve-api`・`natueve-api-stg`・`assets`・`assets-dev`（いずれも `.natuportal.org`）。
+- 同じ日に、本番と検証環境の `http://…/event-list?page=1` を Safari・Chrome・Firefox・Edge（macOS）で開き、
+  証明書の警告と混在コンテンツの警告が出ず、`https://…/event-list?page=1` で表示されることを確かめた。
+  ブラウザには自分で HTTPS に切り替える機能（Chrome・Firefox の HTTPS-First など）があるため、ブラウザでの確認はサーバー側のリダイレクトの確認を兼ねない（リダイレクトは curl で確かめる）。
+- 証明書は Cloudflare が用意したもの（発行元は Google Trust Services。2026-11-13 時点の有効期限は 2027-01-25）。
+- HSTS（`Strict-Transport-Security`）は付けていない（2026-11-13 に本番と検証環境の応答ヘッダーを curl で確かめた）。
+  付けるかどうかと範囲は #411 で扱う。
+
+確認するコマンド（`301` と、クエリを含む `https://` の `Location` が返ればよい）:
+
+```bash
+curl -sS -o /dev/null -D - "http://natueve-web.natuportal.org/event-list?page=1" | grep -i -E "^HTTP|^location"
+```
 
 ## 環境変数
 
@@ -611,6 +635,80 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 - `/users/[id]` は個人のページのため検索に載せない。主催者名はイベント詳細ページの本文に出るため、そちらが検索対象になる。
 - 検証環境は `SITE_NOINDEX=true` でビルドし、全ページ（404・`robots.txt`・`sitemap.xml` を含む）に `X-Robots-Tag: noindex` を付ける。metadata ではなくヘッダーにするのは、ページごとの `metadata` の設定に左右されないため。
 - Workers では、静的アセット（`/images/*`・`/_next/static/*` など）と `/_next/image` は `headers()` を通らないため付かない。ページは `noindex` なので許容する（確認: `wrangler dev`。#372）。
+
+## セキュリティヘッダー
+
+本番・検証環境の応答に次のヘッダーを付ける（#335）。HSTS（`Strict-Transport-Security`）は #411 で扱う。
+
+| ヘッダー | 値 | 付ける場所 |
+|---|---|---|
+| `Content-Security-Policy` | 下の表 | ページ（`next.config.ts` の `headers()`）。本番ビルド（`NODE_ENV=production`）のときだけ |
+| `X-Frame-Options` | `DENY` | ページと静的ファイル（`public/_headers`） |
+| `X-Content-Type-Options` | `nosniff` | ページと静的ファイル |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | ページと静的ファイル |
+
+- ページと静的ファイルで値を揃える（`next.config.ts` の `commonSecurityHeaders` と `public/_headers`。テストで一致を確かめる）。
+- `/_next/image` には付かない（`headers()` も `_headers` も通らない）。応答には Next.js が画像用に付ける `Content-Security-Policy: script-src 'none'; frame-src 'none'; sandbox;` だけが付く。
+  画像は枠に埋め込まれても操作を乗っ取られる画面がなく、`Content-Type` も画像の型で返るため、許容する。
+- 開発時（`next dev`）は CSP を付けない。React の開発版が使う `eval` と HMR を止めないため。CSP の確認は `bun run preview` で行う。
+- `X-Frame-Options` は、CSP の `frame-ancestors` を解さない古いブラウザ向けに併せて付ける。
+- `Permissions-Policy` は付けていない。カメラ・マイク・位置情報を使う機能を足すときに、使う機能だけを `(self)` で許可する形で決める。
+
+CSP の内容:
+
+| 項目 | 値 | 理由 |
+|---|---|---|
+| `default-src` | `'self'` | 下に書かない種類（`frame-src`・`worker-src` など）は自サイトだけ |
+| `script-src` | `'self' 'unsafe-inline'` | Next.js はページにインラインスクリプトを埋め込む。nonce への切り替えは下の「nonce を使う CSP への切り替え」 |
+| `style-src` | `'self' 'unsafe-inline'` | `next/image` の `style` 属性・sonner が差し込む `<style>` など、インラインのスタイルがある |
+| `img-src` | `'self' blob:` と画像の取得元 | `blob:` はアップロード前のプレビュー。取得元は `remotePatterns` と同じホスト（`USE_DEV_ASSETS`・`NEXT_PUBLIC_USE_MSW` で増える）と、アバターの `lh3.googleusercontent.com` |
+| `font-src` | `'self'` | `next/font/google` はビルド時にフォントを取り込み、自サイトから配る |
+| `connect-src` | `'self'`・API・Supabase Auth・`https://*.r2.cloudflarestorage.com` | API と Supabase は `NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL` のオリジン。R2 は presign の署名付き URL への PUT（NatuEve_API の `internal/storage/r2.go`） |
+| `object-src` | `'none'` | `<object>`・`<embed>` を使わない |
+| `base-uri` | `'self'` | `<base>` の差し込みで相対 URL の行き先を変えられないようにする |
+| `form-action` | `'self'` | フォームを他サイトへ送らせない（OAuth は画面遷移で、フォーム送信ではない） |
+| `frame-ancestors` | `'none'` | 他サイトの枠に埋め込ませない（クリックジャッキング対策） |
+
+- 接続先はビルド時の環境変数から組み立てる。本番と検証環境で値が違うため、環境ごとにビルドする（上の「環境変数」）。
+  値が空なら許可に加えず（CI の品質チェックのビルド）、URL でなければビルドを止める。
+- R2 のホストはアカウント ID を含むが、ワイルドカードにしている。指定するにはビルドに変数を足す必要があり、
+  `'unsafe-inline'` の下では絞っても XSS の持ち出し先が減る効果は小さいため。nonce の CSP に切り替えるとき（#412）に、絞るかを改めて決める。
+- 接続先・画像の取得元を足すとき（新しい外部 API、Google 以外のログイン方法のアバターなど）は、CSP にも足す。足さないとブラウザが止め、通信の失敗・画像が出ないといった症状になる。
+- 違反の報告先（`report-uri`・`report-to`）は指定していない。違反は利用者のブラウザのコンソールに出るだけで、こちらには届かない。
+
+nonce を使う CSP への切り替え（[ADR-0005](./adr/0005-csp-nonce-dynamic-rendering.md)）:
+
+- #335 では nonce を見送ったが、ADR-0005 で採用を決めた。nonce の CSP は `src/proxy.ts` が付ける（#413）。
+- #412 までは上の CSP を有効のまま使い、nonce の CSP は本番・検証環境とも `Content-Security-Policy-Report-Only` で並べて付ける。
+  本番も Report-Only にするのは、違反の解消（#416）が終わる前に本番でスクリプトを止めないため。下の「見送ったこと」の様子見とは目的が違い、
+  違反は検証環境の DevTools で確かめる（#416）。#412 で nonce の CSP を有効にし、`next.config.ts` の CSP を外す。
+- 全ページの動的レンダリングは、#412 の切り替えを待たず #413 を出した時点から始まり、HTML をキャッシュして配れなくなる。受け入れた費用と表示速度への影響は ADR-0005 に記録した。
+- #413・#412 のマージ時に、この節・上の表・「イベント詳細の SSR / メタデータ」のキャッシュの記述・開発時に CSP を付けないとした記述を直す。
+
+見送ったこと:
+
+- **上の CSP を `Content-Security-Policy-Report-Only` で様子を見る**: 報告の受け取り先がないため、本番に出しても情報が集まらない。
+  接続先をコードからすべて洗い出せたため、検証環境で確かめてから有効のまま本番に出す。
+
+確認したこと（2026-11-13。`bun run preview`。ローカルの Workers ランタイム）:
+
+- ページ（`/`・`/event-list`・`/about`・`/signin`・`/robots.txt`・`/icon.png`・404・500）に 4 つすべてが付き、
+  静的ファイル（`/_next/static/*`・`/images/*`）に CSP 以外の 3 つが付くことを curl で確かめた。
+  `/_next/image` には 4 つとも付かず、上の Next.js の CSP だけが付くことも curl で確かめた。
+- ヘッドレスの Chrome で `/event-list`・`/about`・`/signin`・`/guideline`・`/docs`・`/event-post`・`/mypage`・404 を開き、
+  DevTools Protocol（`Audits.issueAdded`・`Log.entryAdded`）で CSP 違反がないことを確かめた。
+  検出できることは、許可していない `https://example.com` への `fetch` が止まり報告されることで確かめた。
+- ローカルでは API を起動しておらず、ログイン・データの表示・画像・アップロードは確かめていない。検証環境で確かめる。
+
+確認するコマンド（4 つが返ればよい）:
+
+```bash
+curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | grep -i -E "^content-security-policy|^x-frame-options|^x-content-type-options|^referrer-policy"
+```
+
+検証環境で確かめる操作（開発者ツールのコンソールに `Content Security Policy` の違反が出ないこと）:
+トップページ・イベント一覧・イベント詳細（画像・PDF の閲覧を含む）・ログイン（Google）・ヘッダーのアバター・マイページ・
+イベントの投稿（画像・PDF のアップロード）・レポートの投稿（画像のアップロード）・プロフィールページ。
 
 ## 月額の試算
 

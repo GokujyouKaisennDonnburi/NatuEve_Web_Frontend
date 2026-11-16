@@ -87,6 +87,11 @@ export function buildCspHeader({ nonce, isDev }: CspBuildOptions): string {
   const connectSources = [
     "'self'",
     ...connectOrigins,
+    // MSW のモックの署名付き URL の直 PUT 先（src/mocks/handlers/uploads.ts）。
+    // next.config.ts の #335 の CSP と同じ許可にする。
+    ...(isFlagEnabled(process.env.NEXT_PUBLIC_USE_MSW)
+      ? ["https://mock.storage.test"]
+      : []),
     ...(isDev ? ["ws:", "wss:"] : []),
   ];
 

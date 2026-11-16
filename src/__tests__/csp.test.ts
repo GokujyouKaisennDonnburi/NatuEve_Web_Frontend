@@ -130,6 +130,24 @@ describe("buildCspHeader", () => {
     expect(imgSrc).toContain("https://i.pravatar.cc");
   });
 
+  it("NEXT_PUBLIC_USE_MSW=true ではモックの署名付き URL の直 PUT 先を connect-src に足す", () => {
+    setEnv("NEXT_PUBLIC_USE_MSW", "true");
+    const csp = buildCspHeader({ nonce: NONCE, isDev: false });
+
+    expect(directiveSources(csp, "connect-src")).toContain(
+      "https://mock.storage.test",
+    );
+  });
+
+  it("NEXT_PUBLIC_USE_MSW が true 以外ではモックの取得元・直 PUT 先を含めない", () => {
+    setEnv("NEXT_PUBLIC_USE_MSW", "false");
+    const csp = buildCspHeader({ nonce: NONCE, isDev: false });
+
+    const sources = csp.split("; ").flat();
+    expect(sources).not.toContain("https://picsum.photos");
+    expect(sources).not.toContain("https://mock.storage.test");
+  });
+
   it("connect-src に API と Supabase のオリジンを足す", () => {
     setEnv("NEXT_PUBLIC_API_BASE_URL", "https://natueve-api.natuportal.org");
     setEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");

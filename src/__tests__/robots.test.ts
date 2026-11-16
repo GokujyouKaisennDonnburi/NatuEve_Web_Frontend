@@ -83,7 +83,12 @@ describe("検証環境の X-Robots-Tag", () => {
     }
 
     const { default: nextConfig } = await import("../../next.config");
-    return nextConfig.headers?.();
+    const rules = (await nextConfig.headers?.()) ?? [];
+
+    // セキュリティヘッダー（#335）は securityHeaders.test.ts で確かめる。
+    return rules.filter(({ headers }) =>
+      headers.some(({ key }) => key === "X-Robots-Tag"),
+    );
   };
 
   afterEach(() => {

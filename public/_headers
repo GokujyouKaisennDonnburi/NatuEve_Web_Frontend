@@ -1,2 +1,9 @@
 /_next/static/*
   Cache-Control: public,max-age=31536000,immutable
+
+# ページと同じセキュリティヘッダー（#335）。ページは next.config.ts の headers() で付ける。
+# 静的ファイルは headers() を通らないため、ここで付ける。値は next.config.ts の commonSecurityHeaders と揃える。
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
