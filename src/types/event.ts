@@ -195,12 +195,19 @@ export type NotifyEventParticipantsRequest = {
 };
 
 export type NotifyEventParticipantsResponse = {
-  // 実際に通知された参加者数（任意）
-  notifiedCount?: number;
+  eventId: string;
+  recipientCount: number;
+  sentCount: number;
+  failedCount: number;
 };
 
 export class NotificationLimitExceededError extends Error {
   static readonly code = "notification_limit_exceeded";
+
+  constructor(message?: string) {
+    super(message);
+    this.name = "NotificationLimitExceededError";
+  }
 }
 
 // イベント取りやめ（キャンセル）API（POST /api/v1/events/{id}/cancel）の DTO 群。

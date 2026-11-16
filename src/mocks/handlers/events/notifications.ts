@@ -6,9 +6,12 @@ import {
   EVENT_NOTIFICATION_WINDOW_HOURS,
   MAX_EVENT_NOTIFICATION_SENDS,
 } from "@/constants/config";
-import { MESSAGES } from "@/constants/messages";
-import { NotificationLimitExceededError } from "@/types/event";
+import {
+  NotificationLimitExceededError,
+  type NotifyEventParticipantsResponse,
+} from "@/types/event";
 import { mockEventDetails } from "./data";
+import { eventMembers } from "./participation";
 import {
   TOKEN_TO_PROFILE_ID,
   getBearerToken,
@@ -18,6 +21,17 @@ import {
 
 const sendTimesByEvent = new Map<string, number[]>();
 const sendWindowMs = EVENT_NOTIFICATION_WINDOW_HOURS * 60 * 60 * 1000;
+const maxRecipients = 100;
+
+const invalidRequest = (message: string) =>
+  HttpResponse.json(
+    { error: { code: "invalid_request", message } },
+    { status: 400 },
+  );
+
+export function resetNotificationSendTimes(): void {
+  sendTimesByEvent.clear();
+}
 
 export const eventNotificationHandler = http.post(
   "/api/v1/events/:id/notifications",
@@ -30,20 +44,9 @@ export const eventNotificationHandler = http.post(
     }
 
     const token = getBearerToken(authorizationHeader);
-    if (!TOKEN_TO_PROFILE_ID[token]) {
+    const requesterProfileId = TOKEN_TO_PROFILE_ID[token];
+    if (!requesterProfileId) {
       return unauthorizedResponse();
-    }
-
-    if (!mockEventDetails.has(id)) {
-      return HttpResponse.json(
-        {
-          error: {
-            code: "not_found",
-            message: "イベントが見つかりません",
-          },
-        },
-        { status: 404 },
-      );
     }
 
     const body = (await request.json().catch(() => ({}))) as {
@@ -57,14 +60,29 @@ export const eventNotificationHandler = http.post(
       typeof body.body !== "string" ||
       !body.body.trim()
     ) {
+      return invalidRequest("リクエストボディが不正です");
+    }
+
+    const event = mockEventDetails.get(id);
+    if (!event) return invalidRequest("指定されたイベントが存在しません");
+    if (event.profileId !== requesterProfileId) {
       return HttpResponse.json(
         {
           error: {
-            code: "invalid_request",
-            message: "リクエストボディが不正です",
+            code: "forbidden",
+            message: "このイベントを操作する権限がありません",
           },
         },
-        { status: 400 },
+        { status: 403 },
+      );
+    }
+
+    // 宛先は参加人数ではなく申込ごとに1件。不正な送信は回数に含めない。
+    const recipientCount = eventMembers.get(id)?.length ?? 0;
+    if (recipientCount === 0) return invalidRequest("送信先の参加者がいません");
+    if (recipientCount > maxRecipients) {
+      return invalidRequest(
+        `送信先の参加者が多すぎます（上限${maxRecipients}件）`,
       );
     }
 
@@ -77,7 +95,7 @@ export const eventNotificationHandler = http.post(
         {
           error: {
             code: NotificationLimitExceededError.code,
-            message: MESSAGES.NOTIFICATION_LIMIT_EXCEEDED,
+            message: `このイベントの送信回数が上限（${EVENT_NOTIFICATION_WINDOW_HOURS}時間あたり${MAX_EVENT_NOTIFICATION_SENDS}回）に達しました。しばらく待ってから再度お試しください`,
           },
         },
         { status: 429 },
@@ -87,10 +105,9 @@ export const eventNotificationHandler = http.post(
 
     return HttpResponse.json({
       eventId: id,
-      recipientCount: 0,
-      sentCount: 0,
-      notifiedCount: 0,
+      recipientCount,
+      sentCount: recipientCount,
       failedCount: 0,
-    });
+    } satisfies NotifyEventParticipantsResponse);
   },
 );
