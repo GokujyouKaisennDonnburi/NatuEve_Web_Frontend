@@ -2,6 +2,12 @@
 // POST /api/v1/events/:id/notifications。要認証。
 import { HttpResponse, http } from "msw";
 
+import {
+  EVENT_NOTIFICATION_WINDOW_HOURS,
+  MAX_EVENT_NOTIFICATION_SENDS,
+} from "@/constants/config";
+import { MESSAGES } from "@/constants/messages";
+import { NotificationLimitExceededError } from "@/types/event";
 import { mockEventDetails } from "./data";
 import {
   TOKEN_TO_PROFILE_ID,
@@ -9,6 +15,9 @@ import {
   hasBearerToken,
   unauthorizedResponse,
 } from "./auth";
+
+const sendTimesByEvent = new Map<string, number[]>();
+const sendWindowMs = EVENT_NOTIFICATION_WINDOW_HOURS * 60 * 60 * 1000;
 
 export const eventNotificationHandler = http.post(
   "/api/v1/events/:id/notifications",
@@ -42,7 +51,12 @@ export const eventNotificationHandler = http.post(
       body?: unknown;
     };
 
-    if (typeof body.subject !== "string" || body.subject.length === 0) {
+    if (
+      typeof body?.subject !== "string" ||
+      !body.subject.trim() ||
+      typeof body.body !== "string" ||
+      !body.body.trim()
+    ) {
       return HttpResponse.json(
         {
           error: {
@@ -53,6 +67,23 @@ export const eventNotificationHandler = http.post(
         { status: 400 },
       );
     }
+
+    const now = Date.now();
+    const recent = (sendTimesByEvent.get(id) ?? []).filter(
+      (sentAt) => sentAt > now - sendWindowMs,
+    );
+    if (recent.length >= MAX_EVENT_NOTIFICATION_SENDS) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: NotificationLimitExceededError.code,
+            message: MESSAGES.NOTIFICATION_LIMIT_EXCEEDED,
+          },
+        },
+        { status: 429 },
+      );
+    }
+    sendTimesByEvent.set(id, [...recent, now]);
 
     return HttpResponse.json({
       eventId: id,

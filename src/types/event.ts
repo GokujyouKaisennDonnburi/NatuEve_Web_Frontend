@@ -188,6 +188,10 @@ export type NotifyEventParticipantsResponse = {
   notifiedCount?: number;
 };
 
+export class NotificationLimitExceededError extends Error {
+  static readonly code = "notification_limit_exceeded";
+}
+
 // イベント取りやめ（キャンセル）API（POST /api/v1/events/{id}/cancel）の DTO 群。
 // 主催者のみ実行可能。参加者へ送る通知メールの件名・本文を任意で受け取り、
 // キャンセル確定と同一トランザクションで通知を outbox に予約する

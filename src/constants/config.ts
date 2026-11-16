@@ -14,6 +14,10 @@ export const MAX_TEXT_LENGTH = 255;
 // 1イベントに添付できるPDFの上限。
 export const MAX_EVENT_PDF_COUNT = 3;
 
+// API の ADR-0051 に合わせる。実際の送信枠は端末ではなく API がイベント単位で管理する。
+export const MAX_EVENT_NOTIFICATION_SENDS = 5;
+export const EVENT_NOTIFICATION_WINDOW_HOURS = 24;
+
 // 「期限間近」と判定する申込期限までの残り日数（判定は applicationDeadline 基準）。
 export const DAYS_BEFORE_DEADLINE = 7;
 
