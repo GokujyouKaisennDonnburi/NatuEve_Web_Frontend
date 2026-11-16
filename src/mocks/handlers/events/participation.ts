@@ -1,8 +1,14 @@
-// このファイルは、参加・キャンセル・参加者一覧周りのハンドラー間で
-// 共有するメモリ内状態と、その生成・操作ロジックを定義する。
+// このファイルは、参加・キャンセル・参加者一覧・ゲスト申込の確定（確認メール・プレビュー）周りの
+// ハンドラー間で共有するメモリ内状態・型・共通レスポンスと、その生成・操作ロジックを定義する。
 // MSW はプロセス内状態のためリロードでリセットされる前提。
+import { HttpResponse } from "msw";
+
 import { MOCK_AUTH_SESSION } from "@/services/mockAuth";
-import type { AbsenceReason, EventMemberProfile } from "@/types/participate";
+import type {
+  AbsenceReason,
+  EventMemberProfile,
+  ParticipantEntry,
+} from "@/types/participate";
 
 import { TOKEN_TO_PROFILE } from "./auth";
 
@@ -37,9 +43,60 @@ export type MockEventMember = {
   createdAt: string;
 };
 
-// メモリ内参加者管理：eventId ごとに参加者キー（サインイン時は token、匿名時は anon:mailAddress）を保持
+// 未確定（pending）のゲスト申込1件分の型。
+// 確認トークンで確定するまで eventMembers には載せない（ADR-0049）。
+// 参加者一覧・参加人数・定員判定から除外される状態を再現するために使う。
+export type MockPendingEventMember = {
+  // 確認メールのリンクに含まれる確認トークン（モックでは平文で保持）。
+  token: string;
+  // トークンの有効期限(RFC3339)。
+  expiresAt: string;
+  username: string;
+  mailAddress: string;
+  partySize: number;
+  participants: ParticipantEntry[];
+  createdAt: string;
+};
+
+// 確認トークンの有効期間。ADR-0049 の契約値（24時間）。
+// モックのトークン発行とテストの期限計算で共有する。
+export const CONFIRM_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+
+// 確認トークンが無効・期限切れ・使用済みの場合の共通レスポンス。
+// 確定（join-confirm）とプレビュー（join-preview）で同じ契約を返す。
+export const invalidTokenResponse = () =>
+  HttpResponse.json(
+    {
+      error: {
+        code: "invalid_request",
+        message: "確認リンクが無効か、有効期限が切れています",
+      },
+    },
+    { status: 400 },
+  );
+
+// イベントが存在しない場合の共通レスポンス（404 not_found）。
+export const eventNotFoundResponse = () =>
+  HttpResponse.json(
+    {
+      error: {
+        code: "not_found",
+        message: "イベントが見つかりません",
+      },
+    },
+    { status: 404 },
+  );
+
+// メモリ内参加者管理：eventId ごとにログイン参加者のキー（raw token）を保持
 // 重複参加チェック（409 Conflict）のために使用
 export const eventParticipants = new Map<string, Set<string>>();
+
+// メモリ内未確定申込管理：eventId ごとに正規化したメールアドレス → 未確定申込 を保持する。
+// 一意制約（イベント×メール）を再現するため、同じメールの再申込では上書きしない。
+export const pendingEventMembers = new Map<
+  string,
+  Map<string, MockPendingEventMember>
+>();
 
 // メモリ内参加履歴管理：eventId ごとに participantKey → 最新ログ を保持する。
 // GET /participation-logs はこの履歴を元に action / participating / updatedAt を返す。
@@ -55,6 +112,75 @@ export const eventMembers = new Map<string, MockEventMember[]>();
 // キャンセル済みイベントIDの記録: POST /api/v1/events/{id}/cancel の非冪等性を表現するため、
 // 既にキャンセル済みのイベントに対する再呼び出しは 409 を返す。
 export const cancelledEventIds = new Set<string>();
+
+// メールアドレスの照合キー。大文字小文字の違いを同一として扱う。
+const toMailKey = (mailAddress: string): string =>
+  mailAddress.trim().toLowerCase();
+
+// 確定済みの参加者からメールアドレス一致の1件を探す。
+// ログイン参加時の重複判定（同一メールの申込が既にある）に使う。
+export const findConfirmedMemberByMail = (
+  eventId: string,
+  mailAddress: string,
+): MockEventMember | null =>
+  (eventMembers.get(eventId) ?? []).find(
+    (member) => toMailKey(member.mailAddress) === toMailKey(mailAddress),
+  ) ?? null;
+
+// 未確定の申込をメールアドレスで探す。
+// 有効期限を過ぎた申込は無効として扱い、再申込や重複判定の対象にしない
+// （レコード自体は確定時の遅延削除に任せる）。
+export const findPendingMemberByMail = (
+  eventId: string,
+  mailAddress: string,
+): MockPendingEventMember | null => {
+  const pending =
+    pendingEventMembers.get(eventId)?.get(toMailKey(mailAddress)) ?? null;
+  if (!pending) return null;
+
+  return new Date(pending.expiresAt).getTime() > Date.now() ? pending : null;
+};
+
+// 未確定の申込を確認トークンで探す。確認画面のモックが使う。
+export const findPendingMemberByToken = (
+  eventId: string,
+  token: string,
+): { mailKey: string; pending: MockPendingEventMember } | null => {
+  const pendings = pendingEventMembers.get(eventId);
+  if (!pendings) return null;
+
+  for (const [mailKey, pending] of pendings) {
+    if (pending.token === token) {
+      return { mailKey, pending };
+    }
+  }
+
+  return null;
+};
+
+// 未確定の申込を削除する（確定・期限切れ時の遅延削除で使う）。
+export const removePendingMember = (eventId: string, mailKey: string): void => {
+  pendingEventMembers.get(eventId)?.delete(mailKey);
+};
+
+// 未確定の申込を登録する。
+// テストや動作確認で任意のトークン・期限を仕込めるよう export する。
+export const seedPendingJoin = (
+  eventId: string,
+  pending: Omit<MockPendingEventMember, "createdAt"> & { createdAt?: string },
+): MockPendingEventMember => {
+  const record: MockPendingEventMember = {
+    createdAt: new Date().toISOString(),
+    ...pending,
+  };
+  const pendings =
+    pendingEventMembers.get(eventId) ??
+    new Map<string, MockPendingEventMember>();
+  pendings.set(toMailKey(record.mailAddress), record);
+  pendingEventMembers.set(eventId, pendings);
+
+  return record;
+};
 
 // 指定の参加者キーがそのイベントに参加中かどうかを判定する。
 // 「参加中」の情報源は参加履歴（直近のアクションが join か）に一本化し、
@@ -121,10 +247,6 @@ export const seedEventMembers = (
     },
   ];
   eventMembers.set(eventId, members);
-
-  const participants = eventParticipants.get(eventId) ?? new Set<string>();
-  participants.add(`anon:seed-${eventId}`);
-  eventParticipants.set(eventId, participants);
 };
 
 // サインイン中のモックユーザー自身の申し込みをシードする。

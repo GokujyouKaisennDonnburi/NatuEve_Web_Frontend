@@ -8,6 +8,7 @@ export const PAGE_TITLES = {
   EVENT_DETAIL: "イベント詳細",
   EVENT_DETAIL_NOT_FOUND: "イベントが見つかりません",
   EVENT_DETAIL_ERROR: "イベントを読み込めませんでした",
+  EVENT_JOIN_CONFIRM: "参加申込の確認",
   EVENT_POST: "イベントを投稿",
   REPORT_POST: "活動レポートを投稿",
 

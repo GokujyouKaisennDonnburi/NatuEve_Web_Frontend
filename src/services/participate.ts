@@ -3,6 +3,10 @@ import type {
   AbsenceErrorBody,
   AbsenceRequest,
   AbsenceResponse,
+  ConfirmJoinErrorBody,
+  ConfirmJoinRequest,
+  ConfirmJoinResponse,
+  EventJoinPreviewResponse,
   EventMembersResponse,
   GetEventMembersErrorBody,
   GetMyEventApplicationErrorBody,
@@ -17,6 +21,7 @@ import type {
 } from "@/types/participate";
 import {
   AbsenceError,
+  ConfirmJoinError,
   LeaveError,
   MyEventApplicationError,
   ParticipateError,
@@ -70,6 +75,97 @@ export async function participateEvent(
   }
 
   return (await response.json()) as ParticipateEventResponse;
+}
+
+// イベント参加確定 API（POST /api/v1/events/{eventId}/join/confirm）を呼ぶ（認証不要）。
+//
+// 確認メールのリンクから呼ばれ、ゲスト申込（pending）を確認トークンで確定する。
+// トークンは発行から24時間有効で単回使用。不正・期限切れ・使用済みは 400、
+// イベント不存在は 404、定員超過・終了・取消は 409 となる。
+// APIエラー・通信エラーは ConfirmJoinError を送出し、呼び出し側で判別できるようにする。
+export async function confirmEventJoin(
+  eventId: string,
+  token: string,
+): Promise<ConfirmJoinResponse> {
+  const payload: ConfirmJoinRequest = { token };
+
+  const response = await apiFetch(
+    `/api/v1/events/${encodeURIComponent(eventId)}/join/confirm`,
+    {
+      method: "POST",
+      auth: false,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    // バックエンドは { error: { code, message } } 形式でエラー詳細を返す。
+    // code を取得して呼び出し側で 400 / 409 等を判別できるようにする。
+    let code = "internal_error";
+    let message: string | undefined;
+    try {
+      const body = (await response.json()) as ConfirmJoinErrorBody;
+      code = body?.error?.code ?? code;
+      message = body?.error?.message;
+    } catch {
+      // JSON 以外のボディは無視する
+    }
+
+    throw new ConfirmJoinError(
+      code,
+      message ?? `申込の確定に失敗しました (Status: ${response.status})`,
+      response.status,
+    );
+  }
+
+  return (await response.json()) as ConfirmJoinResponse;
+}
+
+// 申込内容プレビュー API（POST /api/v1/events/{eventId}/join/preview）を呼ぶ（認証不要）。
+//
+// 確認画面で確定ボタンを押す前に申込内容を表示するために使う読み取り専用の呼び出しで、
+// 単回使用トークンは消費しない。トークンはリクエストボディで送信し、URL には載せない
+// （アクセスログ等への平文流出を防ぐため・ADR-0049 決定12）。
+// 不正・期限切れ・使用済みは 400、イベント不存在は 404 となり、
+// APIエラー・通信エラーは ConfirmJoinError を送出する。
+export async function getEventJoinPreview(
+  eventId: string,
+  token: string,
+): Promise<EventJoinPreviewResponse> {
+  const response = await apiFetch(
+    `/api/v1/events/${encodeURIComponent(eventId)}/join/preview`,
+    {
+      method: "POST",
+      auth: false,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token }),
+    },
+  );
+
+  if (!response.ok) {
+    let code = "internal_error";
+    let message: string | undefined;
+    try {
+      const body = (await response.json()) as ConfirmJoinErrorBody;
+      code = body?.error?.code ?? code;
+      message = body?.error?.message;
+    } catch {
+      // JSON 以外のボディは無視する
+    }
+
+    throw new ConfirmJoinError(
+      code,
+      message ?? `申込内容の取得に失敗しました (Status: ${response.status})`,
+      response.status,
+    );
+  }
+
+  return (await response.json()) as EventJoinPreviewResponse;
 }
 
 // イベント参加者一覧取得 API（GET /api/v1/events/{eventId}/members）を呼ぶ（要認証・主催者のみ）。

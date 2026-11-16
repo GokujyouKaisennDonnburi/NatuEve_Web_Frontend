@@ -75,6 +75,72 @@ export class ParticipateError extends Error {
   }
 }
 
+// イベント参加確定 API（POST /api/v1/events/{id}/join/confirm）の DTO 群。
+// 確認メールのリンクから呼ぶ。認証は不要（ADR-0049）。
+// ゲスト申込（pending）を確認トークンで確定する。トークンは24時間有効・単回使用。
+
+// 参加確定エンドポイントへのリクエストボディ DTO。
+export type ConfirmJoinRequest = {
+  // 確認メールのリンクに含まれる確認トークン（必須）。
+  token: string;
+};
+
+// 参加確定エンドポイントのレスポンス DTO。
+export type ConfirmJoinResponse = {
+  // 確定した申込のイベントID。
+  eventId: string;
+  // 申込を確定した日時(RFC3339)。
+  confirmedAt: string;
+  // 確定した申込のカテゴリ別参加人数内訳（申込時の内容）。
+  participants: ParticipantEntry[];
+  // 確定した申込の合計参加人数。participants の headCount 合計。
+  partySize: number;
+};
+
+// 申込内容プレビュー API（POST /api/v1/events/{id}/join/preview）のレスポンス DTO。
+// 確認画面で確定ボタンを押す前に申込内容を表示するために使う。
+// トークンはリクエストボディで送信し、トークンは消費されない（認証不要）。
+export type EventJoinPreviewResponse = {
+  // 申込時のカテゴリ別参加人数内訳。
+  participants: ParticipantEntry[];
+  // 申込の合計参加人数。participants の headCount 合計。
+  partySize: number;
+};
+
+// 参加確定 API のエラーレスポンスボディ DTO。
+export type ConfirmJoinErrorBody = ParticipateEventErrorBody;
+
+// 参加確定 API のエラーコード（ハンドリングで区別するもの）。
+export const ConfirmJoinErrorCode = {
+  // トークンが不正・有効期限切れ・使用済み（400）。
+  InvalidRequest: "invalid_request",
+  // イベント不存在（404）。
+  NotFound: "not_found",
+  // 確定時に定員を超えた（409）。
+  CapacityFull: "capacity_full",
+  // イベントが終了済み（409）。
+  EventEnded: "event_ended",
+  // イベントが取りやめ済み（409）。
+  EventCancelled: "event_cancelled",
+  RequestTooLarge: "request_too_large",
+  RateLimited: "rate_limited",
+  InternalError: "internal_error",
+} as const;
+
+// 参加確定 API のエラー。code を保持し、呼び出し側で 400 / 409 等を判別できるようにする。
+export class ConfirmJoinError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  // コンストラクタ
+  constructor(code: string, message: string, status: number) {
+    super(message);
+    this.name = "ConfirmJoinError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 // イベント参加者一覧取得 API（GET /api/v1/events/{id}/members）の DTO 群。
 // 主催者のみが閲覧できる。バックエンドの契約に合わせる。
 

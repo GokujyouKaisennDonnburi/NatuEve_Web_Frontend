@@ -7,6 +7,7 @@ import { ParticipationCancelConfirmModal } from "@/components/organisms/particip
 import { ParticipationDetailModal } from "@/components/organisms/participation/ParticipationDetailModal";
 import { ParticipationModal } from "@/components/organisms/participation/ParticipationModal";
 import { Button } from "@/components/ui/button";
+import { BRAND_PILL_CTA_CLASS } from "@/constants/styles";
 import { cn } from "@/lib/utils";
 import { leaveEvent, reportAbsence } from "@/services/participate";
 import type { EventDetailCost } from "@/types/event";
@@ -25,9 +26,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 // 未参加の申し込み導線（ボタン・外部リンク共通）のスタイル。
-// button 要素と a 要素（asChild）の両方で同じ見た目を保つため、クラスを一元化する。
-const APPLY_BUTTON_CLASS =
-  "h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm";
+// 色・形状・hover / disabled は BRAND_PILL_CTA_CLASS に一元化し、
+// button 要素と a 要素（asChild）で同じ見た目を保つため、サイズだけをここで足す。
+const APPLY_BUTTON_CLASS = cn(
+  BRAND_PILL_CTA_CLASS,
+  "h-10 w-[118px] shrink-0 px-2 text-center text-xs whitespace-nowrap focus-visible:ring-[#9ABD5A] sm:h-11 sm:w-[142px] sm:text-sm",
+);
 
 // 申し込み内容モーダルに表示する、このユーザー自身の申し込み内容。
 // 申込内容 API（GET /api/v1/events/{id}/members/me）から取得した値をそのまま渡す。
