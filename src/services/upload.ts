@@ -38,7 +38,7 @@ async function presignUpload(
 
 // 署名付き URL を使って R2 へ直接 PUT する。
 // 認証ヘッダは付けず（apiFetch を使わない）、presign 時と同じ Content-Type を厳格に一致させる。
-// Content-Length は fetch が本体から付けるので手で付けない。presign で送った size と一致する必要がある。
+// Content-Length はスクリプトから付けられないヘッダで、fetch が本体（File）の大きさから付ける。presign で送った size と一致する必要がある。
 async function putToR2(
   uploadUrl: string,
   file: File,
