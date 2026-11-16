@@ -34,6 +34,13 @@ export const MOCK_IMAGE_ORIGINS = [
   "https://i.pravatar.cc",
 ];
 
+// MSW 内で presign が返すダミー R2 のドメイン（src/mocks/handlers/uploads.ts）。
+// モックの presign が返す URL を変えるときに直し忘れると、MSW モードで
+// アップロードの PUT が CSP にブロックされるため、CSP（src/lib/csp.ts・next.config.ts の
+// #335 の CSP）と 1 つの定数を共有する。このモジュールはランタイム依存のない
+// 純粋な定数だけを持つため、uploads.ts（msw を同梱する）からも import できる。
+export const MOCK_STORAGE_ORIGIN = "https://mock.storage.test";
+
 // 本番でも使う画像の取得元（R2 の公開ドメイン）。
 // 画像最適化で変換できる画像を、API が保存するイベント・レポートの画像だけに絞る（#351）。
 // キーは NatuEve_API の buildFinalKey（natueve/{events|reports}/images/{uuid}{.jpg|.png}）に合わせる。

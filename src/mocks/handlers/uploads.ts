@@ -1,8 +1,6 @@
 import { HttpResponse, http } from "msw";
+import { MOCK_STORAGE_ORIGIN } from "@/lib/imageOrigins";
 import type { PresignRequest } from "@/types/upload";
-
-// MSW 内で presign が返すダミー R2 ドメイン。このドメイン宛の PUT も下のハンドラが受ける。
-const MOCK_R2_BASE = "https://mock.storage.test";
 
 let uploadCounter = 0;
 
@@ -20,14 +18,14 @@ export const uploadHandlers = [
     const body = (await request.json()) as PresignRequest;
     const id = `${Date.now()}-${++uploadCounter}`;
     const objectKey = `tmp/${body.kind}/${id}`;
-    const uploadUrl = `${MOCK_R2_BASE}/${objectKey}`;
+    const uploadUrl = `${MOCK_STORAGE_ORIGIN}/${objectKey}`;
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
     return HttpResponse.json({ uploadUrl, objectKey, expiresAt });
   }),
 
   // ダミー R2 への直接 PUT を受け取り、200 を返す
-  http.put(`${MOCK_R2_BASE}/*`, () => {
+  http.put(`${MOCK_STORAGE_ORIGIN}/*`, () => {
     return new HttpResponse(null, { status: 200 });
   }),
 ];

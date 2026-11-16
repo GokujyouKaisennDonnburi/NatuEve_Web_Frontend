@@ -37,7 +37,9 @@ export default async function RootLayout({
   // nonce を使う CSP（#383 / #413）では HTML に nonce を埋め込む必要があるため、
   // 全ページを動的レンダリングにする。layout で connection() を呼ぶと配下の
   // 全セグメントの prerender が止まり、毎リクエスト描画になる。
-  // event/[id] のデータ鮮度は unstable_cache（revalidate: 60）が担保する。
+  // OpenNext の incremental cache は既定の dummy で unstable_cache は実際には
+  // キャッシュせず、event/[id] のデータも毎リクエスト取り直す
+  // （event/[id]/page.tsx・docs/Deployment.md「イベント詳細の SSR / メタデータ」）。
   await connection();
 
   return (

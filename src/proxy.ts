@@ -17,11 +17,19 @@ const getCspHeaderKey = () =>
     ? "Content-Security-Policy-Report-Only"
     : "Content-Security-Policy";
 
+// Report-Only かどうか。buildCspHeader に渡し、Report-Only では無視される
+// upgrade-insecure-requests を外すのに使う。
+const isReportOnly = () => process.env.CSP_REPORT_ONLY === "true";
+
 export function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV === "development";
   // uuid（16 進数とハイフン）を base64 に変換し、CSP の nonce 構文に合う文字列にする。
   const nonce = btoa(crypto.randomUUID());
-  const cspHeader = buildCspHeader({ nonce, isDev });
+  const cspHeader = buildCspHeader({
+    nonce,
+    isDev,
+    isReportOnly: isReportOnly(),
+  });
   const headerKey = getCspHeaderKey();
 
   const requestHeaders = new Headers(request.headers);

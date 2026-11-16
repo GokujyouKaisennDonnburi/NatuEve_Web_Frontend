@@ -4,11 +4,11 @@ import {
   developmentImageHosts,
   mockImageHosts,
   productionImageHosts,
+  MOCK_STORAGE_ORIGIN,
 } from "./src/lib/imageOrigins";
+// 型の本体は src/lib/imageOrigins.ts。#335 の CSP で remotePatterns を CSP の
+// ホストソースにするため、このファイルでも使う。
 import type { ImageRemotePattern } from "./src/lib/imageOrigins";
-
-// テストでも同じ型を使い、Next.js 側の型変更に追従する（型の本体は src/lib/imageOrigins.ts）。
-export type { ImageRemotePattern };
 
 // 画像の取得元（remotePatterns の一覧）は src/lib/imageOrigins.ts に置いている。
 // #335 の CSP の img-src もこの一覧から組み立て、remotePatterns と CSP（enforce・Report-Only の両方）が
@@ -89,7 +89,7 @@ const buildContentSecurityPolicy = (): string => {
     // ホストはアカウント ID を含むが、ビルドに渡す変数を増やさないためワイルドカードにする。
     "https://*.r2.cloudflarestorage.com",
     // MSW のモックの署名付き URL（src/mocks/handlers/uploads.ts）。
-    ...(isMswEnabled ? ["https://mock.storage.test"] : []),
+    ...(isMswEnabled ? [MOCK_STORAGE_ORIGIN] : []),
   ];
 
   return [

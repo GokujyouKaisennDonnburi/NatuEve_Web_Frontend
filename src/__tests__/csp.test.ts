@@ -66,6 +66,16 @@ describe("buildCspHeader", () => {
     expect(directiveSources(csp, "script-src")).toContain("'unsafe-eval'");
   });
 
+  it("isReportOnly のときは Report-Only で無視される upgrade-insecure-requests を外す", () => {
+    const csp = buildCspHeader({
+      nonce: NONCE,
+      isDev: false,
+      isReportOnly: true,
+    });
+
+    expect(csp).not.toContain("upgrade-insecure-requests");
+  });
+
   it("nonce はヘッダー内に script-src の 1 か所だけ現れる", () => {
     const csp = buildCspHeader({ nonce: NONCE, isDev: false });
 
@@ -143,7 +153,7 @@ describe("buildCspHeader", () => {
     setEnv("NEXT_PUBLIC_USE_MSW", "false");
     const csp = buildCspHeader({ nonce: NONCE, isDev: false });
 
-    const sources = csp.split("; ").flat();
+    const sources = csp.split("; ");
     expect(sources).not.toContain("https://picsum.photos");
     expect(sources).not.toContain("https://mock.storage.test");
   });

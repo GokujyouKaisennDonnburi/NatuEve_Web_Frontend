@@ -6,6 +6,7 @@ import {
   DEVELOPMENT_ASSETS_ORIGIN,
   GOOGLE_PROFILE_IMAGE_ORIGIN,
   MOCK_IMAGE_ORIGINS,
+  MOCK_STORAGE_ORIGIN,
   PRODUCTION_ASSETS_ORIGIN,
 } from "./imageOrigins";
 
@@ -35,6 +36,7 @@ const toOrigin = (value: string | undefined): string | null => {
 export type CspBuildOptions = {
   nonce: string;
   isDev: boolean;
+  isReportOnly?: boolean;
 };
 
 // CSP を「ディレクティブ ソース」の並びとして組み立てる。
@@ -44,7 +46,11 @@ export type CspBuildOptions = {
 // 本番では React・Next.js とも eval を使わないため含めない（#383 の AC）。
 // style-src の 'unsafe-inline' は Next.js が生成する style 要素と React の style 属性の
 // ため必要で、禁止しているのは script-src だけである。
-export function buildCspHeader({ nonce, isDev }: CspBuildOptions): string {
+export function buildCspHeader({
+  nonce,
+  isDev,
+  isReportOnly,
+}: CspBuildOptions): string {
   // USE_DEV_ASSETS・CSP_REPORT_ONLY は Worker の実行時変数で、wrangler.jsonc の
   // vars で渡す（本番は最上位、検証は env.staging。vars は env に引き継がれないため
   // env.staging でも宣言する）。OpenNext の populateProcessEnv が文字列のバインディングを
@@ -90,7 +96,7 @@ export function buildCspHeader({ nonce, isDev }: CspBuildOptions): string {
     // MSW のモックの署名付き URL の直 PUT 先（src/mocks/handlers/uploads.ts）。
     // next.config.ts の #335 の CSP と同じ許可にする。
     ...(isFlagEnabled(process.env.NEXT_PUBLIC_USE_MSW)
-      ? ["https://mock.storage.test"]
+      ? [MOCK_STORAGE_ORIGIN]
       : []),
     ...(isDev ? ["ws:", "wss:"] : []),
   ];
@@ -108,7 +114,9 @@ export function buildCspHeader({ nonce, isDev }: CspBuildOptions): string {
     "form-action 'self'",
     // iframe 埋め込み（クリックジャッキング）を拒否する（#384 は XFO を別途設定する）。
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests",
+    // Report-Only では upgrade-insecure-requests が無視され、Console に警告が出るため
+    // Report-Only のときは付けない（#416 で Console を見るときに紛らわしくないようにする）。
+    ...(isReportOnly ? [] : ["upgrade-insecure-requests"]),
   ];
 
   return directives.join("; ");
