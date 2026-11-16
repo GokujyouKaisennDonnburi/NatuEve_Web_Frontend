@@ -695,12 +695,15 @@ Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-renderi
 - **enforce の CSP（#335 の CSP・#412 以降の nonce の CSP）には含めない**: Turbopack のランタイムが Trusted Types に対応していないため
   （下の「既知の違反」）、含めると #412 の enforce 切替が上流の修正待ちで止まってしまう（#415 のコメントでの議論）。
   Report-Only のヘッダーで観察を続け、上流が直った後に enforce の CSP へ統合するかを改めて決める。
-- `CSP_REPORT_ONLY=true` の間は nonce の CSP も同じヘッダー名で Report-Only になるため、同じ名前のヘッダーが 2 つ並ぶ。
-  proxy は `set` ではなく `append` で足す（上書きすると観察中の nonce の CSP を消してしまう）。
-  同じ名前のヘッダーが 2 つ返っても有効で、ブラウザは両方を Report-Only のポリシーとして評価する。
+- `CSP_REPORT_ONLY=true` の間は nonce の CSP も同じヘッダー名で Report-Only になるため、proxy は `set` ではなく `append` で足す
+  （`set` だと観察中の nonce の CSP を上書きで消してしまう）。最終の応答では、同じ名前のヘッダーは
+  **カンマ区切りで 1 行に連結**されて届く（ローカルの preview で実測。下の「確認したこと」）。カンマ区切りの CSP は
+  複数のポリシーとして評価されるため、nonce の CSP も Trusted Types のポリシーもどちらも失われず、両方とも Report-Only で評価される。
+  潰れる（last-wins になる）ことは確認できていないが、潰れた場合は RO モードのときに 1 つのヘッダー値へ連結するフォールバックを検討する。
 - `trusted-types nextjs` は、作れる Trusted Types のポリシー名を、Next.js のランタイムが使う `nextjs`
   （`node_modules/next/dist/client/trusted-types.js`）に限定する。現状のビルド出力に `createPolicy` はなく許可は使われていないが、
   付けておいて害はない。ライブラリの内部でほかの名前のポリシーを作る違反が出たら、`src/lib/csp.ts` の許可リストに名前を足す。
+  ポリシー名の照合は仕様上の**完全一致**（[Trusted Types 仕様](https://w3c.github.io/trusted-types/dist/spec/) § 4.2.5。`#` にコメントのような特別な意味はない）である。
 - `src/` 内に Trusted Types のシンク（`innerHTML`・`document.write` など）はない（#415 の時点）。
 - 既知の違反（Next.js の Turbopack ランタイム。上流の既知バグ
   [vercel/next.js#101261](https://github.com/vercel/next.js/issues/101261)）:
@@ -711,8 +714,11 @@ Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-renderi
   どちらもビルド出力で確認済み（2026-11-16。上流 issue にも報告あり）。Report-Only の間は違反が報告されるだけで止まらないため動くが、
   強制するとチャンクの読み込みが止まり、ページ間の移動・先読みが壊れる。**ポリシー名の許可リストでは解消できない**
   （ランタイム自身がポリシーを使わないため）。修正 PR は未確認（2026-11-16 時点。issue で着手の表明はある）。
-  webpack ビルドでは同じ CSP でも動く（webpack のランタイムが `output.trustedTypes = 'nextjs#bundler'` のポリシーを通す。
-  `node_modules/next/dist/build/webpack-config.js`）ため、上流の修正が先延ばしになる場合の手段として残す。
+  webpack ビルドでは、ランタイムが `output.trustedTypes = 'nextjs#bundler'` でポリシーを作り、チャンクの URL をそのポリシーで通す
+  （`node_modules/next/dist/build/webpack-config.js`。生成コードは `trustedTypes.createPolicy("nextjs#bundler", ...)`。
+  `node_modules/next/dist/compiled/webpack/bundle5.js` で確認）。ただしポリシー名は完全一致のため
+  **`trusted-types nextjs` では `nextjs#bundler` の作成が許可されない**。webpack への退避を検討するときは、
+  許可リストに `nextjs#bundler` を足す必要がある（許可が足りないときは、ランタイムはポリシーの作成に失敗した旨を Console に出す）。
 
 見送ったこと:
 
@@ -729,7 +735,15 @@ Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-renderi
   検出できることは、許可していない `https://example.com` への `fetch` が止まり報告されることで確かめた。
 - ローカルでは API を起動しておらず、ログイン・データの表示・画像・アップロードは確かめていない。検証環境で確かめる。
 
-確認するコマンド（4 つが返ればよい）:
+確認したこと（2026-11-16。Trusted Types。`bun run preview` 相当の `opennextjs-cloudflare build` + `wrangler dev`。ローカルの Workers ランタイム）:
+
+- `/about` の応答に curl で、`Content-Security-Policy`（#335 の enforce）と
+  `Content-Security-Policy-Report-Only` が付くことを確かめた。Report-Only のヘッダーは 1 行で、
+  nonce の CSP と `require-trusted-types-for 'script'; trusted-types nextjs` がカンマ区切りで連結されて届く
+  （同名ヘッダーの連結。ポリシーは両方とも評価される。上の「Trusted Types」節）。
+
+確認するコマンド（4 つが返ればよい。`content-security-policy-report-only` には nonce の CSP と
+Trusted Types がカンマ区切りで載る。#412 までは `Content-Security-Policy` に加えてこれが返る）:
 
 ```bash
 curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | grep -i -E "^content-security-policy|^x-frame-options|^x-content-type-options|^referrer-policy"

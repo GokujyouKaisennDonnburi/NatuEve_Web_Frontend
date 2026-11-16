@@ -49,8 +49,9 @@ export function proxy(request: NextRequest) {
   });
   response.headers.set(headerKey, cspHeader);
   // set ではなく append にする。CSP_REPORT_ONLY=true のときは nonce の CSP も同じ
-  // ヘッダー名になるため、上書きすると観察中の CSP を消してしまう。同じ名前の
-  // ヘッダーを 2 つ返すのは有効で、ブラウザは両方を Report-Only のポリシーとして評価する。
+  // ヘッダー名になるため、上書きすると観察中の CSP を消してしまう。最終の応答では
+  // 同じ名前のヘッダーはカンマ区切りで 1 行に連結されて届き（ローカルの preview で実測）、
+  // ブラウザはカンマ区切りの CSP を別々のポリシーとして両方とも Report-Only で評価する。
   if (trustedTypesCsp !== null) {
     response.headers.append(
       "Content-Security-Policy-Report-Only",
