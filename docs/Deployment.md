@@ -201,6 +201,7 @@ GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`�
 デプロイに使う値はリポジトリの Variables/Secrets には置かない（`ci.yml` は、品質チェックのビルドも含めてリポジトリの Variables を参照しない。#330）。
 ビルド時のフラグ（`NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS`・`SITE_NOINDEX`）は Environment に置かず、ワークフローの `env:` に固定する。
 `NEXT_PUBLIC_*`・`USE_DEV_ASSETS`・`SITE_NOINDEX` はビルド時に反映されるため、本番と検証で値が違う場合はそれぞれの値でビルドし直す（使い回さない。ADR-0003）。
+`CSP_REPORT_ONLY` は Worker の実行時に読む変数のため、ビルド時の `env:` とは別に、`wrangler.jsonc` の `vars` で渡す（下の「Worker の実行時変数」）。
 
 - 検証デプロイのジョブは `environment: staging`、本番デプロイのジョブは `environment: production` を指定する。
   Environment の Variables/Secrets は、その Environment を参照するジョブだけが使える。
@@ -222,7 +223,8 @@ GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`�
 ### アプリ用（ビルド時に使う変数）
 
 ビルド時に使う。`NEXT_PUBLIC_*` はアプリへ埋め込まれ、ブラウザに渡る。本番と検証で接続先が違う変数は、環境ごとに値を分ける。
-`USE_DEV_ASSETS` はビルド時に `next.config.ts` だけが参照し、アプリには埋め込まれない（クライアントの JS にも渡らない）。
+`USE_DEV_ASSETS` はビルド時には `next.config.ts`（`images.remotePatterns`）だけが参照する（クライアントの JS にも埋め込まれない）。
+実行時には `src/lib/csp.ts` も参照する（CSP の `img-src`・`connect-src` に開発用の取得元を足す。下の「Worker の実行時変数」）。
 本番の値は `production` の Environment に設定済み（2026-10-27。#329）で、本番のデプロイのジョブ（`deploy-production`。#362）で使う。
 #329 の受け入れ基準は ADR-0003 に合わせて更新済みである（`BUN_VERSION` は使わず。下記「ビルドに使うツールの版」）。
 `NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS`・`SITE_NOINDEX` はワークフローの `env:` に固定する（下の表）。
@@ -240,17 +242,36 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 | 変数 | 本番の値 | 検証環境の値 | 備考 |
 |---|---|---|---|
 | `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。ワークフローの `env:` に `"false"` を固定する（#330） |
-| `USE_DEV_ASSETS` | 未設定（または `false`） | `true` | `true` のときだけ、`next.config.ts` の `remotePatterns` にローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）を、本番と同じ `pathname`・`search`・`port` の制限付きで加える（#353・#351）。未設定・`false` では許可しない。ジョブごとにワークフローの `env:` に固定する（検証ジョブは `true`、本番ジョブは立てない。#330）。本番のビルドで立てると、本番の画像最適化が開発用バケットの画像も変換するようになる |
+| `USE_DEV_ASSETS` | 未設定（または `false`） | `true` | `true` のとき、ビルド時には `next.config.ts` の `remotePatterns` にローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）を、本番と同じ `pathname`・`search`・`port` の制限付きで加え（#353・#351）、実行時には `src/lib/csp.ts` が CSP の `img-src`・`connect-src` に同じオリジンを足す（下の「Worker の実行時変数」）。未設定・`false` では許可しない。ジョブごとにワークフローの `env:` に固定する（検証ジョブは `true`、本番ジョブは `"false"` と明示。#330）。本番のビルドで立てると、本番の画像最適化が開発用バケットの画像も変換するようになる |
 | `SITE_NOINDEX` | `false` | `true` | `true` のときだけ、`next.config.ts` の `headers()` で全ページに `X-Robots-Tag: noindex` を付ける（#372。付かないパスは「robots.txt / noindex」）。未設定・`false` では付けない。本番を検索から消さないよう、本番ジョブでも `"false"` と明示する |
 
-- 値を変えたら再ビルドが必要。`USE_DEV_ASSETS` は `next.config.ts` の `images.remotePatterns` へビルド時に反映され、実行時には変えられない。
-- `SITE_NOINDEX` も `next.config.ts` の `headers()` へビルド時に反映され、実行時には変えられない。
+- `NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS`・`SITE_NOINDEX` のビルド時の反映（`next.config.ts` への許可リスト・ヘッダー）は、値を変えると再ビルドが必要。
 - ローカル開発は従来どおり `.env.local` を使う。Workers のランタイムで確認する場合は `.dev.vars`（`NEXTJS_ENV=development`）を使う。
   どちらもコミットしない。
   - ローカル開発・`bun run preview` では、`.env.local` に `USE_DEV_ASSETS=true` を設定する（`.env.example` の既定）。
-  - `.dev.vars` は Worker の実行時変数なので、`USE_DEV_ASSETS` には効かない。
-- 検証環境で `assets-dev.natuportal.org` を表示するには `USE_DEV_ASSETS=true` でビルドする必要がある。そのビルドを本番にも出すと
+    ビルド時の `remotePatterns`（`next.config.ts`）にはこれが効く。
+  - `.dev.vars` は Worker の実行時変数なので、実行時に読む `CSP_REPORT_ONLY`・`USE_DEV_ASSETS`（CSP 側。下の「Worker の実行時変数」）には効く。
+    ビルド時にしか読まない `next.config.ts` の `remotePatterns` には効かない。
+- 検証環境で `assets-dev.natuportal.org` を表示するには、ビルド時の `USE_DEV_ASSETS=true`（ワークフローの `env:`）と
+  実行時の `USE_DEV_ASSETS=true`（`wrangler.jsonc` の `env.staging` の `vars`）の両方が要る。片方だけだと、
+  画像最適化の許可リストか CSP のどちらかに開発用の取得元が入らず、画像が止まる。そのビルドを本番にも出すと
   本番の許可リストに `assets-dev.natuportal.org` が入るため、環境ごとにビルドする。検証環境での表示確認は、環境ができてから行う（NatuEve_API#219）。
+
+### Worker の実行時変数（wrangler.jsonc の vars）
+
+Worker の実行時に読む。`src/proxy.ts` → `src/lib/csp.ts` が参照する。`wrangler.jsonc` の `vars` で渡し、
+OpenNext の `populateProcessEnv` が Worker の文字列のバインディングを `process.env` に供給する。
+**CI のワークフローの `env:` の値は実行時には届かない**（OpenNext が `.open-next/cloudflare/next-env.mjs` に焼くのは
+`.env` 系ファイルの値だけで、CI は `.env` を使っていない。`bun run preview` は手元の `.env` 系ファイルの値を入れるため、
+この問題はローカルでは再現しない）。`vars` は `env.staging` に引き継がれないため、検証環境は宣言し直す。
+
+| 変数 | 本番の値 | 検証環境の値 | 備考 |
+|---|---|---|---|
+| `CSP_REPORT_ONLY` | `true` | `true` | `true` のとき、proxy が nonce の CSP を `Content-Security-Policy-Report-Only` で付ける。#416 で違反を解消するまで本番・検証とも `true` にし、#335 の `Content-Security-Policy`（enforce）と併用する（ADR-0005 決定 2）。enforce への切替は #412 |
+| `USE_DEV_ASSETS` | （設定しない） | `true` | `true` のとき、`src/lib/csp.ts` が CSP の `img-src`・`connect-src` に `assets-dev.natuportal.org` を足す。検証環境は `assets-dev` の画像を表示するため立てる（#353）。本番は立てない |
+
+- 値を変えると、次のデプロイで反映される（ビルドのし直しは不要。`vars` はデプロイ時に Worker に付けられる）。
+- ローカルの `bun run preview`（`wrangler dev`）では、`.dev.vars` で上書きできる（`.dev.vars` はビルド時の `next.config.ts` には効かない）。
 
 ### デプロイ用（Secrets・Variables）
 
@@ -519,16 +540,21 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
     クエリを許すと、正しい画像の URL にクエリを付けるだけで別の変換として無料枠を消費できるおそれがあるため、`search` も絞る
     （クエリ違いがユニーク変換として別に数えられるかは確認していない。安全側に倒している）。
     バケットは本番と開発で分けた（NatuEve_API ADR-0039）が、キーの形式は同じのため、開発用の `assets-dev.natuportal.org` にも同じ制限を付ける。
-    API が配信ドメイン（`R2_PUBLIC_BASE_URL`）やキーの形式を変えるときは、`next.config.ts` の `hostname`・`pathname` も合わせて変える。
+    API が配信ドメイン（`R2_PUBLIC_BASE_URL`）やキーの形式を変えるときは、`src/lib/imageOrigins.ts`（`next.config.ts` と `src/lib/csp.ts` の共通の一覧。下の注を参照）の
+    `hostname`・`pathname` も合わせて変える。
   - Google のプロフィール画像（`lh3.googleusercontent.com`）は許可しない（#351）。アバターは `next/image` の `unoptimized` で表示し、
     画像最適化を通さない（`GlobalUserAvatar`・`ProfileHeader`・`EventCard`）。Google のアバターの URL は末尾（例: `=s96-c`）でサイズを
     変えられ、ほかの人のアバターも含めて有効な画像の URL をいくらでも作れるため、`pathname` では変換の数を抑えられない。
     `unoptimized` を外してアバターを最適化に通す場合は、この点を踏まえて改めて検討する。
-  - ローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）は `USE_DEV_ASSETS=true` のビルドでのみ許可する（#353。上の「環境変数」）。
+  - ローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）は `USE_DEV_ASSETS=true` のビルドでのみ許可する（#353。上の「環境変数」。実行時の CSP への反映は `wrangler.jsonc` の `vars`。上の「Worker の実行時変数」）。
   - picsum.photos・i.pravatar.cc は `NEXT_PUBLIC_USE_MSW=true` のビルドでのみ許可する（`pathname` は絞らない。このビルドは公開しない）。
   - placehold.co・example.com は削除済み。
   本番ビルド（`USE_DEV_ASSETS`・`NEXT_PUBLIC_USE_MSW` がどちらも `true` 以外。未設定・`false` を含む）には
   開発用・モック用の取得元が入らない（ADR-0003 決定 4。`src/__tests__/nextConfigImageHosts.test.ts` で設定値を検証）。
+  取得元の一覧は `src/lib/imageOrigins.ts` に置き、`next.config.ts`（`remotePatterns`。ビルド時）と
+  `src/lib/csp.ts`（CSP の `img-src`・`connect-src`。実行時）の両方から参照する。
+  2 か所に一覧を別々に置くと、片方だけ変えたときに画像が止まるためである（ADR-0005 決定 1）。
+  `next.config.ts` は読み込み時に `initOpenNextCloudflareForDev()` を呼ぶため、proxy（Worker のバンドル）からは import しない。
   許可していない URL を `/_next/image` に渡すと、400（`"url" parameter is not allowed`）を返す（#351 で `preview` で確認）。
   取得元を絞らないと、許可した取得元の任意の画像を誰でもこの最適化を通して変換でき、
   無料枠（月 5,000 ユニーク変換）を消費する。超過すると新規変換が `9422` で失敗して画像が表示されなくなる。
@@ -564,7 +590,7 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 - API が 404 を返した場合は `notFound()` で HTTP 404 を返す。
 - サーバー側の API 取得は `NEXT_PUBLIC_API_BASE_URL` を使う。送信元は Cloudflare の IP に見えるため、API 側の許可設定を確認する。
 - `global_fetch_strictly_public` により同一ゾーンの API へは公開経路で fetch する。検証環境でサーバー側から取得できることを確認する。
-- キャッシュは `revalidate = 60`。動的ルートを ISR 対象にするため、`generateStaticParams` は空配列を返す（初回アクセス時に生成）。イベント詳細 API はイベントID単位で60秒の Data Cache（`unstable_cache`）に載せ、`generateMetadata` とページ本体で共有する。OpenNext は現状 dummy incremental cache のため、Cloudflare 上での実キャッシュ効果は限定的。
+- ISR は使わない（#413 で全ページを動的レンダリングにしたため、`revalidate`・`generateStaticParams` は設定しない）。イベント詳細 API は `unstable_cache`（`revalidate: 60`）で包み、`generateMetadata` とページ本体で共有する。ただし OpenNext の incremental cache は現状 dummy のため、`unstable_cache` は実際にはキャッシュせず、API の取得も HTML の描画も毎リクエストになる（本番の応答も `x-nextjs-cache: MISS`）。Cloudflare 上での実キャッシュの導入は別途検討する。
 - 参加人数など変わりやすい値はクライアント側でも再取得する。
 - OGP はイベント名・説明文の冒頭・先頭の画像を出力する（#380）。画像がなければ既定の OGP 画像を使う。認証なしで呼べる API が返す項目だけを使う。
 - 存在しないイベント ID ではイベント名・説明文・画像を出さず、サイト共通の説明文と既定の OGP 画像のまま 404 を返す。canonical と `og:url` は layout の値のまま（404 は検索に載らないため問題ない）。

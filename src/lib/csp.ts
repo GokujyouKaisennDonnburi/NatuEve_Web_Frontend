@@ -2,18 +2,12 @@
 // src/proxy.ts から呼び出す。単体テストで env を差し替えて検証できるよう、
 // 環境変数はこの関数の実行時に読む。
 
-// 画像・ファイルの取得元（R2 の公開ドメイン。NatuEve_API ADR-0039 / ADR-0040）。
-// next.config.ts の assetHostname / developmentAssetHostname と同じ値のため、
-// 変更するときは next.config.ts と同期する。
-const PRODUCTION_ASSETS_ORIGIN = "https://assets.natuportal.org";
-const DEVELOPMENT_ASSETS_ORIGIN = "https://assets-dev.natuportal.org";
-
-// Google のプロフィール画像。unoptimized で直接表示する（next.config.ts のコメント参照）。
-const GOOGLE_PROFILE_IMAGE_ORIGIN = "https://lh3.googleusercontent.com";
-
-// MSW のモックデータでのみ使う画像の取得元。
-// next.config.ts の mockImageHosts と同じ値のため、変更するときは同期する。
-const MOCK_IMAGE_ORIGINS = ["https://picsum.photos", "https://i.pravatar.cc"];
+import {
+  DEVELOPMENT_ASSETS_ORIGIN,
+  GOOGLE_PROFILE_IMAGE_ORIGIN,
+  MOCK_IMAGE_ORIGINS,
+  PRODUCTION_ASSETS_ORIGIN,
+} from "./imageOrigins";
 
 // presign が返す署名付き PUT の宛先（R2 の S3 API エンドポイント）。
 // アカウント ID はフロントからは不明のため、ドメイン全体を許可する。
@@ -51,11 +45,13 @@ export type CspBuildOptions = {
 // style-src の 'unsafe-inline' は Next.js が生成する style 要素と React の style 属性の
 // ため必要で、禁止しているのは script-src だけである。
 export function buildCspHeader({ nonce, isDev }: CspBuildOptions): string {
-  // USE_DEV_ASSETS・NEXT_PUBLIC_USE_MSW・NEXT_PUBLIC_API_BASE_URL などはビルド時フラグだが、
-  // OpenNext Cloudflare がビルド時の .env の値を .open-next/cloudflare/next-env.mjs に焼き、
-  // ランタイムの populateProcessEnv が process.env に供給する（Worker の vars が優先）。
-  // そのため検証環境（USE_DEV_ASSETS=true でビルド）でもランタイムに値が届く。
-  // 検証環境へのデプロイ後の最終確認は #416 で行う。
+  // USE_DEV_ASSETS・CSP_REPORT_ONLY は Worker の実行時変数で、wrangler.jsonc の
+  // vars で渡す（本番は最上位、検証は env.staging。vars は env に引き継がれないため
+  // env.staging でも宣言する）。OpenNext の populateProcessEnv が文字列のバインディングを
+  // process.env に供給するため、ここで読める。
+  // CI のワークフローの env: の値はビルド時にしか届かない。next-env.mjs に入るのは
+  // .env 系ファイルの値だけ（CI は .env を使わない）ため、この経路には依らない
+  // （docs/Deployment.md「Worker の実行時変数」）。
   //
   // R2 の公開ドメイン。画像の表示元であり、presign で発行した署名付き URL への
   // 直 PUT（画像/PDF の投稿）の宛先でもある。

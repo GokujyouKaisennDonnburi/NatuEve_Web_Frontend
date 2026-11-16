@@ -9,8 +9,10 @@ import {
 } from "./eventDetailMetadata";
 
 // 全ページ動的レンダリング（layout の connection()）のため、ISR（revalidate・
-// generateStaticParams）は使わない。データ鮮度は unstable_cache の revalidate: 60
-// が担保し、HTML は毎リクエスト描画になる。
+// generateStaticParams）は使わない。OpenNext の incremental cache は既定の dummy で
+// unstable_cache の revalidate: 60 は実際にはキャッシュせず、イベント詳細の API も
+// HTML も毎リクエストで取り直す（docs/Deployment.md「イベント詳細の SSR / メタデータ」）。
+// 鮮度はこれで担保され、変わりやすい値はクライアント側でも再取得する。
 
 type EventDetailPageProps = {
   params: Promise<{ id: string }>;

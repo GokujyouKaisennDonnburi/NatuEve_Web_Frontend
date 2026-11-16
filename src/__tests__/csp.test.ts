@@ -202,8 +202,13 @@ describe("proxy", () => {
     const csp = response.headers.get("Content-Security-Policy");
     expect(csp).toBeTruthy();
     expect(csp).toContain("script-src 'self' 'nonce-");
-    // request 側のヘッダーは Next.js への伝播用。response と同じ値が入っている。
-    expect(csp).toBe(response.headers.get("Content-Security-Policy"));
+    // NextResponse.next({ request: { headers } }) は、渡した request 側のヘッダーを
+    // x-middleware-request-<名前> として応答に載せる。Next.js の proxy は
+    // request 側のヘッダーを読んでレンダリングする script / style に nonce を
+    // 付けるため、応答のヘッダーだけでなく request 側も確かめる。
+    expect(
+      response.headers.get("x-middleware-request-content-security-policy"),
+    ).toBe(csp);
   });
 
   it("CSP_REPORT_ONLY=true では Report-Only ヘッダー名になる", () => {
@@ -214,10 +219,19 @@ describe("proxy", () => {
         new NextRequest("https://natueve-web.natuportal.org/event-list"),
       );
 
+      const reportOnly = response.headers.get(
+        "Content-Security-Policy-Report-Only",
+      );
       expect(response.headers.get("Content-Security-Policy")).toBeNull();
+      expect(reportOnly).toContain("script-src");
+      // Report-Only のときも request 側のヘッダー名を揃える。Next.js の nonce 抽出は
+      // Report-Only のヘッダーも対象である（parse-request-headers.js）ため、
+      // request 側に載っていないと Report-Only 時に script への nonce 付与が止まる。
       expect(
-        response.headers.get("Content-Security-Policy-Report-Only"),
-      ).toContain("script-src");
+        response.headers.get(
+          "x-middleware-request-content-security-policy-report-only",
+        ),
+      ).toBe(reportOnly);
     } finally {
       if (original === undefined) {
         delete process.env.CSP_REPORT_ONLY;

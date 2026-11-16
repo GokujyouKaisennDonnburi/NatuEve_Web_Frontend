@@ -1,53 +1,14 @@
 import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+import {
+  developmentImageHosts,
+  mockImageHosts,
+  productionImageHosts,
+} from "./src/lib/imageOrigins";
 
-// テストでも同じ型を使い、Next.js 側の型変更に追従する。
-export type ImageRemotePattern = NonNullable<
-  NonNullable<NextConfig["images"]>["remotePatterns"]
->[number];
-
-const assetHostname = "assets.natuportal.org";
-const developmentAssetHostname = "assets-dev.natuportal.org";
-
-// 本番でも使う画像の取得元（R2 の公開ドメイン）。
-// 画像最適化で変換できる画像を、API が保存するイベント・レポートの画像だけに絞る（#351）。
-// キーは NatuEve_API の buildFinalKey（natueve/{events|reports}/images/{uuid}{.jpg|.png}）に合わせる。
-// ファイル名を UUID の文字（小文字の 16 進数とハイフン）と拡張子に限り、%2F などのエンコードした区切りも通さない。
-// 一時領域（natueve/tmp/）・PDF（natueve/*/documents/）・他プロダクトの画像は許可しない。
-// API の URL にはクエリが付かないため、search: "" でクエリ付きの URL も許可しない。
-// port: "" で既定のポート（443）だけを許可する（Cloudflare は 8443 などの HTTPS の別ポートでも応答するため）。
-// Google のプロフィール画像（lh3.googleusercontent.com）は unoptimized で表示し、ここには含めない。
-const productionImageHosts: ImageRemotePattern[] = ["events", "reports"].map(
-  (destination) => ({
-    protocol: "https",
-    hostname: assetHostname,
-    port: "",
-    pathname: `/natueve/${destination}/images/+([0-9a-f-]).@(jpg|png)`,
-    search: "",
-  }),
-);
-
-// ローカル開発・検証環境用の R2 の公開ドメイン（NatuEve_API ADR-0039）。
-// 本番のビルド環境ではフラグを設定しない。キーの形式は本番と同じため、本番と同じ制限を引き継ぐ。
-const developmentImageHosts: ImageRemotePattern[] = productionImageHosts.map(
-  (pattern) => ({
-    ...pattern,
-    hostname: developmentAssetHostname,
-  }),
-);
-
-// MSW のモックデータ（src/mocks/**・src/services/mockAuth.ts）でのみ使う画像の取得元。
-// モックの画像 URL を変えるときは、ホストをここに追加して URL と許可リストを揃える。
-const mockImageHosts: ImageRemotePattern[] = [
-  {
-    protocol: "https",
-    hostname: "picsum.photos",
-  },
-  {
-    protocol: "https",
-    hostname: "i.pravatar.cc",
-  },
-];
+// 画像の取得元（remotePatterns の一覧）は src/lib/imageOrigins.ts に置いている。
+// CSP の img-src・connect-src（src/lib/csp.ts）と共通の一覧にするため、
+// ここではフラグの判定と組み立てだけを行う。
 
 // MSW を使うビルドでのみモック用の取得元を許可する。
 // `true` 以外（未設定・`false` を含む）ではモック用を含めない（安全側のデフォルト）。
