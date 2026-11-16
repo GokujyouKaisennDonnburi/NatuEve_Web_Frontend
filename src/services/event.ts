@@ -1,3 +1,4 @@
+import { EventDetailError } from "@/lib/errors";
 import { apiFetch } from "@/services/apiClient";
 import { NotificationLimitExceededError } from "@/types/event";
 import type {
@@ -14,26 +15,72 @@ import type {
   NotifyEventParticipantsResponse,
   ProfileEventListResponse,
   ProfileEventType,
+  SitemapEventsResponse,
 } from "@/types/event";
+
+// SSR 時に API が応答しないままページ描画がブロックされ続けないよう、
+// signal 未指定時のイベント詳細取得にはタイムアウトを設ける。
+const EVENT_DETAIL_TIMEOUT_MS = 10_000;
+
+// sitemap 生成時に API が応答しないままリクエストがブロックされ続けないためのタイムアウト。
+const SITEMAP_EVENTS_TIMEOUT_MS = 10_000;
 
 // イベント詳細取得 API（GET /api/v1/events/{id}）を呼ぶ（認証不要）。
 //
 // 失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
 export async function getEventDetail(
   eventId: string,
+  signal?: AbortSignal,
 ): Promise<EventDetailResponse> {
+  const requestSignal = signal ?? AbortSignal.timeout(EVENT_DETAIL_TIMEOUT_MS);
   const response = await apiFetch(
     `/api/v1/events/${encodeURIComponent(eventId)}`,
-    { auth: false },
+    { auth: false, signal: requestSignal },
   );
 
   if (!response.ok) {
-    throw new Error(
-      `イベント詳細の取得に失敗しました (Status: ${response.status})`,
+    throw new EventDetailError(
+      response.status === 404
+        ? "イベントが見つかりません"
+        : `イベント詳細の取得に失敗しました (Status: ${response.status})`,
+      response.status,
     );
   }
 
   return (await response.json()) as EventDetailResponse;
+}
+
+// ページ用のイベント詳細取得ローダー。
+// 404 は「イベント不存在」として null を返し、それ以外のエラーはそのまま送出する。
+export async function getEventDetailOrNull(
+  eventId: string,
+): Promise<EventDetailResponse | null> {
+  try {
+    return await getEventDetail(eventId);
+  } catch (error) {
+    if (error instanceof EventDetailError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+// sitemap 用イベント一覧 API（GET /api/v1/sitemap/events）を呼ぶ（認証不要）。
+//
+// 429 / 5xx を含む失敗時は例外を送出する。部分的な sitemap を返さないため、握りつぶさない。
+export async function getSitemapEvents(): Promise<SitemapEventsResponse> {
+  const response = await apiFetch("/api/v1/sitemap/events", {
+    auth: false,
+    signal: AbortSignal.timeout(SITEMAP_EVENTS_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `sitemap 用イベント一覧の取得に失敗しました (Status: ${response.status})`,
+    );
+  }
+
+  return (await response.json()) as SitemapEventsResponse;
 }
 
 // URLSearchParams に変換するヘルパー。

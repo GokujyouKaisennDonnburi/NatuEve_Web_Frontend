@@ -152,9 +152,11 @@ MSW は Mock Service Worker の略で、開発中に API をモックするた�
 
 - `src/mocks/browser.ts`
 - `src/mocks/server.ts`
+- `src/constants/api.ts`
 - `src/mocks/MSWProvider.tsx`
 - `src/mocks/handlers/index.ts`
 - `src/mocks/handlers/user.ts`
+- `src/instrumentation.ts`
 
 MSW 初期化コマンド:
 
@@ -163,6 +165,8 @@ bun run msw:init
 ```
 
 これは `public/mockServiceWorker.js` を生成するためのコマンドです。
+
+`NEXT_PUBLIC_USE_MSW=true` の開発時は、`src/instrumentation.ts` から Node.js 用の `setupServer` を起動し、Server Component の API 取得もモックします。ブラウザ用 Service Worker と Node.js 用サーバーは別プロセス・別メモリのため、ブラウザで新規作成したイベントはサーバー描画時には存在しません。`bun run preview`（Cloudflare Workers）では Node.js 用 MSW は起動しないため、実 API を使って確認してください。
 
 ---
 

@@ -243,6 +243,12 @@ public/mockServiceWorker.js
 
 開発環境でのみ有効になるよう設定されています。
 
+### サーバー側のモック
+
+`NEXT_PUBLIC_USE_MSW=true` の開発時は、`src/instrumentation.ts` から Node.js 用の `setupServer` を起動し、Server Component の API 取得もモックします。
+
+ブラウザ用 Service Worker と Node.js 用サーバーは別プロセス・別メモリのため、ブラウザで新規作成したイベントはサーバー描画時には存在せず、一覧から詳細を開くと 404 になります。SSR の確認はシード済みイベントで行い、作成したイベントの確認は実 API モードで行ってください。`bun run preview`（Cloudflare Workers）では Node.js 用 MSW は起動しないため、`NEXT_PUBLIC_USE_MSW=false` と実 API を使ってください。
+
 ---
 
 ## よく使うコマンド

@@ -172,12 +172,15 @@ export function buildApplicationSummary(
 //   バックエンドの判定基準が申込期限のため、こちらにも applicationDeadline を渡している。
 //
 // ここでの判定はあくまで UI の分岐で、実際の可否はサーバーの応答が正となる。
-export function isDeadlinePassed(deadline: string | null | undefined): boolean {
+export function isDeadlinePassed(
+  deadline: string | null | undefined,
+  now: number = Date.now(),
+): boolean {
   if (!deadline) return false;
 
   const parsed = new Date(deadline);
 
   if (Number.isNaN(parsed.getTime())) return false;
 
-  return parsed.getTime() < Date.now();
+  return parsed.getTime() < now;
 }

@@ -11,6 +11,7 @@ import { eventMyApplicationHandler } from "./members-me";
 import { eventNotificationHandler } from "./notifications";
 import { eventParticipationLogsHandler } from "./participation-logs";
 import { eventReportHandler } from "./report";
+import { eventSitemapHandler } from "./sitemap";
 
 export const eventHandlers = [
   eventListHandler,
@@ -25,4 +26,5 @@ export const eventHandlers = [
   eventParticipationLogsHandler,
   eventLeaveHandler,
   eventAbsenceHandler,
+  eventSitemapHandler,
 ];

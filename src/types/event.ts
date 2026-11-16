@@ -141,6 +141,16 @@ export type EventListRequest = {
   locations?: string[];
 };
 
+// sitemap 用イベント一覧 API（GET /api/v1/sitemap/events）のレスポンス要素。
+// updatedAt の降順で返る。
+export type SitemapEvent = {
+  id: string;
+  // 更新日時(RFC3339)。
+  updatedAt: string;
+};
+
+export type SitemapEventsResponse = SitemapEvent[];
+
 // イベント詳細取得 API のレスポンス DTO。
 export type EventDetailResponse = {
   capacity: number;
@@ -158,7 +168,8 @@ export type EventDetailResponse = {
   // 終了日時(RFC3339)。作成時に省略されてもサーバー側で eventDate と同値が補完されるため、
   // 詳細レスポンスでは常に存在する。
   endDate: string;
-  externalUrl?: string;
+  // 関連URL（任意・http/https）。未設定時は null が返る。
+  externalUrl?: string | null;
   id: string;
   imageObjectKeys: string[];
   imageFilenames: string[];

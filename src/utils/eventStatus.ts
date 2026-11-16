@@ -1,6 +1,23 @@
 import { DAYS_BEFORE_DEADLINE } from "@/constants/config";
 import { isDeadlinePassed } from "@/utils/participation";
 
+// Asia/Tokyo は UTC+9 固定（夏時間なし）。
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const JST_DATE_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+// Asia/Tokyo における日付（年・月・日）を返す。
+const getJstDateParts = (date: Date): [number, number, number] => {
+  const [year, month, day] = JST_DATE_FORMATTER.format(date)
+    .split("/")
+    .map(Number);
+  return [year, month, day];
+};
+
 // 開催状況の判定に使う日時。
 type EventStatusSource = {
   // 開催日時(RFC3339)。
@@ -10,6 +27,9 @@ type EventStatusSource = {
   // 申込期限(RFC3339)。未設定(null/undefined)の場合は締切なしとして扱い、
   // 「期限間近」「受付終了」「開催中」のいずれにもならない。
   applicationDeadline?: string | null;
+  // 判定の基準時刻(epoch ms)。省略時は現在時刻。
+  // SSR とハイドレーションで同じ表示になるよう、ページ側から描画時刻を渡す。
+  now?: number;
 };
 
 // 日時だけから判定できる開催状況。
@@ -50,20 +70,13 @@ export function isReceptionClosed(status: ResolvedEventStatus): boolean {
 // 例: 今日が 8/22 の場合、8/29 23:59:59 JST までを「7日以内」とみなす。
 // 時間単位ではなく日付単位で上限を切るため、8/22 09:00 時点で 8/29 23:00 の日時も
 // 7日以内として扱われる（diffMs が 7*24h を超えても日付が7日後までなら許容）。
-function isDateWithinOneWeek(dateStr: string): boolean {
+function isDateWithinOneWeek(dateStr: string, now: number): boolean {
   const target = new Date(dateStr);
 
-  if (target.getTime() <= Date.now()) return false;
+  if (target.getTime() <= now) return false;
 
-  // Asia/Tokyo における今日の日付（年・月・日）を取得する。
-  // Intl.DateTimeFormat は実行環境のローカル時刻に依存しない。
-  const formatter = new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const [y, m, d] = formatter.format(new Date()).split("/").map(Number);
+  // Asia/Tokyo における現在の日付（年・月・日）を取得する。
+  const [y, m, d] = getJstDateParts(new Date(now));
 
   // 7日後の 23:59:59.999 JST (= 14:59:59.999 UTC) を上限とする。
   const deadlineEnd = new Date(
@@ -71,6 +84,24 @@ function isDateWithinOneWeek(dateStr: string): boolean {
   );
 
   return target.getTime() <= deadlineEnd.getTime();
+}
+
+// 申込期限が「期限間近」に切り替わる時刻（申込期限の7日前の JST 00:00）を返す。
+// useDeadlineRefresh に渡して、ページを開いたまま日付を跨いでも表示を更新できるようにする。
+export function getFewLeftStartAt(
+  applicationDeadline: string | null | undefined,
+): string | null {
+  if (!applicationDeadline) return null;
+
+  const target = new Date(applicationDeadline);
+
+  if (Number.isNaN(target.getTime())) return null;
+
+  const [year, month, day] = getJstDateParts(target);
+  const boundary =
+    Date.UTC(year, month - 1, day - DAYS_BEFORE_DEADLINE) - JST_OFFSET_MS;
+
+  return new Date(boundary).toISOString();
 }
 
 // イベントの開催状況を判定する共通ルール。
@@ -93,21 +124,22 @@ export function resolveEventStatus({
   eventDate,
   endDate,
   applicationDeadline,
+  now = Date.now(),
 }: Readonly<EventStatusSource>): ResolvedEventStatus {
-  // この関数内で行う終了・開始の判定は、同じ現在時刻を基準にする。
-  // 申込期限の判定（isDeadlinePassed / isDateWithinOneWeek）はそれぞれ内部で現在時刻を取得するため、
-  // 厳密には基準がずれうるが、ずれはごくわずかで実用上の影響はない。
-  const now = new Date();
+  // 終了・開始・申込期限のすべてを同じ基準時刻で判定する。
+  // SSR とハイドレーションで同じ結果になるよう、呼び出し側から描画時刻を渡せる。
   const closesAt = new Date(endDate || eventDate);
-  if (closesAt < now) {
+  if (closesAt.getTime() < now) {
     return "closed";
   }
   // 申込期限を過ぎていればもう申し込めない。開始前なら「受付終了」を伝え、
   // すでに開始していれば申し込めない事実より「いま開催している」ことを優先して伝える。
-  if (isDeadlinePassed(applicationDeadline)) {
-    return new Date(eventDate) <= now ? "ongoing" : "ended_registration";
+  if (isDeadlinePassed(applicationDeadline, now)) {
+    return new Date(eventDate).getTime() <= now
+      ? "ongoing"
+      : "ended_registration";
   }
-  if (applicationDeadline && isDateWithinOneWeek(applicationDeadline)) {
+  if (applicationDeadline && isDateWithinOneWeek(applicationDeadline, now)) {
     return "few_left";
   }
   return "open";

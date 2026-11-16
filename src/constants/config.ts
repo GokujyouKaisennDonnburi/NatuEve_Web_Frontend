@@ -1,6 +1,22 @@
-export const APP_NAME = "NatuEve Web Frontend";
-export const APP_DESCRIPTION =
-  "Next.js 15, React 19, Tailwind CSS 4, Biome 2, MSW 2 の starter kit";
+export const APP_NAME = "なちゅいべ";
+// 検索されやすい語を含めた説明文の共通部分（#398）。APP_DESCRIPTION とイベント一覧の description で共有する。
+export const EVENT_SEARCH_DESCRIPTION =
+  "生き物観察会や自然観察、生態系の保全活動など、自然や生物に関わるイベント";
+
+export const APP_DESCRIPTION = `なちゅいべは、${EVENT_SEARCH_DESCRIPTION}を「探したい人」と「開催したい人」をつなぐイベントサイトです。`;
+
+// サイトの公開 URL。metadataBase に使う。
+// 検証環境でも本番の URL を出す（canonical を本番に寄せるため）。
+export const SITE_URL = "https://natueve-web.natuportal.org";
+
+// 既定の OGP 画像。
+export const DEFAULT_OG_IMAGE = {
+  url: "/images/og-default.png",
+  width: 1200,
+  height: 630,
+  alt: APP_NAME,
+};
+
 export const API_BASE_URL = "/api";
 
 // イベント投稿画面のタグ入力欄の上限値。
@@ -17,6 +33,10 @@ export const MAX_EVENT_PDF_COUNT = 3;
 // API の ADR-0051 に合わせる。実際の送信枠は端末ではなく API がイベント単位で管理する。
 export const MAX_EVENT_NOTIFICATION_SENDS = 5;
 export const EVENT_NOTIFICATION_WINDOW_HOURS = 24;
+
+// 1回の参加申し込みで入力できる合計人数の上限。
+// モーダルの入力制限・バックエンド(MSW)・API側のバリデーションで共通に使う。
+export const MAX_PARTICIPATION_PARTY_SIZE = 10;
 
 // 「期限間近」と判定する申込期限までの残り日数（判定は applicationDeadline 基準）。
 export const DAYS_BEFORE_DEADLINE = 7;

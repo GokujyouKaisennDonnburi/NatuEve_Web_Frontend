@@ -1,5 +1,6 @@
 import { EventItemBadge } from "@/components/molecules/EventItemBadge";
 import { SurfaceCard } from "@/components/molecules/SurfaceCard";
+import { EVENT_DETAIL_INFO_SECTION_LABEL } from "@/components/molecules/event-detail/eventDetailTocSections";
 import { CardContent } from "@/components/ui/card";
 import type { EventDetailType } from "./types";
 
@@ -47,7 +48,7 @@ const formatCost = ({
   category,
   cost,
 }: EventDetailType["costs"][number]): string => {
-  const amount = cost === 0 ? "無料" : `${cost.toLocaleString()}円`;
+  const amount = cost === 0 ? "無料" : `${cost.toLocaleString("ja-JP")}円`;
   const label = category.trim();
   return label ? `${label}：${amount}` : amount;
 };
@@ -59,7 +60,7 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
   return (
     <SurfaceCard>
       <CardContent>
-        <h2 className="section-title">イベント詳細</h2>
+        <h2 className="section-title">{EVENT_DETAIL_INFO_SECTION_LABEL}</h2>
         <div className="overflow-x-auto">
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
             <table className="w-full border-separate border-spacing-0 text-sm">
@@ -169,7 +170,11 @@ export function EventInfoTable({ event }: Readonly<EventInfoTableProps>) {
                     定員
                   </th>
                   <td className="border-l border-t border-slate-200 bg-white px-4 py-4 text-slate-800">
-                    {event.capacity === 0 ? "定員なし" : `${event.capacity}名`}
+                    {/* capacity は契約上 number だが、未設定（null/undefined）のデータが届いても
+                        「undefined名」と表示しないよう、0 と合わせて定員なしとして扱う */}
+                    {event.capacity == null || event.capacity === 0
+                      ? "定員なし"
+                      : `${event.capacity}名`}
                   </td>
                 </tr>
               </tbody>

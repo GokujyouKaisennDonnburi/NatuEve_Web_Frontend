@@ -1,14 +1,20 @@
 name: CI
 
+# PR では品質チェックだけを行う。main への push では品質チェックの後に検証環境へデプロイし、
+# 本番は承認を経て進める（ADR-0003。手順・設定は docs/Deployment.md「ビルドとデプロイ」）。
+# デプロイを含む main への push には paths フィルタを付けず、[skip ci] も使わない（main の最新の確認を通る実行がなくなるため。ADR-0003 決定 3）。
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
+# PR は同じブランチの古い実行を取り消す。main への push の実行は run_id で実行ごとに別のグループにし、
+# ワークフロー単位では取り消さない（デプロイ中の実行を中断しないため）。デプロイの順序は、
+# ジョブ単位の concurrency とデプロイ直前の main の最新の確認で守る（ADR-0003 決定 3）。
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'push' && github.run_id || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   quality:
@@ -21,17 +27,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # SHA 固定（サプライチェーン攻撃対策）。
+        # checkout v4.4.0
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        # setup-bun v2.2.0
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: "1.2.21"
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        # setup-node v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .nvmrc
 
@@ -50,12 +60,224 @@ jobs:
       - name: Test (Vitest)
         run: bun run test
 
-      - name: Build (Next.js)
-        run: bun run build
+      # 接続先の確認と main の最新の確認のスクリプトは、main への push で初めて動く。構文を PR のうちに確かめる（#362 のレビュー）。
+      # bash -n は引数の最初のファイルしか読まないため、1 ファイルずつループで確かめる。
+      # shellcheck の版はランナーのイメージによるため、ログに出して追えるようにする。
+      - name: Check shell scripts
+        run: |
+          shellcheck --version
+          for script in .github/scripts/*.sh; do
+            bash -n "$script"
+          done
+          shellcheck -S warning .github/scripts/*.sh
+
+      # main への push では、デプロイのジョブが環境ごとの値でビルドするため、ここでのビルドは PR だけで行う。
+      # デプロイと同じ OpenNext のビルド（内部で next build も行う）にし、OpenNext 固有の失敗（#342 など）を PR で見つける。
+      # トークンは使わない。成果物はデプロイしない。
+      - name: Build (OpenNext, staging)
+        if: github.event_name == 'pull_request'
+        run: ./node_modules/.bin/opennextjs-cloudflare build --env staging
         env:
           NEXT_TELEMETRY_DISABLED: "1"
-          # NEXT_PUBLIC_* は静的プリレンダリング時に getSupabase() が呼ばれた場合に必要。
-          # 遅延初期化（getSupabase()）によりモジュールロード時は不要だが、
-          # 将来サーバ側から呼ばれる可能性に備えリポジトリの Variables から注入する。
+          # next.config.ts の分岐を検証環境のビルドに揃える。
+          NEXT_PUBLIC_USE_MSW: "false"
+          USE_DEV_ASSETS: "true"
+          SITE_NOINDEX: "true"
+          # 接続先の NEXT_PUBLIC_*（NEXT_PUBLIC_API_BASE_URL・NEXT_PUBLIC_SUPABASE_*）は空文字で明示する（リポジトリの Variables は使わない。docs/Deployment.md「環境変数」）。
+          # `.env.production` は .gitignore の外（コミットされうる）ため、そこに接続先を書かれてもビルドに使えないようにする（#362 のレビュー）。
+          # getSupabase() は遅延初期化のため、プリレンダリングで呼ばれない限りビルドに要らない。呼ばれるようになったら、値が空のためこのビルドが失敗して気づける。
+          # 値の取り違え（本番と検証など）はビルドが通るため、ここでは分からない（deploy-staging の「Check connection variables」で確かめる）。
+          NEXT_PUBLIC_API_BASE_URL: ""
+          NEXT_PUBLIC_SUPABASE_URL: ""
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
+
+  deploy-staging:
+    name: Deploy (staging)
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Variables・Secrets は staging Environment に置く。staging は main だけがデプロイでき、管理者のバイパスを無効にしておく（ADR-0003 決定 2）。
+    environment: staging
+
+    # Cloudflare のトークンを扱うジョブに GitHub への書き込み権限を渡さない（ADR-0003 決定 3）。
+    permissions:
+      contents: read
+
+    # 検証環境へのデプロイは同時に 1 つだけにし、途中で中断しない。待機中のジョブを取り消さないよう queue: max にする（ADR-0003 決定 3）。
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+      queue: max
+
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      # 接続先の期待値（ブラウザに渡る公開の値）。staging Environment に定義し忘れると同じ名前のリポジトリの Variables が使われるため、
+      # 期待値は変数から取らずにここへ書き、ビルドの前に比べる（docs/Deployment.md「環境変数」）。
+      EXPECTED_API_BASE_URL: https://natueve-api-stg.natuportal.org
+      # ローカル開発の Auth 用プロジェクト（検証環境は開発と Auth を共有する。NatuEve_API ADR-0041）。
+      EXPECTED_SUPABASE_URL: https://mxtjfurilkrewjdwslxl.supabase.co
+
+    steps:
+      - name: Checkout
+        # checkout v4.4.0
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          # push された main の先頭のコミット。同じ実行の中と再実行で変わらない（ADR-0003 決定 3）。
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Setup Bun
+        # setup-bun v2.2.0
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: "1.2.21"
+
+      - name: Setup Node
+        # setup-node v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # 接続先の変数が期待値どおりか、公開キーのプロジェクトと role、アカウント ID を確かめる（docs/Deployment.md「CI/CD」）。
+      - name: Check connection variables
+        run: bash .github/scripts/check-connection-variables.sh
+        env:
+          DEPLOY_ENVIRONMENT: staging
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      # トークンを渡さずにビルドする（ビルドは依存パッケージのコードも動かすため。ADR-0003 決定 3）。
+      # NEXT_PUBLIC_*・USE_DEV_ASSETS・SITE_NOINDEX はビルド時に埋め込まれる・反映される。
+      - name: Build (OpenNext)
+        # bunx は手元にないパッケージを npm から取って動かすため、node_modules の bin を直接呼ぶ。
+        run: ./node_modules/.bin/opennextjs-cloudflare build --env staging
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # ビルド時のフラグは Environment に置かず、ここに固定する（docs/Deployment.md「環境変数」）。
+          NEXT_PUBLIC_USE_MSW: "false"
+          # 検証環境は開発用の R2（assets-dev.natuportal.org）の画像を表示する（#353）。
+          USE_DEV_ASSETS: "true"
+          # 検証環境は検索に載せない（#372）。
+          SITE_NOINDEX: "true"
+
+      # 実行の待機中に main が進んでいたら、古いコミットで上書きしないよう止める（ADR-0003 決定 3）。
+      - name: Check this run is the latest main
+        run: bash .github/scripts/check-latest-main.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # トークンはこのステップにだけ渡す。opennextjs-cloudflare deploy はビルドしない。
+      - name: Deploy (Cloudflare Workers)
+        run: ./node_modules/.bin/opennextjs-cloudflare deploy --env staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Summary
+        run: |
+          echo "検証環境にデプロイしたコミット: \`${GITHUB_SHA}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-production:
+    name: Deploy (production)
+    needs: deploy-staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Variables・Secrets は production Environment に置く。production は main だけがデプロイでき、管理者のバイパスを無効にし、
+    # Required reviewers と Prevent self-review で承認を経てからジョブが動く（ADR-0003 決定 3）。
+    environment: production
+
+    # Cloudflare のトークンを扱うジョブに GitHub への書き込み権限を渡さない（ADR-0003 決定 3）。
+    permissions:
+      contents: read
+
+    # 本番へのデプロイは同時に 1 つだけにし、途中で中断しない。待機中のジョブを取り消さないよう queue: max にする（ADR-0003 決定 3）。
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+      queue: max
+
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      # wrangler.jsonc の最上位（本番）の設定を使う。--env="" は OpenNext が wrangler に渡さないため、空の CLOUDFLARE_ENV で指定する
+      # （指定しないと、env があるため wrangler が警告を出す。docs/Deployment.md「CI/CD」の「本番のデプロイ」）。
+      CLOUDFLARE_ENV: ""
+      # 接続先の期待値（ブラウザに渡る公開の値。docs/Deployment.md「環境変数」）。
+      EXPECTED_API_BASE_URL: https://natueve-api.natuportal.org
+      # 本番の Auth（natueveOAuth）。
+      EXPECTED_SUPABASE_URL: https://tpszowxdhvthxyqorvwr.supabase.co
+
+    steps:
+      - name: Checkout
+        # checkout v4.4.0
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          # 検証環境に出したのと同じコミット（ADR-0003 決定 3）。
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Setup Bun
+        # setup-bun v2.2.0
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: "1.2.21"
+
+      - name: Setup Node
+        # setup-node v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check connection variables
+        run: bash .github/scripts/check-connection-variables.sh
+        env:
+          DEPLOY_ENVIRONMENT: production
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      # 検証環境の成果物は使い回さず、同じコミットから本番の値でビルドし直す（NEXT_PUBLIC_* が埋め込まれるため。ADR-0003 決定 3）。
+      # トークンは渡さない。
+      - name: Build (OpenNext)
+        run: ./node_modules/.bin/opennextjs-cloudflare build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_USE_MSW: "false"
+          # USE_DEV_ASSETS は立てない（本番の許可リストに開発用の R2 を入れない。#353）。
+          # .env.production は .gitignore の外（コミットされうる）ため、未設定に頼らず "false" と明示する（#362 のレビュー）。
+          USE_DEV_ASSETS: "false"
+          # 本番を検索から消さないよう、未設定に頼らず "false" と明示する（#372）。
+          SITE_NOINDEX: "false"
+
+      # 承認待ちの間に main が進んでいたら、古いコミットで本番を巻き戻さないよう止める（ADR-0003 決定 3）。
+      - name: Check this run is the latest main
+        run: bash .github/scripts/check-latest-main.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # トークンはこのステップにだけ渡す。
+      - name: Deploy (Cloudflare Workers)
+        run: ./node_modules/.bin/opennextjs-cloudflare deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Summary
+        run: |
+          echo "本番にデプロイしたコミット: \`${GITHUB_SHA}\`" >> "$GITHUB_STEP_SUMMARY"

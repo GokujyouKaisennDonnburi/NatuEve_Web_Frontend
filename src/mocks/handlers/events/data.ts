@@ -281,7 +281,9 @@ const createDefaultMockEventDetail = (
   description: `詳細情報です。自然観察を楽しみましょう。`,
   capacity: 30,
   cancelDeadline: buildCancelDeadline(event, index),
-  externalUrl: "https://example.com/event",
+  // externalUrl は参加申し込みボタンの挙動分岐確認用。偶数番目のイベントのみ設定し、
+  // 未設定時（null・空文字相当）にモーダルが開く従来挙動もローカルで確認できるようにする。
+  externalUrl: index % 2 === 0 ? "https://example.com/event" : undefined,
   costs: [
     { category: "大人", cost: 1000 },
     { category: "子ども", cost: 500 },

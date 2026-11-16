@@ -66,7 +66,7 @@ export async function uploadFile(
   file: File,
   kind: UploadKind,
 ): Promise<UploadedFile> {
-  const validationError = validateUploadFile(file, kind);
+  const validationError = await validateUploadFile(file, kind);
   if (validationError) {
     throw new UploadValidationError(validationError);
   }

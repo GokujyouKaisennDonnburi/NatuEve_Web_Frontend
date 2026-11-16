@@ -5,6 +5,7 @@ import { useState } from "react";
 import { FormCard } from "@/components/molecules/FormCard";
 import { FileDropZone } from "@/components/molecules/FileDropZone";
 import { MAX_EVENT_PDF_COUNT } from "@/constants/config";
+import { MAX_IMAGE_PIXELS } from "@/utils/imageSize";
 import {
   MAX_IMAGE_BYTES,
   MAX_PDF_BYTES,
@@ -42,7 +43,7 @@ export function FileUploadExample({
             files={files}
             onFilesChange={setFiles}
             promptLabel="クリックまたはドラッグで画像をアップロード"
-            hint={`1ファイル ${toMegabytes(MAX_IMAGE_BYTES)}MB まで`}
+            hint={`1ファイル ${toMegabytes(MAX_IMAGE_BYTES)}MB・縦横${MAX_IMAGE_PIXELS}px まで`}
             validate={(file) => validateUploadFile(file, "image")}
           />
         </FormCard>

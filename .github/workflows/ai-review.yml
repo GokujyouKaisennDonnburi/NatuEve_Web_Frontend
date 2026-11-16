@@ -1,13 +1,16 @@
 name: AI Review
 
-# PR作成時に OpenCode (OpenCode Go / DeepSeek V4.1 Flash) でコードレビューを実行し、PR へレビューコメントを投稿する。
+# PR作成時・更新時に OpenCode (OpenCode Go / GLM-5.3 Flash) でコードレビューを実行し、PR へレビューコメントを投稿する。
+# レビュー範囲はエージェントが決める。前回のAIレビューコメント末尾の `<!-- reviewed-sha: ... -->` を読み、
+# 無ければPR全体、あれば前回以降の差分をレビューする（.ai/prompts/code-review.md「レビュー範囲」）。
 # 本ワークフローは Branch Protection の必須チェックには含めない（AIサービス障害時のマージブロック回避）。
 #
 # AI実行基盤・モデルの変更箇所（将来 Copilot / Claude / Gemini に切替する場合）:
 #   1. `uses:` の Action          -> 各サービスの GitHub Action に差し替え
 #   2. `env:` の APIキー            -> 切替先プロバイダのAPIキー Secret に変更（OpenCode Go / Zen は OPENCODE_API_KEY）
-#   3. opencode.json              -> provider / agent.code-reviewer.model を更新（CI の with.model は jq で自動取得）
-#   ※ .ai/prompts/code-review.md は AIサービス非依存のため変更不要
+#   3. opencode.json              -> provider / agent.code-reviewer.model を更新（CI の with.model は jq で自動取得）。
+#                                    `with.variant` は切替先のモデルが持つ値に変更する
+#   4. .ai/prompts/code-review.md -> `<pull_request>` など OpenCode Action の入力に依存する「レビュー範囲」を見直す
 #   ※ Branch Protection の必須 status check には含めないこと
 
 on:
@@ -20,43 +23,27 @@ concurrency:
 
 jobs:
   ai-review:
-    name: AI Review (OpenCode Go + DeepSeek V4.1 Flash)
-    # forkからのPRでは実行しない。加えて、AIエージェントbot自身がpushしたコミット（例: /oc による
-    # 自動コミット）も対象外にする。OpenCode Actionはイベント発行者の権限をチェックするが、GitHub App の
-    # botユーザーはcollaborator権限として解決されず（permission: none）、実行が失敗するため。
+    name: AI Review (OpenCode Go + GLM-5.3 Flash)
+    # forkからのPRでは実行しない。加えて、botが発行したイベントも対象外にする。OpenCode Actionは
+    # イベント発行者の権限をチェックするが、botユーザーはcollaborator権限として解決されず
+    # （permission: none）、実行が失敗するため。
     if: "github.event.pull_request.head.repo.full_name == github.repository && !endsWith(github.actor, '[bot]')"
     runs-on: ubuntu-latest
+    # 権限の確認待ちなどで止まったときに、6 時間（既定の上限）待たずに失敗させる
     timeout-minutes: 15
 
-    # OpenCode Action の最小権限。
-    # レビューコメントは OpenCode GitHub App のインストールトークンで投稿されるため、
-    # ワークフローの GITHUB_TOKEN には書き込み権限は不要。
+    # use_github_token: true のため OIDC は使われず id-token: write は不要
     permissions:
-      id-token: write
       contents: read
-      pull-requests: read
-      issues: read
+      pull-requests: write
+      issues: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # SHA 固定（サプライチェーン攻撃対策）。checkout v4.4.0
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-
-      - name: Load review prompt
-        id: prompt
-        shell: bash
-        run: |
-          delimiter=$(openssl rand -hex 16)
-
-          {
-            echo "body<<$delimiter"
-            cat .ai/prompts/code-review.md
-            # ファイル末尾に改行がない場合、閉じdelimiterが最終行に連結されて
-            # "Matching delimiter not found" になるため、空行を挟んで単独行を保証する。
-            echo ""
-            echo "$delimiter"
-          } >> "$GITHUB_OUTPUT"
 
       - name: Resolve review model
         id: model
@@ -65,15 +52,20 @@ jobs:
           echo "model=$(jq -r '.agent["code-reviewer"].model' opencode.json)" >> "$GITHUB_OUTPUT"
 
       - name: Run OpenCode review
-        uses: anomalyco/opencode/github@a105350812f05f914c768e468559dbd6bd508d8e
+        # opencode v1.19.3
+        uses: anomalyco/opencode/github@e3c4eb242585dcd77be1a867391b7c25fd47ce52
         env:
           # AIプロバイダ変更時はここを差し替え（例: ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY）。
           # OpenCode Go / OpenCode Zen は OPENCODE_API_KEY を使用。
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          # Action は agent 入力を読まず、設定の default_agent（未設定なら build）を使う。
+          # ローカルの既定エージェントを変えないよう、opencode.json ではなくここで指定する。
+          OPENCODE_CONFIG_CONTENT: '{"default_agent":"code-reviewer"}'
         with:
           # モデルは opencode.json の agent.code-reviewer.model を単一正とし、jq で解決して渡す。
-          # モデル変更時は opencode.json のみを更新する（CI / ローカルが常に同期）。
-          # 現在: OpenCode Go DeepSeek V4.1 Flash。
-          # reasoning effort は opencode.json の provider.opencode-go.models.deepseek-v4.1-flash.options で max を設定。
+          # モデル変更時は opencode.json を更新する（CI / ローカルが常に同期）。variant はモデルごとに値が違うため、ここも合わせて更新する。
+          # 現在: OpenCode Go GLM-5.3 Flash。
           model: ${{ steps.model.outputs.model }}
-          prompt: ${{ steps.prompt.outputs.body }}
+          variant: max
+          use_github_token: true

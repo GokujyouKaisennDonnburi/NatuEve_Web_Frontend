@@ -19,9 +19,15 @@ import {
 } from "@/types/participate";
 import { formatMonthDayTime } from "@/utils/date";
 import { isDeadlinePassed } from "@/utils/participation";
+import { resolveSafeExternalUrl } from "@/utils/validation";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+
+// 未参加の申し込み導線（ボタン・外部リンク共通）のスタイル。
+// button 要素と a 要素（asChild）の両方で同じ見た目を保つため、クラスを一元化する。
+const APPLY_BUTTON_CLASS =
+  "h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm";
 
 // 申し込み内容モーダルに表示する、このユーザー自身の申し込み内容。
 // 申込内容 API（GET /api/v1/events/{id}/members/me）から取得した値をそのまま渡す。
@@ -67,6 +73,10 @@ type EventParticipationButtonProps = {
   // 申込内容 API から取得するため、参加中と判明してから1往復遅れて届く。
   // 未取得の間は undefined となり、人数を伏せて「申し込み済み」とだけ表示する。
   partySize?: number;
+  // イベントの外部申し込みURL（externalUrl）。設定されている（不正値を除く）場合は
+  // モーダルを開かず、押下時に外部サイトへ新規タブで遷移する。
+  // 未設定・null・空文字の場合は従来どおり参加申し込みモーダルを開く。
+  externalUrl?: string | null;
   // 参加申し込み成功後に呼ばれるコールバック。参加状態の再取得をトリガーする。
   onParticipateSuccess?: () => void;
   // 参加キャンセル・欠席連絡の成功後に呼ばれるコールバック。参加状態の再取得をトリガーする。
@@ -158,6 +168,7 @@ export function EventParticipationButton({
   participating = false,
   participationDetail,
   partySize,
+  externalUrl,
   onParticipateSuccess,
   onCancelSuccess,
 }: EventParticipationButtonProps) {
@@ -219,16 +230,43 @@ export function EventParticipationButton({
     !isFull &&
     remaining <= Math.min(effectiveCapacity * 0.2, 10);
 
+  // externalUrl の有効判定は表示とクリックで共通して使うため、ここで一度だけ解決する。
+  // 不正値は null に潰れ、未設定と同じ扱い（従来表示・モーダル）になる。
+  const externalHref = resolveSafeExternalUrl(externalUrl);
+  // 外部URLがあるイベントは外部サイトで定員を管理するため、定員由来の満員判定を無効化する。
+  // 定員と externalUrl が併存する既存イベントでも、満員状態で外部URLへ遷移できるようにする。
+  const isExternalReception = Boolean(externalHref);
+  const isCapacityFull = !isExternalReception && isFull;
+
   // 未参加ボタンの文言。受付終了が最優先で、次に満員を優先する。
   // 申込期限を過ぎたイベントは満員かどうかに関係なく申し込めないため、先に「受付終了」を出す。
+  // 外部URLがあるイベントは申し込み先が外部サイトであることを伝える。
   const buttonLabel = receptionClosed
     ? "受付終了"
-    : isFull
+    : isCapacityFull
       ? "現在満員です"
-      : "参加を申し込む";
+      : isExternalReception
+        ? "外部サイトから申し込む"
+        : "参加を申し込む";
+
+  // 定員・残り人数の表示は、申し込みをなちゅいべ内で受けるイベントのみ。
+  // 外部URLがあるイベントは外部サイトで定員を管理するため、ボタンだけを出す。
+  // 幅判定と表示分岐の両方でこの値を使い、外部URLと定員表示の条件を一元化する。
+  const hasCapacityDisplay = !externalHref && hasCapacity;
 
   // コントロールの無効状態を判定
   const isControlDisabled = disabled || isSessionLoading;
+
+  // 外部受付リンクの無効条件。
+  // 外部サイトでの申し込みにログイン状態は不要なため isSessionLoading は含めない。
+  // 受付期限（receptionClosed）は外部URLイベントでも尊重する（外部URLでも受付期限で閉じる）。
+  const isExternalApplyBlocked = disabled || receptionClosed;
+
+  // ピル全体の薄見え判定。外部リンク表示時はリンク自体の無効条件に揃える。
+  // セッションロード中でも外部サイトへの遷移は可能なため、押せるのに無効に見えないようにする。
+  const isControlVisuallyDisabled = externalHref
+    ? isExternalApplyBlocked
+    : isControlDisabled;
 
   // 「内容の確認・取り消し」ボタンのクリックハンドラ。
   // 取り消しの前に、何を申し込んだのかと取り消し期限を確認できるようにする。
@@ -239,8 +277,11 @@ export function EventParticipationButton({
   };
 
   // 参加申し込みボタンのクリックハンドラ。ピル右側のボタンからモーダルを開く。
+  // externalUrl が有効なイベントは外部サイトへのリンク（a 要素）を描画するため、
+  // このハンドラはなちゅいべ内で受付するイベントのみでモーダルを開く。
   const handleButtonClick = () => {
-    if (disabled || isSessionLoading || isFull || receptionClosed) return;
+    if (disabled || isSessionLoading || isCapacityFull || receptionClosed)
+      return;
 
     setIsModalOpen(true);
   };
@@ -362,13 +403,36 @@ export function EventParticipationButton({
     })();
   };
 
+  // 未参加のときに出す申し込みボタン。左右の余白の付け方だけが異なるため、
+  // 定員表示ありでは右端（ml-auto）、ボタンだけの外部URLイベントではそのまま出す。
+  const renderApplyButton = (positionClassName: string) => (
+    <Button
+      type="button"
+      disabled={isControlDisabled || isCapacityFull || receptionClosed}
+      onClick={handleButtonClick}
+      className={cn(APPLY_BUTTON_CLASS, positionClassName)}
+    >
+      {buttonLabel}
+    </Button>
+  );
+
+  // 外部URLありのイベントは定員表示がなくボタンだけのため、ピルをボタン幅にフィットさせて余白を減らす。
+  const isButtonOnly = Boolean(externalHref) && !participating;
+
   return (
     <>
       <div
         className={cn(
-          "mx-auto flex min-h-[56px] w-full items-center justify-between gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-lg sm:min-h-[64px] sm:gap-3 sm:px-5 sm:py-2.5",
-          hasCapacity || participating ? "max-w-[480px]" : "max-w-[340px]",
-          isControlDisabled && !participating && "opacity-70",
+          "mx-auto flex min-h-[56px] items-center rounded-full border border-slate-200 bg-white py-2 shadow-lg sm:min-h-[64px] sm:py-2.5",
+          isButtonOnly
+            ? // ボタンだけのときはコンテンツ幅に合わせる（flex は w-auto だと親幅いっぱいに伸びるため w-fit が必要）
+              "w-fit px-4 sm:px-5"
+            : "w-full justify-between gap-2 px-4 sm:gap-3 sm:px-5",
+          !isButtonOnly &&
+            (hasCapacityDisplay || participating
+              ? "max-w-[480px]"
+              : "max-w-[340px]"),
+          isControlVisuallyDisabled && !participating && "opacity-70",
         )}
       >
         {participating ? (
@@ -406,10 +470,36 @@ export function EventParticipationButton({
                 : "内容の確認・取り消し"}
             </Button>
           </>
+        ) : externalHref ? (
+          // 外部URLあり：申し込みは外部サイトで行うため、定員表示なしでリンクだけを出す。
+          isExternalApplyBlocked ? (
+            // 受付終了など無効のときは href を持たないボタンで描画する。
+            // href 付きの a 要素のままでは中クリックやコンテキストメニューで遷移できてしまうため。
+            <Button type="button" disabled className={APPLY_BUTTON_CLASS}>
+              {buttonLabel}
+            </Button>
+          ) : (
+            // 支援技術に「リンク」と伝わり、URLのコピー・中クリックなどの標準操作も
+            // 使えるように、Button（button 要素）ではなく a 要素として描画する。
+            // asChild のため type は渡さない（a 要素の type は MIME タイプ用のため）。
+            // 文言が長いため、共通クラスより幅を広げる（cn は tailwind-merge で後勝ち）。
+            <Button
+              asChild
+              className={cn(APPLY_BUTTON_CLASS, "w-[140px] sm:w-[164px]")}
+            >
+              <a href={externalHref} target="_blank" rel="noopener noreferrer">
+                {buttonLabel}
+                {/* 新しいタブで開くことを、ラベルだけでは分からない支援技術向けに補足する */}
+                <span className="sr-only">
+                  （外部サイト・新しいタブで開きます）
+                </span>
+              </a>
+            </Button>
+          )
         ) : (
           // 未参加：定員・プログレスバー・残り人数 + 参加申込ボタン
           <>
-            {hasCapacity ? (
+            {hasCapacityDisplay ? (
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold text-[#838C7D] sm:text-sm">
@@ -459,14 +549,7 @@ export function EventParticipationButton({
                 </span>
               </div>
             )}
-            <Button
-              type="button"
-              disabled={isControlDisabled || isFull || receptionClosed}
-              onClick={handleButtonClick}
-              className="ml-auto h-10 w-[118px] shrink-0 rounded-full bg-[#9ABD5A] px-2 text-center text-xs font-bold whitespace-nowrap text-[#173315] hover:bg-[#A5C869] focus-visible:ring-[#9ABD5A] disabled:cursor-not-allowed disabled:bg-[#C5D9A3] disabled:text-[#173315] disabled:opacity-100 disabled:hover:bg-[#C5D9A3] sm:h-11 sm:w-[142px] sm:text-sm"
-            >
-              {buttonLabel}
-            </Button>
+            {renderApplyButton("ml-auto")}
           </>
         )}
       </div>

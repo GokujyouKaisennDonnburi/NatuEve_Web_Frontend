@@ -18,6 +18,7 @@ export type ParticipateEventRequest = {
   username: string;
   // カテゴリ別の参加人数内訳（1件以上）。0人のカテゴリは含めない。
   // 合計人数（partySize）はサーバーが内訳から算出するため送信しない。
+  // 合計は1回あたりの上限（10人）以下とする。上限判定はサーバー側で行う。
   participants: ParticipantEntry[];
 };
 
@@ -53,6 +54,7 @@ export const ParticipateErrorCode = {
   Unauthorized: "unauthorized",
   NotFound: "not_found",
   AlreadyJoined: "already_joined",
+  PartySizeExceeded: "party_size_exceeded",
   CapacityFull: "capacity_full",
   RequestTooLarge: "request_too_large",
   RateLimited: "rate_limited",

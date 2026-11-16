@@ -41,8 +41,7 @@ export function FormField({
         </Label>
         {required ? <RequiredBadge /> : null}
       </div>
-      {description ? <FieldNote>{description}</FieldNote> : null}
-      {children}
+      {description ? <FieldNote>{description}</FieldNote> : null} {children}
       {hint ? <FieldNote>{hint}</FieldNote> : null}
       {error ? <FieldNote tone="error">{error}</FieldNote> : null}
     </div>

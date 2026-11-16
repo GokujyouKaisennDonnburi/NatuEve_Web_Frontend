@@ -1,116 +1,60 @@
-"use client";
+import { EventDetailContent } from "@/components/organisms/EventDetailContent";
+import { getEventDetailOrNull } from "@/services/event";
+import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
+import {
+  getEventDetailMetadata,
+  loadEventDetailOrNotFound,
+} from "./eventDetailMetadata";
 
-import type { EventDetailType } from "@/components/molecules/event-detail/types";
-import EventDetail from "@/components/organisms/EventDetail";
-import { getEventDetail } from "@/services/event";
-import { getReport } from "@/services/report";
-import type { ReportDetail } from "@/types/report";
-import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+// 初回アクセス時に生成して ISR キャッシュする。更新は1分以内に反映する。
+// 参加人数など変わりやすい値は、タブ復帰時・参加操作後にクライアント側で再取得する。
+// 実際のキャッシュ永続化は実行環境の incremental cache に依存する。
+export const revalidate = 60;
 
-// イベント詳細ページコンポーネント
-export default function EventDetailPage() {
-  const params = useParams(); // URLパラメータからイベントIDを取得
-  const id = params?.id as string; // イベントIDを文字列として型アサーション
+// 動的ルートを ISR 対象にするため、空配列でも generateStaticParams を export する。
+// 空配列の場合、パスはビルド時ではなく初回アクセス時に生成される。
+export async function generateStaticParams() {
+  return [];
+}
 
-  const [event, setEvent] = useState<EventDetailType | null>(null); // イベント詳細データを保持するステート
-  const [report, setReport] = useState<ReportDetail | null>(null); // レポートデータを保持するステート
-  const [loading, setLoading] = useState(true);
+type EventDetailPageProps = {
+  params: Promise<{ id: string }>;
+};
 
-  // イベント詳細を再取得する（ローディング表示は出さない）
-  const refetchEvent = useCallback(async () => {
-    if (!id) return;
-    try {
-      const data = await getEventDetail(id);
-      setEvent(data);
-    } catch (err) {
-      console.error("イベント詳細再取得エラー", err);
-    }
-  }, [id]);
+// generateMetadata とページ本体で同じ結果を使い、API の二重呼び出しを避ける。
+// 同一リクエスト内は React cache、別RSCリクエスト間は Data Cache で共有する。
+// 404 はイベント不存在として null を返し、呼び出し側で notFound() を呼ぶ。
+const getEventDetailCached = unstable_cache(
+  getEventDetailOrNull,
+  ["event-detail"],
+  { revalidate: 60 },
+);
+const getEventDetailForPage = cache(getEventDetailCached);
 
-  // イベント詳細データを取得する副作用フック
-  useEffect(() => {
-    // イベントIDが存在しない場合は何もしない
-    if (!id) return;
+export async function generateMetadata({
+  params,
+}: EventDetailPageProps): Promise<Metadata> {
+  const { id } = await params;
+  return getEventDetailMetadata(id, getEventDetailForPage);
+}
 
-    // キャンセルフラグを設定して、コンポーネントがアンマウントされた場合に状態更新を防ぐ
-    let cancelled = false;
+export default async function EventDetailPage({
+  params,
+}: EventDetailPageProps) {
+  const { id } = await params;
+  const event = await loadEventDetailOrNotFound(id, getEventDetailForPage);
 
-    // イベント詳細データを取得する非同期関数
-    const fetchDetail = async (attempt = 0): Promise<void> => {
-      setLoading(true);
-      let shouldKeepLoading = false;
-
-      try {
-        // Service を経由してイベント詳細データを取得
-        const data = await getEventDetail(id);
-        if (!cancelled) setEvent(data);
-      } catch (err) {
-        if (!cancelled && attempt < 5) {
-          shouldKeepLoading = true;
-          setTimeout(() => void fetchDetail(attempt + 1), 200 * (attempt + 1));
-          return;
-        }
-
-        console.error("イベント詳細取得エラー", err);
-      } finally {
-        if (!cancelled && !shouldKeepLoading) setLoading(false);
-      }
-    };
-
-    void fetchDetail();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
-
-  // レポートデータを取得する副作用フック
-  // 認証不要・1イベント1レポート。404 は「レポート未投稿」の正常系として扱う。
-  useEffect(() => {
-    if (!id) return;
-
-    // id 変更時に前回のレポートをクリアして表示の取り違えを防ぐ
-    setReport(null);
-    let cancelled = false;
-
-    const fetchReport = async (): Promise<void> => {
-      try {
-        const data = await getReport(id);
-        if (!cancelled) setReport(data);
-      } catch (err) {
-        // レポート取得失敗はイベント表示を妨げない
-        console.error("レポート取得エラー", err);
-      }
-    };
-
-    void fetchReport();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
-
-  if (loading)
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div>読み込み中…</div>
-      </div>
-    );
-
-  // イベントが見つからない場合の表示
-  if (!event)
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div>イベントが見つかりません。</div>
-      </div>
-    );
+  // SSR とハイドレーションでステータス表示がずれないよう、描画時刻を渡す。
+  const initialNow = Date.now();
 
   return (
-    // イベント詳細ページのメインコンテンツ
     <div className="mx-auto w-full max-w-5xl">
-      <EventDetail
-        event={event}
-        report={report}
-        onEventRefetch={refetchEvent}
+      <EventDetailContent
+        key={event.id}
+        initialEvent={event}
+        initialNow={initialNow}
       />
     </div>
   );
