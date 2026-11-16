@@ -8,7 +8,7 @@ export function validateNotificationText(raw: string, maxLength: number) {
   while (end > start && whitespace.test(raw[end - 1])) end--;
   const value = raw.slice(start, end);
 
-  // HTML の maxLength は UTF-16 単位。API の rune と同じく絵文字も1コードポイントと数える。
+  // 例えば「🌱」は HTML の maxLength では2文字分。API と同じく1コードポイントとして数える。
   let length = 0;
   for (const _ of value) {
     if (++length > maxLength) return { value, tooLong: true };

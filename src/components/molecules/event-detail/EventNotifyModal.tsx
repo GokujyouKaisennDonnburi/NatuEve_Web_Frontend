@@ -42,7 +42,7 @@ export function EventNotifyModal({
   const [notifyBody, setNotifyBody] = useState("");
   const [limitExceeded, setLimitExceeded] = useState(false);
 
-  // 送信可能かどうかの判定
+  // 超過分も入力欄に残し、前後の空白を除いた送信内容で文字数を判定する。
   const subject = validateNotificationText(
     notifySubject,
     MAX_NOTIFICATION_SUBJECT_LENGTH,
@@ -88,6 +88,7 @@ export function EventNotifyModal({
         handleClose();
       } catch (error) {
         if (error instanceof NotificationLimitExceededError) {
+          // 今回は未送信なので、モーダルを閉じず、件名と本文を残して知らせる。
           setLimitExceeded(true);
           return;
         }

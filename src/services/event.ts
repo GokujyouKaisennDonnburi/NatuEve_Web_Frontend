@@ -238,6 +238,7 @@ export async function notifyEventParticipants(
   if (!response.ok) {
     const body: { error?: { code?: string; message?: string } } | null =
       await response.json().catch(() => null);
+    // 配信基盤の混雑 (rate_limited) も 429 なので、HTTPステータスだけでは送信回数の上限と区別できない。
     if (
       response.status === 429 &&
       body?.error?.code === NotificationLimitExceededError.code

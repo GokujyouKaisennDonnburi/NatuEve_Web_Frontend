@@ -83,6 +83,7 @@ export const eventNotificationHandler = http.post(
       );
 
     const event = mockEventDetails.get(id);
+    // 実APIの主催者確認では、存在しないイベントIDも 400 (invalid_request) として扱う。
     if (!event) return invalidRequest("指定されたイベントが存在しません");
     if (event.profileId !== requesterProfileId) {
       return HttpResponse.json(
@@ -96,7 +97,7 @@ export const eventNotificationHandler = http.post(
       );
     }
 
-    // 宛先は参加人数ではなく申込ごとに1件。不正な送信は回数に含めない。
+    // グループで申し込んでも、送信先は代表者のメールアドレス1件。
     const recipientCount = eventMembers.get(id)?.length ?? 0;
     if (recipientCount === 0) return invalidRequest("送信先の参加者がいません");
     if (recipientCount > MAX_EVENT_NOTIFICATION_RECIPIENTS) {
@@ -106,6 +107,7 @@ export const eventNotificationHandler = http.post(
     }
 
     const now = Date.now();
+    // 日付が変わっても一斉リセットはせず、各送信から24時間経った分だけ枠を戻す。
     const recent = (sendTimesByEvent.get(id) ?? []).filter(
       (sentAt) => sentAt > now - sendWindowMs,
     );
@@ -120,6 +122,7 @@ export const eventNotificationHandler = http.post(
         { status: 429 },
       );
     }
+    // 入力・権限・宛先・回数のいずれかで拒否したリクエストは送信枠を消費しない。
     sendTimesByEvent.set(id, [...recent, now]);
 
     return HttpResponse.json({
