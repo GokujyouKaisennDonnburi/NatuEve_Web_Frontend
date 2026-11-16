@@ -20,7 +20,7 @@ export function ParticipationCompleteStep({
       </span>
 
       {isGuest ? (
-        <p className="text-center text-sm leading-relaxed text-slate-600">
+        <p className="rounded-xl border border-(--brand-green-line) bg-(--brand-green-soft) px-5 py-4 text-center text-sm font-bold leading-relaxed text-(--brand-green-text)">
           メール内のリンクから参加申込を確定してください。
         </p>
       ) : (
