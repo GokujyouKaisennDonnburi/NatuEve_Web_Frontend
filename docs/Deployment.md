@@ -209,8 +209,9 @@ HTTP でのアクセスは、Cloudflare のエッジが HTTPS へ 301 でリダ�
   証明書の警告と混在コンテンツの警告が出ず、`https://…/event-list?page=1` で表示されることを確かめた。
   ブラウザには自分で HTTPS に切り替える機能（Chrome・Firefox の HTTPS-First など）があるため、ブラウザでの確認はサーバー側のリダイレクトの確認を兼ねない（リダイレクトは curl で確かめる）。
 - 証明書は Cloudflare が用意したもの（発行元は Google Trust Services。2026-11-13 時点の有効期限は 2027-01-25）。
-- HSTS（`Strict-Transport-Security`）は付けていない（2026-11-13 に本番と検証環境の応答ヘッダーを curl で確かめた）。
-  付けるかどうかと範囲は #411 で扱う。
+- 2026-11-13 の時点では HSTS（`Strict-Transport-Security`）が付いていなかった（本番と検証環境の応答ヘッダーを curl で確かめた）。
+  #386 でアプリから付けるようにした（下の「セキュリティヘッダー」の「HSTS」）。
+  リダイレクトは HSTS を付けた後も残す。ブラウザが HSTS を覚えるのは HTTPS の応答からで、初めて HTTP で来た利用者はこのリダイレクトで HTTPS に移る。
 
 確認するコマンド（`301` と、クエリを含む `https://` の `Location` が返ればよい）:
 
@@ -612,16 +613,17 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 
 ## セキュリティヘッダー
 
-本番・検証環境の応答に次のヘッダーを付ける（#335）。HSTS（`Strict-Transport-Security`）は #411 で扱う。
+本番・検証環境の応答に次のヘッダーを付ける（#335。HSTS は #386）。
 
 | ヘッダー | 値 | 付ける場所 |
 |---|---|---|
 | `Content-Security-Policy` | 下の表 | ページ（`next.config.ts` の `headers()`）。本番ビルド（`NODE_ENV=production`）のときだけ |
+| `Strict-Transport-Security` | `max-age=300; includeSubDomains`（段階 1。下の「HSTS」） | ページ（本番ビルドのときだけ）と静的ファイル |
 | `X-Frame-Options` | `DENY` | ページと静的ファイル（`public/_headers`） |
 | `X-Content-Type-Options` | `nosniff` | ページと静的ファイル |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | ページと静的ファイル |
 
-- ページと静的ファイルで値を揃える（`next.config.ts` の `commonSecurityHeaders` と `public/_headers`。テストで一致を確かめる）。
+- ページと静的ファイルで値を揃える（`next.config.ts` の `commonSecurityHeaders`・`strictTransportSecurityHeader` と `public/_headers`。テストで一致を確かめる）。
 - `/_next/image` には付かない（`headers()` も `_headers` も通らない）。応答には Next.js が画像用に付ける `Content-Security-Policy: script-src 'none'; frame-src 'none'; sandbox;` だけが付く。
   画像は枠に埋め込まれても操作を乗っ取られる画面がなく、`Content-Type` も画像の型で返るため、許容する。
 - 開発時（`next dev`）は CSP を付けない。React の開発版が使う `eval` と HMR を止めないため。CSP の確認は `bun run preview` で行う。
@@ -683,6 +685,73 @@ curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | gre
 検証環境で確かめる操作（開発者ツールのコンソールに `Content Security Policy` の違反が出ないこと）:
 トップページ・イベント一覧・イベント詳細（画像・PDF の閲覧を含む）・ログイン（Google）・ヘッダーのアバター・マイページ・
 イベントの投稿（画像・PDF のアップロード）・レポートの投稿（画像のアップロード）・プロフィールページ。
+
+### HSTS
+
+HTTPS の応答に `Strict-Transport-Security` を付け、ブラウザに「このホストは HTTPS でしか開かない」と覚えさせる（#386）。
+覚えたブラウザは、`http://` の URL を開くときもサーバーへ HTTP で問い合わせず、内部で `https://` に切り替える。
+一度 HTTPS で開いたブラウザが、その後 `http://` で開くときの HTTP の問い合わせを中継されて、リダイレクトを握りつぶされたまま偽の画面へ誘導される（SSL ストリッピング）のを防ぐ。
+初めての訪問（まだ覚えていないブラウザ）は防げない（RFC 6797 14.6。これを補うのが下の preload）。
+
+値と範囲の決め方:
+
+- **付ける場所はアプリ（`next.config.ts` と `public/_headers`）。** ゾーンの HSTS 設定（SSL/TLS → Edge Certificates → HSTS）は使わない。
+  ゾーンの設定は `natuportal.org` 配下のほかのホスト名（API・assets・ほかのプロダクト）にも付き、変更も管理者の作業になるため。
+  API・assets に付けるかは、それぞれの持ち主が決める（このリポジトリの範囲外）。
+- **`includeSubDomains` を付ける。** 効くのはヘッダーを返したホストの下位（`*.natueve-web.natuportal.org`・`*.natueve-web-stg.natuportal.org`）だけで、
+  兄弟の `natueve-api.natuportal.org` や親の `natuportal.org` には効かない（[RFC 6797](https://www.rfc-editor.org/rfc/rfc6797) 6.1.2・2.4.1.1）。
+  このホストの下位にサブドメインはなく、付けても影響はこのサイトの中で収まる。
+- **`preload` は付けない。** プリロードリスト（ブラウザに組み込まれる HSTS のリスト）は、登録するドメイン（`natuportal.org`）の apex で
+  `includeSubDomains; preload` を返すことが登録の条件で（[hstspreload.org](https://hstspreload.org/)）、登録すると NatuPortal のすべてのサブドメインが HTTPS 必須になる。
+  リストから外すにも数か月かかる。apex は名前解決できず（2026-11-16 時点）、決めるのはドメイン全体の管理者のため、このリポジトリでは扱わない。
+  登録しないまま `preload` をヘッダーに付けても効果はない。
+- **開発時（`next dev`）のページには付けない。** `localhost` を HTTPS で開いたときに、同じ `localhost` で動かすほかのサイトまで HTTPS に固定されないようにするため。
+  `public/_headers` は Workers（`bun run preview` を含む）でだけ使い、`preview` は `http://localhost:8787` で開くため、ブラウザは HSTS を無視する（HTTP の応答の HSTS は無視される。RFC 6797 8.1）。
+- `/_next/image` には付かない（上の表と同じ制約）。ブラウザはホスト単位で覚えるため、ページの応答に付いていれば足りる。
+- HSTS を付けた後も、HTTP からのリダイレクト（上の「HTTPS へのリダイレクト」）は残す。
+
+段階的な導入:
+
+ブラウザに覚えられると、`max-age` が切れるまでこちらからは取り消せない。HTTPS で開けない問題が起きると、その間は利用者がこのホストを開けなくなる。
+そのため、短い値で問題がないことを確かめてから延ばす。
+
+| 段階 | 値 | 状態 |
+|---|---|---|
+| 1 | `max-age=300; includeSubDomains`（5 分） | #386 の 1 つ目の PR で導入。検証環境・本番での確認待ち |
+| 2 | `max-age=31536000; includeSubDomains`（1 年） | 段階 1 を本番で確かめた後に、#386 の 2 つ目の PR で上げる |
+
+- hstspreload.org は 5 分 → 1 週間 → 1 か月と刻み、各段階の `max-age` が切れるまで待って進めることを勧めている。
+  このサイトはすでにすべて HTTPS で（上の「HTTPS へのリダイレクト」）、影響もこのホストの中で収まるため、#386 では 5 分から 1 年への 2 段階にした。
+- 値を変えるときは `next.config.ts` の `strictTransportSecurityHeader` と `public/_headers` を両方変える（テストで一致を確かめる）。
+  テストの期待値（`src/__tests__/securityHeaders.test.ts`）も同じ値に変える。
+- 段階 1 で確かめること（検証環境、続いて本番）:
+  - 応答に付いている（下のコマンド）。Workers の応答のヘッダーがエッジで消されないかは Cloudflare の文書で確かめられなかったため、実際の応答で確かめる。
+  - Chrome で一度 `https://` のページを開いた後、`chrome://net-internals/#hsts` の「Query HSTS/PKP domain」でホスト名を照会すると、`dynamic_sts_domain` にホスト名が出る。
+    続けて `http://` の URL を開くと、開発者ツールの Network に `307 Internal Redirect` が出て、その応答ヘッダーに `Non-Authoritative-Reason: HSTS` が付く。
+    Chrome は HSTS がなくても自分で HTTPS に切り替える（HTTPS-Upgrades など）ため、307 が出るだけでは HSTS が効いた証拠にならない。理由のヘッダーまで見る。
+    `max-age=300` の段階では、`https://` で開いてから 5 分以内に確かめる。
+  - 割り当て後の確認と同じ 4 つ（トップページ・API の呼び出し・ログイン・画像の表示）。
+
+戻し方:
+
+- `max-age=0` を返すと、次に HTTPS で開いたブラウザは覚えた設定を消す。ヘッダーを外すだけでは、覚えた設定は `max-age` が切れるまで残る。
+- 利用者のブラウザから個別に消すには、Chrome・Edge では `chrome://net-internals/#hsts`（Edge は `edge://net-internals/#hsts`）の「Delete domain security policies」を使う。
+
+注意:
+
+- 覚えられたホストで証明書のエラーが出ると、ブラウザは警告を飛ばして進む操作を出さない。証明書は Cloudflare が自動で更新する（上の「HTTPS へのリダイレクト」）。
+  Custom Domain の付け替えや、証明書の設定を変えるときは、HTTPS で開けなくなる時間ができないようにする。
+
+確認するコマンド（`strict-transport-security` の行が返ればよい）:
+
+```bash
+curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | grep -i "^strict-transport-security"
+```
+
+確認したこと（2026-11-16。`bun run preview`。ローカルの Workers ランタイム）:
+
+- ページ（`/` の 308・`/event-list`・`/about`・`/robots.txt`・`/icon.png`・404）と静的ファイル（`/_next/static/*`・`/images/*`）に
+  `Strict-Transport-Security: max-age=300; includeSubDomains` が付き、`/_next/image` には付かないことを curl で確かめた。
 
 ## 月額の試算
 
