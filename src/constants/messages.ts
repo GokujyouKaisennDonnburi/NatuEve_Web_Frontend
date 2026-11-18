@@ -10,6 +10,8 @@ import {
 export const MESSAGES = {
   LOADING_USERS: "ユーザーを取得しています",
   USER_FETCH_ERROR: "ユーザーの取得に失敗しました",
+  EVENT_LIST_FETCH_ERROR:
+    "イベント一覧の取得に失敗しました。時間をおいて再度お試しください。",
   EMPTY_USERS: "表示できるユーザーがありません",
   EVENT_POST_SIGNIN_REQUIRED: "イベントを投稿するにはサインインしてください。",
   NOTIFICATION_LIMIT_EXCEEDED: `このイベントの全体連絡は直近${EVENT_NOTIFICATION_WINDOW_HOURS}時間で${MAX_EVENT_NOTIFICATION_SENDS}回までです。今回は送信されていません。時間をおいてから再度お試しください。`,
