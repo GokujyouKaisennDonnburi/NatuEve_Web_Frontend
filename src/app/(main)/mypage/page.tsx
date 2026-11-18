@@ -170,37 +170,26 @@ export default function MyPage() {
       />
 
       <section>
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
-          <h2 className="font-['Zen_Maru_Gothic'] font-bold text-[19px] leading-[28px] text-[#272E24]">
-            主催したイベント
-          </h2>
-          <span className="text-[13px] leading-[19px] text-[#838C7D]">
-            あなたが主催したイベント
-          </span>
-        </div>
-
-        <div className="mt-4">
-          {eventError && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-              イベント一覧の取得に失敗しました。時間をおいて再度お試しください。
-            </div>
-          )}
-          <UserEventTabs
-            hostedEvents={hostedEvents}
-            participatedEvents={participatedEvents}
-            appliedEvents={appliedEvents}
-            isOwnProfile={true}
-            counts={
-              counts
-                ? {
-                    hosted: counts.hosted,
-                    participated: counts.attended,
-                    applied: counts.applied,
-                  }
-                : undefined
-            }
-          />
-        </div>
+        {eventError && (
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+            イベント一覧の取得に失敗しました。時間をおいて再度お試しください。
+          </div>
+        )}
+        <UserEventTabs
+          hostedEvents={hostedEvents}
+          participatedEvents={participatedEvents}
+          appliedEvents={appliedEvents}
+          isOwnProfile={true}
+          counts={
+            counts
+              ? {
+                  hosted: counts.hosted,
+                  participated: counts.attended,
+                  applied: counts.applied,
+                }
+              : undefined
+          }
+        />
       </section>
     </div>
   );
