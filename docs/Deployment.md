@@ -855,11 +855,20 @@ curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | gre
 
 段階 1 の確認結果（上の「段階 1 で確かめること」）:
 
+2026-11-18 に確かめた（本番は `1d6d79d` のデプロイの後）。
+
 | 確認 | 検証環境 | 本番 |
 |---|---|---|
-| 応答に付いている（curl） | 付いていた（2026-11-18） | （未） |
-| `dynamic_sts_domain` と `Non-Authoritative-Reason: HSTS` | （未） | （未） |
-| トップページ・API の呼び出し・ログイン・画像の表示 | （未） | （未） |
+| 応答に付いている（curl。ページ・`/`・404） | 付いていた | 付いていた |
+| HSTS で `http://` を開かずに `https://` へ切り替わる | 切り替わった | 切り替わった |
+| トップページ・API の呼び出し・画像の表示（Orca の内蔵ブラウザ） | 正常 | 正常 |
+| ログイン | （未） | （未） |
+
+- HSTS の切り替えは curl の HSTS キャッシュ（`--hsts <file>`。curl 8.23.0）で確かめた。`https://` で開くとホスト名が `includeSubDomains` 付き（先頭に `.`）で記録され、
+  続けて `http://` で開くとサーバーに HTTP で問い合わせずに `https://` の 200 になった。HSTS のない `natueve-api-stg.natuportal.org` は、同じ手順で HTTP のまま 301 が返った。
+- Orca の内蔵ブラウザは `chrome://net-internals` を開けず、Network の記録にもリダイレクトの応答（`Non-Authoritative-Reason`）が残らないため、ブラウザでの理由のヘッダーは確かめていない。
+- 画面は、イベント一覧（API の `/api/v1/events`・`/api/v1/tags` が 200）と、イベント詳細のイベント画像（`assets.natuportal.org`・`assets-dev.natuportal.org` を `/_next/image` で表示）を確かめた。
+- ログインは「Google でサインイン」から Google のログイン画面（`redirect_to` が各環境の `/auth/callback`、Auth が各環境の Supabase プロジェクト）まで進むことを確かめた。アカウントでのログインの完了は未確認。
 
 ## 月額の試算
 
