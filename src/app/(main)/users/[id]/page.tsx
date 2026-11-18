@@ -3,6 +3,7 @@
 import { BackLink } from "@/components/atoms/BackLink";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
+import { MESSAGES } from "@/constants/messages";
 import { useProfileEvents } from "@/hooks/useProfileEvents";
 import { fetchUserProfile } from "@/services/user";
 import type { UserProfileResponse } from "@/types/user";
@@ -113,9 +114,7 @@ export default function UserProfilePage({
           participatedEvents={participatedEvents}
           isOwnProfile={false}
           errorMessage={
-            eventError
-              ? "イベント一覧の取得に失敗しました。時間をおいて再度お試しください。"
-              : undefined
+            eventError ? MESSAGES.EVENT_LIST_FETCH_ERROR : undefined
           }
           counts={
             counts

@@ -5,6 +5,7 @@ import { SignOutButton } from "@/components/atoms/SignOutButton";
 import { useCurrentUserContext } from "@/components/layouts/AuthProvider";
 import { ProfileHeader } from "@/components/molecules/ProfileHeader";
 import { UserEventTabs } from "@/components/organisms/UserEventTabs";
+import { MESSAGES } from "@/constants/messages";
 import { ROUTES } from "@/constants/routes";
 import { useMyEvents } from "@/hooks/useMyEvents";
 import { signOut } from "@/services/auth";
@@ -176,9 +177,7 @@ export default function MyPage() {
           appliedEvents={appliedEvents}
           isOwnProfile={true}
           errorMessage={
-            eventError
-              ? "イベント一覧の取得に失敗しました。時間をおいて再度お試しください。"
-              : undefined
+            eventError ? MESSAGES.EVENT_LIST_FETCH_ERROR : undefined
           }
           counts={
             counts
