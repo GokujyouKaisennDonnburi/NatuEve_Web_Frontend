@@ -10,6 +10,8 @@ type FormFieldProps = {
   id: string;
   label: string;
   required?: boolean;
+  // 任意項目であることを緑の「任意」バッジで示す。required と同時には使わない
+  optional?: boolean;
   description?: string; // 入力欄の前に置く説明文
   hint?: string; // 入力欄の後に置く補足
   error?: string;
@@ -22,6 +24,7 @@ export function FormField({
   id,
   label,
   required = false,
+  optional = false,
   description,
   hint,
   error,
@@ -40,6 +43,7 @@ export function FormField({
           {label}
         </Label>
         {required ? <RequiredBadge /> : null}
+        {optional ? <RequiredBadge isRequired={false} /> : null}
       </div>
       {description ? <FieldNote>{description}</FieldNote> : null} {children}
       {hint ? <FieldNote>{hint}</FieldNote> : null}
