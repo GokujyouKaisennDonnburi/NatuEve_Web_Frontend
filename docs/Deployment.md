@@ -649,7 +649,7 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 | ヘッダー | 値 | 付ける場所 |
 |---|---|---|
 | `Content-Security-Policy` | 下の表 | ページ（`next.config.ts` の `headers()`）。本番ビルド（`NODE_ENV=production`）のときだけ。検証環境は付けない（`DISABLE_NEXT_CONFIG_CSP`。#416） |
-| `Strict-Transport-Security` | `max-age=300; includeSubDomains`（段階 1。下の「HSTS」） | ページ（本番ビルドのときだけ）と静的ファイル |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains`（段階 2。下の「HSTS」） | ページ（本番ビルドのときだけ）と静的ファイル |
 | `X-Frame-Options` | `DENY` | ページと静的ファイル（`public/_headers`） |
 | `X-Content-Type-Options` | `nosniff` | ページと静的ファイル |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | ページと静的ファイル |
@@ -787,7 +787,7 @@ curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | gre
 
 ### HSTS
 
-HTTPS の応答に `Strict-Transport-Security` を付け、ブラウザに「このホストは HTTPS でしか開かない」と覚えさせる（#386）。
+HTTPS の応答に `Strict-Transport-Security` を付け、ブラウザに「このホストは HTTPS でしか開かない」と覚えさせる（#386・#411）。
 覚えたブラウザは、`http://` の URL を開くときもサーバーへ HTTP で問い合わせず、内部で `https://` に切り替える。
 一度 HTTPS で開いたブラウザが、その後 `http://` で開くときの HTTP の問い合わせを中継されて、リダイレクトを握りつぶされたまま偽の画面へ誘導される（SSL ストリッピング）のを防ぐ。
 初めての訪問（まだ覚えていないブラウザ）は防げない（RFC 6797 14.6。これを補うのが下の preload）。
@@ -816,8 +816,8 @@ HTTPS の応答に `Strict-Transport-Security` を付け、ブラウザに「こ
 
 | 段階 | 値 | 状態 |
 |---|---|---|
-| 1 | `max-age=300; includeSubDomains`（5 分） | #386 の 1 つ目の PR で導入。検証環境・本番での確認待ち |
-| 2 | `max-age=31536000; includeSubDomains`（1 年） | 段階 1 を本番で確かめた後に、#386 の 2 つ目の PR で上げる |
+| 1 | `max-age=300; includeSubDomains`（5 分） | #424 で導入。確認結果は下の「段階 1 の確認結果」 |
+| 2 | `max-age=31536000; includeSubDomains`（1 年） | #411 の PR で上げた（今の値） |
 
 - hstspreload.org は 5 分 → 1 週間 → 1 か月と刻み、各段階の `max-age` が切れるまで待って進めることを勧めている。
   このサイトはすでにすべて HTTPS で（上の「HTTPS へのリダイレクト」）、影響もこのホストの中で収まるため、#386 では 5 分から 1 年への 2 段階にした。
@@ -834,6 +834,7 @@ HTTPS の応答に `Strict-Transport-Security` を付け、ブラウザに「こ
 戻し方:
 
 - `max-age=0` を返すと、次に HTTPS で開いたブラウザは覚えた設定を消す。ヘッダーを外すだけでは、覚えた設定は `max-age` が切れるまで残る。
+- `max-age=0` が効くのは、そのホストを HTTPS で開き直したブラウザだけである。段階 2（1 年）の後は、戻してもしばらく開かない利用者のブラウザには最長 1 年残る。
 - 利用者のブラウザから個別に消すには、Chrome・Edge では `chrome://net-internals/#hsts`（Edge は `edge://net-internals/#hsts`）の「Delete domain security policies」を使う。
 
 注意:
@@ -851,6 +852,14 @@ curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | gre
 
 - ページ（`/` の 308・`/event-list`・`/about`・`/robots.txt`・`/icon.png`・404）と静的ファイル（`/_next/static/*`・`/images/*`）に
   `Strict-Transport-Security: max-age=300; includeSubDomains` が付き、`/_next/image` には付かないことを curl で確かめた。
+
+段階 1 の確認結果（上の「段階 1 で確かめること」）:
+
+| 確認 | 検証環境 | 本番 |
+|---|---|---|
+| 応答に付いている（curl） | 付いていた（2026-11-18） | （未） |
+| `dynamic_sts_domain` と `Non-Authoritative-Reason: HSTS` | （未） | （未） |
+| トップページ・API の呼び出し・ログイン・画像の表示 | （未） | （未） |
 
 ## 月額の試算
 
