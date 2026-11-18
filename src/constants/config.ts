@@ -19,6 +19,12 @@ export const DEFAULT_OG_IMAGE = {
 
 export const API_BASE_URL = "/api";
 
+// 公式 SNS アカウントの URL。フッターのアイコンリンクから遷移する。
+export const SOCIAL_LINKS = {
+  x: "https://x.com/Natu_Eve",
+  youtube: "https://www.youtube.com/channel/UC-tztLjUpGufYYRqAmHUJYw",
+} as const;
+
 // イベント投稿画面のタグ入力欄の上限値。
 // バックエンド(MSW)のサーバー側バリデーションと一致させる。
 export const MAX_TAG_COUNT = 10;
