@@ -170,6 +170,29 @@ describe("useMyEvents", () => {
     expect(statusById.get("upcoming-1")).toBe("open");
   });
 
+  it("キャンセル済みイベントが含まれない場合、counts と totalCount を補正しない", async () => {
+    mockFetchMyEvents.mockResolvedValue(
+      buildResponse(
+        [
+          buildEvent("ended-1", day(-5), day(-5)),
+          buildEvent("upcoming-1", day(10), day(10)),
+        ],
+        { applied: 0, attended: 2, hosted: 2 },
+      ),
+    );
+
+    const { result } = renderHook(() => useMyEvents("hosted"));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.counts).toEqual({
+      applied: 0,
+      attended: 2,
+      hosted: 2,
+    });
+    expect(result.current.totalCount).toBe(2);
+  });
+
   it("レスポンスの順序をそのまま表示する", async () => {
     mockFetchMyEvents.mockResolvedValue(
       buildResponse(

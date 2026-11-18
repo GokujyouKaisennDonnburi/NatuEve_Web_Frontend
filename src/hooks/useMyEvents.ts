@@ -33,7 +33,7 @@ export function useMyEvents(type: MyEventType): UseMyEventsReturn {
         const data = await fetchMyEvents(type);
 
         if (!cancelled) {
-          // バックエンドはキャンセル済みイベントを一覧に含めて返すため、
+          // バックエンドはキャンセル済みイベントを一覧に含めて返すため（ADR-0012 / ADR-0024）、
           // イベント一覧画面（useEventList）と同様にフロント側で除外する
           const visibleEvents = data.events.filter(
             (apiEvent) => apiEvent.cancelledAt == null,
@@ -41,7 +41,8 @@ export function useMyEvents(type: MyEventType): UseMyEventsReturn {
           const cancelledCount = data.events.length - visibleEvents.length;
 
           // counts / totalCount にはキャンセル済みが含まれるため、
-          // このフックが受け持つ種別（type）の件数から除外件数を差し引いて補正する。
+          // このフックが受け持つ種別（type）の件数から、レスポンスに含まれる
+          // キャンセル済みの件数を差し引いて補正する。
           // counts の他種別の値は、ページ側で対応する種別の呼び出しの counts に差し替える
           const correctedCounts: MyEventCounts = {
             ...data.counts,
