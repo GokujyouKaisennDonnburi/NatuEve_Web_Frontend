@@ -29,13 +29,13 @@ afterEach(() => {
 // 可視ラベルと結合したアクセシブルネームになるため、ラジオは value で特定する。
 
 describe("ContactForm", () => {
-  it("お問い合わせ内容の選択肢と送信ボタン・要望の入力欄を表示する", () => {
+  it("お問い合わせ内容の選択肢と送信ボタン・詳細の入力欄を表示する", () => {
     render(<ContactForm />);
 
     for (const option of CONTACT_CATEGORIES) {
       expect(screen.getByDisplayValue(option.value)).toBeInTheDocument();
     }
-    expect(screen.getByRole("textbox", { name: "要望" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "詳細" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "送信する" }),
     ).toBeInTheDocument();
@@ -61,7 +61,7 @@ describe("ContactForm", () => {
     render(<ContactForm />);
 
     fireEvent.click(screen.getByDisplayValue("bug"));
-    fireEvent.change(screen.getByRole("textbox", { name: "要望" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
       target: { value: "送信ボタンが反応しません" },
     });
     fireEvent.click(screen.getByRole("button", { name: "送信する" }));

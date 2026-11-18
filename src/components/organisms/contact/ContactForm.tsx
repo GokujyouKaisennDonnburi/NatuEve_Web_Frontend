@@ -133,9 +133,9 @@ export function ContactForm() {
 
       <FormField
         id={messageId}
-        label="要望"
+        label="詳細"
         optional
-        hint="ご意見・ご要望などを自由にご記入ください"
+        description="ご意見・ご要望などを自由にご記入ください"
       >
         <FormTextarea
           id={messageId}
