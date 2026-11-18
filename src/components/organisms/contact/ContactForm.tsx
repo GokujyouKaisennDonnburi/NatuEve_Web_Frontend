@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { FormTextarea } from "@/components/atoms/FormTextarea";
 import { PillButton } from "@/components/atoms/PillButton";
 import { FormField } from "@/components/molecules/FormField";
+import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
 export const CONTACT_CATEGORIES = [
@@ -37,8 +39,9 @@ const CATEGORY_DOT_CLASS_NAME =
   "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-200";
 
 // お問い合わせフォーム。送信は別 Issue で実装するため、
-// ここではカテゴリの必須チェックとトースト表示までを行う。
+// ここではカテゴリの必須チェックとトースト表示・元の画面への遷移までを行う。
 export function ContactForm() {
+  const router = useRouter();
   const formId = useId();
   const categoryId = `${formId}-category`;
   const messageId = `${formId}-message`;
@@ -57,6 +60,14 @@ export function ContactForm() {
 
     setCategoryError(undefined);
     toast.success(SUBMIT_TOAST_MESSAGE);
+
+    // フッターなどあらゆる画面から来られるため、履歴があれば元の画面へ戻す。
+    // 履歴がない（直接アクセスなど）場合はイベント一覧へ遷移する。
+    if (window.history.length <= 1) {
+      router.push(ROUTES.EVENT_LIST);
+    } else {
+      router.back();
+    }
   };
 
   return (
