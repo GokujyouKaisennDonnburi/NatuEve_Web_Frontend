@@ -108,15 +108,15 @@ export default function UserProfilePage({
       />
 
       <section>
-        {eventError && (
-          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-            イベント一覧の取得に失敗しました。時間をおいて再度お試しください。
-          </div>
-        )}
         <UserEventTabs
           hostedEvents={hostedEvents}
           participatedEvents={participatedEvents}
           isOwnProfile={false}
+          errorMessage={
+            eventError
+              ? "イベント一覧の取得に失敗しました。時間をおいて再度お試しください。"
+              : undefined
+          }
           counts={
             counts
               ? {

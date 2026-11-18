@@ -10,6 +10,7 @@ type UserEventTabsProps = {
   participatedEvents: EventItem[];
   appliedEvents?: EventItem[];
   isOwnProfile: boolean;
+  errorMessage?: string;
   counts?: {
     hosted: number;
     participated: number;
@@ -25,10 +26,9 @@ const TAB_LABELS: Record<TabKey, string> = {
   participated: "参加済みイベント",
 };
 
-const TAB_SUB_TEXTS: Record<TabKey, { own: string; other: string }> = {
+const TAB_SUB_TEXTS: Record<TabKey, { own: string; other?: string }> = {
   applied: {
     own: "あなたが申し込み中のイベント",
-    other: "このユーザーが申し込み中のイベント",
   },
   hosted: {
     own: "あなたが主催したイベント",
@@ -47,6 +47,7 @@ export function UserEventTabs({
   participatedEvents,
   appliedEvents = [],
   isOwnProfile,
+  errorMessage,
   counts,
 }: UserEventTabsProps) {
   const tabs = useMemo(
@@ -93,6 +94,12 @@ export function UserEventTabs({
             : TAB_SUB_TEXTS[activeTab].other}
         </span>
       </div>
+
+      {errorMessage && (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      )}
 
       <div className="mt-4 space-y-6">
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
