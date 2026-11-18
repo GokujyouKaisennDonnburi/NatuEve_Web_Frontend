@@ -18,22 +18,21 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
 }));
 
-// globals: false のため、testing-library の自動クリーンアップが効かない。
-// render したフォームがテストをまたいで残らないよう明示的に片付ける。
+// router のモックはテスト間で共有されるため、呼び出し記録を毎回リセットする
 afterEach(() => {
   cleanup();
   mockBack.mockClear();
   mockPush.mockClear();
 });
 
-// 可視ラベルと結合したアクセシブルネームになるため、ラジオは value で特定する。
-
 describe("ContactForm", () => {
   it("お問い合わせ内容の選択肢と送信ボタン・詳細の入力欄を表示する", () => {
     render(<ContactForm />);
 
     for (const option of CONTACT_CATEGORIES) {
-      expect(screen.getByDisplayValue(option.value)).toBeInTheDocument();
+      expect(
+        screen.getByRole("radio", { name: option.label }),
+      ).toBeInTheDocument();
     }
     expect(screen.getByRole("textbox", { name: "詳細" })).toBeInTheDocument();
     expect(
@@ -50,6 +49,7 @@ describe("ContactForm", () => {
       screen.getByText("お問い合わせ内容を選択してください"),
     ).toBeInTheDocument();
     expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("カテゴリを選択して送信するとトーストを表示し、元の画面へ戻る", () => {
@@ -58,25 +58,27 @@ describe("ContactForm", () => {
       .spyOn(window.history, "length", "get")
       .mockReturnValue(2);
 
-    render(<ContactForm />);
+    try {
+      render(<ContactForm />);
 
-    fireEvent.click(screen.getByDisplayValue("bug"));
-    fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
-      target: { value: "送信ボタンが反応しません" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+      fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
+      fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
+        target: { value: "送信ボタンが反応しません" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "送信する" }));
 
-    expect(toast.success).toHaveBeenCalledWith("お問い合わせを送信しました");
-    expect(mockBack).toHaveBeenCalled();
-    expect(mockPush).not.toHaveBeenCalled();
-
-    historyLengthSpy.mockRestore();
+      expect(toast.success).toHaveBeenCalledWith("お問い合わせを送信しました");
+      expect(mockBack).toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
+    } finally {
+      historyLengthSpy.mockRestore();
+    }
   });
 
   it("履歴がない状態で送信するとイベント一覧へ遷移する", () => {
     render(<ContactForm />);
 
-    fireEvent.click(screen.getByDisplayValue("bug"));
+    fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
     fireEvent.click(screen.getByRole("button", { name: "送信する" }));
 
     expect(mockPush).toHaveBeenCalledWith("/event-list");
@@ -91,7 +93,7 @@ describe("ContactForm", () => {
       screen.getByText("お問い合わせ内容を選択してください"),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByDisplayValue("request"));
+    fireEvent.click(screen.getByRole("radio", { name: "要望" }));
     expect(
       screen.queryByText("お問い合わせ内容を選択してください"),
     ).not.toBeInTheDocument();

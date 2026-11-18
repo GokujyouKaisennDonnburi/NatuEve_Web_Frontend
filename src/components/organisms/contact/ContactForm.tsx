@@ -62,6 +62,9 @@ export function ContactForm() {
 
     // フッターなどあらゆる画面から来られるため、履歴があれば元の画面へ戻す。
     // 履歴がない（直接アクセスなど）場合はイベント一覧へ遷移する。
+    // ※ window.history.length はアプリ外の履歴も数えるため、外部サイト経由の
+    //   アクセスでは戻り先がアプリ外になる余地がある。API 統合の Issue で
+    //   returnTo の扱いと合わせて見直す前提のモックアップ実装。
     if (window.history.length <= 1) {
       router.push(ROUTES.EVENT_LIST);
     } else {
@@ -105,8 +108,11 @@ export function ContactForm() {
                     setCategory(option.value);
                     setCategoryError(undefined);
                   }}
-                  // クリック範囲と label の関連付けのため、先頭のラジオに id を渡す
+                  // 先頭のラジオに id を渡して可視ラベル（htmlFor）と関連付ける。
+                  // 可視ラベルとの結合で読み上げ名が不揃いにならないよう、
+                  // 選択肢名を aria-label で明示する。
                   id={index === 0 ? categoryId : undefined}
+                  aria-label={option.label}
                   className="sr-only"
                   aria-invalid={Boolean(categoryError)}
                 />
