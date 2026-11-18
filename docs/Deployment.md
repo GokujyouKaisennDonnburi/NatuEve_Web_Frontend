@@ -424,8 +424,10 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
   デプロイを含む main への push には paths フィルタを付けず、`[skip ci]` も使わない。
   出し直すときは、main の最新のコミットの実行を再実行する（古いコミットの実行は、下の「main の最新の確認」で止まる）。
 - **同時実行**: ワークフロー単位の `concurrency` は、PR だけ古い実行を取り消す。main への push の実行は `github.run_id` で実行ごとに別のグループにし、取り消さない。
-  デプロイのジョブはジョブ単位のグループ（`deploy-staging`・`deploy-production`）に入れ、`cancel-in-progress: false` と `queue: max` にする
-  （同じ環境へのデプロイは同時に 1 つだけ。待機中のジョブを取り消さない。最大 100 件まで待機できる）。
+  デプロイのジョブはジョブ単位のグループ（`deploy-staging`・`deploy-production`）に入れ、`cancel-in-progress: false` にする（同じ環境へのデプロイは同時に 1 つだけ。途中で中断しない）。
+  検証は `queue: max`（待機中のジョブを取り消さない。最大 100 件まで待機できる）、本番は既定の `queue: single` にする。
+  本番は新しい実行のジョブが来ると、承認待ち・待機中の古いジョブが `Canceling since a higher priority waiting request for deploy-production exists` で取り消される（ADR-0006）。
+  承認するのは、いちばん新しい実行の 1 件だけでよい。
 - **接続先の確認**（「Check connection variables」）: ビルドの前に、`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL` が
   ワークフローに書いた期待値（ジョブの `env:` の `EXPECTED_*`）と一致するかを確かめる。`NEXT_PUBLIC_SUPABASE_ANON_KEY` は、JWT の `ref` が期待値の URL のプロジェクトと同じで `role` が `anon` か
   （`service_role` などの秘密のキーをブラウザに渡る JS に埋め込まないため。許可するのは照合できた JWT と、中身を確かめられない公開用の `sb_publishable_` のキー（警告だけ）で、それ以外は失敗させる。
@@ -492,7 +494,8 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 6. **マージ後の最初の実行で確かめる**: `deploy-staging` が検証用の Worker にデプロイし、本番のジョブが承認待ちになること。
    #330 のマージ後の実行（2026-10-27）では、確認用のジョブ（`approve-production`）が承認待ちになることを確かめ（`a494109` の実行）、
    #363 のマージ後の最初の実行（2026-10-27。`e9caa6a` の実行）では、`deploy-production` が承認待ちになり、必須承認者の承認の後に本番へのデプロイが成功することを確かめた。
-   - #362 の後は、承認すると本番へデプロイされる。古い実行の承認待ちは、承認せずに却下（Reject）する（承認しても main の最新の確認で止まる。ADR-0003 決定 3）。
+   - #362 の後は、承認すると本番へデプロイされる。古い実行の承認待ちは、新しい実行が来ると自動で取り消される（ADR-0006）。
+     ADR-0006 の前（`queue: max`）に溜まった古い実行は、2026-11-18 に最新の 1 件を残して `gh run cancel` で取り消した（承認しても main の最新の確認で止まるため）。
    - 確認用のジョブの間（#330〜#362）に承認したものがあれば、デプロイしていないコミットが `production` のデプロイの記録に成功として残っている。
      その間の記録で本番の中身を判断しない（本番の中身は Cloudflare の Worker のデプロイの履歴で確かめる）。
 

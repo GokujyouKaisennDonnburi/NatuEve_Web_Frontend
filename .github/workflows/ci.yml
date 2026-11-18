@@ -205,11 +205,12 @@ jobs:
     permissions:
       contents: read
 
-    # 本番へのデプロイは同時に 1 つだけにし、途中で中断しない。待機中のジョブを取り消さないよう queue: max にする（ADR-0003 決定 3）。
+    # 本番へのデプロイは同時に 1 つだけにし、途中で中断しない。
+    # queue は既定（single）にし、新しい実行の本番ジョブが来たら、承認待ちの古いジョブを自動で取り消す（ADR-0006。NatuEve_API と同じ）。
+    # 古いコミットを出さない守りは、デプロイ直前の main の最新の確認が担う（ADR-0003 決定 3）。
     concurrency:
       group: deploy-production
       cancel-in-progress: false
-      queue: max
 
     env:
       NEXT_TELEMETRY_DISABLED: "1"
