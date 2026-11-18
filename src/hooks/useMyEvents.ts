@@ -33,17 +33,30 @@ export function useMyEvents(type: MyEventType): UseMyEventsReturn {
         const data = await fetchMyEvents(type);
 
         if (!cancelled) {
-          setCounts(data.counts);
-          setTotalCount(data.totalCount);
+          // バックエンドはキャンセル済みイベントを一覧に含めて返すため、
+          // イベント一覧画面（useEventList）と同様にフロント側で除外する
+          const visibleEvents = data.events.filter(
+            (apiEvent) => apiEvent.cancelledAt == null,
+          );
+          const cancelledCount = data.events.length - visibleEvents.length;
 
-          const mappedEvents: EventItem[] = data.events.map((apiEvent) => {
-            const status = apiEvent.cancelledAt
-              ? "closed"
-              : resolveEventStatus({
-                  eventDate: apiEvent.eventDate,
-                  endDate: apiEvent.endDate,
-                  applicationDeadline: apiEvent.applicationDeadline,
-                });
+          // counts / totalCount にはキャンセル済みが含まれるため、
+          // このフックが受け持つ種別（type）の件数から除外件数を差し引いて補正する。
+          // counts の他種別の値は、ページ側で対応する種別の呼び出しの counts に差し替える
+          const correctedCounts: MyEventCounts = {
+            ...data.counts,
+            [type]: data.counts[type] - cancelledCount,
+          };
+
+          setCounts(correctedCounts);
+          setTotalCount(data.totalCount - cancelledCount);
+
+          const mappedEvents: EventItem[] = visibleEvents.map((apiEvent) => {
+            const status = resolveEventStatus({
+              eventDate: apiEvent.eventDate,
+              endDate: apiEvent.endDate,
+              applicationDeadline: apiEvent.applicationDeadline,
+            });
 
             return {
               id: apiEvent.id,

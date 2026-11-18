@@ -23,12 +23,13 @@ export default function UserProfilePage({
 
   const {
     events: hostedEvents,
-    counts,
+    counts: hostedCounts,
     isLoading: hostedLoading,
     error: hostedError,
   } = useProfileEvents(id, "hosted");
   const {
     events: participatedEvents,
+    counts: attendedCounts,
     isLoading: participatedLoading,
     error: participatedError,
   } = useProfileEvents(id, "attended");
@@ -116,11 +117,13 @@ export default function UserProfilePage({
           errorMessage={
             eventError ? MESSAGES.EVENT_LIST_FETCH_ERROR : undefined
           }
+          // 各フックは自分の種別の counts のみ補正するため、
+          // 種別ごとに対応する呼び出しの counts をマージする
           counts={
-            counts
+            hostedCounts && attendedCounts
               ? {
-                  hosted: counts.hosted,
-                  participated: counts.attended,
+                  hosted: hostedCounts.hosted,
+                  participated: attendedCounts.attended,
                 }
               : undefined
           }
