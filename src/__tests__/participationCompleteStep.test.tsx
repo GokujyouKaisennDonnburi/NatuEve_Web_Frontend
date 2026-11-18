@@ -18,12 +18,22 @@ describe("ParticipationCompleteStep", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("ログイン申込では従来どおり完了を伝える", () => {
+  it("ゲスト申込ではお問い合わせページへのリンクを表示する", () => {
+    render(<ParticipationCompleteStep isGuest />);
+
+    const contactLink = screen.getByRole("link", { name: "お問い合わせ" });
+    expect(contactLink).toHaveAttribute("href", "/contact");
+  });
+
+  it("ログイン申込では従来どおり完了を伝え、お問い合わせリンクを出さない", () => {
     render(<ParticipationCompleteStep isGuest={false} />);
 
     expect(screen.getByText("申し込みが完了しました")).toBeInTheDocument();
     expect(
       screen.queryByText("確認メールを送信しました"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "お問い合わせ" }),
     ).not.toBeInTheDocument();
   });
 });
