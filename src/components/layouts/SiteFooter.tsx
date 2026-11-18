@@ -35,10 +35,18 @@ export function SiteFooter() {
               生態系を守り、未来へ繋ぐ活動を応援します。
             </p>
             <div className="flex items-center gap-3">
-              <SocialIcon label="X">
+              <SocialIcon
+                label="X"
+                href="https://x.com/Natu_Eve?s=20"
+                colorClass="text-black"
+              >
                 <XIcon />
               </SocialIcon>
-              <SocialIcon label="YouTube">
+              <SocialIcon
+                label="YouTube"
+                href="https://youtube.com/channel/UC-tztLjUpGufYYRqAmHUJYw?si=SuJ_YtSK6CAU4gOD"
+                colorClass="text-[#FF0000]"
+              >
                 <YouTubeIcon />
               </SocialIcon>
               <SocialIcon label="Instagram">
@@ -144,22 +152,46 @@ export function SiteFooter() {
   );
 }
 
+const SOCIAL_ICON_CLASS_NAME =
+  "inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white transition-colors duration-200 hover:border-[#315E26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2";
+
+const LINKLESS_SOCIAL_ICON_CLASS_NAME =
+  "inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 cursor-default";
+
 function SocialIcon({
   children,
   label,
+  href,
+  colorClass,
 }: {
   children: ReactNode;
   label: string;
+  href?: string;
+  colorClass?: string;
 }) {
+  if (!href) {
+    return (
+      <span
+        aria-disabled="true"
+        aria-label={label}
+        role="img"
+        className={LINKLESS_SOCIAL_ICON_CLASS_NAME}
+      >
+        {children}
+      </span>
+    );
+  }
+
   return (
-    <span
-      aria-disabled="true"
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
       aria-label={label}
-      role="img"
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 cursor-default"
+      className={`${SOCIAL_ICON_CLASS_NAME} ${colorClass ?? ""}`}
     >
       {children}
-    </span>
+    </a>
   );
 }
 
