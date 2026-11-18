@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { APP_NAME } from "@/constants/config";
+import { APP_NAME, SOCIAL_LINKS } from "@/constants/config";
 import { NAVIGATION_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 
@@ -37,14 +37,14 @@ export function SiteFooter() {
             <div className="flex items-center gap-3">
               <SocialIcon
                 label="X"
-                href="https://x.com/Natu_Eve?s=20"
+                href={SOCIAL_LINKS.x}
                 colorClass="text-black"
               >
                 <XIcon />
               </SocialIcon>
               <SocialIcon
                 label="YouTube"
-                href="https://youtube.com/channel/UC-tztLjUpGufYYRqAmHUJYw?si=SuJ_YtSK6CAU4gOD"
+                href={SOCIAL_LINKS.youtube}
                 colorClass="text-[#FF0000]"
               >
                 <YouTubeIcon />
@@ -187,7 +187,7 @@ function SocialIcon({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={label}
+      aria-label={`${label}（新しいタブで開きます）`}
       className={`${SOCIAL_ICON_CLASS_NAME} ${colorClass ?? ""}`}
     >
       {children}
