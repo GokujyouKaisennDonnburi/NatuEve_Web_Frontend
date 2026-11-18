@@ -862,13 +862,14 @@ curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | gre
 | 応答に付いている（curl。ページ・`/`・404） | 付いていた | 付いていた |
 | HSTS で `http://` を開かずに `https://` へ切り替わる | 切り替わった | 切り替わった |
 | トップページ・API の呼び出し・画像の表示（Orca の内蔵ブラウザ） | 正常 | 正常 |
-| ログイン | （未） | （未） |
+| ログイン | 正常 | 正常 |
 
 - HSTS の切り替えは curl の HSTS キャッシュ（`--hsts <file>`。curl 8.23.0）で確かめた。`https://` で開くとホスト名が `includeSubDomains` 付き（先頭に `.`）で記録され、
   続けて `http://` で開くとサーバーに HTTP で問い合わせずに `https://` の 200 になった。HSTS のない `natueve-api-stg.natuportal.org` は、同じ手順で HTTP のまま 301 が返った。
 - Orca の内蔵ブラウザは `chrome://net-internals` を開けず、Network の記録にもリダイレクトの応答（`Non-Authoritative-Reason`）が残らないため、ブラウザでの理由のヘッダーは確かめていない。
 - 画面は、イベント一覧（API の `/api/v1/events`・`/api/v1/tags` が 200）と、イベント詳細のイベント画像（`assets.natuportal.org`・`assets-dev.natuportal.org` を `/_next/image` で表示）を確かめた。
-- ログインは「Google でサインイン」から Google のログイン画面（`redirect_to` が各環境の `/auth/callback`、Auth が各環境の Supabase プロジェクト）まで進むことを確かめた。アカウントでのログインの完了は未確認。
+- ログインは「Google でサインイン」から Google のログイン画面（`redirect_to` が各環境の `/auth/callback`、Auth が各環境の Supabase プロジェクト）へ進み、
+  サインインの後にマイページが表示され、ログインが要る API（`/api/v1/me` が 200）が呼べることを確かめた。
 
 ## 月額の試算
 
