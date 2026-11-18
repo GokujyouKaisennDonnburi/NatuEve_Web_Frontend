@@ -698,6 +698,44 @@ nonce を使う CSP への切り替え（[ADR-0005](./adr/0005-csp-nonce-dynamic
 - 全ページの動的レンダリングは、#412 の切り替えを待たず #413 を出した時点から始まり、HTML をキャッシュして配れなくなる。受け入れた費用と表示速度への影響は ADR-0005 に記録した。
 - #413・#412 のマージ時に、この節・上の表・「イベント詳細の SSR / メタデータ」のキャッシュの記述・開発時に CSP を付けないとした記述を直す。
 
+Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-rendering.md) の決定 6）:
+
+- Trusted Types は nonce の CSP に含めず、proxy が**別の `Content-Security-Policy-Report-Only` ヘッダー**として付ける
+  （`src/lib/csp.ts` の `buildTrustedTypesCspHeader`・`src/proxy.ts`）。中身は `require-trusted-types-for 'script'; trusted-types nextjs`。
+  dev（`next dev`）では付けない。React DevTools など開発ツールが DOM のシンクを使うため、違反で開発が止まらないようにする（#415 の AC）。
+- **enforce の CSP（#335 の CSP・#412 以降の nonce の CSP）には含めない**: Turbopack のランタイムが Trusted Types に対応していないため
+  （下の「既知の違反」）、含めると #412 の enforce 切替が上流の修正待ちで止まってしまう（#415 のコメントでの議論）。
+  Report-Only のヘッダーで観察を続け、上流が直った後に enforce の CSP へ統合するかを改めて決める。
+- `CSP_REPORT_ONLY=true` の間は nonce の CSP も同じヘッダー名で Report-Only になるため、proxy は `set` ではなく `append` で足す
+  （`set` だと観察中の nonce の CSP を上書きで消してしまう）。最終の応答では、同じ名前のヘッダーは
+  **カンマ区切りで 1 行に連結**されて届く（ローカルの preview で実測。下の「確認したこと」）。カンマ区切りの CSP は
+  複数のポリシーとして評価されるため、nonce の CSP も Trusted Types のポリシーもどちらも失われず、両方とも Report-Only で評価される。
+  潰れる（last-wins になる）ことは確認できていないが、潰れた場合は RO モードのときに 1 つのヘッダー値へ連結するフォールバックを検討する。
+- `trusted-types nextjs` は、作れる Trusted Types のポリシー名を、Next.js のランタイムが使う `nextjs`
+  （`node_modules/next/dist/client/trusted-types.js`）に限定する。現状のビルド出力に `createPolicy` はなく許可は使われていないが、
+  付けておいて害はない。ライブラリの内部でほかの名前のポリシーを作る違反が出たら、`src/lib/csp.ts` の許可リストに名前を足す。
+  ポリシー名の照合は仕様上の**完全一致**（[Trusted Types 仕様](https://w3c.github.io/trusted-types/dist/spec/) § 4.2.5。`#` にコメントのような特別な意味はない）である。
+- `src/` 内に Trusted Types のシンク（`innerHTML`・`document.write` など）はない（#415 の時点）。
+- 既知の違反（Next.js の Turbopack ランタイム。上流の既知バグ
+  [vercel/next.js#101261](https://github.com/vercel/next.js/issues/101261)）:
+  1. ページ間の移動や先読みで読み込むチャンクを `document.createElement("script")` の `src` に文字列で代入する
+     （`.open-next/assets/_next/static/chunks/turbopack-*.js`。ポリシーは作らない）。
+  2. クライアントコンポーネントのチャンク参照が RSC ペイロードの `<script src async>` に入り、React がマウント時に
+     `setAttribute("src", ...)` する（マウント時の代入は上流 issue の報告による）。
+  1 はビルド出力（`.open-next/assets/_next/static/chunks/turbopack-*.js`）で、2 は検証環境の HTML（curl）の
+  RSC ペイロードに `<script src async>` が入っていることで確認済み（2026-11-16。上流 issue にも報告あり）。
+  Report-Only の間は違反が報告されるだけで止まらないため動くが、
+  強制するとチャンクの読み込みが止まり、ページ間の移動・先読みが壊れる。**ポリシー名の許可リストでは解消できない**
+  （ランタイム自身がポリシーを使わないため）。修正 PR は未確認（2026-11-16 時点。issue で着手の表明はある）。
+  webpack ビルドでは、ランタイムが `output.trustedTypes = 'nextjs#bundler'` でポリシーを作り、チャンクの URL をそのポリシーで通す
+  （`node_modules/next/dist/build/webpack-config.js`。生成コードは `trustedTypes.createPolicy("nextjs#bundler", ...)`。
+  `node_modules/next/dist/compiled/webpack/bundle5.js` で確認）。ただしポリシー名は完全一致のため
+  **`trusted-types nextjs` では `nextjs#bundler` の作成が許可されない**。webpack への退避を検討するときは、
+  許可リストに `nextjs#bundler` を足す必要がある。足し忘れると、enforce の下ではポリシーの作成が TypeError で失敗し、
+  チャンクの読み込みが止まる（Next.js は `output.trustedTypes` を文字列で設定するため、webpack の
+  `onPolicyCreationFailure` は既定の `stop` になる。`continue` を指定したときだけ `try`/`catch` で包まれ、
+  Console に警告が出る。`node_modules/next/dist/compiled/webpack/bundle5.js` で確認）。
+
 確認したこと（#416。2026-11-16。検証環境と同じ値でビルドした `bun run preview`。検証環境は curl だけ）:
 
 - 上の CSP を外す前は、ページの応答に `content-security-policy`（上の CSP）と `content-security-policy-report-only`（proxy）が付き、
@@ -725,7 +763,16 @@ nonce を使う CSP への切り替え（[ADR-0005](./adr/0005-csp-nonce-dynamic
   検出できることは、許可していない `https://example.com` への `fetch` が止まり報告されることで確かめた。
 - ローカルでは API を起動しておらず、ログイン・データの表示・画像・アップロードは確かめていない。検証環境で確かめる。
 
-確認するコマンド（4 つが返ればよい）:
+確認したこと（2026-11-16。Trusted Types。`bun run preview` 相当の `opennextjs-cloudflare build` + `wrangler dev`。ローカルの Workers ランタイム）:
+
+- `/about` の応答に curl で、`Content-Security-Policy`（#335 の enforce）と
+  `Content-Security-Policy-Report-Only` が付くことを確かめた。Report-Only のヘッダーは 1 行で、
+  nonce の CSP と `require-trusted-types-for 'script'; trusted-types nextjs` がカンマ区切りで連結されて届く
+  （同名ヘッダーの連結。ポリシーは両方とも評価される。上の「Trusted Types」節）。
+
+確認するコマンド（4 つが返ればよい。`content-security-policy-report-only` には、#412 までは nonce の CSP と
+Trusted Types がカンマ区切りで載り、#412 の後は Trusted Types だけが載る（Trusted Types は常に Report-Only）。
+#412 までは `Content-Security-Policy` に加えてこれが返る）:
 
 ```bash
 curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | grep -i -E "^content-security-policy|^x-frame-options|^x-content-type-options|^referrer-policy"

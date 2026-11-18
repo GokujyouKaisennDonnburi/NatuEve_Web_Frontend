@@ -3,7 +3,7 @@
 // レンダリングする script / style に同じ nonce を付けてくれる
 // （docs: 01-app/02-guides/content-security-policy.md の「Adding a nonce with Proxy」）。
 
-import { buildCspHeader } from "@/lib/csp";
+import { buildCspHeader, buildTrustedTypesCspHeader } from "@/lib/csp";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -35,6 +35,11 @@ export function proxy(request: NextRequest) {
     isReportOnly: reportOnly,
   });
   const headerKey = getCspHeaderKey(reportOnly);
+  // Trusted Types（#415）は nonce の CSP と別のヘッダーで、常に Report-Only にして観察する。
+  // enforce の CSP に含めないのは、Turbopack のランタイムが Trusted Types に対応していない
+  // （vercel/next.js#101261）ため、#412 の enforce 切替を上流の修正待ちで止めないため。
+  // dev では buildTrustedTypesCspHeader が null を返し、ヘッダーを付けない。
+  const trustedTypesCsp = buildTrustedTypesCspHeader({ isDev });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(headerKey, cspHeader);
@@ -45,6 +50,16 @@ export function proxy(request: NextRequest) {
     },
   });
   response.headers.set(headerKey, cspHeader);
+  // set ではなく append にする。CSP_REPORT_ONLY=true のときは nonce の CSP も同じ
+  // ヘッダー名になるため、上書きすると観察中の CSP を消してしまう。最終の応答では
+  // 同じ名前のヘッダーはカンマ区切りで 1 行に連結されて届き（ローカルの preview で実測）、
+  // ブラウザはカンマ区切りの CSP を別々のポリシーとして両方とも Report-Only で評価する。
+  if (trustedTypesCsp !== null) {
+    response.headers.append(
+      "Content-Security-Policy-Report-Only",
+      trustedTypesCsp,
+    );
+  }
 
   return response;
 }

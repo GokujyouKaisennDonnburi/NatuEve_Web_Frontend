@@ -121,3 +121,26 @@ export function buildCspHeader({
 
   return directives.join("; ");
 }
+
+// Trusted Types のヘッダーの中身を組み立てる純粋関数（#415）。
+// nonce の CSP とは別のヘッダーとして、常に Report-Only で付ける。
+// enforce の CSP（#335 の CSP・#412 以降の nonce の CSP）に含めないのは、Turbopack の
+// ランタイムがチャンク読み込みの script.src に文字列を直接代入していて
+// （vercel/next.js#101261。2026-11-16 時点で修正はリリースされていない）、強制すると
+// ページ間の移動・先読みが止まり、#412 の enforce 切替が上流の修正待ちで止まってしまうため。
+// Report-Only のヘッダーで観察を続け、上流が直った後に enforce の CSP へ統合するかを決める。
+// dev では null を返し、ヘッダー自体を付けない（#415 の AC）。React DevTools など
+// 開発ツールがシンクを使うため、違反で開発が止まるのを避ける。
+// trusted-types はポリシー名の許可リスト。Next.js のランタイムが作るポリシー名は
+// nextjs である（node_modules/next/dist/client/trusted-types.js の getPolicy）。
+// ライブラリ内部でほかの名前のポリシーを作る違反が出たら、ここに名前を足す。
+export function buildTrustedTypesCspHeader({
+  isDev,
+}: {
+  isDev: boolean;
+}): string | null {
+  if (isDev) {
+    return null;
+  }
+  return "require-trusted-types-for 'script'; trusted-types nextjs";
+}

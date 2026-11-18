@@ -70,6 +70,13 @@ nonce は応答ごとに変える必要があるため、使うと全ページ�
    本番と検証環境は同じ CSP で、接続先と画像の取得元だけが環境ごとの値で変わる。
 5. `X-Frame-Options`・`X-Content-Type-Options`・`Referrer-Policy` は #335 のまま（`next.config.ts` と `public/_headers`）。
 6. Trusted Types（`require-trusted-types-for`）を入れるかと、許可するポリシー名は #415 で決める。入れる場合も、開発時は無効にする（#415 の AC）。
+   - （#415 で追記。2026-11-16）入れることにした。ただし enforce の CSP（#335 の CSP・#412 以降の nonce の CSP）には含めず、
+     proxy が別の `Content-Security-Policy-Report-Only` ヘッダーとして常に Report-Only で付ける
+     （中身は `require-trusted-types-for 'script'; trusted-types nextjs`。開発時は付けない）。
+     許可するポリシー名は、Next.js のランタイムが使う `nextjs` に限定する。理由は、Turbopack のランタイムが
+     Trusted Types に対応していないため（上流の既知バグ [vercel/next.js#101261](https://github.com/vercel/next.js/issues/101261)。詳細は
+     docs/Deployment.md の「Trusted Types」節）。enforce に含めると #412 の切替が上流の修正待ちで止まるため、
+     Report-Only で観察を続け、上流が直った後に enforce の CSP へ統合するかを改めて決める。
 7. HTML をキャッシュする設定（Cloudflare の Cache Rules・Workers Cache・OpenNext の incremental cache の HTML）は足さない。
    キャッシュした HTML を配ると、全員に同じ nonce が渡って意味がなくなる。データだけのキャッシュ（`unstable_cache`）は使ってよい。
 8. 次のいずれかに当てはまったら、この決定を見直す。
@@ -221,4 +228,5 @@ LCP（Lighthouse 12.8.2。各ページ 1 回。速い回線は同じ実行の制
 - **キャッシュした HTML の nonce を、応答ごとにエッジで書き換える**: HTML のキャッシュと nonce を両立できる可能性があるが、
   Next.js が HTML と RSC のどこに nonce を書くかを含め調べていない。今は HTML のキャッシュが要らないため見送り、必要になったときに調べる。
 - **Trusted Types だけを足す**: DOM 経由の XSS（`innerHTML` など）は止められるが、差し込まれたインラインのスクリプトは止められない。
-  nonce と組み合わせるかは #415 で判断する。
+  nonce と組み合わせるかは #415 で判断する。（#415 で追記。2026-11-16）組み合わせる方針としたが、上流の既知バグのため
+  enforce の CSP には含めず、別ヘッダーの Report-Only として付ける（決定 6 の追記）。

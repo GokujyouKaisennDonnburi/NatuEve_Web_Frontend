@@ -3,7 +3,7 @@
 
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildCspHeader } from "../lib/csp";
+import { buildCspHeader, buildTrustedTypesCspHeader } from "../lib/csp";
 import { proxy } from "../proxy";
 
 // env を意図的に固定し、許可オリジンの回帰を検出するための差し替えヘルパー。
@@ -64,6 +64,18 @@ describe("buildCspHeader", () => {
     const csp = buildCspHeader({ nonce: NONCE, isDev: true });
 
     expect(directiveSources(csp, "script-src")).toContain("'unsafe-eval'");
+  });
+
+  it("nonce の CSP には Trusted Types のディレクティブを含めない", () => {
+    // Trusted Types は Turbopack ランタイムの既知の違反（vercel/next.js#101261）を
+    // 強制しないよう、別の Report-Only ヘッダー（buildTrustedTypesCspHeader）で観察する。
+    // enforce の CSP に含めないことで、#412 の切替を上流の修正待ちで止めない。
+    for (const isDev of [false, true]) {
+      const csp = buildCspHeader({ nonce: NONCE, isDev });
+
+      expect(csp).not.toContain("require-trusted-types-for");
+      expect(csp).not.toContain("trusted-types");
+    }
   });
 
   it("isReportOnly のときは Report-Only で無視される upgrade-insecure-requests を外す", () => {
@@ -251,15 +263,21 @@ describe("proxy", () => {
         "Content-Security-Policy-Report-Only",
       );
       expect(response.headers.get("Content-Security-Policy")).toBeNull();
-      expect(reportOnly).toContain("script-src");
+      // Trusted Types（#415）を同じヘッダー名で append するため、同じ名前のヘッダーが
+      // 2 つ並び、get() はカンマ区切りで返る。nonce の CSP と Trusted Types の両方が載る。
+      expect(reportOnly).toContain("script-src 'self' 'nonce-");
+      expect(reportOnly).toContain(
+        "require-trusted-types-for 'script'; trusted-types nextjs",
+      );
       // Report-Only のときも request 側のヘッダー名を揃える。Next.js の nonce 抽出は
       // Report-Only のヘッダーも対象である（parse-request-headers.js）ため、
       // request 側に載っていないと Report-Only 時に script への nonce 付与が止まる。
-      expect(
-        response.headers.get(
-          "x-middleware-request-content-security-policy-report-only",
-        ),
-      ).toBe(reportOnly);
+      // Trusted Types のヘッダーは response にしか載らない（request 側は nonce 抽出に不要）。
+      const requestCsp = response.headers.get(
+        "x-middleware-request-content-security-policy-report-only",
+      );
+      expect(requestCsp).toContain("script-src 'self' 'nonce-");
+      expect(requestCsp).not.toContain("require-trusted-types-for");
     } finally {
       if (original === undefined) {
         delete process.env.CSP_REPORT_ONLY;
@@ -267,5 +285,34 @@ describe("proxy", () => {
         process.env.CSP_REPORT_ONLY = original;
       }
     }
+  });
+
+  it("Trusted Types を nonce の CSP とは別の Report-Only ヘッダーで付ける", () => {
+    // proxy() は NODE_ENV=test で動くため dev 扱いにならず、ヘッダーが付く。
+    const response = proxy(
+      new NextRequest("https://natueve-web.natuportal.org/event-list"),
+    );
+
+    // enforce の CSP（Content-Security-Policy）には含めず、別の Report-Only ヘッダーにする。
+    // Turbopack ランタイムの既知の違反（vercel/next.js#101261）を強制しないため。
+    const trustedTypes = response.headers.get(
+      "Content-Security-Policy-Report-Only",
+    );
+    expect(trustedTypes).toBe(
+      "require-trusted-types-for 'script'; trusted-types nextjs",
+    );
+  });
+});
+
+describe("buildTrustedTypesCspHeader", () => {
+  it("本番・検証では require-trusted-types-for と trusted-types（許可ポリシー名 nextjs）を返す", () => {
+    expect(buildTrustedTypesCspHeader({ isDev: false })).toBe(
+      "require-trusted-types-for 'script'; trusted-types nextjs",
+    );
+  });
+
+  it("dev では Trusted Types を無効にする", () => {
+    // React DevTools 等がシンクを使うため、違反で開発が止まらないようにする（#415 の AC）。
+    expect(buildTrustedTypesCspHeader({ isDev: true })).toBeNull();
   });
 });
