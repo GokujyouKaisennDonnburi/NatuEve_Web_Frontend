@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 export const CONTACT_CATEGORIES = [
   { value: "request", label: "要望" },
   { value: "bug", label: "不具合報告" },
-  { value: "report", label: "通報" },
   { value: "other", label: "その他お問い合わせ" },
 ] as const;
 
