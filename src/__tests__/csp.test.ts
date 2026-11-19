@@ -4,6 +4,11 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildCspHeader, buildTrustedTypesCspHeader } from "../lib/csp";
+import {
+  developmentImageHosts,
+  mockImageHosts,
+  productionImageHosts,
+} from "../lib/imageOrigins";
 import { proxy } from "../proxy";
 
 // env を意図的に固定し、許可オリジンの回帰を検出するための差し替えヘルパー。
@@ -152,6 +157,26 @@ describe("buildCspHeader", () => {
     expect(imgSrc).toContain("https://i.pravatar.cc");
   });
 
+  // 画像最適化（next.config.ts の remotePatterns）で許可した取得元を、直接読み込むときにも CSP が止めない
+  // （ADR-0005 決定 1）。#412 で next.config.ts の CSP を外したため、ここで proxy の CSP と突き合わせる。
+  // スキーム・ポートの書き方は実装に任せ、ホスト名で突き合わせる（実装と同じ関数で期待値を作らない）。
+  it("img-src に remotePatterns のホストをすべて含める", () => {
+    setEnv("USE_DEV_ASSETS", "true");
+    setEnv("NEXT_PUBLIC_USE_MSW", "true");
+    const csp = buildCspHeader({ nonce: NONCE, isDev: false });
+    const hostnames = [
+      ...productionImageHosts,
+      ...developmentImageHosts,
+      ...mockImageHosts,
+    ].map(({ hostname }) => hostname);
+    const imageSourceHostnames = (directiveSources(csp, "img-src") ?? []).map(
+      (source) => URL.parse(source)?.hostname,
+    );
+
+    expect(hostnames.length).toBeGreaterThan(0);
+    expect(imageSourceHostnames).toEqual(expect.arrayContaining(hostnames));
+  });
+
   it("NEXT_PUBLIC_USE_MSW=true ではモックの署名付き URL の直 PUT 先を connect-src に足す", () => {
     setEnv("NEXT_PUBLIC_USE_MSW", "true");
     const csp = buildCspHeader({ nonce: NONCE, isDev: false });
@@ -249,6 +274,31 @@ describe("proxy", () => {
     expect(
       response.headers.get("x-middleware-request-content-security-policy"),
     ).toBe(csp);
+  });
+
+  // 本番・検証環境の wrangler.jsonc の値（#412）。
+  it("CSP_REPORT_ONLY=false では enforce のヘッダー名になる", () => {
+    const original = process.env.CSP_REPORT_ONLY;
+    process.env.CSP_REPORT_ONLY = "false";
+    try {
+      const response = proxy(
+        new NextRequest("https://natueve-web.natuportal.org/event-list"),
+      );
+
+      const csp = response.headers.get("Content-Security-Policy");
+      expect(csp).toContain("script-src 'self' 'nonce-");
+      expect(csp).toContain("upgrade-insecure-requests");
+      // Report-Only のヘッダーには Trusted Types だけが載る（#415）。
+      expect(response.headers.get("Content-Security-Policy-Report-Only")).toBe(
+        "require-trusted-types-for 'script'; trusted-types nextjs",
+      );
+    } finally {
+      if (original === undefined) {
+        delete process.env.CSP_REPORT_ONLY;
+      } else {
+        process.env.CSP_REPORT_ONLY = original;
+      }
+    }
   });
 
   it("CSP_REPORT_ONLY=true では Report-Only ヘッダー名になる", () => {
