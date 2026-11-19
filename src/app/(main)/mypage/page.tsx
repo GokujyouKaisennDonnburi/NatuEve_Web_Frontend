@@ -30,17 +30,19 @@ export default function MyPage() {
 
   const {
     events: hostedEvents,
-    counts,
+    counts: hostedCounts,
     isLoading: hostedLoading,
     error: hostedError,
   } = useMyEvents("hosted");
   const {
     events: appliedEvents,
+    counts: appliedCounts,
     isLoading: appliedLoading,
     error: appliedError,
   } = useMyEvents("applied");
   const {
     events: participatedEvents,
+    counts: attendedCounts,
     isLoading: participatedLoading,
     error: participatedError,
   } = useMyEvents("attended");
@@ -171,6 +173,8 @@ export default function MyPage() {
       />
 
       <section>
+        {/* 各フックは自分の種別の counts のみ補正するため、
+            種別ごとに対応する呼び出しの counts をマージする */}
         <UserEventTabs
           hostedEvents={hostedEvents}
           participatedEvents={participatedEvents}
@@ -180,11 +184,11 @@ export default function MyPage() {
             eventError ? MESSAGES.EVENT_LIST_FETCH_ERROR : undefined
           }
           counts={
-            counts
+            hostedCounts && appliedCounts && attendedCounts
               ? {
-                  hosted: counts.hosted,
-                  participated: counts.attended,
-                  applied: counts.applied,
+                  hosted: hostedCounts.hosted,
+                  applied: appliedCounts.applied,
+                  participated: attendedCounts.attended,
                 }
               : undefined
           }

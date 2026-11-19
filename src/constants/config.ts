@@ -60,6 +60,11 @@ export const DAYS_BEFORE_DEADLINE = 7;
 export const CURRENT_SECTION_BAND_TOP_PX = 96;
 export const CURRENT_SECTION_BAND_BOTTOM_PERCENT = 30;
 
+// マイページ・プロフィールのイベント一覧取得の1ページあたりの件数。
+// バックエンドのページネーション上限（NatuEve_API internal/service/event_query.go の
+// maxLimit=100）に合わせ、limit 未指定時の defaultLimit=20 による取りこぼしを避ける。
+export const EVENT_LIST_FETCH_PAGE_SIZE = 100;
+
 // イベント一覧の絞り込み欄をサイドバーとして表示する条件。
 // 16:9 やそれに近い横長比率(4:3 以上)かつ幅 640px 以上でデスクトップ扱いとし、
 // 縦長だけでなく幅の狭い横長ビューポートでもドロワー表示にする。

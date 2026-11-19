@@ -3,11 +3,16 @@
 import { useEffect, useState } from "react";
 import { fetchProfileEvents } from "@/services/event";
 import type { EventItem } from "@/components/organisms/EventCard";
+import { EVENT_LIST_FETCH_PAGE_SIZE } from "@/constants/config";
 import type { ProfileEventCounts, ProfileEventType } from "@/types/event";
+import { fetchAllEventPages } from "@/utils/eventListPagination";
 import { resolveEventStatus } from "@/utils/eventStatus";
+import { splitCancelledEvents } from "@/utils/eventVisibility";
 
 type UseProfileEventsReturn = {
   events: EventItem[];
+  // 自種別（type）の件数のみキャンセル済み分を補正済み。
+  // 他種別はバックエンドの生値のため、ページ側で対応する種別の呼び出しの値に差し替えること。
   counts: ProfileEventCounts | null;
   totalCount: number;
   isLoading: boolean;
@@ -38,20 +43,39 @@ export function useProfileEvents(
       setError(null);
 
       try {
-        const data = await fetchProfileEvents(profileId, type);
+        const { allEvents, firstPage } = await fetchAllEventPages(
+          (offset) =>
+            fetchProfileEvents(profileId, type, {
+              limit: EVENT_LIST_FETCH_PAGE_SIZE,
+              offset,
+            }),
+          () => cancelled,
+        );
 
         if (!cancelled) {
-          setCounts(data.counts);
-          setTotalCount(data.totalCount);
+          // バックエンドはキャンセル済みイベントを一覧に含めて返すため（ADR-0012 / ADR-0024）、
+          // イベント一覧画面（useEventList）と同様にフロント側で除外する
+          const { visibleEvents, cancelledCount } =
+            splitCancelledEvents(allEvents);
 
-          const mappedEvents: EventItem[] = data.events.map((apiEvent) => {
-            const status = apiEvent.cancelledAt
-              ? "closed"
-              : resolveEventStatus({
-                  eventDate: apiEvent.eventDate,
-                  endDate: apiEvent.endDate,
-                  applicationDeadline: apiEvent.applicationDeadline,
-                });
+          // counts / totalCount にはキャンセル済みが含まれるため、
+          // このフックが受け持つ種別（type）の件数から、全ページ取得した
+          // イベントに含まれるキャンセル済みの件数を差し引いて補正する。
+          // counts の他種別の値は、ページ側で対応する種別の呼び出しの counts に差し替える
+          const correctedCounts: ProfileEventCounts = {
+            ...firstPage.counts,
+            [type]: firstPage.counts[type] - cancelledCount,
+          };
+
+          setCounts(correctedCounts);
+          setTotalCount(firstPage.totalCount - cancelledCount);
+
+          const mappedEvents: EventItem[] = visibleEvents.map((apiEvent) => {
+            const status = resolveEventStatus({
+              eventDate: apiEvent.eventDate,
+              endDate: apiEvent.endDate,
+              applicationDeadline: apiEvent.applicationDeadline,
+            });
 
             return {
               id: apiEvent.id,
