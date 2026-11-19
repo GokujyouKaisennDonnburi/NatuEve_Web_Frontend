@@ -25,10 +25,16 @@
   // ローカルの preview（wrangler dev）では .dev.vars で上書きできる。
   // vars は env に引き継がれないため、env.staging でも宣言し直す（wrangler 4.150.0）。
   "vars": {
-    // nonce の CSP を Report-Only にする。#416 で違反を解消するまで本番・検証とも
-    // Report-Only にする。本番は #335 の Content-Security-Policy（enforce）と併用し、
-    // 検証環境は #335 の CSP を外す（ADR-0005 決定 2）。enforce への切替は #412 で行う。
-    "CSP_REPORT_ONLY": "true"
+    // nonce の CSP を enforce（Content-Security-Policy）で付ける（#412。ADR-0005 決定 3）。
+    // 未設定でも enforce になるが、"false" と明示する。vars にない変数は、ビルド時に読んだ
+    // .env 系ファイルの値で埋まる（OpenNext の populateProcessEnv）ため、.env.production に
+    // CSP_REPORT_ONLY=true がコミットされても、本番が Report-Only に戻らないようにする。
+    // 障害のときに "true" にすると Report-Only に戻るが、ほかに CSP がないため、
+    // その間は有効な CSP が 1 つもなくなる（docs/Deployment.md「戻し方」）。
+    "CSP_REPORT_ONLY": "false",
+    // 本番の CSP に開発用の R2（assets-dev.natuportal.org）を入れない（NatuEve_API ADR-0039 決定 6）。
+    // "false" と明示する理由は CSP_REPORT_ONLY と同じ（.env.production の値で埋まらないようにする）。
+    "USE_DEV_ASSETS": "false"
   },
   "images": {
     // 画像最適化（Cloudflare Images）を有効化する。参考: https://opennext.js.org/cloudflare/howtos/image
@@ -51,10 +57,8 @@
       "preview_urls": false,
       // images・services・vars は env に引き継がれないため、宣言し直す。
       "vars": {
-        // 本番と同じく Report-Only（#416 で違反を解消してから enforce への切替を検討）。
-        // #335 の CSP は CI のビルドステップの env: の DISABLE_NEXT_CONFIG_CSP=true で外し、
-        // この CSP だけにする（残すと Next.js が nonce を読めない。next.config.ts）。
-        "CSP_REPORT_ONLY": "true",
+        // 本番と同じく enforce（#412）。"false" と明示する理由は最上位の vars と同じ。
+        "CSP_REPORT_ONLY": "false",
         // 検証環境は開発用の R2（assets-dev.natuportal.org）の画像を表示する（#353）。
         // ビルド時の remotePatterns（next.config.ts）は CI のビルドステップの env: で
         // USE_DEV_ASSETS=true にしてあり、この vars は実行時に CSP の img-src に

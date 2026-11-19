@@ -83,7 +83,6 @@ jobs:
           NEXT_PUBLIC_USE_MSW: "false"
           USE_DEV_ASSETS: "true"
           SITE_NOINDEX: "true"
-          DISABLE_NEXT_CONFIG_CSP: "true"
           # 接続先の NEXT_PUBLIC_*（NEXT_PUBLIC_API_BASE_URL・NEXT_PUBLIC_SUPABASE_*）は空文字で明示する（リポジトリの Variables は使わない。docs/Deployment.md「環境変数」）。
           # `.env.production` は .gitignore の外（コミットされうる）ため、そこに接続先を書かれてもビルドに使えないようにする（#362 のレビュー）。
           # getSupabase() は遅延初期化のため、プリレンダリングで呼ばれない限りビルドに要らない。呼ばれるようになったら、値が空のためこのビルドが失敗して気づける。
@@ -155,7 +154,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
 
       # トークンを渡さずにビルドする（ビルドは依存パッケージのコードも動かすため。ADR-0003 決定 3）。
-      # NEXT_PUBLIC_*・USE_DEV_ASSETS・SITE_NOINDEX・DISABLE_NEXT_CONFIG_CSP はビルド時に埋め込まれる・反映される。
+      # NEXT_PUBLIC_*・USE_DEV_ASSETS・SITE_NOINDEX はビルド時に埋め込まれる・反映される。
       - name: Build (OpenNext)
         # bunx は手元にないパッケージを npm から取って動かすため、node_modules の bin を直接呼ぶ。
         run: ./node_modules/.bin/opennextjs-cloudflare build --env staging
@@ -169,9 +168,6 @@ jobs:
           USE_DEV_ASSETS: "true"
           # 検証環境は検索に載せない（#372）。
           SITE_NOINDEX: "true"
-          # 検証環境は #335 の CSP を外し、proxy の nonce の CSP（Report-Only）だけにする（#416）。
-          # 残すと Workers では Next.js が nonce を読めず、script に nonce が付かない（next.config.ts）。
-          DISABLE_NEXT_CONFIG_CSP: "true"
 
       # 実行の待機中に main が進んでいたら、古いコミットで上書きしないよう止める（ADR-0003 決定 3）。
       - name: Check this run is the latest main
@@ -269,8 +265,6 @@ jobs:
           USE_DEV_ASSETS: "false"
           # 本番を検索から消さないよう、未設定に頼らず "false" と明示する（#372）。
           SITE_NOINDEX: "false"
-          # 本番は #412 まで #335 の CSP（enforce）を残すため、未設定に頼らず "false" と明示する（#416）。
-          DISABLE_NEXT_CONFIG_CSP: "false"
 
       # 承認待ちの間に main が進んでいたら、古いコミットで本番を巻き戻さないよう止める（ADR-0003 決定 3）。
       - name: Check this run is the latest main

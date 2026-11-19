@@ -9,14 +9,13 @@ import type { NextRequest } from "next/server";
 
 // Report-Only かどうか。request / response のヘッダー名と buildCspHeader に渡し、
 // Report-Only では無視される upgrade-insecure-requests を外すのに使う。
-// 検証環境での違反観察（#416）のため、env で Report-Only に切り替えられる。
+// 本番・検証環境とも "false"（enforce。#412）で、障害のときに Report-Only へ戻せるよう残している。
 // Next.js の nonce 抽出は Report-Only のヘッダーも対象である（node_modules/next/
-// dist/server/route-modules/app-page/parse-request-headers.js の
-// parseRequestHeaders が content-security-policy と
-// content-security-policy-report-only の両方を読む）ため、Report-Only 時でも
-// script に nonce が付く。ただし content-security-policy を先に読むため、Workers で
-// nonce のない #335 の CSP と並べると nonce が付かない（OpenNext が応答ヘッダーを
-// リクエストにも写すため）。検証環境は #335 の CSP を外している（next.config.ts）。
+// dist/server/app-render/get-script-nonce-from-header.js の getScriptNonceFromHeaders が
+// content-security-policy を、なければ content-security-policy-report-only を読む）ため、
+// Report-Only 時でも script に nonce が付く。ただし content-security-policy を先に読むため、
+// nonce のない CSP を別に付けると nonce が付かない（Workers では OpenNext が応答ヘッダーを
+// リクエストにも写すため）。CSP を付けるのはこの proxy だけにしている（next.config.ts）。
 const isReportOnly = () => process.env.CSP_REPORT_ONLY === "true";
 
 const getCspHeaderKey = (reportOnly: boolean) =>
@@ -36,8 +35,8 @@ export function proxy(request: NextRequest) {
   });
   const headerKey = getCspHeaderKey(reportOnly);
   // Trusted Types（#415）は nonce の CSP と別のヘッダーで、常に Report-Only にして観察する。
-  // enforce の CSP に含めないのは、Turbopack のランタイムが Trusted Types に対応していない
-  // （vercel/next.js#101261）ため、#412 の enforce 切替を上流の修正待ちで止めないため。
+  // enforce の CSP に含めないのは、Turbopack のランタイムが Trusted Types に対応しておらず
+  // （vercel/next.js#101261）、強制するとページ間の移動・先読みが止まるため。
   // dev では buildTrustedTypesCspHeader が null を返し、ヘッダーを付けない。
   const trustedTypesCsp = buildTrustedTypesCspHeader({ isDev });
 

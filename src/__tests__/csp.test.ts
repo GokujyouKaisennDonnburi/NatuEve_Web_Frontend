@@ -1,10 +1,17 @@
 // @vitest-environment node
 // CSP ヘッダー文字列だけを検証するため、DOM は使わない。
 
+import { readFileSync } from "node:fs";
 import { NextRequest } from "next/server";
-import { afterEach, describe, expect, it } from "vitest";
+import ts from "typescript";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildCspHeader, buildTrustedTypesCspHeader } from "../lib/csp";
 import { proxy } from "../proxy";
+
+// remotePatterns との突き合わせで next.config.ts を読み込むため、読み込み時の初期化を止める。
+vi.mock("@opennextjs/cloudflare", () => ({
+  initOpenNextCloudflareForDev: vi.fn(),
+}));
 
 // env を意図的に固定し、許可オリジンの回帰を検出するための差し替えヘルパー。
 // nextConfigImageHosts.test.ts と同じ体裁で、テスト後に元へ戻す。
@@ -152,6 +159,27 @@ describe("buildCspHeader", () => {
     expect(imgSrc).toContain("https://i.pravatar.cc");
   });
 
+  // 画像最適化（next.config.ts の remotePatterns）で許可した取得元を、直接読み込むときにも CSP が止めない
+  // （ADR-0005 決定 1）。#412 で next.config.ts の CSP を外したため、ここで proxy の CSP と突き合わせる。
+  // next.config.ts に直接足したホストも見つけられるよう、読み込んだ設定の remotePatterns と比べる。
+  // スキーム・ポートの書き方は実装に任せ、ホスト名で突き合わせる（実装と同じ関数で期待値を作らない）。
+  it("img-src に remotePatterns のホストをすべて含める", async () => {
+    setEnv("USE_DEV_ASSETS", "true");
+    setEnv("NEXT_PUBLIC_USE_MSW", "true");
+    vi.resetModules();
+    const { default: nextConfig } = await import("../../next.config");
+    const csp = buildCspHeader({ nonce: NONCE, isDev: false });
+    const hostnames = (nextConfig.images?.remotePatterns ?? []).map(
+      ({ hostname }) => hostname,
+    );
+    const imageSourceHostnames = (directiveSources(csp, "img-src") ?? []).map(
+      (source) => URL.parse(source)?.hostname,
+    );
+
+    expect(hostnames.length).toBeGreaterThan(0);
+    expect(imageSourceHostnames).toEqual(expect.arrayContaining(hostnames));
+  });
+
   it("NEXT_PUBLIC_USE_MSW=true ではモックの署名付き URL の直 PUT 先を connect-src に足す", () => {
     setEnv("NEXT_PUBLIC_USE_MSW", "true");
     const csp = buildCspHeader({ nonce: NONCE, isDev: false });
@@ -161,13 +189,23 @@ describe("buildCspHeader", () => {
     );
   });
 
-  it("NEXT_PUBLIC_USE_MSW が true 以外ではモックの取得元・直 PUT 先を含めない", () => {
-    setEnv("NEXT_PUBLIC_USE_MSW", "false");
+  it.each([
+    ["false", "false"],
+    ["TRUE", "TRUE"],
+    ["空文字", ""],
+  ])("NEXT_PUBLIC_USE_MSW・USE_DEV_ASSETS が%sではモック・開発用の取得元と直 PUT 先を含めない", (_, value) => {
+    setEnv("NEXT_PUBLIC_USE_MSW", value);
+    setEnv("USE_DEV_ASSETS", value);
     const csp = buildCspHeader({ nonce: NONCE, isDev: false });
 
-    const sources = csp.split("; ");
-    expect(sources).not.toContain("https://picsum.photos");
-    expect(sources).not.toContain("https://mock.storage.test");
+    for (const name of ["img-src", "connect-src"]) {
+      const sources = directiveSources(csp, name);
+      expect(sources).not.toBeNull();
+      expect(sources).not.toContain("https://picsum.photos");
+      expect(sources).not.toContain("https://i.pravatar.cc");
+      expect(sources).not.toContain("https://mock.storage.test");
+      expect(sources).not.toContain("https://assets-dev.natuportal.org");
+    }
   });
 
   it("connect-src に API と Supabase のオリジンを足す", () => {
@@ -251,6 +289,31 @@ describe("proxy", () => {
     ).toBe(csp);
   });
 
+  // 本番・検証環境の wrangler.jsonc の値（#412）。
+  it("CSP_REPORT_ONLY=false では enforce のヘッダー名になる", () => {
+    const original = process.env.CSP_REPORT_ONLY;
+    process.env.CSP_REPORT_ONLY = "false";
+    try {
+      const response = proxy(
+        new NextRequest("https://natueve-web.natuportal.org/event-list"),
+      );
+
+      const csp = response.headers.get("Content-Security-Policy");
+      expect(csp).toContain("script-src 'self' 'nonce-");
+      expect(csp).toContain("upgrade-insecure-requests");
+      // Report-Only のヘッダーには Trusted Types だけが載る（#415）。
+      expect(response.headers.get("Content-Security-Policy-Report-Only")).toBe(
+        "require-trusted-types-for 'script'; trusted-types nextjs",
+      );
+    } finally {
+      if (original === undefined) {
+        delete process.env.CSP_REPORT_ONLY;
+      } else {
+        process.env.CSP_REPORT_ONLY = original;
+      }
+    }
+  });
+
   it("CSP_REPORT_ONLY=true では Report-Only ヘッダー名になる", () => {
     const original = process.env.CSP_REPORT_ONLY;
     process.env.CSP_REPORT_ONLY = "true";
@@ -270,7 +333,7 @@ describe("proxy", () => {
         "require-trusted-types-for 'script'; trusted-types nextjs",
       );
       // Report-Only のときも request 側のヘッダー名を揃える。Next.js の nonce 抽出は
-      // Report-Only のヘッダーも対象である（parse-request-headers.js）ため、
+      // Report-Only のヘッダーも対象である（get-script-nonce-from-header.js）ため、
       // request 側に載っていないと Report-Only 時に script への nonce 付与が止まる。
       // Trusted Types のヘッダーは response にしか載らない（request 側は nonce 抽出に不要）。
       const requestCsp = response.headers.get(
@@ -314,5 +377,40 @@ describe("buildTrustedTypesCspHeader", () => {
   it("dev では Trusted Types を無効にする", () => {
     // React DevTools 等がシンクを使うため、違反で開発が止まらないようにする（#415 の AC）。
     expect(buildTrustedTypesCspHeader({ isDev: true })).toBeNull();
+  });
+});
+
+// vars にない変数はビルド時に読んだ .env 系ファイルの値で埋まる（OpenNext の populateProcessEnv）ため、
+// 安全側の値も "false" と明示している（#412）。
+describe("wrangler.jsonc の実行時変数", () => {
+  type WranglerVars = { vars?: Record<string, string> };
+  // 行末・ブロックのコメントや末尾のカンマがあっても読めるよう、TypeScript の JSONC の読み込みを使う。
+  const { config, error } = ts.parseConfigFileTextToJson(
+    "wrangler.jsonc",
+    readFileSync(new URL("../../wrangler.jsonc", import.meta.url), "utf8"),
+  );
+  // 読めなかったときも下の it.each の表を作れるよう、空のオブジェクトにして「読める」のテストで落とす。
+  const wrangler = (config ?? {}) as WranglerVars & {
+    env?: Record<string, WranglerVars>;
+  };
+
+  it("wrangler.jsonc を読める", () => {
+    expect(error).toBeUndefined();
+  });
+
+  it.each([
+    ["本番（最上位）", wrangler.vars],
+    ["検証環境（env.staging）", wrangler.env?.staging?.vars],
+  ])('%sで CSP_REPORT_ONLY を "false"（enforce）と明示する', (_, vars) => {
+    expect(vars?.CSP_REPORT_ONLY).toBe("false");
+  });
+
+  // 本番の CSP に開発用の R2 を入れない（NatuEve_API ADR-0039 決定 6）。検証環境は assets-dev の画像を
+  // 表示するため立てる（#353）。vars は env に引き継がれないため、検証環境で消すと画像が CSP で止まる。
+  it.each([
+    ["本番（最上位）", "false", wrangler.vars],
+    ["検証環境（env.staging）", "true", wrangler.env?.staging?.vars],
+  ])('%sで USE_DEV_ASSETS を "%s" と明示する', (_, expected, vars) => {
+    expect(vars?.USE_DEV_ASSETS).toBe(expected);
   });
 });
