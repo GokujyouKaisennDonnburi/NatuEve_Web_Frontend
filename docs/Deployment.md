@@ -293,7 +293,7 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 | 変数 | 本番の値 | 検証環境の値 | 備考 |
 |---|---|---|---|
 | `CSP_REPORT_ONLY` | `false` | `false` | `true` のとき、proxy が nonce の CSP を `Content-Security-Policy-Report-Only` で付ける（違反を止めない）。それ以外では `Content-Security-Policy`（enforce）。#412 で本番・検証とも `"false"` にした（それまでは `true`）。未設定でも enforce になるが、`vars` にない変数はビルド時に読んだ `.env` 系ファイルの値で埋まる（OpenNext の `populateProcessEnv` は `vars` を先に入れ、`.env` の値は未設定のものだけに `??=` で入れる）ため、コミットされうる `.env.production` に左右されないよう明示する。障害のときに `true` に戻す手順と注意は下の「CSP」の「戻し方」 |
-| `USE_DEV_ASSETS` | （設定しない） | `true` | `true` のとき、`src/lib/csp.ts` が CSP の `img-src`・`connect-src` に `assets-dev.natuportal.org` を足す。検証環境は `assets-dev` の画像を表示するため立てる（#353）。本番は立てない |
+| `USE_DEV_ASSETS` | `false` | `true` | `true` のとき、`src/lib/csp.ts` が CSP の `img-src`・`connect-src` に `assets-dev.natuportal.org` を足す。検証環境は `assets-dev` の画像を表示するため立てる（#353）。本番は立てず、`"false"` と明示する（#412。理由は `CSP_REPORT_ONLY` と同じで、`vars` にないと `.env.production` の値で埋まるため） |
 
 - 値を変えると、次のデプロイで反映される（ビルドのし直しは不要。`vars` はデプロイ時に Worker に付けられる）。
 - ローカルの `bun run preview`（`wrangler dev`）では、`.dev.vars` で上書きできる（`.dev.vars` はビルド時の `next.config.ts` には効かない）。

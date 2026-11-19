@@ -379,9 +379,9 @@ describe("buildTrustedTypesCspHeader", () => {
   });
 });
 
-// 本番・検証環境とも nonce の CSP を enforce にする（#412）。未設定でも enforce になるが、vars にない変数は
-// ビルド時に読んだ .env 系ファイルの値で埋まる（OpenNext の populateProcessEnv）ため、"false" と明示している。
-describe("wrangler.jsonc の CSP_REPORT_ONLY", () => {
+// vars にない変数はビルド時に読んだ .env 系ファイルの値で埋まる（OpenNext の populateProcessEnv）ため、
+// 安全側の値も "false" と明示している（#412）。
+describe("wrangler.jsonc の実行時変数", () => {
   type WranglerVars = { vars?: Record<string, string> };
   // 行頭の // コメントだけを外して JSON として読む（値の中の // には触れない）。
   const wrangler = JSON.parse(
@@ -394,7 +394,12 @@ describe("wrangler.jsonc の CSP_REPORT_ONLY", () => {
   it.each([
     ["本番（最上位）", wrangler.vars],
     ["検証環境（env.staging）", wrangler.env.staging.vars],
-  ])('%sで "false" と明示する', (_, vars) => {
+  ])('%sで CSP_REPORT_ONLY を "false"（enforce）と明示する', (_, vars) => {
     expect(vars?.CSP_REPORT_ONLY).toBe("false");
+  });
+
+  // 本番の CSP に開発用の R2 を入れない（NatuEve_API ADR-0039 決定 6）。
+  it('本番（最上位）で USE_DEV_ASSETS を "false" と明示する', () => {
+    expect(wrangler.vars?.USE_DEV_ASSETS).toBe("false");
   });
 });

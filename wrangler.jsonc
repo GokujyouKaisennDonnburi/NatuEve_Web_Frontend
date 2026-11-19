@@ -31,7 +31,10 @@
     // CSP_REPORT_ONLY=true がコミットされても、本番が Report-Only に戻らないようにする。
     // 障害のときに "true" にすると Report-Only に戻るが、ほかに CSP がないため、
     // その間は有効な CSP が 1 つもなくなる（docs/Deployment.md「戻し方」）。
-    "CSP_REPORT_ONLY": "false"
+    "CSP_REPORT_ONLY": "false",
+    // 本番の CSP に開発用の R2（assets-dev.natuportal.org）を入れない（NatuEve_API ADR-0039 決定 6）。
+    // "false" と明示する理由は CSP_REPORT_ONLY と同じ（.env.production の値で埋まらないようにする）。
+    "USE_DEV_ASSETS": "false"
   },
   "images": {
     // 画像最適化（Cloudflare Images）を有効化する。参考: https://opennext.js.org/cloudflare/howtos/image
