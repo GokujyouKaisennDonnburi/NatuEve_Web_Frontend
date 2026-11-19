@@ -114,10 +114,7 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <Link
-                  href={ROUTES.COMING_SOON}
-                  className={FOOTER_LINK_CLASS_NAME}
-                >
+                <Link href={ROUTES.CONTACT} className={FOOTER_LINK_CLASS_NAME}>
                   お問い合わせ
                 </Link>
               </li>

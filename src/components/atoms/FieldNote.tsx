@@ -19,5 +19,13 @@ export function FieldNote({
   tone = "default",
   children,
 }: Readonly<FieldNoteProps>) {
-  return <p className={cn(toneClasses[tone])}>{children}</p>;
+  return (
+    // エラーは動的に挿入されても非視覚的に通知されるよう、alert としてマークする
+    <p
+      className={cn(toneClasses[tone])}
+      role={tone === "error" ? "alert" : undefined}
+    >
+      {children}
+    </p>
+  );
 }

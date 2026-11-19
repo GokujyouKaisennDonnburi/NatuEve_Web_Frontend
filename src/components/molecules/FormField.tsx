@@ -5,23 +5,26 @@ import { RequiredBadge } from "@/components/atoms/RequiredBadge";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-// フォームフィールドコンポーネントのプロパティを定義
+// required / optional は排他。判別可能ユニオンで同時指定を型で防ぐ。
 type FormFieldProps = {
   id: string;
   label: string;
-  required?: boolean;
   description?: string; // 入力欄の前に置く説明文
   hint?: string; // 入力欄の後に置く補足
   error?: string;
   children: ReactNode; // フォームフィールドの内容を指定するプロパティ
   className?: string;
-};
+} & (
+  | { required: true; optional?: never }
+  | { required?: false; optional?: boolean }
+);
 
 // フォームフィールドコンポーネント
 export function FormField({
   id,
   label,
   required = false,
+  optional = false,
   description,
   hint,
   error,
@@ -40,6 +43,7 @@ export function FormField({
           {label}
         </Label>
         {required ? <RequiredBadge /> : null}
+        {optional ? <RequiredBadge isRequired={false} /> : null}
       </div>
       {description ? <FieldNote>{description}</FieldNote> : null} {children}
       {hint ? <FieldNote>{hint}</FieldNote> : null}

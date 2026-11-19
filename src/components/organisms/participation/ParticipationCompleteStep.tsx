@@ -1,4 +1,7 @@
 import { Check } from "lucide-react";
+import Link from "next/link";
+
+import { ROUTES } from "@/constants/routes";
 
 type ParticipationCompleteStepProps = {
   // ゲスト申込かどうか。ゲストは未確定（pending）で保存されるため、
@@ -20,9 +23,21 @@ export function ParticipationCompleteStep({
       </span>
 
       {isGuest ? (
-        <p className="rounded-xl border border-(--brand-green-line) bg-(--brand-green-soft) px-5 py-4 text-center text-sm font-bold leading-relaxed text-(--brand-green-text)">
-          メール内のリンクから参加申込を確定してください。
-        </p>
+        <>
+          <p className="rounded-xl border border-(--brand-green-line) bg-(--brand-green-soft) px-5 py-4 text-center text-sm font-bold leading-relaxed text-(--brand-green-text)">
+            メール内のリンクから参加申込を確定してください。
+          </p>
+          <p className="text-center text-sm text-slate-600">
+            ご不明点がある場合は
+            <Link
+              href={ROUTES.CONTACT}
+              className="text-emerald-700 underline underline-offset-2 transition hover:opacity-80"
+            >
+              お問い合わせ
+            </Link>
+            ください。
+          </p>
+        </>
       ) : (
         <p className="text-xl font-bold text-slate-900">
           申し込みが完了しました

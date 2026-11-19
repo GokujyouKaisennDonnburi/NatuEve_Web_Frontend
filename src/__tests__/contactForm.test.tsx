@@ -1,0 +1,101 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { toast } from "sonner";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import {
+  CONTACT_CATEGORIES,
+  ContactForm,
+} from "@/components/organisms/contact/ContactForm";
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+
+const { mockBack, mockPush } = vi.hoisted(() => ({
+  mockBack: vi.fn(),
+  mockPush: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ back: mockBack, push: mockPush }),
+}));
+
+// router のモックはテスト間で共有されるため、呼び出し記録を毎回リセットする
+// （cleanup は setup.ts の全体 afterEach で実行済み）
+afterEach(() => {
+  mockBack.mockClear();
+  mockPush.mockClear();
+});
+
+describe("ContactForm", () => {
+  it("お問い合わせ内容の選択肢と送信ボタン・詳細の入力欄を表示する", () => {
+    render(<ContactForm />);
+
+    for (const option of CONTACT_CATEGORIES) {
+      expect(
+        screen.getByRole("radio", { name: option.label }),
+      ).toBeInTheDocument();
+    }
+    expect(screen.getByRole("textbox", { name: "詳細" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "送信する" }),
+    ).toBeInTheDocument();
+  });
+
+  it("カテゴリ未選択で送信するとエラーを表示し、トーストを出さない", () => {
+    render(<ContactForm />);
+
+    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+
+    expect(
+      screen.getByText("お問い合わせ内容を選択してください"),
+    ).toBeInTheDocument();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("カテゴリを選択して送信するとトーストを表示し、元の画面へ戻る", () => {
+    // jsdom の初期履歴は 1 のため、履歴がある状態を再現する
+    const historyLengthSpy = vi
+      .spyOn(window.history, "length", "get")
+      .mockReturnValue(2);
+
+    try {
+      render(<ContactForm />);
+
+      fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
+      fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
+        target: { value: "送信ボタンが反応しません" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+
+      expect(toast.success).toHaveBeenCalledWith("お問い合わせを送信しました");
+      expect(mockBack).toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
+    } finally {
+      historyLengthSpy.mockRestore();
+    }
+  });
+
+  it("履歴がない状態で送信するとイベント一覧へ遷移する", () => {
+    render(<ContactForm />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
+    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+
+    expect(mockPush).toHaveBeenCalledWith("/event-list");
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("カテゴリを選択するとエラー表示が消える", () => {
+    render(<ContactForm />);
+
+    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+    expect(
+      screen.getByText("お問い合わせ内容を選択してください"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("radio", { name: "要望" }));
+    expect(
+      screen.queryByText("お問い合わせ内容を選択してください"),
+    ).not.toBeInTheDocument();
+  });
+});
