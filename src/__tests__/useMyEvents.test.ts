@@ -16,7 +16,8 @@ const mockFetchMyEvents = vi.mocked(fetchMyEvents);
 // バックエンド（ADR-0012 / ADR-0024）は一覧にキャンセル済みイベントを含め
 // counts / totalCount にも含めるため、フロント側で表示制御する。
 // - cancelledAt 付きイベントは表示しない（一覧画面 useEventList と挙動を揃える）
-// - limit 未指定時の defaultLimit(20) に丸められても全件基準で補正できるよう全ページ取得する
+// - バックエンドは maxLimit(100) を超える件数を複数ページに分けて返すため、
+//   全ページ取得して全件基準で補正できることを検証する
 // - 自種別（type）の counts と totalCount から除外件数を差し引いて補正する
 // - 他種別の counts は補正しない（ページ側で対応する種別の呼び出しの値に差し替える）
 // - キャンセル済みでないイベントの status ラベル・順序には影響しない
