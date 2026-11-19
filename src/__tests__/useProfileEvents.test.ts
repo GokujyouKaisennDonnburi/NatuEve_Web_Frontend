@@ -1,13 +1,10 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { EVENT_LIST_FETCH_PAGE_SIZE } from "@/constants/config";
 import { useProfileEvents } from "@/hooks/useProfileEvents";
 import { fetchProfileEvents } from "@/services/event";
-import type {
-  EventListItem,
-  ProfileEventCounts,
-  ProfileEventListResponse,
-  ProfileEventType,
-} from "@/types/event";
+import type { ProfileEventType } from "@/types/event";
+import { buildEvent, buildEventListResponse, day } from "./eventListFixtures";
 
 vi.mock("@/services/event", () => ({
   fetchProfileEvents: vi.fn(),
@@ -15,47 +12,18 @@ vi.mock("@/services/event", () => ({
 
 const mockFetchProfileEvents = vi.mocked(fetchProfileEvents);
 
-const buildResponse = (
-  events: EventListItem[],
-  counts: ProfileEventCounts,
-  totalCount = events.length,
-): ProfileEventListResponse => ({
-  counts,
-  events,
-  limit: 20,
-  offset: 0,
-  totalCount,
-});
-
-const buildEvent = (
-  id: string,
-  eventDate: string,
-  endDate: string,
-  options?: { cancelledAt?: string },
-): EventListItem => ({
-  id,
-  createdAt: "2026-01-01T00:00:00+09:00",
-  eventDate,
-  endDate,
-  location: "東京都新宿区",
-  profileId: "profile-1",
-  title: `イベント ${id}`,
-  profile: { id: "profile-1", displayName: "主催者", avatarUrl: "" },
-  ...(options?.cancelledAt ? { cancelledAt: options.cancelledAt } : {}),
-});
-
-const day = (days: number) =>
-  new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-
 // プロフィールページ用イベント一覧の仕様を検証する。
 // マイページ（useMyEvents）と同様に、バックエンドが一覧・counts・totalCount に
 // キャンセル済みイベントを含めて返すため、フロント側で表示制御する。
-// 自分以外のユーザー（hosted / attended の両種別）でも同じ挙動になることを検証する。
+// - cancelledAt 付きイベントは表示しない（一覧画面 useEventList と挙動を揃える）
+// - limit 未指定時の defaultLimit(20) に丸められても全件基準で補正できるよう全ページ取得する
+// - 自種別（type）の counts と totalCount から除外件数を差し引いて補正する
+// - 自分以外のユーザー（hosted / attended の両種別）でも同じ挙動になる
 describe("useProfileEvents", () => {
   beforeEach(() => {
     mockFetchProfileEvents.mockReset();
     mockFetchProfileEvents.mockResolvedValue(
-      buildResponse([], { attended: 0, hosted: 0 }),
+      buildEventListResponse([], { attended: 0, hosted: 0 }),
     );
   });
 
@@ -75,7 +43,7 @@ describe("useProfileEvents", () => {
     "attended",
   ] as const satisfies readonly ProfileEventType[])("type=%s の場合、cancelledAt 付きイベントは一覧に含めない", async (type) => {
     mockFetchProfileEvents.mockResolvedValue(
-      buildResponse(
+      buildEventListResponse(
         [
           buildEvent("cancelled-1", day(5), day(5), {
             cancelledAt: day(-1),
@@ -95,7 +63,10 @@ describe("useProfileEvents", () => {
       "visible-1",
       "visible-2",
     ]);
-    expect(mockFetchProfileEvents).toHaveBeenCalledWith("profile-1", type);
+    expect(mockFetchProfileEvents).toHaveBeenCalledWith("profile-1", type, {
+      limit: EVENT_LIST_FETCH_PAGE_SIZE,
+      offset: 0,
+    });
   });
 
   it.each([
@@ -103,7 +74,7 @@ describe("useProfileEvents", () => {
     "attended",
   ] as const satisfies readonly ProfileEventType[])("type=%s の場合、キャンセル済みイベントの除外件数分 counts と totalCount を補正する", async (type) => {
     mockFetchProfileEvents.mockResolvedValue(
-      buildResponse(
+      buildEventListResponse(
         [
           buildEvent("cancelled-1", day(5), day(5), {
             cancelledAt: day(-1),
@@ -129,9 +100,63 @@ describe("useProfileEvents", () => {
     expect(result.current.totalCount).toBe(2);
   });
 
+  it("2ページ目にキャンセル済みイベントがある場合も、全ページ取得して counts と totalCount を補正する", async () => {
+    const counts = { attended: 3, hosted: 3 };
+    mockFetchProfileEvents
+      .mockResolvedValueOnce(
+        buildEventListResponse(
+          [
+            buildEvent("visible-1", day(10), day(10)),
+            buildEvent("visible-2", day(-5), day(-5)),
+          ],
+          counts,
+          3,
+        ),
+      )
+      .mockResolvedValueOnce(
+        buildEventListResponse(
+          [
+            buildEvent("cancelled-1", day(5), day(5), {
+              cancelledAt: day(-1),
+            }),
+          ],
+          counts,
+          3,
+        ),
+      );
+
+    const { result } = renderHook(() =>
+      useProfileEvents("profile-1", "hosted"),
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.events.map((event) => event.id)).toEqual([
+      "visible-1",
+      "visible-2",
+    ]);
+    expect(result.current.counts).toEqual({
+      attended: 3,
+      hosted: 2,
+    });
+    expect(result.current.totalCount).toBe(2);
+    expect(mockFetchProfileEvents).toHaveBeenNthCalledWith(
+      1,
+      "profile-1",
+      "hosted",
+      { limit: EVENT_LIST_FETCH_PAGE_SIZE, offset: 0 },
+    );
+    expect(mockFetchProfileEvents).toHaveBeenNthCalledWith(
+      2,
+      "profile-1",
+      "hosted",
+      { limit: EVENT_LIST_FETCH_PAGE_SIZE, offset: 2 },
+    );
+  });
+
   it("キャンセル済みでないイベントの status ラベルには影響しない", async () => {
     mockFetchProfileEvents.mockResolvedValue(
-      buildResponse(
+      buildEventListResponse(
         [
           // 過去開催は取りやめでなくとも「開催終了(closed)」になる
           buildEvent("ended-1", day(-10), day(-10)),
@@ -156,7 +181,7 @@ describe("useProfileEvents", () => {
 
   it("キャンセル済みイベントが含まれない場合、counts と totalCount を補正しない", async () => {
     mockFetchProfileEvents.mockResolvedValue(
-      buildResponse(
+      buildEventListResponse(
         [
           buildEvent("ended-1", day(-5), day(-5)),
           buildEvent("upcoming-1", day(10), day(10)),
@@ -180,7 +205,7 @@ describe("useProfileEvents", () => {
 
   it("レスポンスの順序をそのまま表示する", async () => {
     mockFetchProfileEvents.mockResolvedValue(
-      buildResponse(
+      buildEventListResponse(
         [
           buildEvent("ended-1", day(-10), day(-10)),
           buildEvent("upcoming-1", day(30), day(30)),
