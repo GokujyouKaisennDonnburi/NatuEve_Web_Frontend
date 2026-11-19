@@ -5,6 +5,7 @@ import { fetchProfileEvents } from "@/services/event";
 import type { EventItem } from "@/components/organisms/EventCard";
 import { EVENT_LIST_FETCH_PAGE_SIZE } from "@/constants/config";
 import type { ProfileEventCounts, ProfileEventType } from "@/types/event";
+import { fetchAllEventPages } from "@/utils/eventListPagination";
 import { resolveEventStatus } from "@/utils/eventStatus";
 import { splitCancelledEvents } from "@/utils/eventVisibility";
 
@@ -42,24 +43,14 @@ export function useProfileEvents(
       setError(null);
 
       try {
-        const firstPage = await fetchProfileEvents(profileId, type, {
-          limit: EVENT_LIST_FETCH_PAGE_SIZE,
-          offset: 0,
-        });
-        const allEvents = [...firstPage.events];
-        let offset = allEvents.length;
-
-        // limit 未指定時はバックエンドの defaultLimit(20) に丸められるため、
-        // counts / totalCount を全件基準で補正できるよう全ページ取得する
-        while (!cancelled && allEvents.length < firstPage.totalCount) {
-          const page = await fetchProfileEvents(profileId, type, {
-            limit: EVENT_LIST_FETCH_PAGE_SIZE,
-            offset,
-          });
-          if (page.events.length === 0) break;
-          allEvents.push(...page.events);
-          offset += page.events.length;
-        }
+        const { allEvents, firstPage } = await fetchAllEventPages(
+          (offset) =>
+            fetchProfileEvents(profileId, type, {
+              limit: EVENT_LIST_FETCH_PAGE_SIZE,
+              offset,
+            }),
+          () => cancelled,
+        );
 
         if (!cancelled) {
           // バックエンドはキャンセル済みイベントを一覧に含めて返すため（ADR-0012 / ADR-0024）、
