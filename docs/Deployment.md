@@ -424,8 +424,10 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
   デプロイを含む main への push には paths フィルタを付けず、`[skip ci]` も使わない。
   出し直すときは、main の最新のコミットの実行を再実行する（古いコミットの実行は、下の「main の最新の確認」で止まる）。
 - **同時実行**: ワークフロー単位の `concurrency` は、PR だけ古い実行を取り消す。main への push の実行は `github.run_id` で実行ごとに別のグループにし、取り消さない。
-  デプロイのジョブはジョブ単位のグループ（`deploy-staging`・`deploy-production`）に入れ、`cancel-in-progress: false` と `queue: max` にする
-  （同じ環境へのデプロイは同時に 1 つだけ。待機中のジョブを取り消さない。最大 100 件まで待機できる）。
+  デプロイのジョブはジョブ単位のグループ（`deploy-staging`・`deploy-production`）に入れ、`cancel-in-progress: false` にする（同じ環境へのデプロイは同時に 1 つだけ。途中で中断しない）。
+  検証は `queue: max`（待機中のジョブを取り消さない。最大 100 件まで待機できる）、本番は既定の `queue: single` にする。
+  本番は新しい実行のジョブが来ると、承認待ち・待機中の古いジョブが `Canceling since a higher priority waiting request for deploy-production exists` で取り消される（ADR-0006）。
+  承認するのは、いちばん新しい実行の 1 件だけでよい。
 - **接続先の確認**（「Check connection variables」）: ビルドの前に、`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL` が
   ワークフローに書いた期待値（ジョブの `env:` の `EXPECTED_*`）と一致するかを確かめる。`NEXT_PUBLIC_SUPABASE_ANON_KEY` は、JWT の `ref` が期待値の URL のプロジェクトと同じで `role` が `anon` か
   （`service_role` などの秘密のキーをブラウザに渡る JS に埋め込まないため。許可するのは照合できた JWT と、中身を確かめられない公開用の `sb_publishable_` のキー（警告だけ）で、それ以外は失敗させる。
@@ -492,7 +494,8 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 6. **マージ後の最初の実行で確かめる**: `deploy-staging` が検証用の Worker にデプロイし、本番のジョブが承認待ちになること。
    #330 のマージ後の実行（2026-10-27）では、確認用のジョブ（`approve-production`）が承認待ちになることを確かめ（`a494109` の実行）、
    #363 のマージ後の最初の実行（2026-10-27。`e9caa6a` の実行）では、`deploy-production` が承認待ちになり、必須承認者の承認の後に本番へのデプロイが成功することを確かめた。
-   - #362 の後は、承認すると本番へデプロイされる。古い実行の承認待ちは、承認せずに却下（Reject）する（承認しても main の最新の確認で止まる。ADR-0003 決定 3）。
+   - #362 の後は、承認すると本番へデプロイされる。古い実行の承認待ちは、新しい実行が来ると自動で取り消される（ADR-0006）。
+     ADR-0006 の前（`queue: max`）に溜まった古い実行は、2026-11-18 に最新の 1 件を残して `gh run cancel` で取り消した（承認しても main の最新の確認で止まるため）。
    - 確認用のジョブの間（#330〜#362）に承認したものがあれば、デプロイしていないコミットが `production` のデプロイの記録に成功として残っている。
      その間の記録で本番の中身を判断しない（本番の中身は Cloudflare の Worker のデプロイの履歴で確かめる）。
 
@@ -646,7 +649,7 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 | ヘッダー | 値 | 付ける場所 |
 |---|---|---|
 | `Content-Security-Policy` | 下の表 | ページ（`next.config.ts` の `headers()`）。本番ビルド（`NODE_ENV=production`）のときだけ。検証環境は付けない（`DISABLE_NEXT_CONFIG_CSP`。#416） |
-| `Strict-Transport-Security` | `max-age=300; includeSubDomains`（段階 1。下の「HSTS」） | ページ（本番ビルドのときだけ）と静的ファイル |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains`（段階 2。下の「HSTS」） | ページ（本番ビルドのときだけ）と静的ファイル |
 | `X-Frame-Options` | `DENY` | ページと静的ファイル（`public/_headers`） |
 | `X-Content-Type-Options` | `nosniff` | ページと静的ファイル |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | ページと静的ファイル |
@@ -784,7 +787,7 @@ curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | gre
 
 ### HSTS
 
-HTTPS の応答に `Strict-Transport-Security` を付け、ブラウザに「このホストは HTTPS でしか開かない」と覚えさせる（#386）。
+HTTPS の応答に `Strict-Transport-Security` を付け、ブラウザに「このホストは HTTPS でしか開かない」と覚えさせる（#386・#411）。
 覚えたブラウザは、`http://` の URL を開くときもサーバーへ HTTP で問い合わせず、内部で `https://` に切り替える。
 一度 HTTPS で開いたブラウザが、その後 `http://` で開くときの HTTP の問い合わせを中継されて、リダイレクトを握りつぶされたまま偽の画面へ誘導される（SSL ストリッピング）のを防ぐ。
 初めての訪問（まだ覚えていないブラウザ）は防げない（RFC 6797 14.6。これを補うのが下の preload）。
@@ -813,8 +816,8 @@ HTTPS の応答に `Strict-Transport-Security` を付け、ブラウザに「こ
 
 | 段階 | 値 | 状態 |
 |---|---|---|
-| 1 | `max-age=300; includeSubDomains`（5 分） | #386 の 1 つ目の PR で導入。検証環境・本番での確認待ち |
-| 2 | `max-age=31536000; includeSubDomains`（1 年） | 段階 1 を本番で確かめた後に、#386 の 2 つ目の PR で上げる |
+| 1 | `max-age=300; includeSubDomains`（5 分） | #424 で導入。確認結果は下の「段階 1 の確認結果」 |
+| 2 | `max-age=31536000; includeSubDomains`（1 年） | #411 の PR で上げた（今の値） |
 
 - hstspreload.org は 5 分 → 1 週間 → 1 か月と刻み、各段階の `max-age` が切れるまで待って進めることを勧めている。
   このサイトはすでにすべて HTTPS で（上の「HTTPS へのリダイレクト」）、影響もこのホストの中で収まるため、#386 では 5 分から 1 年への 2 段階にした。
@@ -831,6 +834,7 @@ HTTPS の応答に `Strict-Transport-Security` を付け、ブラウザに「こ
 戻し方:
 
 - `max-age=0` を返すと、次に HTTPS で開いたブラウザは覚えた設定を消す。ヘッダーを外すだけでは、覚えた設定は `max-age` が切れるまで残る。
+- `max-age=0` が効くのは、そのホストを HTTPS で開き直したブラウザだけである。段階 2（1 年）の後は、戻してもしばらく開かない利用者のブラウザには最長 1 年残る。
 - 利用者のブラウザから個別に消すには、Chrome・Edge では `chrome://net-internals/#hsts`（Edge は `edge://net-internals/#hsts`）の「Delete domain security policies」を使う。
 
 注意:
@@ -848,6 +852,28 @@ curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | gre
 
 - ページ（`/` の 308・`/event-list`・`/about`・`/robots.txt`・`/icon.png`・404）と静的ファイル（`/_next/static/*`・`/images/*`）に
   `Strict-Transport-Security: max-age=300; includeSubDomains` が付き、`/_next/image` には付かないことを curl で確かめた。
+
+段階 1 の確認結果（上の「段階 1 で確かめること」）:
+
+2026-11-18 に確かめた（本番は `1d6d79d` のデプロイの後）。
+
+| 確認 | 検証環境 | 本番 |
+|---|---|---|
+| 応答に付いている（curl。ページ・`/`・404） | 付いていた | 付いていた |
+| HSTS で `http://` を開かずに `https://` へ切り替わる | 切り替わった | 切り替わった |
+| トップページ・API の呼び出し・画像の表示（Orca の内蔵ブラウザ） | 正常 | 正常 |
+| ログイン | 正常 | 正常 |
+
+- HSTS の切り替えは curl の HSTS キャッシュ（`--hsts <file>`。curl 8.23.0）で確かめた。`https://` で開くとホスト名が `includeSubDomains` 付き（先頭に `.`）で記録され、
+  続けて `http://` で開くとサーバーに HTTP で問い合わせずに `https://` の 200 になった。HSTS のない `natueve-api-stg.natuportal.org` は、同じ手順で HTTP のまま 301 が返った。
+- ブラウザでは Brave（Chromium 157）で確かめた（2026-11-19）。
+  - 検証環境: `http://` で開くと開発者ツールの Network に `307 Internal Redirect` が出て、応答ヘッダーに `Non-Authoritative-Reason: HSTS` が付いた。
+  - 本番: `brave://net-internals/#hsts` で `dynamic_sts_domain` にホスト名が出て、`dynamic_upgrade_mode: FORCE_HTTPS`・`dynamic_sts_include_subdomains: true`、
+    `dynamic_sts_expiry` と `dynamic_sts_observed` の差が 300 秒だった。Network には 307 の行が出なかった（理由は分かっていない）。
+  - Orca の内蔵ブラウザは `chrome://net-internals` を開けず、Network の記録にもリダイレクトの応答が残らないため、この確認には使えない。
+- 画面は、イベント一覧（API の `/api/v1/events`・`/api/v1/tags` が 200）と、イベント詳細のイベント画像（`assets.natuportal.org`・`assets-dev.natuportal.org` を `/_next/image` で表示）を確かめた。
+- ログインは「Google でサインイン」から Google のログイン画面（`redirect_to` が各環境の `/auth/callback`、Auth が各環境の Supabase プロジェクト）へ進み、
+  サインインの後にマイページが表示され、ログインが要る API（`/api/v1/me` が 200）が呼べることを確かめた。
 
 ## 月額の試算
 

@@ -86,8 +86,8 @@ describe("next.config.ts のセキュリティヘッダー", () => {
       "X-Frame-Options": "DENY",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "strict-origin-when-cross-origin",
-      // 5 分で確かめてから 1 年に延ばす（#386）。preload は付けない。
-      "Strict-Transport-Security": "max-age=300; includeSubDomains",
+      // 段階 2（1 年。#411）。preload は付けない（#386）。
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
     });
     expect(headers).toHaveProperty("Content-Security-Policy");
   });

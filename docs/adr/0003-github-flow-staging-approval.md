@@ -3,6 +3,7 @@
 - ステータス: Accepted
 - 日付: 2026-10-23
 - 関連: #350, #330, #328, #329, #332, #334, #351, #353, ADR-0001, ADR-0002, NatuEve_API ADR-0036, NatuEve_API ADR-0039
+- 一部置換: 決定 3 の本番ジョブの `queue: max` は [ADR-0006](./0006-production-deploy-queue-single.md) で既定（`single`）に置き換えた（2026-11-18）。検証ジョブは `queue: max` のまま
 - 構成の詳細・設定値・月額試算は [docs/Deployment.md](../Deployment.md) を参照
 
 ## コンテキストと課題
