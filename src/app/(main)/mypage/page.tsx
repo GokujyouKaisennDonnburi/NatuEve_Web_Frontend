@@ -173,6 +173,8 @@ export default function MyPage() {
       />
 
       <section>
+        {/* 各フックは自分の種別の counts のみ補正するため、
+            種別ごとに対応する呼び出しの counts をマージする */}
         <UserEventTabs
           hostedEvents={hostedEvents}
           participatedEvents={participatedEvents}
@@ -181,8 +183,6 @@ export default function MyPage() {
           errorMessage={
             eventError ? MESSAGES.EVENT_LIST_FETCH_ERROR : undefined
           }
-          // 各フックは自分の種別の counts のみ補正するため、
-          // 種別ごとに対応する呼び出しの counts をマージする
           counts={
             hostedCounts && appliedCounts && attendedCounts
               ? {
