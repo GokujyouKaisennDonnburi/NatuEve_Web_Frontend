@@ -23,6 +23,9 @@ const SUBMIT_TOAST_MESSAGE = "お問い合わせを送信しました";
 
 const CATEGORY_ERROR_MESSAGE = "お問い合わせ内容を選択してください";
 
+// 可視ラベルと radiogroup の読み上げ名で共有するため、定数に切り出す
+const CATEGORY_FIELD_LABEL = "お問い合わせ内容";
+
 const CATEGORY_ROW_CLASS_NAME = cn(
   "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors duration-200",
   "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-(--brand-green)/30",
@@ -76,14 +79,14 @@ export function ContactForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <FormField
         id={categoryId}
-        label="お問い合わせ内容"
+        label={CATEGORY_FIELD_LABEL}
         required
         error={categoryError}
       >
         {/* ラジオ本体は sr-only のため、グループには aria-label で項目名を渡す */}
         <div
           role="radiogroup"
-          aria-label="お問い合わせ内容"
+          aria-label={CATEGORY_FIELD_LABEL}
           className="space-y-2"
         >
           {CONTACT_CATEGORIES.map((option, index) => {

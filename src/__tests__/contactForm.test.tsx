@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -19,8 +19,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 // router のモックはテスト間で共有されるため、呼び出し記録を毎回リセットする
+// （cleanup は setup.ts の全体 afterEach で実行済み）
 afterEach(() => {
-  cleanup();
   mockBack.mockClear();
   mockPush.mockClear();
 });
