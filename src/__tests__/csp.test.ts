@@ -3,6 +3,7 @@
 
 import { readFileSync } from "node:fs";
 import { NextRequest } from "next/server";
+import ts from "typescript";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildCspHeader, buildTrustedTypesCspHeader } from "../lib/csp";
 import { proxy } from "../proxy";
@@ -383,23 +384,33 @@ describe("buildTrustedTypesCspHeader", () => {
 // 安全側の値も "false" と明示している（#412）。
 describe("wrangler.jsonc の実行時変数", () => {
   type WranglerVars = { vars?: Record<string, string> };
-  // 行頭の // コメントだけを外して JSON として読む（値の中の // には触れない）。
-  const wrangler = JSON.parse(
-    readFileSync(
-      new URL("../../wrangler.jsonc", import.meta.url),
-      "utf8",
-    ).replace(/^\s*\/\/.*$/gm, ""),
-  ) as WranglerVars & { env: Record<string, WranglerVars> };
+  // 行末・ブロックのコメントや末尾のカンマがあっても読めるよう、TypeScript の JSONC の読み込みを使う。
+  const { config, error } = ts.parseConfigFileTextToJson(
+    "wrangler.jsonc",
+    readFileSync(new URL("../../wrangler.jsonc", import.meta.url), "utf8"),
+  );
+  // 読めなかったときも下の it.each の表を作れるよう、空のオブジェクトにして「読める」のテストで落とす。
+  const wrangler = (config ?? {}) as WranglerVars & {
+    env?: Record<string, WranglerVars>;
+  };
+
+  it("wrangler.jsonc を読める", () => {
+    expect(error).toBeUndefined();
+  });
 
   it.each([
     ["本番（最上位）", wrangler.vars],
-    ["検証環境（env.staging）", wrangler.env.staging.vars],
+    ["検証環境（env.staging）", wrangler.env?.staging?.vars],
   ])('%sで CSP_REPORT_ONLY を "false"（enforce）と明示する', (_, vars) => {
     expect(vars?.CSP_REPORT_ONLY).toBe("false");
   });
 
-  // 本番の CSP に開発用の R2 を入れない（NatuEve_API ADR-0039 決定 6）。
-  it('本番（最上位）で USE_DEV_ASSETS を "false" と明示する', () => {
-    expect(wrangler.vars?.USE_DEV_ASSETS).toBe("false");
+  // 本番の CSP に開発用の R2 を入れない（NatuEve_API ADR-0039 決定 6）。検証環境は assets-dev の画像を
+  // 表示するため立てる（#353）。vars は env に引き継がれないため、検証環境で消すと画像が CSP で止まる。
+  it.each([
+    ["本番（最上位）", "false", wrangler.vars],
+    ["検証環境（env.staging）", "true", wrangler.env?.staging?.vars],
+  ])('%sで USE_DEV_ASSETS を "%s" と明示する', (_, expected, vars) => {
+    expect(vars?.USE_DEV_ASSETS).toBe(expected);
   });
 });
