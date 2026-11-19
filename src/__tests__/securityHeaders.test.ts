@@ -10,8 +10,6 @@ vi.mock("@opennextjs/cloudflare", () => ({
 
 type HeaderEnv = {
   nodeEnv?: string;
-  apiBaseUrl?: string;
-  supabaseUrl?: string;
   useMsw?: string;
   useDevAssets?: string;
 };
@@ -19,8 +17,6 @@ type HeaderEnv = {
 // headers() の規則をそのまま返す。検証環境（SITE_NOINDEX=true）では X-Robots-Tag の規則が増える。
 const loadHeaderRules = async ({
   nodeEnv = "production",
-  apiBaseUrl = "https://natueve-api.natuportal.org",
-  supabaseUrl = "https://example.supabase.co",
   useMsw,
   useDevAssets,
   siteNoindex,
@@ -28,8 +24,6 @@ const loadHeaderRules = async ({
   vi.resetModules();
 
   vi.stubEnv("NODE_ENV", nodeEnv);
-  vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", apiBaseUrl);
-  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", supabaseUrl);
   vi.stubEnv("NEXT_PUBLIC_USE_MSW", useMsw);
   vi.stubEnv("USE_DEV_ASSETS", useDevAssets);
   vi.stubEnv("SITE_NOINDEX", siteNoindex);

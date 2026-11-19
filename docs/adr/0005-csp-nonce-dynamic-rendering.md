@@ -61,6 +61,7 @@ nonce は応答ごとに変える必要があるため、使うと全ページ�
      #412 まで検証環境には有効な CSP がなくなる（クリックジャッキングは `X-Frame-Options` で防ぐ）。検証環境の Auth は開発用のプロジェクト（NatuEve_API ADR-0041）で、影響はそこにとどまるため受け入れる。
      本番は #412 まで #335 の CSP を enforce で残すため、この間の本番の Report-Only にも nonce が付かず、違反の観察には使えないと考えられる（検証環境の結果からの推定。本番に出した後に curl で確かめる）。
      #418 を戻すときは、`DISABLE_NEXT_CONFIG_CSP` も一緒に戻す（残すと検証環境に CSP が 1 つもなくなる）。
+     （#412 で `DISABLE_NEXT_CONFIG_CSP` は削除した。#412 の後の戻し方は「トレードオフ・制約」）
    - 本番に出す前に、検証環境で `curl -I` を取り、ページの応答のヘッダー名が `content-security-policy-report-only` であることと、
      検証環境の CSP に `https://assets-dev.natuportal.org` が入っていることを確かめる。
 3. #412 で nonce の CSP を enforce に切り替え、`next.config.ts` の CSP を外す。以後、CSP を付けるのは proxy だけにする。

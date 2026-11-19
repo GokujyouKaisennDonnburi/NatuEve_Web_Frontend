@@ -36,8 +36,9 @@ export const MOCK_IMAGE_ORIGINS = [
 
 // MSW 内で presign が返すダミー R2 のドメイン（src/mocks/handlers/uploads.ts）。
 // モックの presign が返す URL を変えるときに直し忘れると、MSW モードで
-// アップロードの PUT が CSP にブロックされるため、CSP（src/lib/csp.ts）と 1 つの定数を共有する。このモジュールはランタイム依存のない
-// 純粋な定数だけを持つため、uploads.ts（msw を同梱する）からも import できる。
+// アップロードの PUT が CSP にブロックされるため、CSP（src/lib/csp.ts）と 1 つの定数を共有する。
+// このモジュールはランタイム依存のない純粋な定数だけを持つため、uploads.ts（msw を同梱する）
+// からも import できる。
 export const MOCK_STORAGE_ORIGIN = "https://mock.storage.test";
 
 // 本番でも使う画像の取得元（R2 の公開ドメイン）。

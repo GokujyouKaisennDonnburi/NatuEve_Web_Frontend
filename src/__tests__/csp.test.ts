@@ -1,15 +1,16 @@
 // @vitest-environment node
 // CSP ヘッダー文字列だけを検証するため、DOM は使わない。
 
+import { readFileSync } from "node:fs";
 import { NextRequest } from "next/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildCspHeader, buildTrustedTypesCspHeader } from "../lib/csp";
-import {
-  developmentImageHosts,
-  mockImageHosts,
-  productionImageHosts,
-} from "../lib/imageOrigins";
 import { proxy } from "../proxy";
+
+// remotePatterns との突き合わせで next.config.ts を読み込むため、読み込み時の初期化を止める。
+vi.mock("@opennextjs/cloudflare", () => ({
+  initOpenNextCloudflareForDev: vi.fn(),
+}));
 
 // env を意図的に固定し、許可オリジンの回帰を検出するための差し替えヘルパー。
 // nextConfigImageHosts.test.ts と同じ体裁で、テスト後に元へ戻す。
@@ -159,16 +160,17 @@ describe("buildCspHeader", () => {
 
   // 画像最適化（next.config.ts の remotePatterns）で許可した取得元を、直接読み込むときにも CSP が止めない
   // （ADR-0005 決定 1）。#412 で next.config.ts の CSP を外したため、ここで proxy の CSP と突き合わせる。
+  // next.config.ts に直接足したホストも見つけられるよう、読み込んだ設定の remotePatterns と比べる。
   // スキーム・ポートの書き方は実装に任せ、ホスト名で突き合わせる（実装と同じ関数で期待値を作らない）。
-  it("img-src に remotePatterns のホストをすべて含める", () => {
+  it("img-src に remotePatterns のホストをすべて含める", async () => {
     setEnv("USE_DEV_ASSETS", "true");
     setEnv("NEXT_PUBLIC_USE_MSW", "true");
+    vi.resetModules();
+    const { default: nextConfig } = await import("../../next.config");
     const csp = buildCspHeader({ nonce: NONCE, isDev: false });
-    const hostnames = [
-      ...productionImageHosts,
-      ...developmentImageHosts,
-      ...mockImageHosts,
-    ].map(({ hostname }) => hostname);
+    const hostnames = (nextConfig.images?.remotePatterns ?? []).map(
+      ({ hostname }) => hostname,
+    );
     const imageSourceHostnames = (directiveSources(csp, "img-src") ?? []).map(
       (source) => URL.parse(source)?.hostname,
     );
@@ -186,13 +188,23 @@ describe("buildCspHeader", () => {
     );
   });
 
-  it("NEXT_PUBLIC_USE_MSW が true 以外ではモックの取得元・直 PUT 先を含めない", () => {
-    setEnv("NEXT_PUBLIC_USE_MSW", "false");
+  it.each([
+    ["false", "false"],
+    ["TRUE", "TRUE"],
+    ["空文字", ""],
+  ])("NEXT_PUBLIC_USE_MSW・USE_DEV_ASSETS が%sではモック・開発用の取得元と直 PUT 先を含めない", (_, value) => {
+    setEnv("NEXT_PUBLIC_USE_MSW", value);
+    setEnv("USE_DEV_ASSETS", value);
     const csp = buildCspHeader({ nonce: NONCE, isDev: false });
 
-    const sources = csp.split("; ");
-    expect(sources).not.toContain("https://picsum.photos");
-    expect(sources).not.toContain("https://mock.storage.test");
+    for (const name of ["img-src", "connect-src"]) {
+      const sources = directiveSources(csp, name);
+      expect(sources).not.toBeNull();
+      expect(sources).not.toContain("https://picsum.photos");
+      expect(sources).not.toContain("https://i.pravatar.cc");
+      expect(sources).not.toContain("https://mock.storage.test");
+      expect(sources).not.toContain("https://assets-dev.natuportal.org");
+    }
   });
 
   it("connect-src に API と Supabase のオリジンを足す", () => {
@@ -320,7 +332,7 @@ describe("proxy", () => {
         "require-trusted-types-for 'script'; trusted-types nextjs",
       );
       // Report-Only のときも request 側のヘッダー名を揃える。Next.js の nonce 抽出は
-      // Report-Only のヘッダーも対象である（parse-request-headers.js）ため、
+      // Report-Only のヘッダーも対象である（get-script-nonce-from-header.js）ため、
       // request 側に載っていないと Report-Only 時に script への nonce 付与が止まる。
       // Trusted Types のヘッダーは response にしか載らない（request 側は nonce 抽出に不要）。
       const requestCsp = response.headers.get(
@@ -364,5 +376,25 @@ describe("buildTrustedTypesCspHeader", () => {
   it("dev では Trusted Types を無効にする", () => {
     // React DevTools 等がシンクを使うため、違反で開発が止まらないようにする（#415 の AC）。
     expect(buildTrustedTypesCspHeader({ isDev: true })).toBeNull();
+  });
+});
+
+// 本番・検証環境とも nonce の CSP を enforce にする（#412）。未設定でも enforce になるが、vars にない変数は
+// ビルド時に読んだ .env 系ファイルの値で埋まる（OpenNext の populateProcessEnv）ため、"false" と明示している。
+describe("wrangler.jsonc の CSP_REPORT_ONLY", () => {
+  type WranglerVars = { vars?: Record<string, string> };
+  // 行頭の // コメントだけを外して JSON として読む（値の中の // には触れない）。
+  const wrangler = JSON.parse(
+    readFileSync(
+      new URL("../../wrangler.jsonc", import.meta.url),
+      "utf8",
+    ).replace(/^\s*\/\/.*$/gm, ""),
+  ) as WranglerVars & { env: Record<string, WranglerVars> };
+
+  it.each([
+    ["本番（最上位）", wrangler.vars],
+    ["検証環境（env.staging）", wrangler.env.staging.vars],
+  ])('%sで "false" と明示する', (_, vars) => {
+    expect(vars?.CSP_REPORT_ONLY).toBe("false");
   });
 });

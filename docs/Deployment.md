@@ -681,7 +681,9 @@ nonce と `'strict-dynamic'` の CSP を、`src/proxy.ts` がリクエストご�
 
 - 開発時（`next dev`）も付ける。`'unsafe-eval'`（React の開発版）・HMR 用の `ws:`・`wss:`・MSW 用の `worker-src 'self'` だけを足す（ADR-0005 決定 4）。
 - 接続先は実行時の `process.env` から組み立てる。`NEXT_PUBLIC_*` はビルド時に埋め込まれた値が使われる。値が空・URL でなければ許可に加えない（proxy を落とさないため。
-  その接続先は CSP で止まり、Console に出る）。検証環境の接続先は CI の「Check connection variables」で期待値と比べる。
+  その接続先は CSP で止まり、Console に出る）。
+  #412 より前は `next.config.ts` の CSP が URL でない値でビルドを止めていたが、その検査はなくなった。代わりに、本番・検証環境とも
+  デプロイのジョブの「Check connection variables」で、接続先が期待値と完全に一致するかを確かめる（下の「CI/CD」）。
 - **接続先・画像の取得元・埋め込みを足すとき（新しい外部 API、アクセス解析、YouTube や地図の埋め込み、Google 以外のログイン方法のアバターなど）は、`src/lib/csp.ts` にも足す。**
   足さないとブラウザが止め、通信の失敗・画像が出ない・埋め込みが空になるといった症状になる（#412 から enforce のため、本番でも止まる）。
   埋め込み（`<iframe>`）は `frame-src` を足す（今は `default-src 'self'` に従い、他サイトの枠は止まる）。リンクで移るだけなら CSP は関係ない。
@@ -689,13 +691,15 @@ nonce と `'strict-dynamic'` の CSP を、`src/proxy.ts` がリクエストご�
   nonce の CSP で差し込まれたスクリプトはそもそも動かず、動いた場合もページの移動など CSP で止められない持ち出し方が残るため、
   アカウント ID を実行時に渡して揃え続ける手間と、ずれたときにアップロードが壊れる危険に見合わない。
 - 違反の報告先（`report-uri`・`report-to`）は指定していない。違反は利用者のブラウザのコンソールに出るだけで、こちらには届かない。
-- `_global-error` はビルド時に作られるため nonce が付かず、enforce の下ではその画面のスクリプトが止まる（root layout で例外が出たときだけ使う画面。#418）。
+- `_global-error` はビルド時に作られるため nonce が付かず、enforce の下ではその画面のスクリプトが止まる（root layout で例外が出たときだけ使う画面。#418。
+  仕組みからの判断で、その画面を出して試してはいない）。
 
 CSP を proxy だけで付ける理由:
 
 - Workers では、OpenNext が `next.config.ts` の `headers()` と proxy の応答ヘッダーを、Next.js に渡すリクエストのヘッダーにも写す（`@opennextjs/aws` 4.1.12 の `core/requestHandler.js`）。
   Next.js は nonce を `Content-Security-Policy` から、なければ `-Report-Only` から読む（next 16.4.6 の `get-script-nonce-from-header.js`。16.4.2 では `parse-request-headers.js`）。
-  そのため、nonce のない CSP をほかの場所で付けると、Next.js がそれを読んで `<script>` に nonce を付けず、全スクリプトが止まる（#416 で検証環境と `bun run preview` で確かめた）。
+  そのため、nonce のない CSP をほかの場所で付けると、Next.js がそれを読んで `<script>` に nonce を付けない（#416 で検証環境と `bun run preview` で確かめた。Report-Only での確認）。
+  enforce では、その結果として nonce のないスクリプトがすべて止まる（仕組みからの判断で、enforce の下では試していない）。
 - #412 で `next.config.ts` の #335 の CSP（`script-src 'self' 'unsafe-inline'`）と、検証環境でそれを外すビルド時のフラグ `DISABLE_NEXT_CONFIG_CSP` を消した。
   `next.config.ts` の `headers()` に CSP を足さない（テストで確かめる）。
 
@@ -726,7 +730,7 @@ CSP が付かないパス（ADR-0005 決定 3）:
   Report-Only のヘッダーで観察を続け、上流が直った後に enforce の CSP へ統合するかを改めて決める。
 - `CSP_REPORT_ONLY=true` のとき（#412 より前と、上の「戻し方」で戻したとき）は nonce の CSP も同じヘッダー名で Report-Only になるため、proxy は `set` ではなく `append` で足す
   （`set` だと観察中の nonce の CSP を上書きで消してしまう）。最終の応答では、同じ名前のヘッダーは
-  **カンマ区切りで 1 行に連結**されて届く（ローカルの preview で実測。下の「確認したこと」）。カンマ区切りの CSP は
+  **カンマ区切りで 1 行に連結**されて届く（ローカルの preview で実測。下の「#415 の確認」）。カンマ区切りの CSP は
   複数のポリシーとして評価されるため、nonce の CSP も Trusted Types のポリシーもどちらも失われず、両方とも Report-Only で評価される。
   潰れる（last-wins になる）ことは確認できていないが、潰れた場合は RO モードのときに 1 つのヘッダー値へ連結するフォールバックを検討する。
 - `trusted-types nextjs` は、作れる Trusted Types のポリシー名を、Next.js のランタイムが使う `nextjs`
