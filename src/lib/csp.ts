@@ -12,6 +12,9 @@ import {
 
 // presign が返す署名付き PUT の宛先（R2 の S3 API エンドポイント）。
 // アカウント ID はフロントからは不明のため、ドメイン全体を許可する。
+// ほかのアカウントの R2 にも一致し、スクリプトが動けば持ち出し先になりうるが、#412 で絞らないと決めた。
+// nonce の CSP（enforce）で差し込まれたスクリプトはそもそも動かず、動いた場合もページの移動など
+// CSP で止められない持ち出し方が残るため、絞る手間とアップロードが壊れる危険に見合わない（ADR-0005）。
 const R2_STORAGE_ENDPOINT_SOURCE = "https://*.r2.cloudflarestorage.com";
 
 const isFlagEnabled = (value: string | undefined) => value === "true";
@@ -94,7 +97,6 @@ export function buildCspHeader({
     "'self'",
     ...connectOrigins,
     // MSW のモックの署名付き URL の直 PUT 先（src/mocks/handlers/uploads.ts）。
-    // next.config.ts の #335 の CSP と同じ許可にする。
     ...(isFlagEnabled(process.env.NEXT_PUBLIC_USE_MSW)
       ? [MOCK_STORAGE_ORIGIN]
       : []),
@@ -124,10 +126,10 @@ export function buildCspHeader({
 
 // Trusted Types のヘッダーの中身を組み立てる純粋関数（#415）。
 // nonce の CSP とは別のヘッダーとして、常に Report-Only で付ける。
-// enforce の CSP（#335 の CSP・#412 以降の nonce の CSP）に含めないのは、Turbopack の
+// enforce の nonce の CSP（buildCspHeader）に含めないのは、Turbopack の
 // ランタイムがチャンク読み込みの script.src に文字列を直接代入していて
 // （vercel/next.js#101261。2026-11-16 時点で修正はリリースされていない）、強制すると
-// ページ間の移動・先読みが止まり、#412 の enforce 切替が上流の修正待ちで止まってしまうため。
+// ページ間の移動・先読みが止まるため。
 // Report-Only のヘッダーで観察を続け、上流が直った後に enforce の CSP へ統合するかを決める。
 // dev では null を返し、ヘッダー自体を付けない（#415 の AC）。React DevTools など
 // 開発ツールがシンクを使うため、違反で開発が止まるのを避ける。

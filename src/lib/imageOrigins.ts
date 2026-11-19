@@ -24,7 +24,7 @@ export const PRODUCTION_ASSETS_ORIGIN = `https://${ASSETS_HOSTNAME}`;
 export const DEVELOPMENT_ASSETS_ORIGIN = `https://${DEVELOPMENT_ASSETS_HOSTNAME}`;
 
 // Google のプロフィール画像。unoptimized で直接表示するため remotePatterns には
-// 含めない（next.config.ts のコメント参照）。CSP の img-src だけに載る。
+// 含めない。CSP の img-src だけに載る。
 export const GOOGLE_PROFILE_IMAGE_ORIGIN = "https://lh3.googleusercontent.com";
 
 // MSW のモックデータでのみ使う画像の取得元。
@@ -36,8 +36,7 @@ export const MOCK_IMAGE_ORIGINS = [
 
 // MSW 内で presign が返すダミー R2 のドメイン（src/mocks/handlers/uploads.ts）。
 // モックの presign が返す URL を変えるときに直し忘れると、MSW モードで
-// アップロードの PUT が CSP にブロックされるため、CSP（src/lib/csp.ts・next.config.ts の
-// #335 の CSP）と 1 つの定数を共有する。このモジュールはランタイム依存のない
+// アップロードの PUT が CSP にブロックされるため、CSP（src/lib/csp.ts）と 1 つの定数を共有する。このモジュールはランタイム依存のない
 // 純粋な定数だけを持つため、uploads.ts（msw を同梱する）からも import できる。
 export const MOCK_STORAGE_ORIGIN = "https://mock.storage.test";
 
