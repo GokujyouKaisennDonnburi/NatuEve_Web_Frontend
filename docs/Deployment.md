@@ -224,8 +224,8 @@ curl -sS -o /dev/null -D - "http://natueve-web.natuportal.org/event-list?page=1"
 接続先の変数（`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL`・`NEXT_PUBLIC_SUPABASE_ANON_KEY`）とデプロイ用のトークンは、
 GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`、本番用は `production` の Variables/Secrets に、同じ変数名で置く。
 デプロイに使う値はリポジトリの Variables/Secrets には置かない（`ci.yml` は、品質チェックのビルドも含めてリポジトリの Variables を参照しない。#330）。
-ビルド時のフラグ（`NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS`・`SITE_NOINDEX`・`DISABLE_NEXT_CONFIG_CSP`）は Environment に置かず、ワークフローの `env:` に固定する。
-`NEXT_PUBLIC_*`・`USE_DEV_ASSETS`・`SITE_NOINDEX`・`DISABLE_NEXT_CONFIG_CSP` はビルド時に反映されるため、本番と検証で値が違う場合はそれぞれの値でビルドし直す（使い回さない。ADR-0003）。
+ビルド時のフラグ（`NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS`・`SITE_NOINDEX`）は Environment に置かず、ワークフローの `env:` に固定する。
+`NEXT_PUBLIC_*`・`USE_DEV_ASSETS`・`SITE_NOINDEX` はビルド時に反映されるため、本番と検証で値が違う場合はそれぞれの値でビルドし直す（使い回さない。ADR-0003）。
 `CSP_REPORT_ONLY` は Worker の実行時に読む変数のため、ビルド時の `env:` とは別に、`wrangler.jsonc` の `vars` で渡す（下の「Worker の実行時変数」）。
 
 - 検証デプロイのジョブは `environment: staging`、本番デプロイのジョブは `environment: production` を指定する。
@@ -252,7 +252,7 @@ GitHub Actions の Environment に置く（ADR-0003）。検証用は `staging`�
 実行時には `src/lib/csp.ts` も参照する（CSP の `img-src`・`connect-src` に開発用の取得元を足す。下の「Worker の実行時変数」）。
 本番の値は `production` の Environment に設定済み（2026-10-27。#329）で、本番のデプロイのジョブ（`deploy-production`。#362）で使う。
 #329 の受け入れ基準は ADR-0003 に合わせて更新済みである（`BUN_VERSION` は使わず。下記「ビルドに使うツールの版」）。
-`NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS`・`SITE_NOINDEX`・`DISABLE_NEXT_CONFIG_CSP` はワークフローの `env:` に固定する（下の表）。
+`NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS`・`SITE_NOINDEX` はワークフローの `env:` に固定する（下の表）。
 
 Environment に置く変数（接続先）:
 
@@ -269,9 +269,8 @@ Environment に置かず、ワークフローの `env:` に固定するフラグ
 | `NEXT_PUBLIC_USE_MSW` | `false` | `false` | 本番・検証ともモックを使わない。`true` のときだけ画像最適化のモック用取得元（picsum.photos・i.pravatar.cc）を許可する（#327）。ワークフローの `env:` に `"false"` を固定する（#330） |
 | `USE_DEV_ASSETS` | 未設定（または `false`） | `true` | `true` のとき、ビルド時には `next.config.ts` の `remotePatterns` にローカル開発・検証環境用の R2 の公開ドメイン `assets-dev.natuportal.org`（NatuEve_API ADR-0039）を、本番と同じ `pathname`・`search`・`port` の制限付きで加え（#353・#351）、実行時には `src/lib/csp.ts` が CSP の `img-src`・`connect-src` に同じオリジンを足す（下の「Worker の実行時変数」）。未設定・`false` では許可しない。ジョブごとにワークフローの `env:` に固定する（検証ジョブは `true`、本番ジョブは `"false"` と明示。#330）。本番のビルドで立てると、本番の画像最適化が開発用バケットの画像も変換するようになる |
 | `SITE_NOINDEX` | `false` | `true` | `true` のときだけ、`next.config.ts` の `headers()` で全ページに `X-Robots-Tag: noindex` を付ける（#372。付かないパスは「robots.txt / noindex」）。未設定・`false` では付けない。本番を検索から消さないよう、本番ジョブでも `"false"` と明示する |
-| `DISABLE_NEXT_CONFIG_CSP` | `false` | `true` | `true` のときだけ、`next.config.ts` の `headers()` で #335 の `Content-Security-Policy` を付けない（#416）。検証環境は proxy の nonce の CSP（Report-Only）だけにする。理由は下の「nonce を使う CSP への切り替え」。未設定・`false` では付ける。本番の enforce を外さないよう、本番ジョブでも `"false"` と明示する。#412 で #335 の CSP ごと消す |
 
-- `NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS`・`SITE_NOINDEX`・`DISABLE_NEXT_CONFIG_CSP` のビルド時の反映（`next.config.ts` への許可リスト・ヘッダー）は、値を変えると再ビルドが必要。
+- `NEXT_PUBLIC_USE_MSW`・`USE_DEV_ASSETS`・`SITE_NOINDEX` のビルド時の反映（`next.config.ts` への許可リスト・ヘッダー）は、値を変えると再ビルドが必要。
 - ローカル開発は従来どおり `.env.local` を使う。Workers のランタイムで確認する場合は `.dev.vars`（`NEXTJS_ENV=development`）を使う。
   どちらもコミットしない。
   - ローカル開発・`bun run preview` では、`.env.local` に `USE_DEV_ASSETS=true` を設定する（`.env.example` の既定）。
@@ -293,7 +292,7 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 
 | 変数 | 本番の値 | 検証環境の値 | 備考 |
 |---|---|---|---|
-| `CSP_REPORT_ONLY` | `true` | `true` | `true` のとき、proxy が nonce の CSP を `Content-Security-Policy-Report-Only` で付ける。#416 で違反を解消するまで本番・検証とも `true` にする。本番は #335 の `Content-Security-Policy`（enforce）と併用し、検証環境は #335 の CSP を外す（`DISABLE_NEXT_CONFIG_CSP`。ADR-0005 決定 2）。enforce への切替は #412 |
+| `CSP_REPORT_ONLY` | `false` | `false` | `true` のとき、proxy が nonce の CSP を `Content-Security-Policy-Report-Only` で付ける（違反を止めない）。それ以外では `Content-Security-Policy`（enforce）。#412 で本番・検証とも `"false"` にした（それまでは `true`）。未設定でも enforce になるが、`vars` にない変数はビルド時に読んだ `.env` 系ファイルの値で埋まる（OpenNext の `populateProcessEnv` は `vars` を先に入れ、`.env` の値は未設定のものだけに `??=` で入れる）ため、コミットされうる `.env.production` に左右されないよう明示する。障害のときに `true` に戻す手順と注意は下の「CSP」の「戻し方」 |
 | `USE_DEV_ASSETS` | （設定しない） | `true` | `true` のとき、`src/lib/csp.ts` が CSP の `img-src`・`connect-src` に `assets-dev.natuportal.org` を足す。検証環境は `assets-dev` の画像を表示するため立てる（#353）。本番は立てない |
 
 - 値を変えると、次のデプロイで反映される（ビルドのし直しは不要。`vars` はデプロイ時に Worker に付けられる）。
@@ -381,11 +380,11 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
   （`opennextjs-cloudflare deploy` はビルドしない）。同じジョブのステップはファイルを共有するため、これはトークンの露出を減らすだけで、
   主な防御はトークンの権限の絞り込みである（「Cloudflare の API トークン」。ADR-0003 決定 3）。
 - **ローカルからは `bun run deploy` を実行しない。** Next.js は本番ビルドでも `.env.local` を読み込み
-  （読まないのは test のときだけ）、`NEXT_PUBLIC_*`・`USE_DEV_ASSETS`・`SITE_NOINDEX`・`DISABLE_NEXT_CONFIG_CSP` はビルド時に反映されるため、
+  （読まないのは test のときだけ）、`NEXT_PUBLIC_*`・`USE_DEV_ASSETS`・`SITE_NOINDEX` はビルド時に反映されるため、
   ローカルの値（例: `NEXT_PUBLIC_USE_MSW=true`、`USE_DEV_ASSETS=true`、ローカル API のオリジン）が本番ビルドに混入する。
   やむを得ずローカルから実行する場合は、本番の値を環境変数として明示的に渡す（`process.env` は `.env.local` より優先される）。
-  その際、**`.env.local` にあるビルド時に効く値（`NEXT_PUBLIC_*`・`USE_DEV_ASSETS`・`SITE_NOINDEX`・`DISABLE_NEXT_CONFIG_CSP`）はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
-  特に `NEXT_PUBLIC_USE_MSW=false` と `USE_DEV_ASSETS=false` を渡し忘れると、モック認証や開発用画像の許可が本番で有効になるため注意。`.env.local` に `SITE_NOINDEX=true` があるときに `SITE_NOINDEX=false` を渡し忘れると、本番が検索から消える。`DISABLE_NEXT_CONFIG_CSP=true` があるときに `DISABLE_NEXT_CONFIG_CSP=false` を渡し忘れると、本番の enforce の CSP が消える）。
+  その際、**`.env.local` にあるビルド時に効く値（`NEXT_PUBLIC_*`・`USE_DEV_ASSETS`・`SITE_NOINDEX`）はすべて上書きする**（渡さなかった変数には `.env.local` の値が使われる。
+  特に `NEXT_PUBLIC_USE_MSW=false` と `USE_DEV_ASSETS=false` を渡し忘れると、モック認証や開発用画像の許可が本番で有効になるため注意。`.env.local` に `SITE_NOINDEX=true` があるときに `SITE_NOINDEX=false` を渡し忘れると、本番が検索から消える）。
   検証環境・本番とも CI からデプロイする（検証環境 #330、本番 #362。後述の「CI/CD」）。
 - **本番の取得元（`assets.natuportal.org`）には `pathname`・`search`・`port` の制限を入れている（[#351](https://github.com/GokujyouKaisennDonnburi/NatuEve_Web_Frontend/issues/351)）。** 値は[画像最適化](#画像最適化)を参照。
   開発用の `assets-dev.natuportal.org` にも同じ制限を付けている（キー形式は本番と同じ）。この制限を外したり広げたりしたまま本番へデプロイしない。
@@ -415,7 +414,7 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 |---|---|---|---|
 | `quality` | PR・main への push | — | Lint・Format・Typecheck・Test・シェルスクリプトの検査（`bash -n`・`shellcheck -S warning`）。ビルドは PR だけで、デプロイと同じコマンドの `opennextjs-cloudflare build --env staging`（トークンなし。接続先の値（`NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_*`）は空文字で明示し、`.env.production`（.gitignore の外でコミットされうる）に接続先を書かれてもビルドに使えないようにする。値が空のため、プリレンダリングで接続先を使うとビルドが失敗して気づける。値の取り違えのようにビルドが通る誤りは main の `deploy-staging`（接続先の確認）まで分からない。成果物はデプロイしない） |
 | `deploy-staging` | main への push（`quality` の後） | `staging` | 接続先の確認 → `opennextjs-cloudflare build --env staging` → main の最新かの確認 → `opennextjs-cloudflare deploy --env staging` |
-| `deploy-production` | `deploy-staging` の後、承認を経て | `production`（承認が要る） | 接続先の確認 → `opennextjs-cloudflare build`（本番の値。`USE_DEV_ASSETS`・`SITE_NOINDEX`・`DISABLE_NEXT_CONFIG_CSP` は立てない）→ main の最新かの確認 → `opennextjs-cloudflare deploy`（#362） |
+| `deploy-production` | `deploy-staging` の後、承認を経て | `production`（承認が要る） | 接続先の確認 → `opennextjs-cloudflare build`（本番の値。`USE_DEV_ASSETS`・`SITE_NOINDEX` は立てない）→ main の最新かの確認 → `opennextjs-cloudflare deploy`（#362） |
 
 `quality` の表示名（`Lint / Format / Typecheck / Test / Build`）はシェルスクリプトの検査を含めていない。表示名は必須チェックの設定に紐づく可能性があるため、変更は必須チェックへの影響を確認してからにする（#362 のレビュー）。
 
@@ -456,7 +455,6 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 - 期待値は本番の値（`https://natueve-api.natuportal.org`・`https://tpszowxdhvthxyqorvwr.supabase.co`）。
 - `USE_DEV_ASSETS` は `"false"` と明示して立てない（`NEXT_PUBLIC_USE_MSW` は `"false"` に固定する。`.env.production` は .gitignore の外でコミットされうるため、未設定に頼らず明示する。#353・#362 のレビュー）。
 - `SITE_NOINDEX` も `"false"` と明示して立てない（立てると本番が検索から消える。#372）。
-- `DISABLE_NEXT_CONFIG_CSP` も `"false"` と明示して立てない（立てると #412 の前に本番の enforce の CSP が消える。#416）。
 - 最上位の設定を使うため、ジョブの `env:` に `CLOUDFLARE_ENV: ""` を置く（ジョブの `env:` は全ステップに継承され、空文字が設定される場合には、ビルドとデプロイの両方のステップで効く。`CLOUDFLARE_ENV` を参照しない他のステップには、空文字の変数が設定されるだけで影響はない）。
   `wrangler.jsonc` に `env` があるため、環境を指定しないと wrangler が警告を出す。`--env=""` は OpenNext 1.20.13 が空文字を捨てて wrangler に渡さないため効かない
   （`getWranglerArgs` の `args.env ? [...] : []`）。wrangler は `CLOUDFLARE_ENV` が環境変数にあれば空文字でも指定ありとみなし（`variableName in process.env`）、
@@ -644,72 +642,89 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 
 ## セキュリティヘッダー
 
-本番・検証環境の応答に次のヘッダーを付ける（#335。HSTS は #386）。
+本番・検証環境の応答に次のヘッダーを付ける（#335。HSTS は #386。CSP は #412 で proxy の nonce の CSP に切り替えた）。
 
 | ヘッダー | 値 | 付ける場所 |
 |---|---|---|
-| `Content-Security-Policy` | 下の表 | ページ（`next.config.ts` の `headers()`）。本番ビルド（`NODE_ENV=production`）のときだけ。検証環境は付けない（`DISABLE_NEXT_CONFIG_CSP`。#416） |
+| `Content-Security-Policy` | 下の「CSP」 | ページ（`src/proxy.ts`）。proxy を通るリクエストだけ（下の「CSP が付かないパス」） |
+| `Content-Security-Policy-Report-Only` | `require-trusted-types-for 'script'; trusted-types nextjs` | ページ（`src/proxy.ts`）。Trusted Types を観察するため（下の「Trusted Types」）。開発時は付けない |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains`（段階 2。下の「HSTS」） | ページ（本番ビルドのときだけ）と静的ファイル |
 | `X-Frame-Options` | `DENY` | ページと静的ファイル（`public/_headers`） |
 | `X-Content-Type-Options` | `nosniff` | ページと静的ファイル |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | ページと静的ファイル |
 
-- ページと静的ファイルで値を揃える（`next.config.ts` の `commonSecurityHeaders`・`strictTransportSecurityHeader` と `public/_headers`。テストで一致を確かめる）。
-- `/_next/image` には付かない（`headers()` も `_headers` も通らない）。応答には Next.js が画像用に付ける `Content-Security-Policy: script-src 'none'; frame-src 'none'; sandbox;` だけが付く。
+- CSP 以外の 4 つは `next.config.ts` の `headers()` と `public/_headers` で付け、値を揃える（`commonSecurityHeaders`・`strictTransportSecurityHeader`。テストで一致を確かめる）。
+- `/_next/image` には付かない（`headers()` も `_headers` も proxy も通らない）。応答には Next.js が画像用に付ける `Content-Security-Policy: script-src 'none'; frame-src 'none'; sandbox;` だけが付く。
   画像は枠に埋め込まれても操作を乗っ取られる画面がなく、`Content-Type` も画像の型で返るため、許容する。
-- 開発時（`next dev`）は CSP を付けない。React の開発版が使う `eval` と HMR を止めないため。CSP の確認は `bun run preview` で行う。
 - `X-Frame-Options` は、CSP の `frame-ancestors` を解さない古いブラウザ向けに併せて付ける。
 - `Permissions-Policy` は付けていない。カメラ・マイク・位置情報を使う機能を足すときに、使う機能だけを `(self)` で許可する形で決める。
 
-CSP の内容:
+### CSP
+
+nonce と `'strict-dynamic'` の CSP を、`src/proxy.ts` がリクエストごとに nonce を作って付ける（#413・#412。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-rendering.md)）。
+中身は `src/lib/csp.ts` の `buildCspHeader` で組み立てる。本番・検証環境とも enforce（`Content-Security-Policy`）で、
+`CSP_REPORT_ONLY` を `"false"` にしている（上の「Worker の実行時変数」）。
 
 | 項目 | 値 | 理由 |
 |---|---|---|
-| `default-src` | `'self'` | 下に書かない種類（`frame-src`・`worker-src` など）は自サイトだけ |
-| `script-src` | `'self' 'unsafe-inline'` | Next.js はページにインラインスクリプトを埋め込む。nonce への切り替えは下の「nonce を使う CSP への切り替え」 |
+| `default-src` | `'self'` | 下に書かない種類（`frame-src` など）は自サイトだけ |
+| `script-src` | `'self' 'nonce-{nonce}' 'strict-dynamic'` | nonce の付いたスクリプトと、それが読み込んだスクリプトだけを動かす。`'self'` は `'strict-dynamic'` を解さない古いブラウザ向けで、対応するブラウザでは無視される。`'unsafe-inline'`・`'unsafe-eval'` は含めない |
 | `style-src` | `'self' 'unsafe-inline'` | `next/image` の `style` 属性・sonner が差し込む `<style>` など、インラインのスタイルがある |
-| `img-src` | `'self' blob:` と画像の取得元 | `blob:` はアップロード前のプレビュー。取得元は `remotePatterns` と同じホスト（`USE_DEV_ASSETS`・`NEXT_PUBLIC_USE_MSW` で増える）と、アバターの `lh3.googleusercontent.com` |
+| `img-src` | `'self' data: blob:` と画像の取得元 | `blob:` はアップロード前のプレビュー。取得元は R2 の公開ドメイン（`USE_DEV_ASSETS=true` で `assets-dev` が増える）・アバターの `lh3.googleusercontent.com`・MSW のモック（`NEXT_PUBLIC_USE_MSW=true` のとき）。`remotePatterns` と同じ `src/lib/imageOrigins.ts` から作り、テストで一致を確かめる |
 | `font-src` | `'self'` | `next/font/google` はビルド時にフォントを取り込み、自サイトから配る |
-| `connect-src` | `'self'`・API・Supabase Auth・`https://*.r2.cloudflarestorage.com` | API と Supabase は `NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL` のオリジン。R2 は presign の署名付き URL への PUT（NatuEve_API の `internal/storage/r2.go`） |
+| `connect-src` | `'self'`・R2 の公開ドメイン・`https://*.r2.cloudflarestorage.com`・API・Supabase Auth | API と Supabase は `NEXT_PUBLIC_API_BASE_URL`・`NEXT_PUBLIC_SUPABASE_URL` のオリジン。R2 は presign の署名付き URL への PUT（NatuEve_API の `internal/storage/r2.go`） |
 | `object-src` | `'none'` | `<object>`・`<embed>` を使わない |
 | `base-uri` | `'self'` | `<base>` の差し込みで相対 URL の行き先を変えられないようにする |
 | `form-action` | `'self'` | フォームを他サイトへ送らせない（OAuth は画面遷移で、フォーム送信ではない） |
 | `frame-ancestors` | `'none'` | 他サイトの枠に埋め込ませない（クリックジャッキング対策） |
+| `upgrade-insecure-requests` | ― | `http://` の読み込みを `https://` に上げる。Report-Only では無視されるため、`CSP_REPORT_ONLY=true` のときは付けない |
 
-- 接続先はビルド時の環境変数から組み立てる。本番と検証環境で値が違うため、環境ごとにビルドする（上の「環境変数」）。
-  値が空なら許可に加えず、URL でなければビルドを止める。
-  `DISABLE_NEXT_CONFIG_CSP=true` のビルド（CI の品質チェックと検証環境）では CSP を組み立てないため、この検査が効くのは本番のビルドと単体テストだけである。
-  検証環境の接続先は CI の「Check connection variables」で期待値と比べる。
-- R2 のホストはアカウント ID を含むが、ワイルドカードにしている。指定するにはビルドに変数を足す必要があり、
-  `'unsafe-inline'` の下では絞っても XSS の持ち出し先が減る効果は小さいため。nonce の CSP に切り替えるとき（#412）に、絞るかを改めて決める。
-- 接続先・画像の取得元を足すとき（新しい外部 API、Google 以外のログイン方法のアバターなど）は、CSP にも足す。足さないとブラウザが止め、通信の失敗・画像が出ないといった症状になる。
+- 開発時（`next dev`）も付ける。`'unsafe-eval'`（React の開発版）・HMR 用の `ws:`・`wss:`・MSW 用の `worker-src 'self'` だけを足す（ADR-0005 決定 4）。
+- 接続先は実行時の `process.env` から組み立てる。`NEXT_PUBLIC_*` はビルド時に埋め込まれた値が使われる。値が空・URL でなければ許可に加えない（proxy を落とさないため。
+  その接続先は CSP で止まり、Console に出る）。検証環境の接続先は CI の「Check connection variables」で期待値と比べる。
+- **接続先・画像の取得元・埋め込みを足すとき（新しい外部 API、アクセス解析、YouTube や地図の埋め込み、Google 以外のログイン方法のアバターなど）は、`src/lib/csp.ts` にも足す。**
+  足さないとブラウザが止め、通信の失敗・画像が出ない・埋め込みが空になるといった症状になる（#412 から enforce のため、本番でも止まる）。
+  埋め込み（`<iframe>`）は `frame-src` を足す（今は `default-src 'self'` に従い、他サイトの枠は止まる）。リンクで移るだけなら CSP は関係ない。
+- R2 の S3 API のホストはワイルドカードにしている。ほかのアカウントの R2 にも一致し、スクリプトが動けば持ち出し先になりうるが、#412 で絞らないと決めた（ADR-0005 の「トレードオフ・制約」）。
+  nonce の CSP で差し込まれたスクリプトはそもそも動かず、動いた場合もページの移動など CSP で止められない持ち出し方が残るため、
+  アカウント ID を実行時に渡して揃え続ける手間と、ずれたときにアップロードが壊れる危険に見合わない。
 - 違反の報告先（`report-uri`・`report-to`）は指定していない。違反は利用者のブラウザのコンソールに出るだけで、こちらには届かない。
+- `_global-error` はビルド時に作られるため nonce が付かず、enforce の下ではその画面のスクリプトが止まる（root layout で例外が出たときだけ使う画面。#418）。
 
-nonce を使う CSP への切り替え（[ADR-0005](./adr/0005-csp-nonce-dynamic-rendering.md)）:
+CSP を proxy だけで付ける理由:
 
-- #335 では nonce を見送ったが、ADR-0005 で採用を決めた。nonce の CSP は `src/proxy.ts` が付ける（#413）。
-- #412 までは nonce の CSP を本番・検証環境とも `Content-Security-Policy-Report-Only` で付ける。本番は上の CSP を有効のまま並べて付け、検証環境は上の CSP を外す（`DISABLE_NEXT_CONFIG_CSP`）。
-  本番も Report-Only にするのは、違反の解消（#416）が終わる前に本番でスクリプトを止めないため。下の「見送ったこと」の様子見とは目的が違い、
-  違反は検証環境の DevTools で確かめる（#416）。#412 で nonce の CSP を有効にし、`next.config.ts` の CSP を外す。
-- 検証環境で上の CSP を外すのは、Workers では上の CSP があると nonce が `<script>` に付かないため（#416）。
-  OpenNext は `headers()` と proxy の応答ヘッダーを、Next.js に渡すリクエストのヘッダーにも写す（`@opennextjs/aws` 4.1.12 の `core/requestHandler.js`）。
-  Next.js は nonce を `Content-Security-Policy` から `-Report-Only` より先に探す（next 16.4.2 の `parse-request-headers.js`）ため、nonce のない上の CSP を読んで nonce なしで描画する。
-  `next dev` では上の CSP を付けないため起きず、`bun run preview`（Workers のランタイム）では起きる。
-  本番の Report-Only にも #412 まで nonce が付かず、全スクリプトが違反として Console に出ると考えられる（止まりはしない。検証環境の結果からの推定で、本番に出した後に curl で確かめる）。違反の観察は検証環境で行う。
-- #412 まで検証環境には有効な CSP がない（差し込まれたスクリプトも止まらない。クリックジャッキングは `X-Frame-Options` で防ぐ）。
-  検証環境の Auth は開発用のプロジェクト（上の「環境変数」）で、影響はそこにとどまるため受け入れる。
-- 全ページの動的レンダリングは、#412 の切り替えを待たず #413 を出した時点から始まり、HTML をキャッシュして配れなくなる。受け入れた費用と表示速度への影響は ADR-0005 に記録した。
-- #413・#412 のマージ時に、この節・上の表・「イベント詳細の SSR / メタデータ」のキャッシュの記述・開発時に CSP を付けないとした記述を直す。
+- Workers では、OpenNext が `next.config.ts` の `headers()` と proxy の応答ヘッダーを、Next.js に渡すリクエストのヘッダーにも写す（`@opennextjs/aws` 4.1.12 の `core/requestHandler.js`）。
+  Next.js は nonce を `Content-Security-Policy` から、なければ `-Report-Only` から読む（next 16.4.6 の `get-script-nonce-from-header.js`。16.4.2 では `parse-request-headers.js`）。
+  そのため、nonce のない CSP をほかの場所で付けると、Next.js がそれを読んで `<script>` に nonce を付けず、全スクリプトが止まる（#416 で検証環境と `bun run preview` で確かめた）。
+- #412 で `next.config.ts` の #335 の CSP（`script-src 'self' 'unsafe-inline'`）と、検証環境でそれを外すビルド時のフラグ `DISABLE_NEXT_CONFIG_CSP` を消した。
+  `next.config.ts` の `headers()` に CSP を足さない（テストで確かめる）。
 
-Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-rendering.md) の決定 6）:
+CSP が付かないパス（ADR-0005 決定 3）:
+
+- proxy の matcher で外しているパス（`/api`・`/_next/static`・`/_next/image`・`favicon.ico`・`robots.txt`・`sitemap.xml`・`mockServiceWorker.js`）と、
+  先読みのリクエスト（`next-router-prefetch`・`purpose: prefetch` のヘッダー付き）には付かない。HTML ではないため受け入れる。
+- 静的ファイル（`public/` の画像など）は Workers の assets レイヤが返し、proxy を通らないため付かない。
+- `/icon.png`・`/apple-icon.png`（`src/app` のメタデータルート）は matcher で外していないため付く（害はない）。
+
+戻し方:
+
+- **一時的に Report-Only に戻す**: `wrangler.jsonc` の `CSP_REPORT_ONLY` を `"true"` にしてデプロイする（本番は最上位、検証環境は `env.staging`。ビルドのし直しは要らない）。
+  ほかに CSP がないため、戻している間は有効な CSP が 1 つもなくなる（差し込まれたスクリプトも止まらない。クリックジャッキングは `X-Frame-Options` で防ぐ）。
+  原因を直したら `"false"` に戻す。
+- **#335 の CSP に戻す**: #412 の変更を revert する（`next.config.ts` の CSP と `DISABLE_NEXT_CONFIG_CSP` が戻る）。
+  さらに #413（#418）以前に戻すときは、ADR-0005 の「トレードオフ・制約」の戻し方に従う。
+
+### Trusted Types
+
+#415 で入れた。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-rendering.md) の決定 6。
 
 - Trusted Types は nonce の CSP に含めず、proxy が**別の `Content-Security-Policy-Report-Only` ヘッダー**として付ける
   （`src/lib/csp.ts` の `buildTrustedTypesCspHeader`・`src/proxy.ts`）。中身は `require-trusted-types-for 'script'; trusted-types nextjs`。
   dev（`next dev`）では付けない。React DevTools など開発ツールが DOM のシンクを使うため、違反で開発が止まらないようにする（#415 の AC）。
-- **enforce の CSP（#335 の CSP・#412 以降の nonce の CSP）には含めない**: Turbopack のランタイムが Trusted Types に対応していないため
-  （下の「既知の違反」）、含めると #412 の enforce 切替が上流の修正待ちで止まってしまう（#415 のコメントでの議論）。
+- **enforce の nonce の CSP には含めない**: Turbopack のランタイムが Trusted Types に対応しておらず（下の「既知の違反」）、
+  含めると強制されてページ間の移動・先読みが止まるため（#415 のコメントでの議論。#412 の enforce 切替を上流の修正待ちで止めないため）。
   Report-Only のヘッダーで観察を続け、上流が直った後に enforce の CSP へ統合するかを改めて決める。
-- `CSP_REPORT_ONLY=true` の間は nonce の CSP も同じヘッダー名で Report-Only になるため、proxy は `set` ではなく `append` で足す
+- `CSP_REPORT_ONLY=true` のとき（#412 より前と、上の「戻し方」で戻したとき）は nonce の CSP も同じヘッダー名で Report-Only になるため、proxy は `set` ではなく `append` で足す
   （`set` だと観察中の nonce の CSP を上書きで消してしまう）。最終の応答では、同じ名前のヘッダーは
   **カンマ区切りで 1 行に連結**されて届く（ローカルの preview で実測。下の「確認したこと」）。カンマ区切りの CSP は
   複数のポリシーとして評価されるため、nonce の CSP も Trusted Types のポリシーもどちらも失われず、両方とも Report-Only で評価される。
@@ -730,6 +745,7 @@ Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-renderi
   Report-Only の間は違反が報告されるだけで止まらないため動くが、
   強制するとチャンクの読み込みが止まり、ページ間の移動・先読みが壊れる。**ポリシー名の許可リストでは解消できない**
   （ランタイム自身がポリシーを使わないため）。修正 PR は未確認（2026-11-16 時点。issue で着手の表明はある）。
+  上流の issue は 2026-11-19 の時点でも Open で、Next.js 16.4.6 でも直っていない（#412 の手元の確認で、移動のたびに 1・2 の報告が出た）。
   webpack ビルドでは、ランタイムが `output.trustedTypes = 'nextjs#bundler'` でポリシーを作り、チャンクの URL をそのポリシーで通す
   （`node_modules/next/dist/build/webpack-config.js`。生成コードは `trustedTypes.createPolicy("nextjs#bundler", ...)`。
   `node_modules/next/dist/compiled/webpack/bundle5.js` で確認）。ただしポリシー名は完全一致のため
@@ -739,7 +755,23 @@ Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-renderi
   `onPolicyCreationFailure` は既定の `stop` になる。`continue` を指定したときだけ `try`/`catch` で包まれ、
   Console に警告が出る。`node_modules/next/dist/compiled/webpack/bundle5.js` で確認）。
 
-確認したこと（#416。2026-11-16。検証環境と同じ値でビルドした `bun run preview`。検証環境は curl だけ）:
+確認したこと（#412。2026-11-19。検証環境と同じ値でビルドした `opennextjs-cloudflare build --env staging` + `opennextjs-cloudflare preview --env staging`。ローカルの Workers ランタイム。Next.js 16.4.6）:
+
+- wrangler の起動時の表示で `CSP_REPORT_ONLY` のバインディングが `"false"` になり、応答のヘッダー名も enforce（`content-security-policy`）になった。
+- `/`（308）・`/about`・`/event-list`・`/signin`・`/contact`・`/guideline`・`/docs`・`/coming-soon`・404 の応答に、
+  `content-security-policy` が 1 行だけ付き、`content-security-policy-report-only` には Trusted Types だけが載った（curl）。
+  どのページも `<script>` のすべてに、応答の CSP と同じ nonce が付いた（例: `/about` 15 個・`/event-list` 18 個・`/contact` 16 個）。
+- `/robots.txt`・`/sitemap.xml`・`/_next/static/chunks/*.js` には CSP が付かず、`/_next/image` には Next.js の画像用の CSP だけが付いた。`/icon.png` には付いた（上の「CSP が付かないパス」）。
+- Orca の内蔵ブラウザ（Chromium）で上のページを開き、`ReportingObserver`（`buffered: true`）で集めた違反は 0 件だった。インラインのスクリプト（`self.__next_f`）も動いていた。
+  - 止まることの確認: `onerror` 属性の付いた `<img>` を差し込むと、`script-src-attr` の違反（`disposition: enforce`）でハンドラが動かず、
+    `https://example.com` への `fetch` も `connect-src` の違反（`enforce`）で止まった。
+  - フッターのリンクで `/event-list` から `/contact` へ移ると、読み込み直さずに移り、Trusted Types の既知の違反（`report`）が 2 件出ただけだった。
+  - `/contact` で送信するとトーストが表示され、元の画面へ戻った（違反なし）。
+- ローカルからは検証環境の API への `fetch` が CORS で止まる（CSP ではない）ため、ログイン・データの表示・画像・アップロードは検証環境で確かめる（結果は #412 に記録する）。
+
+#412 より前の確認（記録。「上の CSP」は `next.config.ts` の #335 の CSP（#412 で削除）を指す）:
+
+#416 の確認（2026-11-16。検証環境と同じ値でビルドした `bun run preview`。検証環境は curl だけ）:
 
 - 上の CSP を外す前は、ページの応答に `content-security-policy`（上の CSP）と `content-security-policy-report-only`（proxy）が付き、
   `/about` の `<script>` 15 個のどれにも nonce が付かなかった。検証環境の `/event-list` も、`<script>` 18 個のどれにも付いていなかった（curl）。
@@ -751,12 +783,12 @@ Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-renderi
 - ローカルからは検証環境の API への `fetch` が CORS で止まり（CSP ではない）、イベント一覧は 0 件だった。
   ログイン・データの表示・画像・アップロードは、検証環境で確かめる（結果は #416 に記録する）。
 
-見送ったこと:
+#335 で見送ったこと:
 
 - **上の CSP を `Content-Security-Policy-Report-Only` で様子を見る**: 報告の受け取り先がないため、本番に出しても情報が集まらない。
   接続先をコードからすべて洗い出せたため、検証環境で確かめてから有効のまま本番に出す。
 
-確認したこと（2026-11-13。`bun run preview`。ローカルの Workers ランタイム）:
+#335 の確認（2026-11-13。`bun run preview`。ローカルの Workers ランタイム）:
 
 - ページ（`/`・`/event-list`・`/about`・`/signin`・`/robots.txt`・`/icon.png`・404・500）に 4 つすべてが付き、
   静的ファイル（`/_next/static/*`・`/images/*`）に CSP 以外の 3 つが付くことを curl で確かめた。
@@ -766,24 +798,23 @@ Trusted Types（#415。決定は [ADR-0005](./adr/0005-csp-nonce-dynamic-renderi
   検出できることは、許可していない `https://example.com` への `fetch` が止まり報告されることで確かめた。
 - ローカルでは API を起動しておらず、ログイン・データの表示・画像・アップロードは確かめていない。検証環境で確かめる。
 
-確認したこと（2026-11-16。Trusted Types。`bun run preview` 相当の `opennextjs-cloudflare build` + `wrangler dev`。ローカルの Workers ランタイム）:
+#415 の確認（2026-11-16。Trusted Types。`bun run preview` 相当の `opennextjs-cloudflare build` + `wrangler dev`。ローカルの Workers ランタイム）:
 
 - `/about` の応答に curl で、`Content-Security-Policy`（#335 の enforce）と
   `Content-Security-Policy-Report-Only` が付くことを確かめた。Report-Only のヘッダーは 1 行で、
   nonce の CSP と `require-trusted-types-for 'script'; trusted-types nextjs` がカンマ区切りで連結されて届く
   （同名ヘッダーの連結。ポリシーは両方とも評価される。上の「Trusted Types」節）。
 
-確認するコマンド（4 つが返ればよい。`content-security-policy-report-only` には、#412 までは nonce の CSP と
-Trusted Types がカンマ区切りで載り、#412 の後は Trusted Types だけが載る（Trusted Types は常に Report-Only）。
-#412 までは `Content-Security-Policy` に加えてこれが返る）:
+確認するコマンド（4 つが返ればよい。`content-security-policy` は proxy の nonce の CSP の 1 行だけで、
+`content-security-policy-report-only` には Trusted Types だけが載る）:
 
 ```bash
 curl -sS -o /dev/null -D - "https://natueve-web.natuportal.org/event-list" | grep -i -E "^content-security-policy|^x-frame-options|^x-content-type-options|^referrer-policy"
 ```
 
-検証環境で確かめる操作（開発者ツールのコンソールに `Content Security Policy` の違反が出ないこと）:
+検証環境で確かめる操作（開発者ツールのコンソールに、Trusted Types の既知の違反（上の「既知の違反」）のほかに `Content Security Policy` の違反が出ないこと）:
 トップページ・イベント一覧・イベント詳細（画像・PDF の閲覧を含む）・ログイン（Google）・ヘッダーのアバター・マイページ・
-イベントの投稿（画像・PDF のアップロード）・レポートの投稿（画像のアップロード）・プロフィールページ。
+イベントの投稿（画像・PDF のアップロード）・レポートの投稿（画像のアップロード）・プロフィールページ・お問い合わせ。
 
 ### HSTS
 

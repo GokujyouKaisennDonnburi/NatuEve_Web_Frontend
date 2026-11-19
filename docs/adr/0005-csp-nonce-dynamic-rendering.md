@@ -55,7 +55,7 @@ nonce は応答ごとに変える必要があるため、使うと全ページ�
    - （#416 で追記。2026-11-16）検証環境では #335 の CSP を外し、nonce の CSP（Report-Only）だけを付ける（ビルド時の `DISABLE_NEXT_CONFIG_CSP=true`）。
      Workers では OpenNext が `next.config.ts` の `headers()` と proxy の応答ヘッダーを、Next.js に渡すリクエストのヘッダーにも写す
      （`@opennextjs/aws` 4.1.12 の `core/requestHandler.js`）。Next.js は nonce を `Content-Security-Policy` から先に探す
-     （next 16.4.2 の `parse-request-headers.js`）ため、nonce のない #335 の CSP が残ると `<script>` に nonce が付かず、全スクリプトが Report-Only の違反になる。
+     （next 16.4.2 の `parse-request-headers.js`。16.4.6 では `get-script-nonce-from-header.js` で、順番は同じ）ため、nonce のない #335 の CSP が残ると `<script>` に nonce が付かず、全スクリプトが Report-Only の違反になる。
      #418 を出した後の検証環境と、検証環境と同じ値でビルドしたローカルの `preview` で、`<script>` に nonce が 1 つも付かないことを確かめた（2026-11-16）。
      上の前提の確認（2026-11-13）で nonce が付いたのは、proxy の CSP が enforce で #335 の CSP と同じヘッダー名だったためと考えられる（決定 3 の「置き換えた」。推定）。
      #412 まで検証環境には有効な CSP がなくなる（クリックジャッキングは `X-Frame-Options` で防ぐ）。検証環境の Auth は開発用のプロジェクト（NatuEve_API ADR-0041）で、影響はそこにとどまるため受け入れる。
@@ -66,6 +66,14 @@ nonce は応答ごとに変える必要があるため、使うと全ページ�
 3. #412 で nonce の CSP を enforce に切り替え、`next.config.ts` の CSP を外す。以後、CSP を付けるのは proxy だけにする。
    - ローカルの `preview` では、proxy の CSP が `next.config.ts` の CSP を置き換えた。OpenNext のヘッダーの合成に頼らないよう、定義を 1 か所にする。
    - proxy を通らないパス（`robots.txt`・`sitemap.xml`・`favicon.ico`・`/api`・先読みのリクエスト）には CSP が付かなくなる。HTML ではないため受け入れる。
+   - （#412 で追記。2026-11-19）`next.config.ts` の CSP と `DISABLE_NEXT_CONFIG_CSP` を消し、`wrangler.jsonc` の `CSP_REPORT_ONLY` を本番・検証環境とも `"false"` にした。
+     未設定でも enforce になるが、`vars` にない変数は OpenNext がビルド時に読んだ `.env` 系ファイルの値で埋める（`populateProcessEnv` は `vars` を先に入れ、`.env` の値は `??=` で入れる）。
+     `.env.production` は `.gitignore` の外でコミットされうるため、その値で本番が Report-Only に戻らないよう明示した（コードを読んでの判断で、`.env.production` を置いて試してはいない）。
+     proxy の `CSP_REPORT_ONLY` の切り替えは、障害のときに Report-Only へ戻す手段として残した。戻している間は、ほかに CSP がないため有効な CSP が 1 つもなくなる（docs/Deployment.md「CSP」の「戻し方」）。
+     手元の `preview`（検証環境と同じ値。Next.js 16.4.6）で、ページの応答の CSP が proxy の 1 行だけになり、`<script>` のすべてに nonce が付き、
+     差し込んだ `onerror` と許可していない `fetch` が enforce で止まることを確かめた。検証環境・本番での結果は #412 に記録する。
+     決定 2 の追記の「本番の Report-Only にも nonce が付かない」は、#412 を出す前の本番で確かめた（2026-11-19。`/event-list` の `<script>` 18 個のどれにも nonce がなかった。curl）。
+     同じ時点の検証環境は 18 個すべてに応答と同じ nonce が付いていた。
 4. 開発時（`next dev`）も CSP を付け、`'unsafe-eval'`（React の開発版）・HMR 用の `ws:`/`wss:`・MSW 用の `worker-src 'self'` だけを足す（#413 の AC）。
    本番と検証環境は同じ CSP で、接続先と画像の取得元だけが環境ごとの値で変わる。
 5. `X-Frame-Options`・`X-Content-Type-Options`・`Referrer-Policy` は #335 のまま（`next.config.ts` と `public/_headers`）。
@@ -216,6 +224,12 @@ LCP（Lighthouse 12.8.2。各ページ 1 回。速い回線は同じ実行の制
 - 違反の報告先（`report-to`）はなく、違反は DevTools のコンソールで確かめる（#416）。
 - `connect-src` の `https://*.r2.cloudflarestorage.com` は持ち出し先になりうる。#335 で「`'unsafe-inline'` の下では絞っても効果が小さい」として
   先送りしたため、#412 で nonce の CSP を有効にするときに絞るかを改めて決める。
+  - （#412 で追記。2026-11-19）絞らないことにした。ワイルドカードはほかのアカウントの R2 にも一致するため、ページでスクリプトが動けば、
+    攻撃者は自分のバケットの署名付き URL へトークンを PUT して、画面を変えずに持ち出せる。それでも絞らない理由と、絞るときの条件は次のとおり。
+    - nonce の CSP（enforce）で、差し込まれたスクリプトはそもそも動かない。動くのは依存パッケージの乗っ取りなど、CSP では止められない場合に限られる。
+    - スクリプトが動いた場合も、ページの移動（`location.href`）や `window.open` での持ち出しは CSP では止められない。絞って減るのは、画面を変えずに送る道の 1 つだけである。
+    - 絞るには、presign の URL のホスト（`{アカウント ID}.r2.cloudflarestorage.com`）を実行時の変数で渡し、API 側の R2 と揃え続ける必要がある。ずれると投稿のアップロードが止まる。
+    - 絞るなら、NatuEve_API 側で presign の URL の形（バケット名をホストに含むか）と R2 のアカウントを確かめてからにする。
 - この ADR の決定 2・3 は #412・#413 の AC に書かれていないため、各 issue の AC に反映する。
 
 ## 検討した代替案
