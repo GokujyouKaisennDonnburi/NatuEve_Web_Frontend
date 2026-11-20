@@ -771,7 +771,31 @@ CSP が付かないパス（ADR-0005 決定 3）:
     `https://example.com` への `fetch` も `connect-src` の違反（`enforce`）で止まった。
   - フッターのリンクで `/event-list` から `/contact` へ移ると、読み込み直さずに移り、Trusted Types の既知の違反（`report`）が 2 件出ただけだった。
   - `/contact` で送信するとトーストが表示され、元の画面へ戻った（違反なし）。
-- ローカルからは検証環境の API への `fetch` が CORS で止まる（CSP ではない）ため、ログイン・データの表示・画像・アップロードは検証環境で確かめる（結果は #412 に記録する）。
+- ローカルからは検証環境の API への `fetch` が CORS で止まる（CSP ではない）ため、ログイン・データの表示・画像・アップロードは検証環境で確かめた（下の「確認したこと（#412。2026-11-19〜20…）」）。
+
+確認したこと（#412。2026-11-19〜20。検証環境・本番。PR #458 の `46b0fd6`。詳細は #412 のコメント）:
+
+- 検証環境・本番とも、`/event-list`・`/about`・`/signin`・`/contact`・`/guideline`・`/docs`・`/mypage`・`/event/[id]`・404 の応答は次のとおりだった（curl）。
+  - `content-security-policy` は 1 行だけで、`'unsafe-inline'` はない。
+  - `content-security-policy-report-only` には Trusted Types だけが載る。
+  - `<script>` には、すべて応答と同じ nonce が付く（`/event-list` は 18 個中 18 個）。
+  - 本番の CSP に `assets-dev` は入らず、検証環境には入る（`USE_DEV_ASSETS`）。
+- Orca の内蔵ブラウザ（Chromium）で、違反を `ReportingObserver` で集めた。
+  - ページの読み込み（未ログインのページ・イベント詳細・ユーザーページ）・一覧での操作・メニュー・画面内の移動・`/contact` の送信で、CSP の違反は 0 件だった（検証環境・本番）。
+  - 画面内の移動で出るのは、Trusted Types の既知の違反（上の「既知の違反」）の `report` だけだった。
+  - 検証環境では、ログイン（Google → `/auth/callback`）・マイページ・イベントの投稿の送信も確かめ、違反は 0 件だった。投稿では、presign 200 → R2 への PUT 200 → 作成 201 と進んだ。
+  - 本番のログイン・マイページ・投稿は確かめていない。本番のアカウントを使い、本番にデータを作るためである。
+    本番と検証環境の CSP は、接続先と画像の取得元（`assets-dev`）だけが違う（ADR-0005 決定 4）。
+  - 差し込んだ `onerror` と、許可していない `fetch` は、検証環境・本番とも `enforce` で止まった。
+- Firefox（検証環境）:
+  - CSP の違反は出なかった。コンソールに出たのは、違反ではない情報の警告 2 件だけだった（`'strict-dynamic'` があるので `'self'` を無視した、報告先のない Report-Only）。
+  - 表示・画面内の移動は正常で、差し込んだ `onerror` と外部への `fetch` は止まった。Firefox も Trusted Types の Report-Only を報告した。
+- Safari（検証環境）:
+  - CSP の違反は出ず、表示・画像・メニュー・画面内の移動は正常で、差し込んだ `onerror` と外部への `fetch` は止まった。
+  - Safari は、報告先（`report-to`）のない Report-Only の Trusted Types を無視する（コンソールに注意が出る）。そのため、Trusted Types の観察は Chromium と Firefox で行う。
+  - Web インスペクタでコードを実行するたびに、`decodeHTMLEntitiesPolicy` という名前の Trusted Types のポリシーの拒否（Report-Only）が出た。この名前はアプリのビルド結果にも依存パッケージにもなく、ページ側で `createPolicy` を包んでも呼ばれなかった。Web インスペクタ自身から出ていると考える（推定）。
+- HTTP Observatory（本番。2026-11-20）: A+（110 点）、12 項目すべて合格だった。
+  CSP の項目は `csp-implemented-with-unsafe-inline-in-style-src-only` で、減点は 0（`script-src` の `'unsafe-inline'` による減点はなくなった。#407）。
 
 #412 より前の確認（記録。「上の CSP」は `next.config.ts` の #335 の CSP（#412 で削除）を指す）:
 
