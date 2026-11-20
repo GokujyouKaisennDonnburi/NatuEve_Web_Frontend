@@ -5,6 +5,8 @@ export type UploadKind = "image" | "pdf";
 export type PresignRequest = {
   kind: UploadKind;
   contentType: string;
+  // ファイルのバイト数（file.size）。署名に含まれ、R2 へ PUT する本体の大きさと一致しないと 403 になる。
+  size: number;
 };
 
 // アップロード完了後にイベント/レポート作成へ渡す情報。

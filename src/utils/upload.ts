@@ -56,7 +56,7 @@ const validateImagePixelSize = async (file: File): Promise<string | null> => {
   return null;
 };
 
-// 1 ファイルの拡張子・Content-Type・サイズ・（画像なら）縦横ピクセル数を検証する。
+// 1 ファイルの拡張子・Content-Type・サイズ（空・上限超過）・（画像なら）縦横ピクセル数を検証する。
 // 寸法判定はファイルを読み込むため非同期。問題なければ null。
 export const validateUploadFile = async (
   file: File,
@@ -74,6 +74,11 @@ export const validateUploadFile = async (
       return `${file.name} は対応していない画像形式です（JPEG / PNG のみ）`;
     }
     return `${file.name} は PDF ファイルではありません。`;
+  }
+
+  // presign は size が 1 以上でないと 400 になるため、空のファイルは先に弾く。
+  if (file.size === 0) {
+    return `${file.name} は空のファイルです。`;
   }
 
   const maxBytes = kind === "image" ? MAX_IMAGE_BYTES : MAX_PDF_BYTES;

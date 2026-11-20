@@ -31,3 +31,23 @@ describe("validateUploadFile の画像ピクセル数チェック", () => {
     expect(error).toBeNull();
   });
 });
+
+describe("validateUploadFile の空ファイルチェック", () => {
+  it("0 バイトの画像は「空のファイルです」のエラーになる", async () => {
+    const file = new File([], "empty.png", { type: "image/png" });
+    const error = await validateUploadFile(file, "image");
+    expect(error).toBe("empty.png は空のファイルです。");
+  });
+
+  it("0 バイトの PDF は「空のファイルです」のエラーになる", async () => {
+    const file = new File([], "empty.pdf", { type: "application/pdf" });
+    const error = await validateUploadFile(file, "pdf");
+    expect(error).toBe("empty.pdf は空のファイルです。");
+  });
+
+  it("1 バイトの PDF は問題なし", async () => {
+    const file = new File(["%"], "one.pdf", { type: "application/pdf" });
+    const error = await validateUploadFile(file, "pdf");
+    expect(error).toBeNull();
+  });
+});
