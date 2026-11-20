@@ -75,6 +75,8 @@ nonce は応答ごとに変える必要があるため、使うと全ページ�
      差し込んだ `onerror` と許可していない `fetch` が enforce で止まることを確かめた。検証環境・本番での結果は #412 に記録する。
      決定 2 の追記の「本番の Report-Only にも nonce が付かない」は、#412 を出す前の本番で確かめた（2026-11-19。`/event-list` の `<script>` 18 個のどれにも nonce がなかった。curl）。
      同じ時点の検証環境は 18 個すべてに応答と同じ nonce が付いていた。
+     検証環境・本番に出した後（2026-11-19〜20。`46b0fd6`）、どちらもページの CSP が proxy の enforce の 1 つだけになり、`<script>` のすべてに nonce が付くことを確かめた。
+     主要な画面と操作で CSP の違反はなく、HTTP Observatory は A+（110 点）だった（docs/Deployment.md「CSP」の確認したこと、#412 のコメント）。
 4. 開発時（`next dev`）も CSP を付け、`'unsafe-eval'`（React の開発版）・HMR 用の `ws:`/`wss:`・MSW 用の `worker-src 'self'` だけを足す（#413 の AC）。
    本番と検証環境は同じ CSP で、接続先と画像の取得元だけが環境ごとの値で変わる。
 5. `X-Frame-Options`・`X-Content-Type-Options`・`Referrer-Policy` は #335 のまま（`next.config.ts` と `public/_headers`）。
