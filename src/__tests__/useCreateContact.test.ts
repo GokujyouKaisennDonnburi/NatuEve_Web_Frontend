@@ -1,4 +1,4 @@
-import { act, cleanup, renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useCreateContact } from "@/hooks/useCreateContact";
@@ -11,10 +11,9 @@ vi.mock("@/services/contact", () => ({
 
 const mockedCreateContact = vi.mocked(createContact);
 
-// globals: false のため testing-library の自動クリーンアップが効かない。
-// renderHook も内部で render しているため明示的に片付ける。
+// Service のモックはテスト間で共有されるため、呼び出し記録を毎回リセットする
+// （cleanup は setup.ts の全体 afterEach で実行済み）
 afterEach(() => {
-  cleanup();
   vi.resetAllMocks();
 });
 
