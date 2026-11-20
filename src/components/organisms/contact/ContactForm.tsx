@@ -12,7 +12,7 @@ import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { createContact } from "@/services/contact";
 import type { ContactCategory } from "@/types/contact";
-import { validateNotificationText } from "@/utils/notificationText";
+import { validateTextLength } from "@/utils/textLength";
 
 // 値は types/contact.ts の ContactCategory と一致させる
 export const CONTACT_CATEGORIES = [
@@ -77,7 +77,7 @@ export function ContactForm() {
 
     // API と同じく前後の空白を除いた上で、1コードポイント単位で文字数を数える
     // （絵文字を HTML の maxLength で数えると2文字分になるため、maxLength 属性は使わない）。
-    const { tooLong } = validateNotificationText(
+    const { tooLong } = validateTextLength(
       message,
       MAX_CONTACT_MESSAGE_LENGTH,
     );

@@ -9,7 +9,7 @@ import {
   MAX_NOTIFICATION_BODY_LENGTH,
   MAX_NOTIFICATION_SUBJECT_LENGTH,
 } from "@/constants/config";
-import { validateNotificationText } from "@/utils/notificationText";
+import { validateTextLength } from "@/utils/textLength";
 import {
   NotificationLimitExceededError,
   type NotifyEventParticipantsResponse,
@@ -63,7 +63,7 @@ export const eventNotificationHandler = http.post(
     ) {
       return invalidRequest("リクエストボディが不正です");
     }
-    const subject = validateNotificationText(
+    const subject = validateTextLength(
       payload.subject,
       MAX_NOTIFICATION_SUBJECT_LENGTH,
     );
@@ -72,10 +72,7 @@ export const eventNotificationHandler = http.post(
       return invalidRequest(
         `件名は${MAX_NOTIFICATION_SUBJECT_LENGTH}文字以内で入力してください`,
       );
-    const body = validateNotificationText(
-      payload.body,
-      MAX_NOTIFICATION_BODY_LENGTH,
-    );
+    const body = validateTextLength(payload.body, MAX_NOTIFICATION_BODY_LENGTH);
     if (!body.value) return invalidRequest("本文は必須です");
     if (body.tooLong)
       return invalidRequest(
