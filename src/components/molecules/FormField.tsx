@@ -12,6 +12,9 @@ type FormFieldProps = {
   description?: string; // 入力欄の前に置く説明文
   hint?: string; // 入力欄の後に置く補足
   error?: string;
+  // エラー表示に付ける id。入力欄の aria-describedby から参照して
+  // エラー文をスクリーンリーダーに読ませる。
+  errorId?: string;
   children: ReactNode; // フォームフィールドの内容を指定するプロパティ
   className?: string;
 } & (
@@ -28,6 +31,7 @@ export function FormField({
   description,
   hint,
   error,
+  errorId,
   children,
   className,
 }: Readonly<FormFieldProps>) {
@@ -47,7 +51,11 @@ export function FormField({
       </div>
       {description ? <FieldNote>{description}</FieldNote> : null} {children}
       {hint ? <FieldNote>{hint}</FieldNote> : null}
-      {error ? <FieldNote tone="error">{error}</FieldNote> : null}
+      {error ? (
+        <FieldNote tone="error" id={errorId}>
+          {error}
+        </FieldNote>
+      ) : null}
     </div>
   );
 }

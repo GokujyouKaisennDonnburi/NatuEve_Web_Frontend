@@ -7,19 +7,13 @@ import { toast } from "sonner";
 import { FormTextarea } from "@/components/atoms/FormTextarea";
 import { PillButton } from "@/components/atoms/PillButton";
 import { FormField } from "@/components/molecules/FormField";
+import { CONTACT_CATEGORIES } from "@/constants/contact";
 import { MAX_CONTACT_MESSAGE_LENGTH } from "@/constants/config";
 import { ROUTES } from "@/constants/routes";
+import { useCreateContact } from "@/hooks/useCreateContact";
 import { cn } from "@/lib/utils";
-import { createContact } from "@/services/contact";
-import type { ContactCategory } from "@/types/contact";
+import { ContactError, type ContactCategory } from "@/types/contact";
 import { validateTextLength } from "@/utils/textLength";
-
-// 値は types/contact.ts の ContactCategory と一致させる
-export const CONTACT_CATEGORIES = [
-  { value: "request", label: "要望" },
-  { value: "bug", label: "不具合報告" },
-  { value: "other", label: "その他お問い合わせ" },
-] as const satisfies readonly { value: ContactCategory; label: string }[];
 
 // 送信 API（POST /api/v1/contact）の受付完了（202）を伝える
 const SUBMIT_TOAST_MESSAGE = "お問い合わせを送信しました";
@@ -49,18 +43,19 @@ const CATEGORY_DOT_CLASS_NAME =
   "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-200";
 
 // お問い合わせフォーム。カテゴリの必須チェックと詳細の文字数上限チェックを行い、
-// 送信 API（POST /api/v1/contact）の呼び出しと結果のフィードバックまでを行う。
+// 送信（useCreateContact フック経由で POST /api/v1/contact）の結果表示までを行う。
 export function ContactForm() {
   const router = useRouter();
+  const { isSubmitting, submit } = useCreateContact();
   const formId = useId();
   const categoryId = `${formId}-category`;
   const messageId = `${formId}-message`;
+  const messageErrorId = `${formId}-message-error`;
 
   const [category, setCategory] = useState<ContactCategory | null>(null);
   const [message, setMessage] = useState("");
   const [categoryError, setCategoryError] = useState<string>();
   const [messageError, setMessageError] = useState<string>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -77,10 +72,7 @@ export function ContactForm() {
 
     // API と同じく前後の空白を除いた上で、1コードポイント単位で文字数を数える
     // （絵文字を HTML の maxLength で数えると2文字分になるため、maxLength 属性は使わない）。
-    const { tooLong } = validateTextLength(
-      message,
-      MAX_CONTACT_MESSAGE_LENGTH,
-    );
+    const { tooLong } = validateTextLength(message, MAX_CONTACT_MESSAGE_LENGTH);
     if (tooLong) {
       setMessageError(MESSAGE_LENGTH_ERROR_MESSAGE);
       return;
@@ -88,11 +80,11 @@ export function ContactForm() {
 
     setCategoryError(undefined);
     setMessageError(undefined);
-    setIsSubmitting(true);
 
     void (async () => {
-      try {
-        await createContact({ category, message });
+      const result = await submit({ category, message });
+
+      if (result.ok) {
         toast.success(SUBMIT_TOAST_MESSAGE);
 
         // フッターなどあらゆる画面から来られるため、履歴があれば元の画面へ戻す。
@@ -105,17 +97,18 @@ export function ContactForm() {
         } else {
           router.back();
         }
-      } catch (error) {
-        // API が返したメッセージ（検証エラー・受付上限・サーバーエラー）を優先して伝える
-        console.error("お問い合わせの送信に失敗しました。", error);
-        toast.error(
-          error instanceof Error && error.message
-            ? error.message
-            : SUBMIT_ERROR_MESSAGE,
-        );
-      } finally {
-        setIsSubmitting(false);
+        return;
       }
+
+      // API 由来のエラー（検証エラー・受付上限・サーバーエラー）は API のメッセージを伝える。
+      // それ以外（ネットワーク断の TypeError など）はブラウザの生メッセージを
+      // 露出させないため、共通の文言にフォールバックする。
+      console.error("お問い合わせの送信に失敗しました。", result.error);
+      toast.error(
+        result.error instanceof ContactError
+          ? result.error.message
+          : SUBMIT_ERROR_MESSAGE,
+      );
     })();
   };
 
@@ -189,6 +182,7 @@ export function ContactForm() {
         optional
         description="ご意見・ご要望などを自由にご記入ください"
         error={messageError}
+        errorId={messageErrorId}
       >
         <FormTextarea
           id={messageId}
@@ -200,6 +194,7 @@ export function ContactForm() {
             setMessageError(undefined);
           }}
           aria-invalid={Boolean(messageError)}
+          aria-describedby={messageError ? messageErrorId : undefined}
           placeholder="例: イベント検索の条件をもっと増やしてほしい"
         />
       </FormField>

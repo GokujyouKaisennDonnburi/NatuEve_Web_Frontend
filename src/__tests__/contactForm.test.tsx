@@ -2,11 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  CONTACT_CATEGORIES,
-  ContactForm,
-} from "@/components/organisms/contact/ContactForm";
+import { ContactForm } from "@/components/organisms/contact/ContactForm";
+import { CONTACT_CATEGORIES } from "@/constants/contact";
+import { MAX_CONTACT_MESSAGE_LENGTH } from "@/constants/config";
 import { createContact } from "@/services/contact";
+import { ContactError } from "@/types/contact";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
@@ -121,10 +121,12 @@ describe("ContactForm", () => {
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it("API が失敗したらエラートーストを表示し、画面遷移しない", async () => {
+  it("API が失敗したら API のエラーメッセージを表示し、画面遷移しない", async () => {
     mockCreateContact.mockRejectedValue(
-      new Error(
+      new ContactError(
+        "rate_limited",
         "お問い合わせの受付上限に達しました。時間をおいて再度お試しください",
+        429,
       ),
     );
 
@@ -147,6 +149,25 @@ describe("ContactForm", () => {
         screen.getByRole("button", { name: "送信する" }),
       ).not.toBeDisabled();
     });
+  });
+
+  it("ネットワーク断など API 由来でないエラーは共通の文言を表示する", async () => {
+    // Service は API 由来のエラーを ContactError で投げるため、
+    // それ以外の Error（fetch の TypeError 等）は共通文言にフォールバックする
+    mockCreateContact.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    render(<ContactForm />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
+    submitForm();
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "お問い合わせの送信に失敗しました。時間をおいて再度お試しください。",
+      );
+    });
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it("送信中はボタンが非活性になり、二重に API を呼ばない", async () => {
@@ -207,13 +228,18 @@ describe("ContactForm", () => {
 
     fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
     fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
-      target: { value: "あ".repeat(2001) },
+      target: { value: "あ".repeat(MAX_CONTACT_MESSAGE_LENGTH + 1) },
     });
     submitForm();
 
     expect(
       screen.getByText("詳細は2000文字以内で入力してください。"),
     ).toBeInTheDocument();
+    // エラー文が textarea の aria-describedby で紐付いている
+    expect(screen.getByRole("textbox", { name: "詳細" })).toHaveAttribute(
+      "aria-describedby",
+      expect.any(String),
+    );
     expect(mockCreateContact).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
   });
@@ -223,7 +249,7 @@ describe("ContactForm", () => {
 
     fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
     fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
-      target: { value: "あ".repeat(2001) },
+      target: { value: "あ".repeat(MAX_CONTACT_MESSAGE_LENGTH + 1) },
     });
     submitForm();
     expect(

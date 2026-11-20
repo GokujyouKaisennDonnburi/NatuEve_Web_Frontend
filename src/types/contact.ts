@@ -31,3 +31,18 @@ export type CreateContactErrorBody = {
     message: string;
   };
 };
+
+// お問い合わせ送信 API のエラー。code とステータスを保持し、
+// 呼び出し側で API 由来のエラーを判別できるようにする。
+export class ContactError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  // コンストラクタ
+  constructor(code: string, message: string, status: number) {
+    super(message);
+    this.name = "ContactError";
+    this.code = code;
+    this.status = status;
+  }
+}
