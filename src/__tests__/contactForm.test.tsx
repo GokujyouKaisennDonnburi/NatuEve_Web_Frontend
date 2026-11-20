@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -6,8 +6,14 @@ import {
   CONTACT_CATEGORIES,
   ContactForm,
 } from "@/components/organisms/contact/ContactForm";
+import { createContact } from "@/services/contact";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+
+// 送信 API は Service 経由で呼ぶため、Service をモックして画面側の挙動を検証する
+vi.mock("@/services/contact", () => ({
+  createContact: vi.fn(),
+}));
 
 const { mockBack, mockPush } = vi.hoisted(() => ({
   mockBack: vi.fn(),
@@ -18,14 +24,21 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
 }));
 
-// router のモックはテスト間で共有されるため、呼び出し記録を毎回リセットする
-// （cleanup は setup.ts の全体 afterEach で実行済み）
+const mockCreateContact = vi.mocked(createContact);
+
+// router・Service・トーストのモックはテスト間で共有されるため、
+// 呼び出し記録を毎回リセットする（cleanup は setup.ts の全体 afterEach で実行済み）
 afterEach(() => {
   mockBack.mockClear();
   mockPush.mockClear();
   vi.mocked(toast.success).mockClear();
   vi.mocked(toast.error).mockClear();
+  mockCreateContact.mockReset();
 });
+
+const submitForm = () => {
+  fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+};
 
 describe("ContactForm", () => {
   it("お問い合わせ内容の選択肢と送信ボタン・詳細の入力欄を表示する", () => {
@@ -42,19 +55,26 @@ describe("ContactForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("カテゴリ未選択で送信するとエラーを表示し、トーストを出さない", () => {
+  it("カテゴリ未選択で送信するとエラーを表示し、API を呼ばない", () => {
     render(<ContactForm />);
 
-    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+    submitForm();
 
     expect(
       screen.getByText("お問い合わせ内容を選択してください"),
     ).toBeInTheDocument();
+    expect(mockCreateContact).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it("カテゴリを選択して送信するとトーストを表示し、元の画面へ戻る", () => {
+  it("カテゴリを選択して送信すると API を呼び、完了トーストを表示して元の画面へ戻る", async () => {
+    mockCreateContact.mockResolvedValue({
+      category: "bug",
+      message: "送信ボタンが反応しません",
+      receivedAt: "2026-11-20T00:00:00.000Z",
+    });
+
     // jsdom の初期履歴は 1 のため、履歴がある状態を再現する
     const historyLengthSpy = vi
       .spyOn(window.history, "length", "get")
@@ -67,8 +87,14 @@ describe("ContactForm", () => {
       fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
         target: { value: "送信ボタンが反応しません" },
       });
-      fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+      submitForm();
 
+      await waitFor(() => {
+        expect(mockCreateContact).toHaveBeenCalledWith({
+          category: "bug",
+          message: "送信ボタンが反応しません",
+        });
+      });
       expect(toast.success).toHaveBeenCalledWith("お問い合わせを送信しました");
       expect(mockBack).toHaveBeenCalled();
       expect(mockPush).not.toHaveBeenCalled();
@@ -77,20 +103,95 @@ describe("ContactForm", () => {
     }
   });
 
-  it("履歴がない状態で送信するとイベント一覧へ遷移する", () => {
+  it("履歴がない状態で送信するとイベント一覧へ遷移する", async () => {
+    mockCreateContact.mockResolvedValue({
+      category: "bug",
+      message: "",
+      receivedAt: "2026-11-20T00:00:00.000Z",
+    });
+
     render(<ContactForm />);
 
     fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
-    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+    submitForm();
 
-    expect(mockPush).toHaveBeenCalledWith("/event-list");
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/event-list");
+    });
     expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("API が失敗したらエラートーストを表示し、画面遷移しない", async () => {
+    mockCreateContact.mockRejectedValue(
+      new Error(
+        "お問い合わせの受付上限に達しました。時間をおいて再度お試しください",
+      ),
+    );
+
+    render(<ContactForm />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
+    submitForm();
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "お問い合わせの受付上限に達しました。時間をおいて再度お試しください",
+      );
+    });
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+    // 送信は完了していないのでボタンは再び押せる状態に戻る
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "送信する" }),
+      ).not.toBeDisabled();
+    });
+  });
+
+  it("送信中はボタンが非活性になり、二重に API を呼ばない", async () => {
+    let resolveSubmit: (value: {
+      category: "bug";
+      message: string;
+      receivedAt: string;
+    }) => void = () => {};
+    mockCreateContact.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveSubmit = resolve;
+        }),
+    );
+
+    render(<ContactForm />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
+    submitForm();
+
+    // 送信中は非活性になり、ラベルが送信中に切り替わる
+    const submittingButton = await screen.findByRole("button", {
+      name: "送信中...",
+    });
+    expect(submittingButton).toBeDisabled();
+
+    // 連打しても API は一度しか呼ばれない
+    fireEvent.click(submittingButton);
+    expect(mockCreateContact).toHaveBeenCalledTimes(1);
+
+    resolveSubmit({
+      category: "bug",
+      message: "",
+      receivedAt: "2026-11-20T00:00:00.000Z",
+    });
+    await waitFor(() => {
+      expect(mockCreateContact).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByRole("button", { name: "送信する" })).not.toBeDisabled();
   });
 
   it("カテゴリを選択するとエラー表示が消える", () => {
     render(<ContactForm />);
 
-    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+    submitForm();
     expect(
       screen.getByText("お問い合わせ内容を選択してください"),
     ).toBeInTheDocument();
@@ -101,18 +202,19 @@ describe("ContactForm", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("詳細が2000文字を超えるとエラーを表示し、トーストを出さない", () => {
+  it("詳細が2000文字を超えるとエラーを表示し、API を呼ばない", () => {
     render(<ContactForm />);
 
     fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
     fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
       target: { value: "あ".repeat(2001) },
     });
-    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+    submitForm();
 
     expect(
       screen.getByText("詳細は2000文字以内で入力してください。"),
     ).toBeInTheDocument();
+    expect(mockCreateContact).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
   });
 
@@ -123,7 +225,7 @@ describe("ContactForm", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
       target: { value: "あ".repeat(2001) },
     });
-    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+    submitForm();
     expect(
       screen.getByText("詳細は2000文字以内で入力してください。"),
     ).toBeInTheDocument();

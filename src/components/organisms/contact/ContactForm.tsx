@@ -10,18 +10,22 @@ import { FormField } from "@/components/molecules/FormField";
 import { MAX_CONTACT_MESSAGE_LENGTH } from "@/constants/config";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
+import { createContact } from "@/services/contact";
+import type { ContactCategory } from "@/types/contact";
 import { validateNotificationText } from "@/utils/notificationText";
 
+// 値は types/contact.ts の ContactCategory と一致させる
 export const CONTACT_CATEGORIES = [
   { value: "request", label: "要望" },
   { value: "bug", label: "不具合報告" },
   { value: "other", label: "その他お問い合わせ" },
-] as const;
+] as const satisfies readonly { value: ContactCategory; label: string }[];
 
-export type ContactCategory = (typeof CONTACT_CATEGORIES)[number]["value"];
-
-// 送信 API は別 Issue。この時点ではモックアップとしてトーストだけを出す。
+// 送信 API（POST /api/v1/contact）の受付完了（202）を伝える
 const SUBMIT_TOAST_MESSAGE = "お問い合わせを送信しました";
+
+const SUBMIT_ERROR_MESSAGE =
+  "お問い合わせの送信に失敗しました。時間をおいて再度お試しください。";
 
 const CATEGORY_ERROR_MESSAGE = "お問い合わせ内容を選択してください";
 
@@ -45,7 +49,7 @@ const CATEGORY_DOT_CLASS_NAME =
   "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-200";
 
 // お問い合わせフォーム。カテゴリの必須チェックと詳細の文字数上限チェックを行い、
-// 送信時の API 連携・フィードバックはこのコンポーネントで行う。
+// 送信 API（POST /api/v1/contact）の呼び出しと結果のフィードバックまでを行う。
 export function ContactForm() {
   const router = useRouter();
   const formId = useId();
@@ -56,9 +60,15 @@ export function ContactForm() {
   const [message, setMessage] = useState("");
   const [categoryError, setCategoryError] = useState<string>();
   const [messageError, setMessageError] = useState<string>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    // 送信ボタンは非活性にしているが、Enter 連打などの経路でも二重送信しないようにする
+    if (isSubmitting) {
+      return;
+    }
 
     if (!category) {
       setCategoryError(CATEGORY_ERROR_MESSAGE);
@@ -78,18 +88,35 @@ export function ContactForm() {
 
     setCategoryError(undefined);
     setMessageError(undefined);
-    toast.success(SUBMIT_TOAST_MESSAGE);
+    setIsSubmitting(true);
 
-    // フッターなどあらゆる画面から来られるため、履歴があれば元の画面へ戻す。
-    // 履歴がない（直接アクセスなど）場合はイベント一覧へ遷移する。
-    // ※ window.history.length はアプリ外の履歴も数えるため、外部サイト経由の
-    //   アクセスでは戻り先がアプリ外になる余地がある。API 統合の Issue で
-    //   returnTo の扱いと合わせて見直す前提のモックアップ実装。
-    if (window.history.length <= 1) {
-      router.push(ROUTES.EVENT_LIST);
-    } else {
-      router.back();
-    }
+    void (async () => {
+      try {
+        await createContact({ category, message });
+        toast.success(SUBMIT_TOAST_MESSAGE);
+
+        // フッターなどあらゆる画面から来られるため、履歴があれば元の画面へ戻す。
+        // 履歴がない（直接アクセスなど）場合はイベント一覧へ遷移する。
+        // ※ window.history.length はアプリ外の履歴も数えるため、外部サイト経由の
+        //   アクセスでは戻り先がアプリ外になる余地がある。returnTo の扱いは
+        //   別 Issue で見直す。
+        if (window.history.length <= 1) {
+          router.push(ROUTES.EVENT_LIST);
+        } else {
+          router.back();
+        }
+      } catch (error) {
+        // API が返したメッセージ（検証エラー・受付上限・サーバーエラー）を優先して伝える
+        console.error("お問い合わせの送信に失敗しました。", error);
+        toast.error(
+          error instanceof Error && error.message
+            ? error.message
+            : SUBMIT_ERROR_MESSAGE,
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+    })();
   };
 
   return (
@@ -177,8 +204,8 @@ export function ContactForm() {
         />
       </FormField>
 
-      <PillButton type="submit" className="w-full">
-        送信する
+      <PillButton type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? "送信中..." : "送信する"}
       </PillButton>
     </form>
   );

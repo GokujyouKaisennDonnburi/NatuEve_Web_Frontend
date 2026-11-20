@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BACK_LINK_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 
-// お問い合わせページ。送信機能は別 Issue のため、フォームはモックアップ。
+// お問い合わせページ。フォームの送信は ContactForm が API（POST /api/v1/contact）へ行う。
 export default function ContactPage() {
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-5 py-4 sm:py-6">
