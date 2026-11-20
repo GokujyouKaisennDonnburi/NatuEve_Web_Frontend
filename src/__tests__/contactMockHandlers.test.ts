@@ -10,6 +10,10 @@ import type { ContactCategory } from "@/types/contact";
 // 契約（202 受付完了・エラーは { error: { code, message } }）を確認する。
 const server = setupServer(...contactHandlers);
 
+// MSW は相対パスのハンドラーを jsdom の location.origin 基準で解決するため、
+// リクエストも同じ origin に合わせる。
+const origin = () => window.location.origin;
+
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });
 });
@@ -58,5 +62,21 @@ describe("POST /api/v1/contact のモック", () => {
         message: "あ".repeat(2001),
       }),
     ).rejects.toThrow("お問い合わせの本文は2000文字以内で入力してください");
+  });
+
+  it("message が文字列以外のリクエストは 400（リクエストボディ不正）で失敗する", async () => {
+    // Service の型では表現できない型不一致を、直接 fetch で再現する
+    const response = await fetch(`${origin()}/api/v1/contact`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: "bug", message: 123 }),
+    });
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as {
+      error: { code: string; message: string };
+    };
+    expect(body.error.code).toBe("invalid_request");
+    expect(body.error.message).toBe("リクエストボディが不正です");
   });
 });

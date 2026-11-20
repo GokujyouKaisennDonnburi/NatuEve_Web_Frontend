@@ -3,33 +3,50 @@
 // NatuEve_API の POST /api/v1/contact（ADR-0052）の契約に合わせる。
 import { HttpResponse, http } from "msw";
 
+import { CONTACT_CATEGORIES } from "@/constants/contact";
+import { MAX_CONTACT_MESSAGE_LENGTH } from "@/constants/config";
 import type { ContactCategory } from "@/types/contact";
 
-const CONTACT_CATEGORIES: readonly ContactCategory[] = [
-  "request",
-  "bug",
-  "other",
-];
+const CONTACT_CATEGORY_VALUES = CONTACT_CATEGORIES.map(
+  (category) => category.value,
+);
 
-// NatuEve_API internal/service/contact.go の contactMessageMaxLength と一致させる
-const CONTACT_MESSAGE_MAX_LENGTH = 2000;
+type ContactRequestBody = {
+  category?: unknown;
+  message?: unknown;
+};
+
+// gin の bindJSON（NatuEve_API internal/handler/bind.go）と同じく、
+// ボディが JSON として解釈できない・型が合わない場合は 400 invalid_request。
+const invalidRequestBody = () =>
+  HttpResponse.json(
+    {
+      error: {
+        code: "invalid_request",
+        message: "リクエストボディが不正です",
+      },
+    },
+    { status: 400 },
+  );
 
 export const contactHandlers = [
   http.post("/api/v1/contact", async ({ request }) => {
-    let body: unknown;
+    let body: ContactRequestBody | undefined;
     try {
-      body = await request.json();
+      body = (await request.json()) as ContactRequestBody;
     } catch {
       // JSON 以外のボディは不正なリクエストとして扱う
       body = undefined;
     }
-
-    const category = (body as { category?: unknown } | undefined)?.category;
-    const message = (body as { message?: unknown } | undefined)?.message;
+    // JSON であってもオブジェクト以外（数値・文字列・配列等）は bindJSON が失敗するのと同じ扱い
+    if (typeof body !== "object" || body === null) {
+      return invalidRequestBody();
+    }
+    const { category, message } = body;
 
     if (
       typeof category !== "string" ||
-      !CONTACT_CATEGORIES.includes(category as ContactCategory)
+      !CONTACT_CATEGORY_VALUES.includes(category as ContactCategory)
     ) {
       return HttpResponse.json(
         {
@@ -42,14 +59,17 @@ export const contactHandlers = [
       );
     }
 
-    const trimmedMessage =
-      typeof message === "string" ? message.trim() : String(message ?? "");
-    if ([...trimmedMessage].length > CONTACT_MESSAGE_MAX_LENGTH) {
+    if (typeof message !== "string") {
+      return invalidRequestBody();
+    }
+
+    const trimmedMessage = message.trim();
+    if ([...trimmedMessage].length > MAX_CONTACT_MESSAGE_LENGTH) {
       return HttpResponse.json(
         {
           error: {
             code: "invalid_request",
-            message: "お問い合わせの本文は2000文字以内で入力してください",
+            message: `お問い合わせの本文は${MAX_CONTACT_MESSAGE_LENGTH}文字以内で入力してください`,
           },
         },
         { status: 400 },
