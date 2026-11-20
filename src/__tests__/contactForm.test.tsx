@@ -23,6 +23,8 @@ vi.mock("next/navigation", () => ({
 afterEach(() => {
   mockBack.mockClear();
   mockPush.mockClear();
+  vi.mocked(toast.success).mockClear();
+  vi.mocked(toast.error).mockClear();
 });
 
 describe("ContactForm", () => {
@@ -96,6 +98,41 @@ describe("ContactForm", () => {
     fireEvent.click(screen.getByRole("radio", { name: "要望" }));
     expect(
       screen.queryByText("お問い合わせ内容を選択してください"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("詳細が2000文字を超えるとエラーを表示し、トーストを出さない", () => {
+    render(<ContactForm />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
+      target: { value: "あ".repeat(2001) },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+
+    expect(
+      screen.getByText("詳細は2000文字以内で入力してください。"),
+    ).toBeInTheDocument();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("詳細を修正すると文字数エラー表示が消える", () => {
+    render(<ContactForm />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "不具合報告" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
+      target: { value: "あ".repeat(2001) },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+    expect(
+      screen.getByText("詳細は2000文字以内で入力してください。"),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "詳細" }), {
+      target: { value: "不具合の報告です" },
+    });
+    expect(
+      screen.queryByText("詳細は2000文字以内で入力してください。"),
     ).not.toBeInTheDocument();
   });
 });

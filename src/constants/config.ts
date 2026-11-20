@@ -53,6 +53,10 @@ export const MAX_PARTICIPATION_PARTY_SIZE = 10;
 // 「期限間近」と判定する申込期限までの残り日数（判定は applicationDeadline 基準）。
 export const DAYS_BEFORE_DEADLINE = 7;
 
+// お問い合わせの詳細入力の上限。
+// バックエンド(NatuEve_API internal/service/contact.go)の contactMessageMaxLength と一致させる。
+export const MAX_CONTACT_MESSAGE_LENGTH = 2000;
+
 // ページ内で「今見ている所」とみなす画面上部の帯。
 // 上端は画面上端からの距離（px。固定ヘッダーに隠れる部分を除くための値）、下端は画面の上からの割合（%）。
 // 目次（PageToc）のハイライトと、投稿画面（イベント・レポート）の入力→プレビュー切替の位置合わせで

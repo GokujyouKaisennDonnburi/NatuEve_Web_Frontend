@@ -7,8 +7,10 @@ import { toast } from "sonner";
 import { FormTextarea } from "@/components/atoms/FormTextarea";
 import { PillButton } from "@/components/atoms/PillButton";
 import { FormField } from "@/components/molecules/FormField";
+import { MAX_CONTACT_MESSAGE_LENGTH } from "@/constants/config";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
+import { validateNotificationText } from "@/utils/notificationText";
 
 export const CONTACT_CATEGORIES = [
   { value: "request", label: "要望" },
@@ -22,6 +24,8 @@ export type ContactCategory = (typeof CONTACT_CATEGORIES)[number]["value"];
 const SUBMIT_TOAST_MESSAGE = "お問い合わせを送信しました";
 
 const CATEGORY_ERROR_MESSAGE = "お問い合わせ内容を選択してください";
+
+const MESSAGE_LENGTH_ERROR_MESSAGE = `詳細は${MAX_CONTACT_MESSAGE_LENGTH}文字以内で入力してください。`;
 
 // 可視ラベルと radiogroup の読み上げ名で共有するため、定数に切り出す
 const CATEGORY_FIELD_LABEL = "お問い合わせ内容";
@@ -40,8 +44,8 @@ const CATEGORY_ROW_ACTIVE_CLASS_NAME =
 const CATEGORY_DOT_CLASS_NAME =
   "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-200";
 
-// お問い合わせフォーム。送信は別 Issue で実装するため、
-// ここではカテゴリの必須チェックとトースト表示・元の画面への遷移までを行う。
+// お問い合わせフォーム。カテゴリの必須チェックと詳細の文字数上限チェックを行い、
+// 送信時の API 連携・フィードバックはこのコンポーネントで行う。
 export function ContactForm() {
   const router = useRouter();
   const formId = useId();
@@ -51,6 +55,7 @@ export function ContactForm() {
   const [category, setCategory] = useState<ContactCategory | null>(null);
   const [message, setMessage] = useState("");
   const [categoryError, setCategoryError] = useState<string>();
+  const [messageError, setMessageError] = useState<string>();
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -60,7 +65,19 @@ export function ContactForm() {
       return;
     }
 
+    // API と同じく前後の空白を除いた上で、1コードポイント単位で文字数を数える
+    // （絵文字を HTML の maxLength で数えると2文字分になるため、maxLength 属性は使わない）。
+    const { tooLong } = validateNotificationText(
+      message,
+      MAX_CONTACT_MESSAGE_LENGTH,
+    );
+    if (tooLong) {
+      setMessageError(MESSAGE_LENGTH_ERROR_MESSAGE);
+      return;
+    }
+
     setCategoryError(undefined);
+    setMessageError(undefined);
     toast.success(SUBMIT_TOAST_MESSAGE);
 
     // フッターなどあらゆる画面から来られるため、履歴があれば元の画面へ戻す。
@@ -144,13 +161,18 @@ export function ContactForm() {
         label="詳細"
         optional
         description="ご意見・ご要望などを自由にご記入ください"
+        error={messageError}
       >
         <FormTextarea
           id={messageId}
           rows={6}
           className="resize-y"
           value={message}
-          onChange={(event) => setMessage(event.target.value)}
+          onChange={(event) => {
+            setMessage(event.target.value);
+            setMessageError(undefined);
+          }}
+          aria-invalid={Boolean(messageError)}
           placeholder="例: イベント検索の条件をもっと増やしてほしい"
         />
       </FormField>
