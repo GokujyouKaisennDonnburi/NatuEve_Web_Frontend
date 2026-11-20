@@ -7,21 +7,23 @@ import { toast } from "sonner";
 import { FormTextarea } from "@/components/atoms/FormTextarea";
 import { PillButton } from "@/components/atoms/PillButton";
 import { FormField } from "@/components/molecules/FormField";
+import { CONTACT_CATEGORIES } from "@/constants/contact";
+import { MAX_CONTACT_MESSAGE_LENGTH } from "@/constants/config";
 import { ROUTES } from "@/constants/routes";
+import { useCreateContact } from "@/hooks/useCreateContact";
 import { cn } from "@/lib/utils";
+import { ContactError, type ContactCategory } from "@/types/contact";
+import { validateTextLength } from "@/utils/textLength";
 
-export const CONTACT_CATEGORIES = [
-  { value: "request", label: "要望" },
-  { value: "bug", label: "不具合報告" },
-  { value: "other", label: "その他お問い合わせ" },
-] as const;
-
-export type ContactCategory = (typeof CONTACT_CATEGORIES)[number]["value"];
-
-// 送信 API は別 Issue。この時点ではモックアップとしてトーストだけを出す。
+// 送信 API（POST /api/v1/contact）の受付完了（202）を伝える
 const SUBMIT_TOAST_MESSAGE = "お問い合わせを送信しました";
 
+const SUBMIT_ERROR_MESSAGE =
+  "お問い合わせの送信に失敗しました。時間をおいて再度お試しください。";
+
 const CATEGORY_ERROR_MESSAGE = "お問い合わせ内容を選択してください";
+
+const MESSAGE_LENGTH_ERROR_MESSAGE = `詳細は${MAX_CONTACT_MESSAGE_LENGTH}文字以内で入力してください。`;
 
 // 可視ラベルと radiogroup の読み上げ名で共有するため、定数に切り出す
 const CATEGORY_FIELD_LABEL = "お問い合わせ内容";
@@ -40,39 +42,74 @@ const CATEGORY_ROW_ACTIVE_CLASS_NAME =
 const CATEGORY_DOT_CLASS_NAME =
   "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-200";
 
-// お問い合わせフォーム。送信は別 Issue で実装するため、
-// ここではカテゴリの必須チェックとトースト表示・元の画面への遷移までを行う。
+// お問い合わせフォーム。カテゴリの必須チェックと詳細の文字数上限チェックを行い、
+// 送信（useCreateContact フック経由で POST /api/v1/contact）の結果表示までを行う。
 export function ContactForm() {
   const router = useRouter();
+  const { isSubmitting, submit } = useCreateContact();
   const formId = useId();
   const categoryId = `${formId}-category`;
   const messageId = `${formId}-message`;
+  const messageErrorId = `${formId}-message-error`;
 
   const [category, setCategory] = useState<ContactCategory | null>(null);
   const [message, setMessage] = useState("");
   const [categoryError, setCategoryError] = useState<string>();
+  const [messageError, setMessageError] = useState<string>();
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    // 送信ボタンは非活性にしているが、Enter 連打などの経路でも二重送信しないようにする
+    if (isSubmitting) {
+      return;
+    }
 
     if (!category) {
       setCategoryError(CATEGORY_ERROR_MESSAGE);
       return;
     }
 
-    setCategoryError(undefined);
-    toast.success(SUBMIT_TOAST_MESSAGE);
-
-    // フッターなどあらゆる画面から来られるため、履歴があれば元の画面へ戻す。
-    // 履歴がない（直接アクセスなど）場合はイベント一覧へ遷移する。
-    // ※ window.history.length はアプリ外の履歴も数えるため、外部サイト経由の
-    //   アクセスでは戻り先がアプリ外になる余地がある。API 統合の Issue で
-    //   returnTo の扱いと合わせて見直す前提のモックアップ実装。
-    if (window.history.length <= 1) {
-      router.push(ROUTES.EVENT_LIST);
-    } else {
-      router.back();
+    // API と同じく前後の空白を除いた上で、1コードポイント単位で文字数を数える
+    // （絵文字を HTML の maxLength で数えると2文字分になるため、maxLength 属性は使わない）。
+    const { tooLong } = validateTextLength(message, MAX_CONTACT_MESSAGE_LENGTH);
+    if (tooLong) {
+      setMessageError(MESSAGE_LENGTH_ERROR_MESSAGE);
+      return;
     }
+
+    setCategoryError(undefined);
+    setMessageError(undefined);
+
+    void (async () => {
+      const result = await submit({ category, message });
+
+      if (result.ok) {
+        toast.success(SUBMIT_TOAST_MESSAGE);
+
+        // フッターなどあらゆる画面から来られるため、履歴があれば元の画面へ戻す。
+        // 履歴がない（直接アクセスなど）場合はイベント一覧へ遷移する。
+        // ※ window.history.length はアプリ外の履歴も数えるため、外部サイト経由の
+        //   アクセスでは戻り先がアプリ外になる余地がある。returnTo の扱いは
+        //   別 Issue で見直す。
+        if (window.history.length <= 1) {
+          router.push(ROUTES.EVENT_LIST);
+        } else {
+          router.back();
+        }
+        return;
+      }
+
+      // API 由来のエラー（検証エラー・受付上限・サーバーエラー）は API のメッセージを伝える。
+      // それ以外（ネットワーク断の TypeError など）はブラウザの生メッセージを
+      // 露出させないため、共通の文言にフォールバックする。
+      console.error("お問い合わせの送信に失敗しました。", result.error);
+      toast.error(
+        result.error instanceof ContactError
+          ? result.error.message
+          : SUBMIT_ERROR_MESSAGE,
+      );
+    })();
   };
 
   return (
@@ -144,19 +181,26 @@ export function ContactForm() {
         label="詳細"
         optional
         description="ご意見・ご要望などを自由にご記入ください"
+        error={messageError}
+        errorId={messageErrorId}
       >
         <FormTextarea
           id={messageId}
           rows={6}
           className="resize-y"
           value={message}
-          onChange={(event) => setMessage(event.target.value)}
+          onChange={(event) => {
+            setMessage(event.target.value);
+            setMessageError(undefined);
+          }}
+          aria-invalid={Boolean(messageError)}
+          aria-describedby={messageError ? messageErrorId : undefined}
           placeholder="例: イベント検索の条件をもっと増やしてほしい"
         />
       </FormField>
 
-      <PillButton type="submit" className="w-full">
-        送信する
+      <PillButton type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? "送信中..." : "送信する"}
       </PillButton>
     </form>
   );
