@@ -192,8 +192,10 @@ export default function EventListPage() {
           onClose={handleCloseFilter}
           id="event-list-filters"
         >
+          {/* フィルタ領域内のスクロールが端に達したら、ウィンドウ側のスクロールへ
+              引き継がれるようにする。overscroll-behavior はブラウザ既定(auto)のままにする */}
           <FilterSidebar
-            className="desktop:max-h-(--filter-sidebar-max-height) desktop:overflow-y-auto desktop:overscroll-contain desktop:[scrollbar-width:none] desktop:[&::-webkit-scrollbar]:hidden"
+            className="desktop:max-h-(--filter-sidebar-max-height) desktop:overflow-y-auto desktop:[scrollbar-width:none] desktop:[&::-webkit-scrollbar]:hidden"
             allTags={allTags}
             frequentTags={frequentTags}
             tagFilterKey={filterResetKey}
