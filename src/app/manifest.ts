@@ -8,6 +8,9 @@ export default function manifest(): MetadataRoute.Manifest {
     description: APP_DESCRIPTION,
     start_url: "/",
     display: "standalone",
+    // globals.css の --surface-strong / --background と同一の値。変更時は必ず同期する。
+    theme_color: "#ffffff",
+    background_color: "#f8fafc",
     icons: [
       {
         src: "/icons/pwa-icon-192.png",

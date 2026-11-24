@@ -391,6 +391,7 @@ describe("proxy の matcher", () => {
     "/robotsXtxt",
     "/robots.txt/x",
     "/sitemap.xml/x",
+    "/manifest.webmanifest/extra",
     "/mockServiceWorker.js.map",
   ])("%s は proxy を通る", (url) => {
     expect(matches(url)).toBe(true);
@@ -401,6 +402,7 @@ describe("proxy の matcher", () => {
     "/_next/image?url=%2Ficon.png&w=64&q=75",
     "/robots.txt",
     "/sitemap.xml",
+    "/manifest.webmanifest",
     "/mockServiceWorker.js",
   ])("%s は proxy を通らない", (url) => {
     expect(matches(url)).toBe(false);
