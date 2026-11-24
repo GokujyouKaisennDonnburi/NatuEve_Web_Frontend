@@ -705,11 +705,13 @@ CSP を proxy だけで付ける理由:
 
 CSP が付かないパス（ADR-0005 決定 3）:
 
-- proxy の matcher で外しているパス（`/api`・`/_next/image`・`favicon.ico`・`robots.txt`・`sitemap.xml`・`mockServiceWorker.js`）と、
-  先読みのリクエスト（`next-router-prefetch`・`purpose: prefetch` のヘッダー付き）には付かない。HTML ではないため受け入れる。
-  - 例外として、`/api` で始まる存在しないパスは 404 の HTML になり、CSP が付かない（#461 の確認で見つけた。未対応）。
+- proxy の matcher で外しているパス（`/api`・`/_next/image`・`favicon.ico`・`robots.txt`・`sitemap.xml`・`mockServiceWorker.js`）には付かない。HTML ではないため受け入れる。
+  - ただし、次のパスは 404 の HTML になり、CSP が付かない（#461 の確認で見つけた。未対応）。
+    matcher が前方一致のため、外した名前で始まる存在しないパス（`/api/x`・`/apifoo`・`/_next/image/foo`・`/robots.txtx` など）と、ファイルのない `/favicon.ico`。
+- 先読みのリクエスト（`next-router-prefetch`・`purpose: prefetch` のヘッダー付き）も matcher の `missing` で外しているが、Workers では付く（害はない）。
+  OpenNext は matcher の正規表現だけを見て、`missing` を見ない（`@opennextjs/aws` 4.1.12 の `core/routing/util.js` の `getMiddlewareMatch`）。
 - 実在する静的ファイル（`/_next/static/*` と `public/` の画像など）は Workers の assets レイヤが返し、proxy を通らないため付かない。
-  `/_next/static` の存在しないパスは 404 の HTML になるため、matcher で外さずに CSP を付ける（#461。2026-11-20 の ZAP で検出）。
+  `/_next/static` の存在しないパスを文書として開くと 404 の HTML になるため、matcher で外さずに CSP を付ける（#461。2026-11-20 の ZAP で検出）。
 - `/icon.png`・`/apple-icon.png`（`src/app` のメタデータルート）は matcher で外していないため付く（害はない）。
 
 戻し方:
@@ -804,7 +806,9 @@ CSP が付かないパス（ADR-0005 決定 3）:
 - `/_next/static`・`/_next/static/chunks`・`/_next/static/media`・`/_next/static/chunks/no-such.js` は 404 の HTML で、
   `content-security-policy` が 1 行だけ付き、`<script>` 11 個のすべてに同じ nonce が付いた。
 - 実在する `/_next/static` の JS・CSS・フォントには CSP が付かず、`Cache-Control: public,max-age=31536000,immutable` のままだった。
-- `/api/x`（存在しないパス）は 404 の HTML で、CSP が付かなかった。
+- `/favicon.ico`・`/api/x`・`/apifoo`・`/_next/image/foo`・`/robots.txtx`・`/sitemap.xml/x` は 404 の HTML で、CSP が付かなかった。
+- `/event-list` に `next-router-prefetch: 1`・`purpose: prefetch` を付けても、CSP が付いた。
+- `/_next/static/chunks/no-such.js` に `sec-fetch-dest: script` を付けると `text/plain` の 404 になり、CSP も付いた。
 
 #412 より前の確認（記録。「上の CSP」は `next.config.ts` の #335 の CSP（#412 で削除）を指す）:
 

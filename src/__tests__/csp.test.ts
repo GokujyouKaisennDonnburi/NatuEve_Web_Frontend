@@ -368,11 +368,13 @@ describe("proxy", () => {
   });
 });
 
+// Next.js の判定で matcher を確かめる。Workers では OpenNext がビルド後の正規表現だけで判定し、
+// missing を見ない（@opennextjs/aws の core/routing/util.js の getMiddlewareMatch）。
 describe("proxy の matcher", () => {
   const matches = (url: string, headers?: Record<string, string>) =>
     unstable_doesMiddlewareMatch({ config: proxyConfig, url, headers });
 
-  // /_next/static の存在しないパスは 404 の HTML になるため、CSP が要る（#461）。
+  // Workers では /_next/static の存在しないパスが 404 の HTML になるため、CSP が要る（#461）。
   it.each([
     "/event-list",
     "/no-such-page",
@@ -394,7 +396,8 @@ describe("proxy の matcher", () => {
     expect(matches(url)).toBe(false);
   });
 
-  it("先読みのリクエストは proxy を通らない", () => {
+  // Workers では通り、CSP が付く（上のコメント）。
+  it("先読みのリクエストは、Next.js の判定では proxy を通らない", () => {
     expect(matches("/event-list", { "next-router-prefetch": "1" })).toBe(false);
     expect(matches("/event-list", { purpose: "prefetch" })).toBe(false);
   });

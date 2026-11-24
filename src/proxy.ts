@@ -68,9 +68,9 @@ export const config = {
     {
       // ドキュメント以外（画像最適化・API・メタデータルート・
       // MSW の Service Worker スクリプト）には CSP が不要なため除外する。
-      // _next/static は除外しない。存在しないパスは 404 の HTML になり、CSP が要る（#461）。
-      // 実在する静的アセットは Workers の assets レイヤが Worker をバイパスするため、
-      // 本番ではそもそも proxy を通らない。
+      // _next/static は除外しない。Workers では存在しないパスを文書として開くと 404 の HTML になり、
+      // CSP が要る（#461）。実在する静的アセットは Workers の assets レイヤが Worker をバイパスするため、
+      // 本番ではそもそも proxy を通らない（next dev・next start では通り、CSP も付く）。
       source:
         "/((?!api|_next/image|favicon.ico|robots.txt|sitemap.xml|mockServiceWorker.js).*)",
       // next/link の prefetch 応答はドキュメントではないため除外する（docs の推奨）。
