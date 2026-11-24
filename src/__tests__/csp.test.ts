@@ -2,11 +2,12 @@
 // CSP ヘッダー文字列だけを検証するため、DOM は使わない。
 
 import { readFileSync } from "node:fs";
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { NextRequest } from "next/server";
 import ts from "typescript";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildCspHeader, buildTrustedTypesCspHeader } from "../lib/csp";
-import { proxy } from "../proxy";
+import { config as proxyConfig, proxy } from "../proxy";
 
 // remotePatterns との突き合わせで next.config.ts を読み込むため、読み込み時の初期化を止める。
 vi.mock("@opennextjs/cloudflare", () => ({
@@ -364,6 +365,51 @@ describe("proxy", () => {
     expect(trustedTypes).toBe(
       "require-trusted-types-for 'script'; trusted-types nextjs",
     );
+  });
+});
+
+// Next.js の判定で matcher を確かめる。Workers では OpenNext がビルド後の正規表現だけで判定し、
+// missing を見ない（@opennextjs/aws の core/routing/util.js の getMiddlewareMatch）。
+describe("proxy の matcher", () => {
+  const matches = (url: string, headers?: Record<string, string>) =>
+    unstable_doesMiddlewareMatch({ config: proxyConfig, url, headers });
+
+  // Workers では /_next/static の存在しないパスが 404 の HTML になるため、CSP が要る（#461）。
+  it.each([
+    "/event-list",
+    "/no-such-page",
+    "/_next/static",
+    "/_next/static/chunks",
+    "/_next/static/chunks/no-such.js",
+    "/favicon.ico",
+    "/api",
+    "/api/x",
+    "/apifoo",
+    "/_next/image/foo",
+    "/_next/imagefoo",
+    "/robots.txtx",
+    "/robotsXtxt",
+    "/robots.txt/x",
+    "/sitemap.xml/x",
+    "/mockServiceWorker.js.map",
+  ])("%s は proxy を通る", (url) => {
+    expect(matches(url)).toBe(true);
+  });
+
+  it.each([
+    "/_next/image",
+    "/_next/image?url=%2Ficon.png&w=64&q=75",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/mockServiceWorker.js",
+  ])("%s は proxy を通らない", (url) => {
+    expect(matches(url)).toBe(false);
+  });
+
+  // Workers では通り、CSP が付く（上のコメント）。
+  it("先読みのリクエストは、Next.js の判定では proxy を通らない", () => {
+    expect(matches("/event-list", { "next-router-prefetch": "1" })).toBe(false);
+    expect(matches("/event-list", { purpose: "prefetch" })).toBe(false);
   });
 });
 
