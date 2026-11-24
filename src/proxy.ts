@@ -74,7 +74,7 @@ export const config = {
       // 実在する静的アセットは Workers の assets レイヤが Worker をバイパスするため、
       // 本番ではそもそも proxy を通らない（next dev・next start では通り、CSP も付く）。
       source:
-        "/((?!_next/image$|robots\\.txt$|sitemap\\.xml$|mockServiceWorker\\.js$).*)",
+        "/((?!_next/image$|robots\\.txt$|sitemap\\.xml$|manifest\\.webmanifest$|mockServiceWorker\\.js$).*)",
       // next/link の prefetch 応答はドキュメントではないため除外する（docs の推奨）。
       missing: [
         { type: "header", key: "next-router-prefetch" },
