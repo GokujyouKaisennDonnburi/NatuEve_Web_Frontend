@@ -705,9 +705,9 @@ CSP を proxy だけで付ける理由:
 
 CSP が付かないパス（ADR-0005 決定 3）:
 
-- proxy の matcher で外しているパス（`/api`・`/_next/image`・`favicon.ico`・`robots.txt`・`sitemap.xml`・`mockServiceWorker.js`）には付かない。HTML ではないため受け入れる。
-  - ただし、次のパスは 404 の HTML になり、CSP が付かない（#461 の確認で見つけた。未対応）。
-    matcher が前方一致のため、外した名前で始まる存在しないパス（`/api/x`・`/apifoo`・`/_next/image/foo`・`/robots.txtx` など）と、ファイルのない `/favicon.ico`。
+- proxy の matcher で外しているパス（`/_next/image`・`/robots.txt`・`/sitemap.xml`・`/mockServiceWorker.js`）には付かない。HTML ではないため受け入れる。
+  - 完全一致だけを外す。前方一致だと、外した名前で始まる存在しないパス（`/robots.txtx`・`/_next/image/foo` など）の 404 の HTML に CSP が付かない（#461）。
+  - `/api` と `/favicon.ico` は Web に実体がなく 404 の HTML になるため、外さない（#461。`/api` は開発時だけ `next.config.ts` の `rewrites` で API へ転送する）。
 - 先読みのリクエスト（`next-router-prefetch`・`purpose: prefetch` のヘッダー付き）も matcher の `missing` で外しているが、Workers では付く（害はない）。
   OpenNext は matcher の正規表現だけを見て、`missing` を見ない（`@opennextjs/aws` 4.1.12 の `core/routing/util.js` の `getMiddlewareMatch`）。
 - 実在する静的ファイル（`/_next/static/*` と `public/` の画像など）は Workers の assets レイヤが返し、proxy を通らないため付かない。
@@ -806,7 +806,9 @@ CSP が付かないパス（ADR-0005 決定 3）:
 - `/_next/static`・`/_next/static/chunks`・`/_next/static/media`・`/_next/static/chunks/no-such.js` は 404 の HTML で、
   `content-security-policy` が 1 行だけ付き、`<script>` 11 個のすべてに同じ nonce が付いた。
 - 実在する `/_next/static` の JS・CSS・フォントには CSP が付かず、`Cache-Control: public,max-age=31536000,immutable` のままだった。
-- `/favicon.ico`・`/api/x`・`/apifoo`・`/_next/image/foo`・`/robots.txtx`・`/sitemap.xml/x` は 404 の HTML で、CSP が付かなかった。
+- `/favicon.ico`・`/api`・`/api/x`・`/apifoo`・`/_next/image/foo`・`/_next/imagefoo`・`/robots.txtx`・`/robotsXtxt`・`/robots.txt/x`・`/sitemap.xml/x`・`/mockServiceWorker.js.map` の 404 の HTML にも、
+  CSP が 1 行だけ付き、`<script>` 11 個のすべてに同じ nonce が付いた（完全一致にする前は、確かめた `/favicon.ico`・`/api/x`・`/apifoo`・`/_next/image/foo`・`/robots.txtx`・`/sitemap.xml/x` に付かなかった）。
+- `/robots.txt`・`/sitemap.xml`・`/mockServiceWorker.js` には CSP が付かず、`/_next/image` の画像には Next.js の画像用の CSP だけが付いた。
 - `/event-list` に `next-router-prefetch: 1`・`purpose: prefetch` を付けても、CSP が付いた。
 - `/_next/static/chunks/no-such.js` に `sec-fetch-dest: script` を付けると `text/plain` の 404 になり、CSP も付いた。
 
