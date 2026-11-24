@@ -66,13 +66,15 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      // ドキュメント以外（画像最適化・API・メタデータルート・
-      // MSW の Service Worker スクリプト）には CSP が不要なため除外する。
-      // _next/static は除外しない。Workers では存在しないパスを文書として開くと 404 の HTML になり、
-      // CSP が要る（#461）。実在する静的アセットは Workers の assets レイヤが Worker をバイパスするため、
+      // ドキュメント以外（画像最適化・メタデータルート・MSW の Service Worker スクリプト）には
+      // CSP が不要なため除外する。存在しないパスを文書として開くと 404 の HTML になり CSP が
+      // 要るため、前方一致ではなく完全一致だけを除外する（#461）。
+      // _next/static・api・favicon.ico も同じ理由で除外しない（api と favicon.ico は実体がない。
+      // api は開発時だけ next.config.ts の rewrites で API サーバーへ転送する）。
+      // 実在する静的アセットは Workers の assets レイヤが Worker をバイパスするため、
       // 本番ではそもそも proxy を通らない（next dev・next start では通り、CSP も付く）。
       source:
-        "/((?!api|_next/image|favicon.ico|robots.txt|sitemap.xml|mockServiceWorker.js).*)",
+        "/((?!_next/image$|robots\\.txt$|sitemap\\.xml$|mockServiceWorker\\.js$).*)",
       // next/link の prefetch 応答はドキュメントではないため除外する（docs の推奨）。
       missing: [
         { type: "header", key: "next-router-prefetch" },

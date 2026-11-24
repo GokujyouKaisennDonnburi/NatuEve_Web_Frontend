@@ -381,14 +381,24 @@ describe("proxy の matcher", () => {
     "/_next/static",
     "/_next/static/chunks",
     "/_next/static/chunks/no-such.js",
+    "/favicon.ico",
+    "/api",
+    "/api/x",
+    "/apifoo",
+    "/_next/image/foo",
+    "/_next/imagefoo",
+    "/robots.txtx",
+    "/robotsXtxt",
+    "/robots.txt/x",
+    "/sitemap.xml/x",
+    "/mockServiceWorker.js.map",
   ])("%s は proxy を通る", (url) => {
     expect(matches(url)).toBe(true);
   });
 
   it.each([
-    "/api/v1/events",
     "/_next/image",
-    "/favicon.ico",
+    "/_next/image?url=%2Ficon.png&w=64&q=75",
     "/robots.txt",
     "/sitemap.xml",
     "/mockServiceWorker.js",
