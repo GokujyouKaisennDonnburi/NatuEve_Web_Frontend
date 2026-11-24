@@ -2,11 +2,12 @@
 // CSP ヘッダー文字列だけを検証するため、DOM は使わない。
 
 import { readFileSync } from "node:fs";
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { NextRequest } from "next/server";
 import ts from "typescript";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildCspHeader, buildTrustedTypesCspHeader } from "../lib/csp";
-import { proxy } from "../proxy";
+import { config as proxyConfig, proxy } from "../proxy";
 
 // remotePatterns との突き合わせで next.config.ts を読み込むため、読み込み時の初期化を止める。
 vi.mock("@opennextjs/cloudflare", () => ({
@@ -364,6 +365,38 @@ describe("proxy", () => {
     expect(trustedTypes).toBe(
       "require-trusted-types-for 'script'; trusted-types nextjs",
     );
+  });
+});
+
+describe("proxy の matcher", () => {
+  const matches = (url: string, headers?: Record<string, string>) =>
+    unstable_doesMiddlewareMatch({ config: proxyConfig, url, headers });
+
+  // /_next/static の存在しないパスは 404 の HTML になるため、CSP が要る（#461）。
+  it.each([
+    "/event-list",
+    "/no-such-page",
+    "/_next/static",
+    "/_next/static/chunks",
+    "/_next/static/chunks/no-such.js",
+  ])("%s は proxy を通る", (url) => {
+    expect(matches(url)).toBe(true);
+  });
+
+  it.each([
+    "/api/v1/events",
+    "/_next/image",
+    "/favicon.ico",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/mockServiceWorker.js",
+  ])("%s は proxy を通らない", (url) => {
+    expect(matches(url)).toBe(false);
+  });
+
+  it("先読みのリクエストは proxy を通らない", () => {
+    expect(matches("/event-list", { "next-router-prefetch": "1" })).toBe(false);
+    expect(matches("/event-list", { purpose: "prefetch" })).toBe(false);
   });
 });
 
