@@ -705,9 +705,11 @@ CSP を proxy だけで付ける理由:
 
 CSP が付かないパス（ADR-0005 決定 3）:
 
-- proxy の matcher で外しているパス（`/api`・`/_next/static`・`/_next/image`・`favicon.ico`・`robots.txt`・`sitemap.xml`・`mockServiceWorker.js`）と、
+- proxy の matcher で外しているパス（`/api`・`/_next/image`・`favicon.ico`・`robots.txt`・`sitemap.xml`・`mockServiceWorker.js`）と、
   先読みのリクエスト（`next-router-prefetch`・`purpose: prefetch` のヘッダー付き）には付かない。HTML ではないため受け入れる。
-- 静的ファイル（`public/` の画像など）は Workers の assets レイヤが返し、proxy を通らないため付かない。
+  - 例外として、`/api` で始まる存在しないパスは 404 の HTML になり、CSP が付かない（#461 の確認で見つけた。未対応）。
+- 実在する静的ファイル（`/_next/static/*` と `public/` の画像など）は Workers の assets レイヤが返し、proxy を通らないため付かない。
+  `/_next/static` の存在しないパスは 404 の HTML になるため、matcher で外さずに CSP を付ける（#461。2026-11-20 の ZAP で検出）。
 - `/icon.png`・`/apple-icon.png`（`src/app` のメタデータルート）は matcher で外していないため付く（害はない）。
 
 戻し方:
@@ -796,6 +798,13 @@ CSP が付かないパス（ADR-0005 決定 3）:
   - Web インスペクタでコードを実行するたびに、`decodeHTMLEntitiesPolicy` という名前の Trusted Types のポリシーの拒否（Report-Only）が出た。この名前はアプリのビルド結果にも依存パッケージにもなく、ページ側で `createPolicy` を包んでも呼ばれなかった。Web インスペクタ自身から出ていると考える（推定）。
 - HTTP Observatory（本番。2026-11-20）: A+（110 点）、12 項目すべて合格だった。
   CSP の項目は `csp-implemented-with-unsafe-inline-in-style-src-only` で、減点は 0（`script-src` の `'unsafe-inline'` による減点はなくなった。#407）。
+
+確認したこと（#461。2026-11-24。上の #412 の手元の確認と同じ `--env staging` のビルドと `preview`。ローカルの Workers ランタイム。Next.js 16.4.6）:
+
+- `/_next/static`・`/_next/static/chunks`・`/_next/static/media`・`/_next/static/chunks/no-such.js` は 404 の HTML で、
+  `content-security-policy` が 1 行だけ付き、`<script>` 11 個のすべてに同じ nonce が付いた。
+- 実在する `/_next/static` の JS・CSS・フォントには CSP が付かず、`Cache-Control: public,max-age=31536000,immutable` のままだった。
+- `/api/x`（存在しないパス）は 404 の HTML で、CSP が付かなかった。
 
 #412 より前の確認（記録。「上の CSP」は `next.config.ts` の #335 の CSP（#412 で削除）を指す）:
 

@@ -67,6 +67,8 @@ nonce は応答ごとに変える必要があるため、使うと全ページ�
 3. #412 で nonce の CSP を enforce に切り替え、`next.config.ts` の CSP を外す。以後、CSP を付けるのは proxy だけにする。
    - ローカルの `preview` では、proxy の CSP が `next.config.ts` の CSP を置き換えた。OpenNext のヘッダーの合成に頼らないよう、定義を 1 か所にする。
    - proxy を通らないパス（`robots.txt`・`sitemap.xml`・`favicon.ico`・`/api`・先読みのリクエスト）には CSP が付かなくなる。HTML ではないため受け入れる。
+   - （#461 で追記。2026-11-24）matcher は `_next/static` も外していたが、存在しないパスは 404 の HTML になり、CSP が付かなかった（2026-11-20 の ZAP で検出）。
+     matcher の除外から外した。実在する静的ファイルは Workers の assets レイヤが返すため、proxy を通らないままである（docs/Deployment.md「CSP」）。
    - （#412 で追記。2026-11-19）`next.config.ts` の CSP と `DISABLE_NEXT_CONFIG_CSP` を消し、`wrangler.jsonc` の `CSP_REPORT_ONLY` を本番・検証環境とも `"false"` にした。
      未設定でも enforce になるが、`vars` にない変数は OpenNext がビルド時に読んだ `.env` 系ファイルの値で埋める（`populateProcessEnv` は `vars` を先に入れ、`.env` の値は `??=` で入れる）。
      `.env.production` は `.gitignore` の外でコミットされうるため、その値で本番が Report-Only に戻らないよう明示した（コードを読んでの判断で、`.env.production` を置いて試してはいない）。
