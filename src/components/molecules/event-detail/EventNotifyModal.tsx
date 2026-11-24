@@ -17,7 +17,7 @@ import {
   MAX_NOTIFICATION_SUBJECT_LENGTH,
 } from "@/constants/config";
 import { NotificationLimitExceededError } from "@/types/event";
-import { validateNotificationText } from "@/utils/notificationText";
+import { validateTextLength } from "@/utils/textLength";
 
 // 全体連絡モーダルのプロパティ
 type EventNotifyModalProps = {
@@ -43,14 +43,11 @@ export function EventNotifyModal({
   const [limitExceeded, setLimitExceeded] = useState(false);
 
   // 超過分も入力欄に残し、前後の空白を除いた送信内容で文字数を判定する。
-  const subject = validateNotificationText(
+  const subject = validateTextLength(
     notifySubject,
     MAX_NOTIFICATION_SUBJECT_LENGTH,
   );
-  const body = validateNotificationText(
-    notifyBody,
-    MAX_NOTIFICATION_BODY_LENGTH,
-  );
+  const body = validateTextLength(notifyBody, MAX_NOTIFICATION_BODY_LENGTH);
   const canSend =
     !!subject.value &&
     !!body.value &&

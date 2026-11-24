@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 // フィールドの補足説明やエラーメッセージを表示するコンポーネント
 type FieldNoteProps = {
   tone?: "default" | "error"; // フィールドの補足説明やエラーメッセージのトーンを指定するプロパティ
+  id?: string; // 入力欄の aria-describedby から参照するための id
   children: ReactNode; // フィールドの補足説明やエラーメッセージの内容を指定するプロパティ
 };
 
@@ -17,11 +18,13 @@ const toneClasses: Record<NonNullable<FieldNoteProps["tone"]>, string> = {
 // フィールドの補足説明やエラーメッセージを表示するコンポーネント
 export function FieldNote({
   tone = "default",
+  id,
   children,
 }: Readonly<FieldNoteProps>) {
   return (
     // エラーは動的に挿入されても非視覚的に通知されるよう、alert としてマークする
     <p
+      id={id}
       className={cn(toneClasses[tone])}
       role={tone === "error" ? "alert" : undefined}
     >
