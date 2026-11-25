@@ -108,9 +108,15 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
         {/* Tags area with fixed height, empty space when no tags */}
         <div className="mt-3 flex min-h-6 items-center sm:ml-[26px] sm:mt-[21px] sm:h-[24px]">
           {event.tags && event.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
+            // カード幅に入りきらないタグは折り返さず、あふれた分を ... で省略する(#467)。
+            <div className="flex flex-nowrap gap-1 overflow-hidden">
               {event.tags.map((tag) => (
-                <FilterTag key={tag.id} label={tag.name} title={tag.name} />
+                <FilterTag
+                  key={tag.id}
+                  label={tag.name}
+                  title={tag.name}
+                  className="truncate"
+                />
               ))}
             </div>
           )}

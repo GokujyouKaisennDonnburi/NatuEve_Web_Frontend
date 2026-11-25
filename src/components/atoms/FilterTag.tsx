@@ -33,6 +33,11 @@ export function FilterTag({
     className,
   );
 
+  // text-overflow は flex コンテナ自身には効かないため、ラベルを内側の
+  // span で包んでおく。幅に制約があるときだけ ... 省略が働き、
+  // 制約がなければ自然幅のまま表示される(#467)。
+  const labelElement = <span className="truncate">{label}</span>;
+
   if (onClick) {
     return (
       <button
@@ -43,14 +48,14 @@ export function FilterTag({
         title={props.title}
         className={commonClasses}
       >
-        {label}
+        {labelElement}
       </button>
     );
   }
 
   return (
     <span title={props.title} className={commonClasses}>
-      {label}
+      {labelElement}
     </span>
   );
 }
