@@ -4,6 +4,8 @@ import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { FilterTag } from "@/components/atoms/FilterTag";
 import { Loading } from "@/components/atoms/Loading";
 import { ROUTES } from "@/constants/routes";
+import { SM_MEDIA_QUERY } from "@/constants/config";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { TagItem } from "@/types/tag";
 import type { ResolvedEventStatus } from "@/utils/eventStatus";
 import { calcVisibleTagCount } from "@/utils/tagOverflow";
@@ -60,6 +62,9 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
   }, []);
 
   const tags = event.tags ?? [];
+  // sm 以上(カードが横並びレイアウトになる幅)でのみ、収まる個数への調整を行う。
+  // モバイル幅では従来どおり折り返して全件表示する(#467)。
+  const isWideLayout = useMediaQuery(SM_MEDIA_QUERY);
   const tagSignature = tags.map((tag) => tag.id).join(",");
   // null は全件表示(計測前)を表す。タグ自体は固定幅のまま、
   // 表示範囲に入りきる個数だけを描画し、あふれた分は「+N」チップにまとめる(#467)。
@@ -73,8 +78,9 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
   // タグ自体は固定幅のまま、表示範囲に入りきる個数だけを描画する(#467)。
   // useLayoutEffect で描画前に個数を確定させ、計測前の全件表示が描画されるのを防ぐ
   useLayoutEffect(() => {
-    // スケルトン表示中はタグ領域が存在せず計測できない
-    if (!isMounted) {
+    // スケルトン表示中はタグ領域が存在せず計測できない。
+    // モバイル幅では折り返し表示のため計測も不要。
+    if (!isMounted || !isWideLayout) {
       return;
     }
     const el = tagsRowRef.current;
@@ -129,7 +135,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [visibleTagCount, tagSignature, tags.length, isMounted]);
+  }, [visibleTagCount, tagSignature, tags.length, isMounted, isWideLayout]);
 
   if (!isMounted) {
     return (
@@ -155,8 +161,10 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       : event.location;
 
   const visibleTags =
-    visibleTagCount === null ? tags : tags.slice(0, visibleTagCount);
-  const hiddenTags = tags.slice(visibleTags.length);
+    !isWideLayout || visibleTagCount === null
+      ? tags
+      : tags.slice(0, visibleTagCount);
+  const hiddenTags = isWideLayout ? tags.slice(visibleTags.length) : [];
 
   // ISR 対象の詳細ページを prefetch すると、一覧枚数分のサーバー描画と
   // API 呼び出しがユーザー操作前に走るため、遷移時に取得する。
@@ -188,7 +196,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
         {/* Tags area with fixed height, empty space when no tags */}
         <div
           ref={tagsRowRef}
-          className="mt-3 flex min-h-6 flex-nowrap items-center gap-1 overflow-hidden sm:ml-[26px] sm:mt-[21px] sm:h-[24px]"
+          className="mt-3 flex min-h-6 flex-wrap items-center gap-1 sm:flex-nowrap sm:overflow-hidden sm:ml-[26px] sm:mt-[21px] sm:h-[24px]"
         >
           {visibleTags.map((tag) => (
             <FilterTag
