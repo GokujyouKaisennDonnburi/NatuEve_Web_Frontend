@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import type { AnchorHTMLAttributes, ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EventCard, type EventItem } from "@/components/organisms/EventCard";
 import type { TagItem } from "@/types/tag";
@@ -48,45 +48,74 @@ const buildEvent = (tags?: TagItem[]): EventItem => ({
   status: "open",
 });
 
-// タグ領域(タグを並べる flex コンテナ)を取得する
-const getTagsRow = () => {
-  const firstTag = screen.getByText(tags[0].name);
-  // FilterTag の内側 span → FilterTag 本体 → タグ領域
-  return firstTag.parentElement?.parentElement as HTMLElement;
-};
+const makeRect = (width: number) => ({ width }) as DOMRect;
+
+// jsdom はレイアウト計算を行わないため、矩形を実測値相当に差し替えて
+// 「収まるタグの個数」の計算を再現する。
+// タグ幅は 文字数 x 10 + 左右パディング 24px の近似値とする。
+const stubRects = (containerWidth: number) =>
+  vi
+    .spyOn(Element.prototype, "getBoundingClientRect")
+    .mockImplementation(function (this: Element) {
+      // タグ領域
+      if (this.classList.contains("flex-nowrap")) {
+        return makeRect(containerWidth);
+      }
+      // FilterTag 本体と「+N」チップのラッパー(タグ領域の直下)
+      if (this.parentElement?.classList.contains("flex-nowrap")) {
+        const text = this.textContent ?? "";
+        return makeRect(text.length * 10 + 24);
+      }
+      return makeRect(0);
+    });
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("EventCard のタグ表示", () => {
-  it("タグ領域は折り返しなしで 1 行に収まる", () => {
-    render(<EventCard event={buildEvent(tags)} />);
-
-    const tagsRow = getTagsRow();
-    expect(tagsRow).toHaveClass("flex-nowrap");
-    expect(tagsRow).not.toHaveClass("flex-wrap");
-  });
-
-  it("カード幅に入りきらないタグは truncate クラスで ... 省略される", () => {
+  it("すべてのタグが収まる場合は全件を固定サイズで表示する", () => {
+    stubRects(500);
     render(<EventCard event={buildEvent(tags)} />);
 
     for (const tag of tags) {
-      // FilterTag 本体と内側ラベルの両方が省略の前提クラスを持つ
       const label = screen.getByText(tag.name);
-      expect(label).toHaveClass("truncate");
-      expect(label.parentElement).toHaveClass("truncate");
-    }
-  });
-
-  it("タグにホバーすると title 属性で全文を確認できる", () => {
-    render(<EventCard event={buildEvent(tags)} />);
-
-    for (const tag of tags) {
+      expect(label).toBeInTheDocument();
+      // FilterTag 本体は縮まず固定サイズ(shrink-0)
+      expect(label.parentElement).toHaveClass("shrink-0");
+      expect(label.parentElement).not.toHaveClass("truncate");
       expect(screen.getByTitle(tag.name)).toBeInTheDocument();
     }
+    // あふれていないので「+N」チップは表示しない
+    expect(screen.queryByText(/^\+\d+$/)).not.toBeInTheDocument();
+  });
+
+  it("収まりきらないタグは「+N」チップにまとめられ、表示タグは固定サイズのままになる", () => {
+    stubRects(150);
+    render(<EventCard event={buildEvent(tags)} />);
+
+    // 1枚目のタグのみ表示し、残り 2 件は「+2」チップにまとめる
+    expect(screen.getByText("野鳥観察")).toBeInTheDocument();
+    expect(screen.queryByText(tags[1].name)).not.toBeInTheDocument();
+    expect(screen.queryByText(tags[2].name)).not.toBeInTheDocument();
+    expect(screen.getByText("+2")).toBeInTheDocument();
+  });
+
+  it("表示中のタグと「+N」チップの title で、タグ名の全文を確認できる", () => {
+    stubRects(150);
+    render(<EventCard event={buildEvent(tags)} />);
+
+    expect(screen.getByTitle("野鳥観察")).toBeInTheDocument();
+    expect(
+      screen.getByTitle("とても長いタグ名のイベントタグ、双眼鏡"),
+    ).toBeInTheDocument();
   });
 
   it("タグが設定されていないイベントカードでもレイアウトが崩れない", () => {
+    stubRects(150);
     render(<EventCard event={buildEvent(undefined)} />);
 
     expect(screen.getByText("テストイベント")).toBeInTheDocument();
-    expect(screen.queryByText(tags[0].name)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^\+\d+$/)).not.toBeInTheDocument();
   });
 });
