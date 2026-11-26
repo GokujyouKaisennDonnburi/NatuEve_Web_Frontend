@@ -30,13 +30,14 @@ export function buildEventDescription(description: string): string | undefined {
 // API の契約が崩れてもページ全体を 500 にしないよう、imageUrls は省略可能として受ける。
 type EventMetadataSource = Pick<
   EventDetailResponse,
-  "id" | "title" | "description"
+  "id" | "title" | "description" | "cancelledAt"
 > &
   Partial<Pick<EventDetailResponse, "imageUrls">>;
 
 // イベントごとの title / description と OGP を組み立てる。
 // 子の openGraph は親を置き換えるため、canonicalMetadata のサイト共通の値と og:url も含める。
 // X カードの title・description・画像は openGraph から引き継がれる。
+// 取りやめ済みのイベントは検索結果から外すため noindex にする（ADR-0007）。
 export function buildEventMetadata(event: EventMetadataSource): Metadata {
   const description = buildEventDescription(event.description);
   const { alternates, openGraph } = canonicalMetadata(
@@ -59,5 +60,6 @@ export function buildEventMetadata(event: EventMetadataSource): Metadata {
         ? { images: [{ url: firstImageUrl, alt: event.title }] }
         : {}),
     },
+    ...(event.cancelledAt != null ? { robots: { index: false } } : {}),
   };
 }

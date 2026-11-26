@@ -21,3 +21,4 @@
 | [0003](./0003-github-flow-staging-approval.md) | GitHub Flow を続け、main へのマージで検証環境へ、承認後に本番へデプロイする | Accepted |
 | [0005](./0005-csp-nonce-dynamic-rendering.md) | CSP に nonce と `'strict-dynamic'` を使い、全ページの動的レンダリングを受け入れる | Accepted |
 | [0006](./0006-production-deploy-queue-single.md) | 本番のデプロイのジョブは、承認待ちの古いジョブを新しいジョブで自動で取り消す | Accepted |
+| [0007](./0007-noindex-cancelled-event-detail.md) | 取りやめ済みのイベント詳細ページは noindex にし、構造化データの `EventCancelled` は使わない | Accepted |
