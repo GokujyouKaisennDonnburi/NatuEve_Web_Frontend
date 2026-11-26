@@ -237,6 +237,33 @@ describe("useEventDetail", () => {
     expect(mockGetEventDetail).toHaveBeenCalledTimes(1);
   });
 
+  it("initialEvent が更新されたら isGone を戻し、再取得を再開する", async () => {
+    mockGetEventDetail.mockRejectedValueOnce(
+      new EventDetailError("イベントは削除されました", 410),
+    );
+    const initialNow = Date.now();
+
+    const { result, rerender } = renderHook(
+      ({ event }) => useEventDetail(event, initialNow),
+      { initialProps: { event: buildEvent("initial") } },
+    );
+
+    await act(async () => {
+      await result.current.refetchEvent();
+    });
+    expect(result.current.isGone).toBe(true);
+
+    rerender({ event: buildEvent("initial") });
+    expect(result.current.isGone).toBe(false);
+
+    mockGetEventDetail.mockResolvedValueOnce(buildEvent("initial"));
+    await act(async () => {
+      await result.current.refetchEvent();
+    });
+    expect(mockGetEventDetail).toHaveBeenCalledTimes(2);
+    expect(result.current.isGone).toBe(false);
+  });
+
   it("410 以外の再取得の失敗では isGone にしない", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     mockGetEventDetail.mockRejectedValue(new EventDetailError("failed", 500));

@@ -95,6 +95,8 @@ function ReportPostPageContent() {
   // イベント詳細取得
   useEffect(() => {
     if (!eventId) return;
+    // eventId が変わったときに、前のイベントの表示や判定を引き継がない。
+    setEvent(null);
     setIsEventGone(false);
     let cancelled = false;
     const fetchEvent = async () => {

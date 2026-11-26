@@ -292,6 +292,32 @@ describe("EventJoinConfirmContent", () => {
     errorSpy.mockRestore();
   });
 
+  it("確定に成功したあとに 410 が分かった場合は、確定結果の表示を優先する", async () => {
+    let rejectEvent: ((reason: unknown) => void) | undefined;
+    mockGetEventDetail.mockReturnValue(
+      new Promise((_, reject) => {
+        rejectEvent = reject;
+      }),
+    );
+    mockConfirmEventJoin.mockResolvedValue({
+      eventId: EVENT_ID,
+      confirmedAt: "2026-11-13T00:00:00Z",
+      participants: [{ category: "大人", headCount: 2 }],
+      partySize: 2,
+    });
+
+    renderContent();
+    fireEvent.click(screen.getByRole("button", { name: "申込を確定する" }));
+    expect(await screen.findByText("申込が確定しました")).toBeInTheDocument();
+
+    await act(async () => {
+      rejectEvent?.(new EventDetailError("イベントは削除されました", 410));
+    });
+
+    expect(screen.getByText("申込が確定しました")).toBeInTheDocument();
+    expect(screen.queryByText("このイベントは削除されました。")).toBeNull();
+  });
+
   it("410 以外でイベント情報が取得できない場合は確定ボタンを表示したままにする", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockGetEventDetail.mockRejectedValue(new EventDetailError("failed", 500));
