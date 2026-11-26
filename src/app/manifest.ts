@@ -1,4 +1,4 @@
-import { APP_DESCRIPTION, APP_NAME } from "@/constants/config";
+import { APP_DESCRIPTION, APP_NAME, THEME_COLOR } from "@/constants/config";
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: APP_DESCRIPTION,
     start_url: "/",
     display: "standalone",
-    // globals.css の --surface-strong / --background と同一の値。変更時は必ず同期する。
-    theme_color: "#ffffff",
+    theme_color: THEME_COLOR,
+    // background_color は globals.css の --background と同じ値。変更時は同期する。
     background_color: "#f8fafc",
     icons: [
       {
