@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAuthContext } from "@/components/layouts/AuthProvider";
 import { EditPreviewSwitch } from "@/components/molecules/EditPreviewSwitch";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
+import { EventGoneNotice } from "@/components/molecules/EventGoneNotice";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import type { ReportPostFormState } from "@/components/organisms/report-post/ReportPostForm";
 import { ReportPostForm } from "@/components/organisms/report-post/ReportPostForm";
@@ -17,6 +18,7 @@ import { BACK_LINK_LABELS } from "@/constants/labels";
 import { ROUTES } from "@/constants/routes";
 import { useEditPreviewMode } from "@/hooks/useEditPreviewMode";
 import { useObjectUrls } from "@/hooks/useObjectUrls";
+import { isEventGoneError } from "@/lib/errors";
 import { getEventDetail } from "@/services/event";
 import { createReport } from "@/services/report";
 import { uploadFile } from "@/services/upload";
@@ -69,6 +71,8 @@ function ReportPostPageContent() {
 
   // 対象イベントの表示とプレビューのヘッダー表示に使うイベント情報
   const [event, setEvent] = useState<EventDetailType | null>(null);
+  // 対象イベントが取りやめ済み（410）と分かったら true。フォームの代わりに削除の表示を出す（ADR-0008）。
+  const [isEventGone, setIsEventGone] = useState(false);
 
   // イベントIDを URL パラメータから取得
   const eventId = searchParams.get("eventId");
@@ -91,6 +95,7 @@ function ReportPostPageContent() {
   // イベント詳細取得
   useEffect(() => {
     if (!eventId) return;
+    setIsEventGone(false);
     let cancelled = false;
     const fetchEvent = async () => {
       try {
@@ -99,10 +104,14 @@ function ReportPostPageContent() {
           setEvent(data);
         }
       } catch (error) {
-        if (!cancelled) {
-          console.error("イベント取得エラー", error);
-          toast.error("イベント情報の取得に失敗しました");
+        if (cancelled) return;
+        if (isEventGoneError(error)) {
+          // 取りやめ済みは取得の失敗ではないため、エラーの toast は出さない。
+          setIsEventGone(true);
+          return;
         }
+        console.error("イベント取得エラー", error);
+        toast.error("イベント情報の取得に失敗しました");
       }
     };
     void fetchEvent();
@@ -291,6 +300,22 @@ function ReportPostPageContent() {
 
   if (!isAuthenticated) {
     return null;
+  }
+
+  // 詳細ページも 404 になるため、戻り先はイベント一覧にする。
+  if (isEventGone) {
+    return (
+      <section className="w-full space-y-5 sm:space-y-6">
+        <div className="mx-auto w-full max-w-5xl">
+          <PageHeader
+            title="活動レポートを投稿"
+            backHref={ROUTES.EVENT_LIST}
+            backLabel={BACK_LINK_LABELS.EVENT_LIST}
+          />
+          <EventGoneNotice description="削除されたイベントには活動レポートを投稿できません。" />
+        </div>
+      </section>
+    );
   }
 
   return (

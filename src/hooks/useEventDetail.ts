@@ -1,6 +1,7 @@
 "use client";
 
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
+import { isEventGoneError } from "@/lib/errors";
 import { getEventDetail } from "@/services/event";
 import { getReport } from "@/services/report";
 import type { ReportDetail } from "@/types/report";
@@ -16,6 +17,9 @@ export type UseEventDetailResult = {
   report: ReportDetail | null;
   // 参加人数などを再取得する。参加申し込み / キャンセル後に呼ぶ。
   refetchEvent: () => Promise<void>;
+  // 再取得でイベントが取りやめ済み（410）と分かったら true。
+  // 古いイベントの内容を表示し続けないよう、呼び出し側は詳細の代わりに削除の表示を出す。
+  isGone: boolean;
 };
 
 // イベント詳細ページのクライアント側状態を管理するフック。
@@ -27,6 +31,7 @@ export function useEventDetail(
 ): UseEventDetailResult {
   const [event, setEvent] = useState(initialEvent);
   const [report, setReport] = useState<ReportDetail | null>(null);
+  const [isGone, setIsGone] = useState(false);
   const eventId = initialEvent.id;
 
   // アンマウント後の setState を避ける。refetch は effect の外からも呼ばれるため、
@@ -56,6 +61,8 @@ export function useEventDetail(
     requestIdRef.current += 1;
     lastFetchedAtRef.current = initialNow;
     setEvent(initialEvent);
+    // サーバーで取得できたイベントは取りやめ済みではない（取りやめ済みは notFound() になる）。
+    setIsGone(false);
   }, [initialEvent, initialNow]);
 
   const refetchEvent = useCallback(async () => {
@@ -75,6 +82,14 @@ export function useEventDetail(
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
+      if (isEventGoneError(err)) {
+        // 取りやめ済みは失敗ではない。古い内容とレポートを表示し続けないようにする。
+        if (isLatest()) {
+          setIsGone(true);
+          setReport(null);
+        }
         return;
       }
       if (isLatest()) {
@@ -106,7 +121,7 @@ export function useEventDetail(
   }, [refetchEvent]);
 
   // レポートは初期 HTML に必須ではないため、従来どおりクライアントで取得する。
-  // 404 は「レポート未投稿」の正常系として null が返る。
+  // 404（レポート未投稿）と 410（取りやめ済み）は正常系として null が返る。
   useEffect(() => {
     // id 変更時に前回のレポートをクリアして表示の取り違えを防ぐ
     setReport(null);
@@ -135,5 +150,5 @@ export function useEventDetail(
     };
   }, [eventId]);
 
-  return { event, report, refetchEvent };
+  return { event, report, refetchEvent, isGone };
 }

@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 type LoadEventDetail = (eventId: string) => Promise<EventDetailResponse | null>;
 
 // ページ本体と generateMetadata で共有する 404 判定。
-// イベントが存在しない場合は notFound() を呼び、それ以外は詳細を返す。
+// イベントが存在しない・取りやめ済みの場合は notFound() を呼び、それ以外は詳細を返す。
 export async function loadEventDetailOrNotFound(
   eventId: string,
   loadEvent: LoadEventDetail,

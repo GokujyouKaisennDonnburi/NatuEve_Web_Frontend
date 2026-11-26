@@ -1,6 +1,7 @@
 "use client";
 
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
+import { EventGoneNotice } from "@/components/molecules/EventGoneNotice";
 import { EventDetail } from "@/components/organisms/EventDetail";
 import { useEventDetail } from "@/hooks/useEventDetail";
 
@@ -17,10 +18,15 @@ export function EventDetailContent({
   initialEvent,
   initialNow,
 }: Readonly<EventDetailContentProps>) {
-  const { event, report, refetchEvent } = useEventDetail(
+  const { event, report, refetchEvent, isGone } = useEventDetail(
     initialEvent,
     initialNow,
   );
+
+  // 開いている間に取りやめられた場合は、古い内容を表示し続けない（ADR-0008）。
+  if (isGone) {
+    return <EventGoneNotice />;
+  }
 
   return (
     <EventDetail

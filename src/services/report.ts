@@ -1,3 +1,4 @@
+import { EVENT_GONE_STATUS } from "@/lib/errors";
 import { apiFetch } from "@/services/apiClient";
 import type {
   CreateReportErrorBody,
@@ -46,6 +47,7 @@ export async function createReport(
 //
 // 1 イベントにつき 1 レポート。レポート未投稿時は 404 となるため、
 // 404 の場合は null を返して「レポート無し」として扱う。
+// 取りやめ済みのイベントは 410 となるため、同じく「レポート無し」として扱う（ADR-0008）。
 // それ以外のエラー（500 等）は例外を送出する。
 export async function getReport(
   eventId: string,
@@ -60,8 +62,9 @@ export async function getReport(
     },
   );
 
-  // 404 は「レポート未投稿」の正常系として null を返す
-  if (response.status === 404) {
+  // 404 は「レポート未投稿」、410 は「取りやめ済みのイベント」の正常系として null を返す。
+  // 410 の判定は HTTP ステータスのみで行い、レスポンス本文には依存しない。
+  if (response.status === 404 || response.status === EVENT_GONE_STATUS) {
     return null;
   }
 
