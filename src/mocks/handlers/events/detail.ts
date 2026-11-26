@@ -2,7 +2,8 @@
 import { HttpResponse, http } from "msw";
 
 import { mockEventDetails } from "./data";
-import { cancelledEventIds, eventMembers } from "./participation";
+import { eventGoneResponse, isCancelledMockEvent } from "./gone";
+import { eventMembers } from "./participation";
 
 export const eventDetailHandler = http.get(
   "/api/v1/events/:id",
@@ -17,12 +18,8 @@ export const eventDetailHandler = http.get(
     }
 
     // 取りやめ済みのイベントは 410 Gone を返す（NatuEve_API#314・ADR-0008）。
-    // 本文の code は API 側で検討中のため仮の値。フロントは本文に依存しない。
-    if (cancelledEventIds.has(id) || found.cancelledAt) {
-      return HttpResponse.json(
-        { error: { code: "event_gone", message: "イベントは削除されました" } },
-        { status: 410 },
-      );
+    if (isCancelledMockEvent(id)) {
+      return eventGoneResponse();
     }
 
     // 現在申込中の合計参加人数を算出して返す。残り人数は client 側で

@@ -3,7 +3,7 @@
 import { HttpResponse, http } from "msw";
 
 import { mockEventDetails } from "./data";
-import { cancelledEventIds } from "./participation";
+import { eventGoneResponse, isCancelledMockEvent } from "./gone";
 
 export const eventReportHandler = http.get(
   "/api/v1/events/:id/report",
@@ -11,12 +11,8 @@ export const eventReportHandler = http.get(
     const id = String(params?.id ?? "");
     const found = mockEventDetails.get(id);
     // 取りやめ済みのイベントは、レポートの有無にかかわらず 410 Gone を返す（NatuEve_API#314・ADR-0008）。
-    // 本文の code は API 側で検討中のため仮の値。フロントは本文に依存しない。
-    if (found && (cancelledEventIds.has(id) || found.cancelledAt)) {
-      return HttpResponse.json(
-        { error: { code: "event_gone", message: "イベントは削除されました" } },
-        { status: 410 },
-      );
+    if (found && isCancelledMockEvent(id)) {
+      return eventGoneResponse();
     }
 
     const report = found?.reports?.[0];

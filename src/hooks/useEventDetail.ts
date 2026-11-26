@@ -32,6 +32,9 @@ export function useEventDetail(
   const [event, setEvent] = useState(initialEvent);
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [isGone, setIsGone] = useState(false);
+  // 取りやめ済みと分かったあとは再取得しても 410 が返るだけなので、タブ復帰などでの再取得を止める。
+  // refetchEvent から同期的に参照するため、state とは別に ref でも持つ。
+  const isGoneRef = useRef(false);
   const eventId = initialEvent.id;
 
   // アンマウント後の setState を避ける。refetch は effect の外からも呼ばれるため、
@@ -62,10 +65,12 @@ export function useEventDetail(
     lastFetchedAtRef.current = initialNow;
     setEvent(initialEvent);
     // サーバーで取得できたイベントは取りやめ済みではない（取りやめ済みは notFound() になる）。
+    isGoneRef.current = false;
     setIsGone(false);
   }, [initialEvent, initialNow]);
 
   const refetchEvent = useCallback(async () => {
+    if (isGoneRef.current) return;
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
@@ -87,6 +92,7 @@ export function useEventDetail(
       if (isEventGoneError(err)) {
         // 取りやめ済みは失敗ではない。古い内容とレポートを表示し続けないようにする。
         if (isLatest()) {
+          isGoneRef.current = true;
           setIsGone(true);
           setReport(null);
         }

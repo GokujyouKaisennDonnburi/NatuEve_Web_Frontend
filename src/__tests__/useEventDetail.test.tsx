@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildEventDetail } from "@/__tests__/fixtures/event";
+import { buildReport } from "@/__tests__/fixtures/report";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { useEventDetail } from "@/hooks/useEventDetail";
 import { EventDetailError } from "@/lib/errors";
@@ -212,9 +213,7 @@ describe("useEventDetail", () => {
   // 開いたまま取りやめられたら、古いイベントの内容を表示し続けない（ADR-0008）。
   it("再取得で 410 を受けたら isGone になり、レポートを消す", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockGetReport.mockResolvedValue({
-      id: "report-1",
-    } as Awaited<ReturnType<typeof getReport>>);
+    mockGetReport.mockResolvedValue(buildReport({ eventId: "initial" }));
     mockGetEventDetail.mockRejectedValue(
       new EventDetailError("イベントは削除されました", 410),
     );
@@ -230,6 +229,12 @@ describe("useEventDetail", () => {
     expect(result.current.isGone).toBe(true);
     expect(result.current.report).toBeNull();
     expect(errorSpy).not.toHaveBeenCalled();
+
+    // 取りやめ済みと分かったあとは、再取得しても API を呼ばない。
+    await act(async () => {
+      await result.current.refetchEvent();
+    });
+    expect(mockGetEventDetail).toHaveBeenCalledTimes(1);
   });
 
   it("410 以外の再取得の失敗では isGone にしない", async () => {

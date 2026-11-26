@@ -29,6 +29,10 @@ const EVENT_DETAIL_TIMEOUT_MS = 10_000;
 // sitemap 生成時に API が応答しないままリクエストがブロックされ続けないためのタイムアウト。
 const SITEMAP_EVENTS_TIMEOUT_MS = 10_000;
 
+// 取りやめ済みのイベントを表すエラー。getEventDetail で 410 と 200 + cancelledAt の両方に使う。
+const buildEventGoneError = (): EventDetailError =>
+  new EventDetailError("イベントは削除されました", EVENT_GONE_STATUS);
+
 // イベント詳細取得 API（GET /api/v1/events/{id}）を呼ぶ（認証不要）。
 //
 // 失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
@@ -65,9 +69,6 @@ export async function getEventDetail(
 
   return event;
 }
-
-const buildEventGoneError = (): EventDetailError =>
-  new EventDetailError("イベントは削除されました", EVENT_GONE_STATUS);
 
 // ページ用のイベント詳細取得ローダー。
 // 404（イベント不存在）と 410（取りやめ済み）は null を返し、呼び出し側で notFound() にする。

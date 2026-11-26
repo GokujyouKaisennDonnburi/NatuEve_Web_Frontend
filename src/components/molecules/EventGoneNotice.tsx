@@ -19,9 +19,10 @@ export function EventGoneNotice({
       role="status"
       className="flex flex-col items-center justify-center gap-4 py-16"
     >
-      <p className="text-lg font-bold text-slate-800">
+      {/* 確定ページ・レポート投稿の h1 の下でも階層が崩れないよう h2 にする。 */}
+      <h2 className="text-lg font-bold text-slate-800">
         このイベントは削除されました。
-      </p>
+      </h2>
       {description ? (
         <p className="max-w-md text-center text-sm leading-relaxed text-slate-600">
           {description}
