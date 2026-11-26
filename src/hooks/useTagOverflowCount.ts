@@ -30,7 +30,10 @@ export function useTagOverflowCount(
 
   // useLayoutEffect で描画前に個数を確定させ、計測前の全件表示が描画されるのを防ぐ
   useLayoutEffect(() => {
+    // 無効になったら全件表示に戻す。再び有効になったときは
+    // キャッシュ済みの実測幅から個数を数え直す
     if (!enabled) {
+      setVisibleCount(null);
       return;
     }
     const el = rowRef.current;

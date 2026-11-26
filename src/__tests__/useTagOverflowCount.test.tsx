@@ -92,4 +92,15 @@ describe("useTagOverflowCount", () => {
     expect(screen.getByTestId("visible-count")).toHaveTextContent("all");
     expect(screen.queryByText("+2")).not.toBeInTheDocument();
   });
+
+  it("有効から無効に切り替えると全件表示に戻る", () => {
+    stubRects(150);
+    const { rerender } = render(<Harness tags={tags} enabled />);
+    expect(screen.getByTestId("visible-count")).toHaveTextContent("1");
+
+    rerender(<Harness tags={tags} enabled={false} />);
+
+    expect(screen.getByTestId("visible-count")).toHaveTextContent("all");
+    expect(screen.queryByText("+2")).not.toBeInTheDocument();
+  });
 });
