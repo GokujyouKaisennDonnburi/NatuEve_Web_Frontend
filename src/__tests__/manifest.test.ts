@@ -1,5 +1,4 @@
 import manifest from "@/app/manifest";
-import { THEME_COLOR } from "@/constants/config";
 import { describe, expect, it } from "vitest";
 
 describe("manifest", () => {
@@ -10,7 +9,7 @@ describe("manifest", () => {
       description: expect.any(String),
       start_url: "/",
       display: "standalone",
-      theme_color: THEME_COLOR,
+      theme_color: "#ffffff",
       background_color: "#f8fafc",
     });
   });

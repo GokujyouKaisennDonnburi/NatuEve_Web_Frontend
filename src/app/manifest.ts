@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: APP_DESCRIPTION,
     start_url: "/",
     display: "standalone",
-    // theme_color は THEME_COLOR、background_color は globals.css の --background と同じ値。変更時は同期する。
+    // globals.css の --background と同じ値。変更時は同期する。
     theme_color: THEME_COLOR,
     background_color: "#f8fafc",
     icons: [

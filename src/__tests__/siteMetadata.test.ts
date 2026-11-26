@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { metadata as rootMetadata, viewport } from "@/app/layout";
 import { generateMetadata as generateEventMetadata } from "@/app/(main)/event/[id]/layout";
 import { generateMetadata as generateUserMetadata } from "@/app/(main)/users/[id]/layout";
-import { APP_NAME, THEME_COLOR } from "@/constants/config";
+import { APP_NAME } from "@/constants/config";
 import { canonicalMetadata, SITE_OPEN_GRAPH } from "@/utils/metadata";
 
 vi.mock("next/font/google", () => ({
@@ -15,7 +15,7 @@ vi.mock("next/font/google", () => ({
 
 describe("root metadata", () => {
   it("theme-color と iOS のホーム画面メタデータを設定する", () => {
-    expect(viewport.themeColor).toBe(THEME_COLOR);
+    expect(viewport.themeColor).toBe("#ffffff");
     expect(rootMetadata.appleWebApp).toEqual({
       capable: true,
       title: APP_NAME,
