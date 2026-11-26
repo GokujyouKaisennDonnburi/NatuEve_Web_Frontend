@@ -30,9 +30,9 @@ export function buildEventDescription(description: string): string | undefined {
 // API の契約が崩れてもページ全体を 500 にしないよう、imageUrls は省略可能として受ける。
 type EventMetadataSource = Pick<
   EventDetailResponse,
-  "id" | "title" | "description"
+  "id" | "title" | "description" | "cancelledAt"
 > &
-  Partial<Pick<EventDetailResponse, "imageUrls" | "cancelledAt">>;
+  Partial<Pick<EventDetailResponse, "imageUrls">>;
 
 // イベントごとの title / description と OGP を組み立てる。
 // 子の openGraph は親を置き換えるため、canonicalMetadata のサイト共通の値と og:url も含める。
