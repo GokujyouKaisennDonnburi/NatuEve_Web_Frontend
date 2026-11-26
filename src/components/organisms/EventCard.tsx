@@ -6,13 +6,13 @@ import { Loading } from "@/components/atoms/Loading";
 import { ROUTES } from "@/constants/routes";
 import { SM_MEDIA_QUERY } from "@/constants/config";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useTagOverflowCount } from "@/hooks/useTagOverflowCount";
 import type { TagItem } from "@/types/tag";
 import type { ResolvedEventStatus } from "@/utils/eventStatus";
-import { calcVisibleTagCount } from "@/utils/tagOverflow";
 import { MapPin } from "lucide-react";
 import Image from "next/image";
 import Link, { useLinkStatus } from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export type EventItem = {
   id: string;
@@ -65,77 +65,10 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
   // sm 以上(カードが横並びレイアウトになる幅)でのみ、収まる個数への調整を行う。
   // モバイル幅では従来どおり折り返して全件表示する(#467)。
   const isWideLayout = useMediaQuery(SM_MEDIA_QUERY);
-  const tagSignature = tags.map((tag) => tag.id).join(",");
-  // null は全件表示(計測前)を表す。タグ自体は固定幅のまま、
-  // 表示範囲に入りきる個数だけを描画し、あふれた分は「+N」チップにまとめる(#467)。
-  const [visibleTagCount, setVisibleTagCount] = useState<number | null>(null);
-  const tagsRowRef = useRef<HTMLDivElement>(null);
-  const overflowChipRef = useRef<HTMLSpanElement>(null);
-  const lastTagSignatureRef = useRef(tagSignature);
-  const tagWidthsRef = useRef<number[]>([]);
-  const overflowChipWidthRef = useRef(0);
-
-  // タグ自体は固定幅のまま、表示範囲に入りきる個数だけを描画する(#467)。
-  // useLayoutEffect で描画前に個数を確定させ、計測前の全件表示が描画されるのを防ぐ
-  useLayoutEffect(() => {
-    // スケルトン表示中はタグ領域が存在せず計測できない。
-    // モバイル幅では折り返し表示のため計測も不要。
-    if (!isMounted || !isWideLayout) {
-      return;
-    }
-    const el = tagsRowRef.current;
-    if (!el || tags.length === 0) {
-      return;
-    }
-
-    // タグ構成が変わったら実測幅を破棄し、全件表示から測り直す
-    if (lastTagSignatureRef.current !== tagSignature) {
-      lastTagSignatureRef.current = tagSignature;
-      tagWidthsRef.current = [];
-      if (visibleTagCount !== null) {
-        setVisibleTagCount(null);
-        return;
-      }
-    }
-
-    const update = () => {
-      // あふれたタグは描画していないため、各タグの幅は全件表示のときしか実測できない
-      if (tagWidthsRef.current.length === 0) {
-        if (visibleTagCount !== null) {
-          return;
-        }
-        tagWidthsRef.current = Array.from(
-          el.children,
-          (child) => (child as HTMLElement).getBoundingClientRect().width,
-        );
-      }
-      if (overflowChipRef.current) {
-        overflowChipWidthRef.current =
-          overflowChipRef.current.getBoundingClientRect().width;
-      }
-
-      const next = calcVisibleTagCount({
-        tagWidths: tagWidthsRef.current,
-        containerWidth: el.getBoundingClientRect().width,
-        gap: TAG_ROW_GAP_PX,
-        chipWidth: overflowChipWidthRef.current,
-      });
-      const nextVisibleCount = next === tags.length ? null : next;
-      if (nextVisibleCount !== visibleTagCount) {
-        setVisibleTagCount(nextVisibleCount);
-      }
-    };
-
-    update();
-
-    // 表示幅はビューポートの変更(リサイズ・回転)で変わるため、変化のたびに数え直す
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [visibleTagCount, tagSignature, tags.length, isMounted, isWideLayout]);
+  const { visibleCount, rowRef, chipRef } = useTagOverflowCount(tags, {
+    enabled: isMounted && isWideLayout,
+    gapPx: TAG_ROW_GAP_PX,
+  });
 
   if (!isMounted) {
     return (
@@ -161,9 +94,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       : event.location;
 
   const visibleTags =
-    !isWideLayout || visibleTagCount === null
-      ? tags
-      : tags.slice(0, visibleTagCount);
+    !isWideLayout || visibleCount === null ? tags : tags.slice(0, visibleCount);
   const hiddenTags = isWideLayout ? tags.slice(visibleTags.length) : [];
 
   // ISR 対象の詳細ページを prefetch すると、一覧枚数分のサーバー描画と
@@ -195,7 +126,7 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Tags area with fixed height, empty space when no tags */}
         <div
-          ref={tagsRowRef}
+          ref={rowRef}
           className="mt-3 flex min-h-6 flex-wrap items-center gap-1 sm:flex-nowrap sm:overflow-hidden sm:ml-[26px] sm:mt-[21px] sm:h-[24px]"
         >
           {visibleTags.map((tag) => (
@@ -207,12 +138,17 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
             />
           ))}
           {hiddenTags.length > 0 && (
-            <span ref={overflowChipRef} className="inline-flex shrink-0">
-              {/* 収まりきらなかったタグの全文はチップの title で確認できる */}
+            <span ref={chipRef} className="inline-flex shrink-0">
+              {/* title はホバー時のみ参照できるため、スクリーンリーダー用に sr-only でも全文を読めるようにする */}
               <FilterTag
                 label={`+${hiddenTags.length}`}
                 title={hiddenTags.map((tag) => tag.name).join("、")}
               />
+              <span className="sr-only">
+                {`ほか ${hiddenTags.length} 件のタグ: ${hiddenTags
+                  .map((tag) => tag.name)
+                  .join("、")}`}
+              </span>
             </span>
           )}
         </div>

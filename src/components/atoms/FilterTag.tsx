@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,7 @@ type FilterTagProps = {
   onClick?: () => void;
   size?: FilterTagSize;
   className?: string;
+  title?: string;
 };
 
 const sizeClasses: Record<FilterTagSize, string> = {
@@ -23,8 +24,8 @@ export function FilterTag({
   onClick,
   size = "sm",
   className,
-  ...props
-}: Readonly<FilterTagProps & { title?: string }>) {
+  title,
+}: Readonly<FilterTagProps>) {
   const commonClasses = cn(
     "inline-flex items-center justify-center rounded-full border leading-none text-[#4F584B]",
     "bg-white border-[#97C459] border-[1.5px]",
@@ -45,7 +46,7 @@ export function FilterTag({
         onClick={onClick}
         aria-pressed={selected}
         aria-label={label}
-        title={props.title}
+        title={title}
         className={commonClasses}
       >
         {labelElement}
@@ -54,7 +55,7 @@ export function FilterTag({
   }
 
   return (
-    <span title={props.title} className={commonClasses}>
+    <span title={title} className={commonClasses}>
       {labelElement}
     </span>
   );

@@ -53,6 +53,7 @@ const makeRect = (width: number) => ({ width }) as DOMRect;
 // jsdom はレイアウト計算を行わないため、矩形を実測値相当に差し替えて
 // 「収まるタグの個数」の計算を再現する。
 // タグ幅は 文字数 x 10 + 左右パディング 24px の近似値とする。
+// sr-only の読み上げテキストは実レイアウトの幅に影響しないため、幅の近似からは除外する。
 const stubRects = (containerWidth: number) =>
   vi
     .spyOn(Element.prototype, "getBoundingClientRect")
@@ -61,9 +62,11 @@ const stubRects = (containerWidth: number) =>
       if (this.classList.contains("flex-wrap")) {
         return makeRect(containerWidth);
       }
-      // FilterTag 本体と「+N」チップのラッパー(タグ領域の直下)
+      // FilterTag 本体と「+N」チップのラッパー(タグ領域の直下)。
+      // ラッパーの幅は可視ラベル(+N)から求めるため、最初の子要素のテキストを使う
       if (this.parentElement?.classList.contains("flex-wrap")) {
-        const text = this.textContent ?? "";
+        const labelElement = this.firstElementChild ?? this;
+        const text = labelElement.textContent ?? "";
         return makeRect(text.length * 10 + 24);
       }
       return makeRect(0);
