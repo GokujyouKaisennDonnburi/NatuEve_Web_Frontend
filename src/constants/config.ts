@@ -1,4 +1,7 @@
 export const APP_NAME = "なちゅいべ";
+// manifest.ts と layout.tsx の themeColor に使用。globals.css の --surface-strong と同じ値にし、変更時は同期する。
+export const THEME_COLOR = "#ffffff";
+
 // 検索されやすい語を含めた説明文の共通部分（#398）。APP_DESCRIPTION とイベント一覧の description で共有する。
 export const EVENT_SEARCH_DESCRIPTION =
   "生き物観察会や自然観察、生態系の保全活動など、自然や生物に関わるイベント";

@@ -1,5 +1,10 @@
 import { AppLayout } from "@/components/layouts/AppLayout";
-import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/constants/config";
+import {
+  APP_DESCRIPTION,
+  APP_NAME,
+  SITE_URL,
+  THEME_COLOR,
+} from "@/constants/config";
 import { MSWProvider } from "@/mocks/MSWProvider";
 import { SITE_OPEN_GRAPH } from "@/utils/metadata";
 import type { Metadata, Viewport } from "next";
@@ -18,8 +23,7 @@ const geistMono = Geist_Mono({
 });
 
 export const viewport: Viewport = {
-  // manifest.ts の theme_color と同じ値にする。
-  themeColor: "#ffffff",
+  themeColor: THEME_COLOR,
 };
 
 export const metadata: Metadata = {
