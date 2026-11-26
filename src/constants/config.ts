@@ -75,3 +75,7 @@ export const EVENT_LIST_FETCH_PAGE_SIZE = 100;
 // globals.css の desktop カスタムバリアントと同一の値のため、変更時は必ず同期する。
 export const DESKTOP_MEDIA_QUERY =
   "(min-aspect-ratio: 4/3) and (min-width: 640px)";
+
+// Tailwind の sm ブレークポイント(640px)。
+// イベントカードのように sm で横並びレイアウトに切り替わる箇所の JS 判定に使う。
+export const SM_MEDIA_QUERY = "(min-width: 640px)";

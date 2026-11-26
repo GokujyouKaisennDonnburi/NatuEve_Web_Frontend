@@ -4,6 +4,9 @@ import { EventStatusLabel } from "@/components/atoms/EventStatusLabel";
 import { FilterTag } from "@/components/atoms/FilterTag";
 import { Loading } from "@/components/atoms/Loading";
 import { ROUTES } from "@/constants/routes";
+import { SM_MEDIA_QUERY } from "@/constants/config";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useTagOverflowCount } from "@/hooks/useTagOverflowCount";
 import type { TagItem } from "@/types/tag";
 import type { ResolvedEventStatus } from "@/utils/eventStatus";
 import { MapPin } from "lucide-react";
@@ -27,6 +30,9 @@ export type EventItem = {
 type EventCardProps = {
   event: EventItem;
 };
+
+// タグ領域の gap-1(Tailwind)と同じ間隔(px)
+const TAG_ROW_GAP_PX = 4;
 
 // イベント詳細へのクライアント遷移中に、カード上へ読み込み表示を重ねる。
 function EventCardPendingIndicator() {
@@ -55,6 +61,15 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
     setIsMounted(true);
   }, []);
 
+  const tags = event.tags ?? [];
+  // sm 以上(カードが横並びレイアウトになる幅)でのみ、収まる個数への調整を行う。
+  // モバイル幅では従来どおり折り返して全件表示する(#467)。
+  const isWideLayout = useMediaQuery(SM_MEDIA_QUERY);
+  const { visibleCount, rowRef, chipRef } = useTagOverflowCount(tags, {
+    enabled: isMounted && isWideLayout,
+    gapPx: TAG_ROW_GAP_PX,
+  });
+
   if (!isMounted) {
     return (
       <div className="h-[250px] w-full animate-pulse rounded-2xl bg-slate-100 sm:h-[132px]" />
@@ -77,6 +92,10 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
     event.location.length > MAX_LOCATION_LENGTH
       ? `${event.location.slice(0, MAX_LOCATION_LENGTH)}......`
       : event.location;
+
+  const visibleTags =
+    !isWideLayout || visibleCount === null ? tags : tags.slice(0, visibleCount);
+  const hiddenTags = isWideLayout ? tags.slice(visibleTags.length) : [];
 
   // ISR 対象の詳細ページを prefetch すると、一覧枚数分のサーバー描画と
   // API 呼び出しがユーザー操作前に走るため、遷移時に取得する。
@@ -106,13 +125,31 @@ export function EventCard({ event }: Readonly<EventCardProps>) {
       {/* Right column: Tags / Title / Location+Organizer */}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Tags area with fixed height, empty space when no tags */}
-        <div className="mt-3 flex min-h-6 items-center sm:ml-[26px] sm:mt-[21px] sm:h-[24px]">
-          {event.tags && event.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {event.tags.map((tag) => (
-                <FilterTag key={tag.id} label={tag.name} title={tag.name} />
-              ))}
-            </div>
+        <div
+          ref={rowRef}
+          className="mt-3 flex min-h-6 flex-wrap items-center gap-1 sm:flex-nowrap sm:overflow-hidden sm:ml-[26px] sm:mt-[21px] sm:h-[24px]"
+        >
+          {visibleTags.map((tag) => (
+            <FilterTag
+              key={tag.id}
+              label={tag.name}
+              title={tag.name}
+              className="shrink-0"
+            />
+          ))}
+          {hiddenTags.length > 0 && (
+            <span ref={chipRef} className="inline-flex shrink-0">
+              {/* title はホバー時のみ参照できるため、スクリーンリーダー用に sr-only でも全文を読めるようにする */}
+              <FilterTag
+                label={`+${hiddenTags.length}`}
+                title={hiddenTags.map((tag) => tag.name).join("、")}
+              />
+              <span className="sr-only">
+                {`ほか ${hiddenTags.length} 件のタグ: ${hiddenTags
+                  .map((tag) => tag.name)
+                  .join("、")}`}
+              </span>
+            </span>
           )}
         </div>
 

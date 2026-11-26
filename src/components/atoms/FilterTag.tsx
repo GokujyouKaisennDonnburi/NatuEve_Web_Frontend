@@ -10,6 +10,7 @@ type FilterTagProps = {
   onClick?: () => void;
   size?: FilterTagSize;
   className?: string;
+  title?: string;
 };
 
 const sizeClasses: Record<FilterTagSize, string> = {
@@ -23,8 +24,8 @@ export function FilterTag({
   onClick,
   size = "sm",
   className,
-  ...props
-}: Readonly<FilterTagProps & { title?: string }>) {
+  title,
+}: Readonly<FilterTagProps>) {
   const commonClasses = cn(
     "inline-flex items-center justify-center rounded-full border leading-none text-[#4F584B]",
     "bg-white border-[#97C459] border-[1.5px]",
@@ -33,6 +34,11 @@ export function FilterTag({
     className,
   );
 
+  // text-overflow は flex コンテナ自身には効かないため、ラベルを内側の
+  // span で包んでおく。幅に制約があるときだけ ... 省略が働き、
+  // 制約がなければ自然幅のまま表示される(#467)。
+  const labelElement = <span className="truncate">{label}</span>;
+
   if (onClick) {
     return (
       <button
@@ -40,17 +46,17 @@ export function FilterTag({
         onClick={onClick}
         aria-pressed={selected}
         aria-label={label}
-        title={props.title}
+        title={title}
         className={commonClasses}
       >
-        {label}
+        {labelElement}
       </button>
     );
   }
 
   return (
-    <span title={props.title} className={commonClasses}>
-      {label}
+    <span title={title} className={commonClasses}>
+      {labelElement}
     </span>
   );
 }
