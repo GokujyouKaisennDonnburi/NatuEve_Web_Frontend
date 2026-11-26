@@ -34,6 +34,18 @@ describe("getEventDetailMetadata", () => {
     expect(mockNotFound).not.toHaveBeenCalled();
   });
 
+  it("取りやめ済みのイベントは noindex を返す", async () => {
+    const event = buildEventDetail({ cancelledAt: "2026-06-25T10:00:00Z" });
+    const loadEvent = vi.fn(async () => event);
+
+    await expect(
+      getEventDetailMetadata(event.id, loadEvent),
+    ).resolves.toMatchObject({
+      title: event.title,
+      robots: { index: false },
+    });
+  });
+
   it("イベントが存在しない場合は404用タイトルを返す", async () => {
     const loadEvent = vi.fn(async () => null);
 
