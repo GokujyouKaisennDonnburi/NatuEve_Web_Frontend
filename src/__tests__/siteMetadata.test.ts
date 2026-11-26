@@ -1,10 +1,36 @@
 // @vitest-environment node
 // metadata の設定値だけを検証するため、DOM は使わない。
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { metadata as rootMetadata, viewport } from "@/app/layout";
 import { generateMetadata as generateEventMetadata } from "@/app/(main)/event/[id]/layout";
 import { generateMetadata as generateUserMetadata } from "@/app/(main)/users/[id]/layout";
-import { canonicalMetadata } from "@/utils/metadata";
+import { APP_NAME } from "@/constants/config";
+import { canonicalMetadata, SITE_OPEN_GRAPH } from "@/utils/metadata";
+
+vi.mock("next/font/google", () => ({
+  Geist: () => ({ variable: "--font-geist-sans" }),
+  Geist_Mono: () => ({ variable: "--font-geist-mono" }),
+}));
+
+describe("root metadata", () => {
+  it("theme-color と iOS のホーム画面メタデータを設定する", () => {
+    expect(viewport.themeColor).toBe("#ffffff");
+    expect(rootMetadata.appleWebApp).toEqual({
+      capable: true,
+      title: APP_NAME,
+      statusBarStyle: "default",
+    });
+  });
+
+  it("既存の title と OGP を維持する", () => {
+    expect(rootMetadata.title).toEqual({
+      default: APP_NAME,
+      template: `%s | ${APP_NAME}`,
+    });
+    expect(rootMetadata.openGraph).toEqual(SITE_OPEN_GRAPH);
+  });
+});
 
 describe("canonicalMetadata", () => {
   it("canonical と og:url に同じパスを出す", () => {

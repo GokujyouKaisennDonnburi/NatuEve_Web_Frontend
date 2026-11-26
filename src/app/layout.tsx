@@ -2,7 +2,7 @@ import { AppLayout } from "@/components/layouts/AppLayout";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/constants/config";
 import { MSWProvider } from "@/mocks/MSWProvider";
 import { SITE_OPEN_GRAPH } from "@/utils/metadata";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { connection } from "next/server";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../styles/globals.css";
@@ -17,6 +17,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  // manifest.ts の theme_color と同じ値にする。
+  themeColor: "#ffffff",
+};
+
 export const metadata: Metadata = {
   title: {
     default: APP_NAME,
@@ -27,6 +32,11 @@ export const metadata: Metadata = {
   openGraph: SITE_OPEN_GRAPH,
   // title・description・画像は openGraph と metadata から引き継がれる。
   twitter: { card: "summary_large_image" },
+  appleWebApp: {
+    capable: true,
+    title: APP_NAME,
+    statusBarStyle: "default",
+  },
 };
 
 export default async function RootLayout({
