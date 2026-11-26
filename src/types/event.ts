@@ -156,6 +156,9 @@ export type EventDetailResponse = {
   capacity: number;
   // 申込期限(RFC3339)。未設定(null/undefined)の場合は締切なしとして扱う。
   applicationDeadline?: string | null;
+  // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
+  // 詳細 API は取りやめ済みのイベントも返す。
+  cancelledAt?: string | null;
   // 参加の取り消し期限(RFC3339)。未設定の場合は期限なしとして扱う。
   cancelDeadline?: string | null;
   costs: EventDetailCost[];
