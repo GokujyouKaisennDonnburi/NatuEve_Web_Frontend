@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildEventDetail } from "@/__tests__/fixtures/event";
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
 import { useEventDetail } from "@/hooks/useEventDetail";
+import { EventDetailError } from "@/lib/errors";
 import { getEventDetail } from "@/services/event";
 import { getReport } from "@/services/report";
 
@@ -206,6 +207,43 @@ describe("useEventDetail", () => {
     });
 
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  // 開いたまま取りやめられたら、古いイベントの内容を表示し続けない（ADR-0008）。
+  it("再取得で 410 を受けたら isGone になり、レポートを消す", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGetReport.mockResolvedValue({
+      id: "report-1",
+    } as Awaited<ReturnType<typeof getReport>>);
+    mockGetEventDetail.mockRejectedValue(
+      new EventDetailError("イベントは削除されました", 410),
+    );
+
+    const { result } = renderEventDetail();
+    await waitFor(() => expect(result.current.report).not.toBeNull());
+    expect(result.current.isGone).toBe(false);
+
+    await act(async () => {
+      await result.current.refetchEvent();
+    });
+
+    expect(result.current.isGone).toBe(true);
+    expect(result.current.report).toBeNull();
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it("410 以外の再取得の失敗では isGone にしない", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGetEventDetail.mockRejectedValue(new EventDetailError("failed", 500));
+
+    const { result } = renderEventDetail();
+
+    await act(async () => {
+      await result.current.refetchEvent();
+    });
+
+    expect(result.current.isGone).toBe(false);
+    expect(result.current.event.id).toBe("initial");
   });
 
   it("再取得に失敗した場合は次のタブ復帰で再試行する", async () => {

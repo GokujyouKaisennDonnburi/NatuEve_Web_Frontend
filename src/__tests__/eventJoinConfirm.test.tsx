@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildEventDetail } from "@/__tests__/fixtures/event";
 import { EventJoinConfirmContent } from "@/components/organisms/EventJoinConfirmContent";
 import { useEventJoinConfirm } from "@/hooks/useEventJoinConfirm";
+import { EventDetailError } from "@/lib/errors";
 import { getEventDetail } from "@/services/event";
 import { confirmEventJoin, getEventJoinPreview } from "@/services/participate";
 import { ConfirmJoinError, ConfirmJoinErrorCode } from "@/types/participate";
@@ -266,6 +267,43 @@ describe("EventJoinConfirmContent", () => {
     expect(
       screen.queryByRole("button", { name: "もう一度確定する" }),
     ).not.toBeInTheDocument();
+  });
+
+  // 取りやめ済みのイベントはエラー扱いにせず、削除されたことを表示する（ADR-0008）。
+  it("イベントが取りやめ済み（410）の場合は削除の表示にし、確定ボタンを出さない", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGetEventDetail.mockRejectedValue(
+      new EventDetailError("イベントは削除されました", 410),
+    );
+
+    renderContent();
+
+    expect(
+      await screen.findByText("このイベントは削除されました。"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "申込を確定する" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("申込を確定できませんでした")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "イベント一覧にもどる" }),
+    ).toHaveAttribute("href", "/event-list");
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it("410 以外でイベント情報が取得できない場合は確定ボタンを表示したままにする", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGetEventDetail.mockRejectedValue(new EventDetailError("failed", 500));
+
+    renderContent();
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalled());
+    expect(
+      screen.getByRole("button", { name: "申込を確定する" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("このイベントは削除されました。")).toBeNull();
+    errorSpy.mockRestore();
   });
 
   it("トークンが無い場合はAPIを呼ばずにエラー表示にする", async () => {
