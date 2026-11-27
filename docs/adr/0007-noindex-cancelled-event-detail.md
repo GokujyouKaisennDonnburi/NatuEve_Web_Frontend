@@ -1,6 +1,6 @@
 # ADR-0007: 取りやめ済みのイベント詳細ページは noindex にし、構造化データの `EventCancelled` は使わない
 
-- ステータス: Accepted
+- ステータス: Superseded by ADR-0008
 - 日付: 2026-11-26
 - 関連: #471, #375, NatuEve_API#311, NatuEve_API ADR-0054
 

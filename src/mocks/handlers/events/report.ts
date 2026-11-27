@@ -1,14 +1,20 @@
 // このファイルは、イベントに対するレポート取得モックエンドポイントを定義する。
-// 認証不要・1イベント1レポート。レポート未投稿時は 404 を返す。
+// 認証不要・1イベント1レポート。レポート未投稿時は 404、取りやめ済みのイベントは 410 を返す。
 import { HttpResponse, http } from "msw";
 
 import { mockEventDetails } from "./data";
+import { eventGoneResponse, isCancelledMockEvent } from "./gone";
 
 export const eventReportHandler = http.get(
   "/api/v1/events/:id/report",
   ({ params }) => {
     const id = String(params?.id ?? "");
     const found = mockEventDetails.get(id);
+    // 取りやめ済みのイベントは、レポートの有無にかかわらず 410 Gone を返す（NatuEve_API#314・ADR-0008）。
+    if (found && isCancelledMockEvent(id)) {
+      return eventGoneResponse();
+    }
+
     const report = found?.reports?.[0];
     if (!found || !report) {
       return HttpResponse.json(

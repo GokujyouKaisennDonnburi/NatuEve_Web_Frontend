@@ -1,6 +1,7 @@
 "use client";
 
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
+import { isEventGoneError } from "@/lib/errors";
 import { getEventDetail } from "@/services/event";
 import { confirmEventJoin, getEventJoinPreview } from "@/services/participate";
 import {
@@ -96,12 +97,17 @@ export function useEventJoinConfirm({
   // 確定前に何のイベントへ申し込むのかを確認できるよう、イベント情報を取得する。
   // 取得に失敗しても確定操作自体は妨げないため、エラー表示にはしない。
   const [event, setEvent] = useState<EventDetailType | null>(null);
+  // イベントが取りやめ済み（410）と分かったら true。確定しても 409 になるだけなので、
+  // 呼び出し側は確定操作の代わりに削除の表示を出す（ADR-0008）。
+  const [isEventGone, setIsEventGone] = useState(false);
   // 確定前の申込内容（プレビューAPIで取得）。
   // 取得できない場合は null のままにして申込内容の表示だけを省略する。
   const [preview, setPreview] = useState<EventJoinPreviewResponse | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+
+    setIsEventGone(false);
 
     const fetchEvent = async (): Promise<void> => {
       try {
@@ -110,9 +116,13 @@ export function useEventJoinConfirm({
           setEvent(detail);
         }
       } catch (error) {
-        if (!cancelled) {
-          console.error("イベント情報の取得に失敗しました", error);
+        if (cancelled) return;
+        if (isEventGoneError(error)) {
+          // 取りやめ済みは取得の失敗ではないため、ログは出さない。
+          setIsEventGone(true);
+          return;
         }
+        console.error("イベント情報の取得に失敗しました", error);
       }
     };
 
@@ -182,6 +192,8 @@ export function useEventJoinConfirm({
     preview,
     // 申込先のイベント概要。取得できていない間は null。
     event,
+    // 申込先のイベントが取りやめ済みなら true。
+    isEventGone,
     // 確定前・失敗後のみ押せる。確定中と確定済みは何もしない。
     confirm,
     // 再試行が意味のあるエラーで確定に失敗した場合のみ true。

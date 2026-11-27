@@ -4,6 +4,7 @@ import { Check, X } from "lucide-react";
 import Link from "next/link";
 
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
+import { EventGoneNotice } from "@/components/molecules/EventGoneNotice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BACK_LINK_LABELS } from "@/constants/labels";
@@ -36,16 +37,43 @@ export function EventJoinConfirmContent({
   eventId,
   token,
 }: Readonly<EventJoinConfirmContentProps>) {
-  const { status, errorMessage, result, preview, event, confirm, canRetry } =
-    useEventJoinConfirm({
-      eventId,
-      token,
-    });
+  const {
+    status,
+    errorMessage,
+    result,
+    preview,
+    event,
+    isEventGone,
+    confirm,
+    canRetry,
+  } = useEventJoinConfirm({
+    eventId,
+    token,
+  });
 
   const eventDetailPath = `/event/${encodeURIComponent(eventId)}`;
   // 確定前はプレビューAPIの申込内容、確定後は確定結果の申込内容を表示する。
   // どちらも取得できない場合は申込内容の枠だけを省略する。
   const joinContent = result ?? preview;
+
+  // 申込先のイベントが取りやめ済みなら、確定しても 409 になるだけなので確定操作を出さない。
+  // 詳細ページも 404 になるため、戻り先はイベント一覧にする（ADR-0008）。
+  // 確定済みの結果が先に出ている場合は、その表示を優先する。
+  if (isEventGone && status !== "success") {
+    return (
+      <section className="mx-auto flex w-full max-w-xl flex-col gap-5 py-6 sm:py-8">
+        <h1 className="text-center text-lg font-bold text-slate-900 sm:text-xl">
+          参加申込の確認
+        </h1>
+
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardContent className="px-4 sm:px-6">
+            <EventGoneNotice description="削除されたイベントには申し込めません。" />
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto flex w-full max-w-xl flex-col gap-5 py-6 sm:py-8">

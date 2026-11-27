@@ -1,4 +1,8 @@
-import { EventDetailError } from "@/lib/errors";
+import {
+  EVENT_GONE_STATUS,
+  EventDetailError,
+  isEventGoneError,
+} from "@/lib/errors";
 import { apiFetch } from "@/services/apiClient";
 import { NotificationLimitExceededError } from "@/types/event";
 import type {
@@ -25,9 +29,16 @@ const EVENT_DETAIL_TIMEOUT_MS = 10_000;
 // sitemap 生成時に API が応答しないままリクエストがブロックされ続けないためのタイムアウト。
 const SITEMAP_EVENTS_TIMEOUT_MS = 10_000;
 
+// 取りやめ済みのイベントを表すエラー。getEventDetail で 410 と 200 + cancelledAt の両方に使う。
+const buildEventGoneError = (): EventDetailError =>
+  new EventDetailError("イベントは削除されました", EVENT_GONE_STATUS);
+
 // イベント詳細取得 API（GET /api/v1/events/{id}）を呼ぶ（認証不要）。
 //
 // 失敗した場合は例外を送出し、呼び出し側の処理を中断させる。
+// 取りやめ済みのイベントは、API が 410 を返す場合も 200 + cancelledAt を返す場合も
+// status 410 の EventDetailError として送出し、呼び出し側の扱いをそろえる（ADR-0008）。
+// 410 の判定は HTTP ステータスのみで行い、レスポンス本文の error.code には依存しない。
 export async function getEventDetail(
   eventId: string,
   signal?: AbortSignal,
@@ -38,6 +49,10 @@ export async function getEventDetail(
     { auth: false, signal: requestSignal },
   );
 
+  if (response.status === EVENT_GONE_STATUS) {
+    throw buildEventGoneError();
+  }
+
   if (!response.ok) {
     throw new EventDetailError(
       response.status === 404
@@ -47,18 +62,27 @@ export async function getEventDetail(
     );
   }
 
-  return (await response.json()) as EventDetailResponse;
+  const event = (await response.json()) as EventDetailResponse;
+  if (event.cancelledAt != null) {
+    throw buildEventGoneError();
+  }
+
+  return event;
 }
 
 // ページ用のイベント詳細取得ローダー。
-// 404 は「イベント不存在」として null を返し、それ以外のエラーはそのまま送出する。
+// 404（イベント不存在）と 410（取りやめ済み）は null を返し、呼び出し側で notFound() にする。
+// それ以外のエラーはそのまま送出する。
 export async function getEventDetailOrNull(
   eventId: string,
 ): Promise<EventDetailResponse | null> {
   try {
     return await getEventDetail(eventId);
   } catch (error) {
-    if (error instanceof EventDetailError && error.status === 404) {
+    if (
+      (error instanceof EventDetailError && error.status === 404) ||
+      isEventGoneError(error)
+    ) {
       return null;
     }
     throw error;

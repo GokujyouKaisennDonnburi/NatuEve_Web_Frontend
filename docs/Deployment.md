@@ -637,7 +637,7 @@ OpenNext の `populateProcessEnv` が Worker の文字列のバインディン�
 - 検索に載せないページは `Disallow` にせず、`noindex` で制御する。`Disallow` するとクロールされず、`noindex` が読まれなくなる。
 - ログインが要るページなどは、各 `layout.tsx` の `metadata` に `robots: { index: false }` を設定する（`/mypage`、`/event-post`、`/report-post`、`/signin`、`/auth/callback`、`/coming-soon`、`/users/[id]`）。
 - `/users/[id]` は個人のページのため検索に載せない。主催者名はイベント詳細ページの本文に出るため、そちらが検索対象になる。
-- 取りやめ済みのイベント（詳細 API の `cancelledAt` が `null` 以外）の `/event/[id]` は、`buildEventMetadata`（`src/utils/seo.ts`）で `robots: { index: false }` にする。sitemap から外しても、すでに検索結果に載ったページは消えないため（#471、ADR-0007）。取りやめていないイベントには付けない。
+- 取りやめ済みのイベント（詳細 API が `410`、または `200` で `cancelledAt` が `null` 以外）の `/event/[id]` は `notFound()` で 404 にする。404 のページは検索結果から外れるため、`noindex` は付けない（#473、ADR-0008。ADR-0007 の `noindex` を置き換えた）。
 - 検証環境は `SITE_NOINDEX=true` でビルドし、全ページ（404・`robots.txt`・`sitemap.xml` を含む）に `X-Robots-Tag: noindex` を付ける。metadata ではなくヘッダーにするのは、ページごとの `metadata` の設定に左右されないため。
 - Workers では、静的アセット（`/images/*`・`/_next/static/*` など）と `/_next/image` は `headers()` を通らないため付かない。ページは `noindex` なので許容する（確認: `wrangler dev`。#372）。
 

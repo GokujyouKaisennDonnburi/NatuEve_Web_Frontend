@@ -157,7 +157,8 @@ export type EventDetailResponse = {
   // 申込期限(RFC3339)。未設定(null/undefined)の場合は締切なしとして扱う。
   applicationDeadline?: string | null;
   // イベントが取りやめになった日時(RFC3339)。未設定(null/undefined)の場合は開催予定。
-  // 詳細 API は取りやめ済みのイベントも返す。
+  // API の変更前は詳細 API が取りやめ済みも cancelledAt 付きで返すが、getEventDetail で
+  // 410 の EventDetailError にそろえるため、呼び出し側には届かない（ADR-0008）。
   cancelledAt?: string | null;
   // 参加の取り消し期限(RFC3339)。未設定の場合は期限なしとして扱う。
   cancelDeadline?: string | null;

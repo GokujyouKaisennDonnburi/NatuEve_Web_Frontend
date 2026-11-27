@@ -1,7 +1,10 @@
 "use client";
 
 import type { EventDetailType } from "@/components/molecules/event-detail/types";
+import { EventGoneNotice } from "@/components/molecules/EventGoneNotice";
 import { EventDetail } from "@/components/organisms/EventDetail";
+import { APP_NAME } from "@/constants/config";
+import { PAGE_TITLES } from "@/constants/pageTitles";
 import { useEventDetail } from "@/hooks/useEventDetail";
 
 type EventDetailContentProps = {
@@ -17,10 +20,22 @@ export function EventDetailContent({
   initialEvent,
   initialNow,
 }: Readonly<EventDetailContentProps>) {
-  const { event, report, refetchEvent } = useEventDetail(
+  const { event, report, refetchEvent, isGone } = useEventDetail(
     initialEvent,
     initialNow,
   );
+
+  // 開いている間に取りやめられた場合は、古い内容を表示し続けない（ADR-0008）。
+  // EventDetail の h1 ごと差し替えるため見出しを h1 にし、失われるフォーカスを見出しへ移す。
+  // SSR 時の metadata のタイトル（イベント名）も残さないよう、タブのタイトルも差し替える。
+  if (isGone) {
+    return (
+      <>
+        <title>{`${PAGE_TITLES.EVENT_DETAIL_GONE} | ${APP_NAME}`}</title>
+        <EventGoneNotice headingLevel="h1" focusOnMount />
+      </>
+    );
+  }
 
   return (
     <EventDetail

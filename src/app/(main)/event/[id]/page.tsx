@@ -20,7 +20,7 @@ type EventDetailPageProps = {
 
 // generateMetadata とページ本体で同じ結果を使い、API の二重呼び出しを避ける。
 // 同一リクエスト内は React cache、別RSCリクエスト間は Data Cache で共有する。
-// 404 はイベント不存在として null を返し、呼び出し側で notFound() を呼ぶ。
+// 404（イベント不存在）と 410（取りやめ済み）は null を返し、呼び出し側で notFound() を呼ぶ。
 const getEventDetailCached = unstable_cache(
   getEventDetailOrNull,
   ["event-detail"],

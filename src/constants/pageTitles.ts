@@ -8,6 +8,8 @@ export const PAGE_TITLES = {
   EVENT_DETAIL: "イベント詳細",
   EVENT_DETAIL_NOT_FOUND: "イベントが見つかりません",
   EVENT_DETAIL_ERROR: "イベントを読み込めませんでした",
+  // 開いている間に取りやめられたときに、クライアント側で差し替えるタイトル（ADR-0008）。
+  EVENT_DETAIL_GONE: "イベントは削除されました",
   EVENT_JOIN_CONFIRM: "参加申込の確認",
   EVENT_POST: "イベントを投稿",
   REPORT_POST: "活動レポートを投稿",

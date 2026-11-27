@@ -137,27 +137,6 @@ describe("buildEventMetadata の OGP", () => {
   });
 });
 
-// sitemap から外しても検索結果に残るため、詳細ページで noindex にする（ADR-0007）。
-describe("buildEventMetadata の取りやめ済みのイベント", () => {
-  it("取りやめ済みの場合は noindex を設定する", () => {
-    const metadata = buildEventMetadata({
-      ...baseEvent,
-      cancelledAt: "2026-06-25T10:00:00Z",
-    });
-
-    expect(metadata.robots).toEqual({ index: false });
-  });
-
-  it.each([
-    ["null", null],
-    ["未設定", undefined],
-  ])("cancelledAt が%sの場合は robots を設定しない", (_, cancelledAt) => {
-    const metadata = buildEventMetadata({ ...baseEvent, cancelledAt });
-
-    expect(metadata).not.toHaveProperty("robots");
-  });
-});
-
 describe("buildEventDescription", () => {
   it("改行・連続空白を1つの空白に正規化する", () => {
     expect(buildEventDescription("  1行目\n\n2行目  ")).toBe("1行目 2行目");

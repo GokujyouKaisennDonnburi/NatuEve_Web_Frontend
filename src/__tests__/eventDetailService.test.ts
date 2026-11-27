@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildEventDetail } from "@/__tests__/fixtures/event";
-import { EventDetailError } from "@/lib/errors";
+import { EventDetailError, isEventGoneError } from "@/lib/errors";
 import { getEventDetail, getEventDetailOrNull } from "@/services/event";
 
 afterEach(() => {
@@ -26,6 +26,46 @@ describe("getEventDetail", () => {
     await expect(getEventDetail("missing")).rejects.toBeInstanceOf(
       EventDetailError,
     );
+  });
+
+  // 410 は本文に依存せず、HTTP ステータスだけで判定する（ADR-0008）。
+  it.each([
+    ["エラー形式の本文", async () => ({ error: { code: "any_code" } })],
+    [
+      "JSON でない本文",
+      async () => {
+        throw new SyntaxError("Unexpected token");
+      },
+    ],
+  ])("410 の場合は%sでも status 410 の EventDetailError を送出する", async (_, json) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 410, json } as Response),
+    );
+
+    const error = await getEventDetail("gone").catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(EventDetailError);
+    expect(error).toMatchObject({ status: 410 });
+    expect(isEventGoneError(error)).toBe(true);
+  });
+
+  // API の変更前（200 + cancelledAt）も 410 と同じ扱いにする（ADR-0008）。
+  it("200 で cancelledAt 付きの場合は status 410 の EventDetailError を送出する", async () => {
+    const event = buildEventDetail({ cancelledAt: "2026-06-25T10:00:00Z" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => event,
+      } as Response),
+    );
+
+    await expect(getEventDetail(event.id)).rejects.toMatchObject({
+      name: "EventDetailError",
+      status: 410,
+    });
   });
 
   it("200 の場合はイベント詳細を返す", async () => {
@@ -89,6 +129,23 @@ describe("getEventDetailOrNull", () => {
     );
 
     await expect(getEventDetailOrNull("missing")).resolves.toBeNull();
+  });
+
+  it.each([
+    ["410", { ok: false, status: 410, json: async () => ({}) }],
+    [
+      "200 + cancelledAt",
+      {
+        ok: true,
+        status: 200,
+        json: async () =>
+          buildEventDetail({ cancelledAt: "2026-06-25T10:00:00Z" }),
+      },
+    ],
+  ])("取りやめ済み（%s）の場合は null を返す", async (_, response) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response as Response));
+
+    await expect(getEventDetailOrNull("gone")).resolves.toBeNull();
   });
 
   it("404 以外のエラーはそのまま送出する", async () => {
